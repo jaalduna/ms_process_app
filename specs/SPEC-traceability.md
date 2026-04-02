@@ -416,7 +416,7 @@ Response: `TagDetail` (201 Created). The tag is immutable once created (no updat
 
 | Issue | Title | Requirements | Status |
 |-------|-------|-------------|--------|
-| JAA-240 | Scaffold traceability module: types, API functions, and registry hookup | NFR-03, FR-08 | Backlog |
-| JAA-250 | Tag list page with paginated table, filters, and loading/empty states | FR-01, FR-02, FR-06, FR-07 | Backlog |
-| JAA-254 | Tag detail modal with table listing, CSV download, and ZIP download | FR-03, FR-04, FR-05 | Backlog |
-| JAA-243 | Expand mock server traceability seed to all 9 countries and add failed tags | FR-09, FR-07 | Backlog |
+| JAA-240 | Scaffold traceability module: types, API functions, and registry hookup | NFR-03, FR-08 | Done |
+| JAA-250 | Tag list page with paginated table, filters, and loading/empty states | FR-01, FR-02, FR-06, FR-07 | Done |
+| JAA-254 | Tag detail modal with table listing, CSV download, and ZIP download | FR-03, FR-04, FR-05 | Done |
+| JAA-243 | Expand mock server traceability seed to all 9 countries and add failed tags | FR-09, FR-07 | Done |
