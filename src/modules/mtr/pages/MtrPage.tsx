@@ -1,9 +1,12 @@
 import { useState } from "react"
 import { PeriodSelector } from "@/components/PeriodSelector"
+import { MtrConfigDialog } from "../components/MtrConfigDialog"
 import { MtrCountryCard } from "../components/MtrCountryCard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCountries } from "@/hooks/useCountries"
 import { useLastMtr } from "../hooks/useLastMtr"
+import type { MtrParams } from "../types"
+import { DEFAULT_MTR_PARAMS } from "../types"
 
 function currentPeriod(): string {
   const now = new Date()
@@ -15,6 +18,7 @@ function currentPeriod(): string {
 
 export function MtrPage() {
   const [period, setPeriod] = useState(currentPeriod)
+  const [mtrParams, setMtrParams] = useState<MtrParams>(DEFAULT_MTR_PARAMS)
   const { data, isLoading, error } = useCountries()
   const { data: lastMtr } = useLastMtr()
 
@@ -30,7 +34,7 @@ export function MtrPage() {
         </div>
         <div className="flex items-center gap-2">
           <PeriodSelector value={period} onChange={setPeriod} />
-          {/* MtrConfigDialog will be added in JAA-248 */}
+          <MtrConfigDialog params={mtrParams} onChange={setMtrParams} />
         </div>
       </div>
 
@@ -56,6 +60,7 @@ export function MtrPage() {
               key={c.code}
               countryCode={c.code}
               period={period}
+              mtrParams={mtrParams}
               lastMtrDate={lastMtr?.[c.code]?.completed_at ?? null}
             />
           ))}
