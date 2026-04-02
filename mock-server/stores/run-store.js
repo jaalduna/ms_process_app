@@ -12,6 +12,10 @@ export class RunStore {
     this.runs = new Map()
     /** @type {Map<string, NodeJS.Timeout>} */
     this.timers = new Map()
+    /** When true, _advanceStep() never randomly fails. Set via setDeterministic(). */
+    this.deterministic = false
+    /** @type {Map<string, string>} runId → stepName to force-fail at */
+    this._forceFailMap = new Map()
   }
 
   /**
@@ -215,11 +219,31 @@ export class RunStore {
     return result
   }
 
+  /**
+   * Enable or disable deterministic mode.
+   * When deterministic, _advanceStep() never randomly fails (5% chance is skipped).
+   * @param {boolean} flag
+   */
+  setDeterministic(flag) {
+    this.deterministic = !!flag
+  }
+
+  /**
+   * Mark a run to force-fail when it reaches a specific step.
+   * Used by E2E error-path tests (FR-06, FR-14).
+   * @param {string} runId
+   * @param {string} stepName - the step name at which to inject failure
+   */
+  forceFailAtStep(runId, stepName) {
+    this._forceFailMap.set(runId, stepName)
+  }
+
   /** Clear all runs and stop all timers. */
   reset() {
     for (const timer of this.timers.values()) clearInterval(timer)
     this.timers.clear()
     this.runs.clear()
+    this._forceFailMap.clear()
   }
 
   /** @private */
@@ -231,16 +255,25 @@ export class RunStore {
 
     const step = run.steps[currentIdx]
 
-    // 5% chance of failure
-    if (Math.random() < 0.05) {
+    // Check for forced failure at this step
+    const forcedStep = this._forceFailMap.get(run.run_id)
+    const shouldForceFail = forcedStep && step.name === forcedStep
+
+    // Random failure: 5% chance, but ONLY when not in deterministic mode
+    const shouldRandomFail = !this.deterministic && Math.random() < 0.05
+
+    if (shouldForceFail || shouldRandomFail) {
       step.status = "failed"
       step.completed_at = new Date().toISOString()
-      step.error = `Step "${step.name}" failed: simulated error`
+      step.error = shouldForceFail
+        ? `Step "${step.name}" failed: forced failure for testing`
+        : `Step "${step.name}" failed: simulated error`
       run.status = "failed"
       run.completed_at = new Date().toISOString()
       run.updated_at = new Date().toISOString()
       run.current_step = null
       run.error_message = `Pipeline failed at step: ${step.name}`
+      if (shouldForceFail) this._forceFailMap.delete(run.run_id)
       return
     }
 

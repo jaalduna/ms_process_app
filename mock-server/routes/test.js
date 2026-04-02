@@ -10,7 +10,8 @@ const router = Router()
 
 /**
  * POST /api/v1/test/reset
- * Clears all in-memory state and re-seeds with default fixtures.
+ * Clears all in-memory state, re-seeds with default fixtures, and enables
+ * deterministic mode (no random step failures) on all run stores.
  * Used by E2E tests for deterministic starting state.
  */
 router.post("/test/reset", (_req, res) => {
@@ -21,6 +22,12 @@ router.post("/test/reset", (_req, res) => {
   mtrStore.reset()
   tagStore.reset()
 
+  // Enable deterministic mode on all run stores so E2E happy-path tests
+  // never fail due to the 5% random failure in _advanceStep().
+  pricesStore.setDeterministic(true)
+  weightingStore.setDeterministic(true)
+  mtrStore.setDeterministic(true)
+
   // Re-seed
   seedSyncJobs()
   seedPrices()
@@ -28,7 +35,51 @@ router.post("/test/reset", (_req, res) => {
   seedMtr()
   seedTraceability()
 
-  res.json({ status: "ok", message: "All stores reset and re-seeded" })
+  res.json({ status: "ok", message: "All stores reset, re-seeded, and deterministic mode enabled" })
+})
+
+/**
+ * POST /api/v1/test/fail-run/:runId
+ * Force a run to fail at a specific step. Used by E2E error-path tests
+ * (FR-06, FR-14) to deterministically produce a failed run.
+ *
+ * Body: { "step": "<step_name>" }
+ *   If step is omitted, fails at the first pending/running step.
+ *
+ * The store is auto-detected by checking all run stores for the given runId.
+ */
+router.post("/test/fail-run/:runId", (req, res) => {
+  const { runId } = req.params
+  const { step } = req.body || {}
+
+  // Find which store owns this run
+  const stores = [pricesStore, weightingStore, mtrStore]
+  const store = stores.find(s => s.get(runId))
+  if (!store) {
+    return res.status(404).json({ error: "not_found", message: `Run ${runId} not found in any store` })
+  }
+
+  const run = store.get(runId)
+
+  // Determine which step to fail at
+  let targetStep = step
+  if (!targetStep) {
+    // Default: fail at the next running or pending step
+    const nextStep = run.steps.find(s => s.status === "running" || s.status === "pending")
+    if (!nextStep) {
+      return res.status(409).json({ error: "conflict", message: "No pending or running steps to fail" })
+    }
+    targetStep = nextStep.name
+  }
+
+  // Verify the target step exists in this run
+  const stepExists = run.steps.some(s => s.name === targetStep)
+  if (!stepExists) {
+    return res.status(400).json({ error: "bad_request", message: `Step "${targetStep}" not found in run. Available: ${run.steps.map(s => s.name).join(", ")}` })
+  }
+
+  store.forceFailAtStep(runId, targetStep)
+  res.json({ status: "ok", message: `Run ${runId} will fail at step "${targetStep}"`, run_id: runId, fail_at_step: targetStep })
 })
 
 export default router
