@@ -3,10 +3,10 @@
 **Slug**: `e2e-tests`
 **PRD**: `PRD-ms-process-app`
 **PRD Features**: F-09
-**Status**: draft
+**Status**: implementing
 **Priority**: Should-have
 **Phase**: Phase 4 — Cross-cutting
-**Depends on**: SPEC-prices-module, SPEC-weighting-module, SPEC-mtr-module, SPEC-traceability
+**Depends on**: SPEC-prices-module, SPEC-weighting-module, SPEC-mtr-module, SPEC-traceability, SPEC-pipeline-deps, SPEC-module-registry, SPEC-mock-server
 **Created**: 2026-04-02
 
 ---
@@ -41,8 +41,8 @@ The existing Playwright E2E test suite (`e2e/`) covers Sync module flows (login,
    - *Rationale*: Confirms the module renders its primary layout correctly.
 2. **FR-02**: A test must verify that triggering a price validation for a country creates a run and displays step-based progress indicators.
    - *Rationale*: Validates the core trigger-and-monitor flow.
-3. **FR-03**: A test must verify that outlier results are displayed in a data table after a validation run completes.
-   - *Rationale*: Ensures the results view renders correctly.
+3. **FR-03**: A test must verify that outlier results are displayed in a data table after a validation run completes, showing at minimum `product`, `declared_price`, `deviation_pct`, and `reason` columns.
+   - *Rationale*: Ensures the results view renders correctly with the expected data columns from the mock.
 4. **FR-04**: A test must verify that the approval action updates the run status to "approved".
    - *Rationale*: Confirms the approval workflow functions end-to-end.
 5. **FR-05**: A test must verify that cancelling a running validation stops it and shows "cancelled" status.
@@ -54,8 +54,8 @@ The existing Playwright E2E test suite (`e2e/`) covers Sync module flows (login,
 
 7. **FR-07**: A test must verify that the Weighting module page loads and displays a country-card grid when navigated to `/pesaje`.
    - *Rationale*: Confirms basic module rendering.
-8. **FR-08**: A test must verify that the configuration dialog opens, accepts parameter changes, and those parameters are sent when triggering.
-   - *Rationale*: Validates the config-then-trigger flow.
+8. **FR-08**: A test must verify that the configuration dialog opens, accepts parameter changes (as defined by SPEC-weighting-module), and those parameters are included in the POST body when triggering a run.
+   - *Rationale*: Validates the config-then-trigger flow. Specific parameters depend on SPEC-weighting-module's design.
 9. **FR-09**: A test must verify that a completed weighting run displays summary statistics (min, max, mean, median weight).
    - *Rationale*: Confirms results rendering.
 10. **FR-10**: A test must verify that cancelling a running weighting shows "cancelled" status.
@@ -82,7 +82,7 @@ The existing Playwright E2E test suite (`e2e/`) covers Sync module flows (login,
     - *Rationale*: Confirms detail view rendering.
 18. **FR-18**: A test must verify that the CSV download action on a tagged table initiates a file download.
     - *Rationale*: Validates the download flow.
-19. **FR-19**: A test must verify that pagination works when there are more tags than fit on one page.
+19. **FR-19**: A test must verify that pagination works when there are more tags than fit on one page. The mock seeds 25 tags; the frontend's page size determines when pagination activates. If the frontend page size is >25, the test should use a smaller page size or seed additional tags via the test setup.
     - *Rationale*: Confirms pagination UX.
 
 #### Pipeline Dependency Tests
@@ -94,8 +94,8 @@ The existing Playwright E2E test suite (`e2e/`) covers Sync module flows (login,
 
 #### Navigation Tests
 
-22. **FR-22**: A test must verify that all module nav items (Precios, Elegibilidad, Pesaje, Calibracion, MTR, Trazabilidad) are visible when all modules are enabled in config.
-    - *Rationale*: Confirms dynamic navigation rendering.
+22. **FR-22**: A test must verify that all module nav items (Sync, Precios, Elegibilidad, Pesaje, Calibracion, MTR, Trazabilidad) are visible when all modules are enabled in config.
+    - *Rationale*: Confirms dynamic navigation rendering. The complete list includes all 7 modules from `useModuleConfig`.
 23. **FR-23**: A test must verify that disabling a module in `config.js` hides its nav item and returns 404 or redirect when navigating to its route directly.
     - *Rationale*: Validates module toggle behavior.
 24. **FR-24**: A test must verify that the default route redirects to the first enabled module when navigating to an unknown path.
@@ -105,6 +105,19 @@ The existing Playwright E2E test suite (`e2e/`) covers Sync module flows (login,
 
 25. **FR-25**: All E2E tests must run against the mock server without any real backend dependency.
     - *Rationale*: Tests must be deterministic and runnable in CI without external services.
+
+#### History Tests
+
+26. **FR-26**: A test must verify that clicking a history action on a Prices country card opens a modal showing past runs with period, status, and date columns.
+    - *Rationale*: Confirms the run history view is accessible and renders seeded data.
+
+#### Mock Server Determinism
+
+27. **FR-27**: The mock server must support a deterministic execution mode (e.g., `POST /test/reset` disabling random step failures, or a `?deterministic=true` query param on `/execute`) so that happy-path tests never fail due to the 5% random failure in `RunStore._advanceStep()`.
+    - *Rationale*: Without this, any test that triggers a run has a compounding chance of random failure per step, violating NFR-04 (no flaky tests).
+
+28. **FR-28**: The mock server must support forcing a run to fail at a specific step (e.g., `POST /test/fail-run/:runId` or a `?force_fail_at_step=<step_name>` query param on `/execute`) so that error-path tests (FR-06, FR-14) can deterministically produce a failed run without relying on random chance.
+    - *Rationale*: FR-06 and FR-14 require a failed run state. Without a forced-failure mechanism, these tests cannot reliably create the precondition they need to test.
 
 ### Non-Functional Requirements
 
@@ -128,16 +141,18 @@ Vite Dev Server (VITE_AUTH_BYPASS=true)
         |
         | Axios HTTP calls
         v
-Mock Server (Express, http://127.0.0.1:8000/api/v1)
+Mock Server (Express, http://127.0.0.1:5000/api/v1)
         |
         | In-memory fixtures
         v
 Predefined test data (9 countries, mock runs, mock tags)
 ```
 
+> **Note**: The mock server Express app binds to port **5000** (`mock-server/server.js`). The frontend's `public/config.js` sets `API_URL` to `http://127.0.0.1:8000/api/v1`. For E2E tests to work, either `config.js` must be updated to port 5000, or a proxy/port mapping must align the two. Verify this before writing tests.
+
 - **Auth**: Bypassed via `VITE_AUTH_BYPASS=true` and `DevAuthProvider`. Tests click "Sign In" which auto-authenticates.
 - **API**: All API calls from the app hit the mock server. The mock server simulates pipeline step progression over time.
-- **State**: Mock server uses in-memory state. Each test starts with a clean state (mock server restart or state reset endpoint).
+- **State**: Mock server uses in-memory state. Each test starts with a clean state via `POST /api/v1/test/reset`.
 
 ## Technical Design
 
@@ -172,13 +187,42 @@ export async function navigateTo(page: Page, moduleName: string, expectedUrl: Re
 }
 ```
 
+#### Module Config Override
+
+For navigation tests that need to toggle modules on/off (FR-23, FR-24), use Playwright's `page.route()` to intercept and replace `config.js` with a custom response. This is more reliable than `addInitScript()` because `public/config.js` is loaded as a `<script>` tag in `index.html` and would overwrite any earlier `window.__APP_CONFIG__` set by init scripts.
+
+```typescript
+// e2e/helpers/config.ts
+import { Page } from "@playwright/test"
+
+export async function setModuleConfig(page: Page, modules: Partial<Record<string, boolean>>) {
+  const allModules = {
+    sync: true, calibration: true, elegibilidad: true,
+    prices: true, weighting: true, mtr: true, traceability: true,
+    ...modules,
+  }
+  await page.route("**/config.js", (route) => {
+    route.fulfill({
+      contentType: "application/javascript",
+      body: `
+        window.__BRIDGE_CONFIG__ = { API_URL: "http://127.0.0.1:5000/api/v1" };
+        window.__APP_CONFIG__ = { modules: ${JSON.stringify(allModules)} };
+      `,
+    })
+  })
+}
+```
+
+This must be called **before** `page.goto()` so the route interception is active when the page loads.
+
 #### Mock Server State Reset
 
-Add a `POST /test/reset` endpoint to the mock server that clears in-memory state and reloads fixtures. Call this in `test.beforeEach`:
+The `POST /test/reset` endpoint already exists in `mock-server/routes/test.js`. Call it in `test.beforeEach` to ensure deterministic state:
 
 ```typescript
 test.beforeEach(async ({ page }) => {
-  await page.request.post("http://127.0.0.1:8000/api/v1/test/reset")
+  // Port must match the running mock server (currently 5000 in server.js)
+  await page.request.post("http://127.0.0.1:5000/api/v1/test/reset")
 })
 ```
 
@@ -189,7 +233,8 @@ No changes needed to `playwright.config.ts` — existing config supports the new
 ### Affected Components
 
 - `e2e/` — all new test files
-- `mock-server/server.js` — add `POST /test/reset` endpoint and ensure all module mock endpoints return deterministic fixture data
+- `mock-server/routes/test.js` — extend `POST /test/reset` to also set deterministic mode (disable random step failures per FR-27); add `POST /test/fail-run/:runId` to force a run into failed state (FR-28)
+- `mock-server/stores/run-store.js` — add deterministic mode flag to skip the 5% random failure in `_advanceStep()`; add `forceFailAtStep()` method for controlled failure injection
 
 ### New Components
 
@@ -197,12 +242,13 @@ No changes needed to `playwright.config.ts` — existing config supports the new
 |------|---------|
 | `e2e/helpers/auth.ts` | Shared login helper |
 | `e2e/helpers/navigation.ts` | Shared navigation helper |
-| `e2e/prices.spec.ts` | Prices module E2E tests |
-| `e2e/weighting.spec.ts` | Weighting module E2E tests |
-| `e2e/mtr.spec.ts` | MTR module E2E tests |
-| `e2e/traceability.spec.ts` | Traceability module E2E tests |
-| `e2e/pipeline-deps.spec.ts` | Pipeline dependency indicator E2E tests |
-| `e2e/navigation.spec.ts` | Navigation and module toggle E2E tests |
+| `e2e/helpers/config.ts` | Shared module config override helper for toggle tests |
+| `e2e/prices.spec.ts` | Prices module E2E tests (FR-01 through FR-06, FR-26) |
+| `e2e/weighting.spec.ts` | Weighting module E2E tests (FR-07 through FR-10) |
+| `e2e/mtr.spec.ts` | MTR module E2E tests (FR-11 through FR-14) |
+| `e2e/traceability.spec.ts` | Traceability module E2E tests (FR-15 through FR-19) |
+| `e2e/pipeline-deps.spec.ts` | Pipeline dependency indicator E2E tests (FR-20, FR-21) |
+| `e2e/navigation.spec.ts` | Navigation and module toggle E2E tests (FR-22 through FR-24) |
 
 ## Test Plan
 
@@ -245,7 +291,7 @@ No changes needed to `playwright.config.ts` — existing config supports the new
 | filter by country | Tag list visible | Select "Chile" in country filter | Only Chile tags shown |
 | filter by stage | Tag list visible | Select "Calibracion" in stage filter | Only Calibracion tags shown |
 | combined filters | Tag list visible | Select Chile + Calibracion | Intersection of both filters |
-| pagination works | Mock: 60 tags exist | Navigate to page 2 | Different tags shown, page indicator updates |
+| pagination works | Mock seeds 25 tags; frontend page size or `?limit` param makes 25 exceed one page | Navigate to page 2 | Different tags shown, page indicator updates |
 | tag detail opens | Tag list visible | Click a tag row | Modal opens with run metadata and table list |
 | CSV download initiates | Tag detail modal open | Click download on a table | Download starts (verify response header or download event) |
 
@@ -261,7 +307,7 @@ No changes needed to `playwright.config.ts` — existing config supports the new
 
 | Test Name | Preconditions | Steps | Expected Result |
 |-----------|--------------|-------|-----------------|
-| all modules in nav | All modules enabled | Login and check nav | All module names visible in navigation |
+| all modules in nav | All modules enabled via `setModuleConfig` | Login and check nav | All 7 module names visible in navigation (Sync, Precios, Elegibilidad, Pesaje, Calibracion, MTR, Trazabilidad) |
 | disabled module hidden | `prices: false` in config | Login and check nav | "Precios" not in navigation |
 | disabled route redirects | `prices: false` in config | Navigate directly to `/precios` | Redirected to default route |
 | default route redirect | Logged in | Navigate to `/nonexistent` | Redirected to first enabled module |
@@ -275,13 +321,16 @@ No changes needed to `playwright.config.ts` — existing config supports the new
 5. **Navigation during run**: If the user navigates away from a module while a run is in progress, navigating back should resume showing the run's current status.
 6. **Period selector boundary**: Test with the most recent period and the oldest available period to ensure the selector works at boundaries.
 7. **Download in headless mode**: Playwright in headless mode handles downloads differently. Use `page.waitForEvent('download')` to verify CSV downloads without actually writing files.
+8. **Concurrent run attempt**: If a user tries to trigger a second run for the same country while one is already running, the mock server returns HTTP 409 Conflict. The UI should handle this gracefully (e.g., disable the trigger button while a run is active, or show an error message). Consider adding a test for this if the UI provides explicit handling.
 
 ## Assumptions
 
 - The mock server (`mock-server/server.js`) will have been extended with all new module endpoints (per SPEC-mock-server) before E2E tests are written.
 - `VITE_AUTH_BYPASS=true` is set when running E2E tests (same as existing tests).
-- The mock server provides a `POST /test/reset` endpoint (or equivalent) to reset state between tests.
-- Module toggle behavior works at the `config.js` level — tests can modify the config via a test-specific `config.js` or by injecting `window.__APP_CONFIG__` before navigation.
+- The mock server's `POST /test/reset` endpoint already exists (in `mock-server/routes/test.js`) and resets all stores. It will be extended to also disable random step failures (FR-27).
+- Module toggle behavior works at the `config.js` level. Tests override `window.__APP_CONFIG__` via `page.route()` interception of `config.js` before navigation (see `e2e/helpers/config.ts`).
+- The mock server's `COUNTRIES` array contains exactly 9 entries (`argentina, bolivia, brasil, cam, chile, colombia, ecuador, mexico, peru`), which matches FR-01/FR-07/FR-11's "9 country cards" assertion.
+- The mock server port (currently 5000 in `server.js`) must match the `API_URL` in `config.js` (currently 8000). This mismatch must be resolved before tests run -- either update `config.js` or add a port remap.
 
 ## Acceptance Criteria
 
@@ -292,10 +341,13 @@ No changes needed to `playwright.config.ts` — existing config supports the new
 5. [ ] **AC-05**: `e2e/pipeline-deps.spec.ts` exists and contains at least 2 tests covering dependency indicator rendering and soft-gate warning.
 6. [ ] **AC-06**: `e2e/navigation.spec.ts` exists and contains at least 3 tests covering module visibility when enabled/disabled and default route redirect.
 7. [ ] **AC-07**: Shared helpers exist in `e2e/helpers/` (at minimum `auth.ts` with login helper).
-8. [ ] **AC-08**: All new test files pass when run with `npx playwright test` against the mock server with `VITE_AUTH_BYPASS=true`.
+8. [ ] **AC-08**: All new test files pass when run with `npx playwright test` with both the Vite dev server (`VITE_AUTH_BYPASS=true`) and mock server running. The playwright config's `webServer` may optionally be updated to auto-start both servers.
 9. [ ] **AC-09**: New test files are independent — running any single file in isolation passes without depending on other test files.
 10. [ ] **AC-10**: Total execution time for all new test files is under 5 minutes when run in parallel.
 11. [ ] **AC-11**: All tests use Playwright's built-in waiting (`toBeVisible`, `waitForSelector`, `waitForEvent`) — no `setTimeout` or `page.waitForTimeout` calls.
+12. [ ] **AC-12**: The mock server's `POST /test/reset` endpoint (or an alternative mechanism) disables random step failures so that E2E happy-path tests are deterministic.
+13. [ ] **AC-13**: `e2e/helpers/config.ts` exists with a `setModuleConfig()` helper that uses `page.route()` to intercept `config.js` and override `window.__APP_CONFIG__` for navigation toggle tests.
+14. [ ] **AC-14**: The mock server exposes a mechanism to force a run to fail at a specific step (for FR-06/FR-14 error-path tests), separate from the deterministic mode that prevents random failures.
 
 ## Dependencies
 
@@ -310,4 +362,17 @@ No changes needed to `playwright.config.ts` — existing config supports the new
 ## Estimated Effort
 
 - **T-shirt size**: M
-- **Suggested breakdown**: 6 tasks (one per test file) + 1 task for shared helpers/infrastructure = 7 tasks across 1 phase
+- **Suggested breakdown**: 6 tasks (one per test file) + 1 task for shared helpers/infrastructure + 1 task for mock server deterministic mode = 8 tasks across 1 phase
+
+## Linear Issues
+
+| Issue | Title | Requirements | Depends on | Status |
+|-------|-------|-------------|------------|--------|
+| JAA-229 | Mock server deterministic mode and forced failure endpoints | FR-27, FR-28 | (none) | Backlog |
+| JAA-232 | Shared E2E test helpers (auth, navigation, config) | FR-25, AC-07, AC-13 | JAA-229 | Backlog |
+| JAA-236 | E2E tests: Prices module (prices.spec.ts) | FR-01–FR-06, FR-26 | JAA-229, JAA-232 | Backlog |
+| JAA-238 | E2E tests: Weighting module (weighting.spec.ts) | FR-07–FR-10 | JAA-229, JAA-232 | Backlog |
+| JAA-242 | E2E tests: MTR module (mtr.spec.ts) | FR-11–FR-14 | JAA-229, JAA-232 | Backlog |
+| JAA-244 | E2E tests: Traceability module (traceability.spec.ts) | FR-15–FR-19 | JAA-229, JAA-232 | Backlog |
+| JAA-247 | E2E tests: Pipeline dependency indicators (pipeline-deps.spec.ts) | FR-20, FR-21 | JAA-229, JAA-232 | Backlog |
+| JAA-251 | E2E tests: Navigation and module toggle (navigation.spec.ts) | FR-22–FR-24 | JAA-229, JAA-232 | Backlog |
