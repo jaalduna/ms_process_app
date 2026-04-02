@@ -141,6 +141,18 @@ export interface LastElegibilidadResponse {
   countries: Record<string, LastElegibilidadEntry>
 }
 
+/** Last MTR entry for a country from GET /metadata/last-mtr */
+export interface LastMtrEntry {
+  country: string
+  completed_at: string
+  run_id: string
+  period: number
+}
+
+export interface LastMtrResponse {
+  countries: Record<string, LastMtrEntry>
+}
+
 /** Country metadata from GET /metadata/countries */
 export interface CountryInfo {
   code: string
