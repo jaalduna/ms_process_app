@@ -16,6 +16,7 @@ import {
 import { Eye, Loader2, Square } from "lucide-react"
 import { toast } from "sonner"
 import { MtrProgress } from "./MtrProgress"
+import { MtrDetailModal } from "./MtrDetailModal"
 import { useMtrRuns, useCreateMtrRun, useExecuteMtr, useCancelMtr } from "../hooks/useMtr"
 import { MTR_ACTIVE_STATUSES, MTR_STATUS_CONFIG } from "../types"
 import type { MtrParams } from "../types"
@@ -66,7 +67,6 @@ interface MtrCountryCardProps {
   period: string
   mtrParams: MtrParams
   lastMtrDate: string | null
-  onShowDetail?: (runId: string) => void
   onShowHistory?: () => void
 }
 
@@ -75,10 +75,10 @@ export function MtrCountryCard({
   period,
   mtrParams,
   lastMtrDate,
-  onShowDetail,
   onShowHistory,
 }: MtrCountryCardProps) {
   const [detailRunId, setDetailRunId] = useState<string | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
 
   const { data: runs, isLoading } = useMtrRuns(countryCode, periodStringToNumber(period))
   const createRun = useCreateMtrRun()
@@ -255,7 +255,10 @@ export function MtrCountryCard({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => onShowDetail?.(latestRun.run_id)}
+                onClick={() => {
+                  setDetailRunId(latestRun.run_id)
+                  setDetailOpen(true)
+                }}
               >
                 <Eye className="h-4 w-4" />
               </Button>
@@ -263,6 +266,12 @@ export function MtrCountryCard({
           </div>
         </div>
       </CardContent>
+
+      <MtrDetailModal
+        runId={detailRunId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </Card>
   )
 }
