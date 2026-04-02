@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "@/components/ui/sonner"
@@ -6,12 +7,9 @@ import { DevAuthProvider } from "@/components/DevAuthProvider"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout"
 import { useModuleConfig } from "@/hooks/useModuleConfig"
+import { allModules } from "@/modules/registry"
+import { Skeleton } from "@/components/ui/skeleton"
 import LoginPage from "@/pages/LoginPage"
-import DashboardPage from "@/modules/sync/pages/DashboardPage"
-import HistoryPage from "@/modules/sync/pages/HistoryPage"
-import EventDetailPage from "@/modules/sync/pages/EventDetailPage"
-import { CalibrationPage } from "@/modules/calibracion/pages/CalibrationPage"
-import { ElegibilidadPage } from "@/modules/elegibilidad/pages/ElegibilidadPage"
 
 const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === "true"
 
@@ -31,7 +29,8 @@ const AuthProvider = AUTH_BYPASS ? DevAuthProvider : MsalAuthProvider
 
 function AppRoutes() {
   const modules = useModuleConfig()
-  const defaultRoute = modules.sync ? "/dashboard" : modules.calibration ? "/calibration" : "/elegibilidad"
+  const enabledModules = allModules.filter(m => modules[m.id])
+  const defaultRoute = enabledModules[0]?.routes[0]?.path ?? "/"
 
   return (
     <Routes>
@@ -39,15 +38,23 @@ function AppRoutes() {
       <Route
         element={
           <ProtectedRoute>
-            <AuthenticatedLayout />
+            <AuthenticatedLayout modules={enabledModules} />
           </ProtectedRoute>
         }
       >
-        {modules.sync && <Route path="/dashboard" element={<DashboardPage />} />}
-        {modules.sync && <Route path="/history" element={<HistoryPage />} />}
-        {modules.sync && <Route path="/events/:jobId" element={<EventDetailPage />} />}
-        {modules.calibration && <Route path="/calibration" element={<CalibrationPage />} />}
-        {modules.elegibilidad && <Route path="/elegibilidad" element={<ElegibilidadPage />} />}
+        {enabledModules.flatMap(m =>
+          m.routes.map(r => (
+            <Route
+              key={r.path}
+              path={r.path}
+              element={
+                <Suspense fallback={<div className="space-y-4 p-6"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>}>
+                  <r.component />
+                </Suspense>
+              }
+            />
+          )),
+        )}
         <Route path="*" element={<Navigate to={defaultRoute} replace />} />
       </Route>
     </Routes>

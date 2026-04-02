@@ -4,6 +4,7 @@ import type { ModuleDefinition } from "../types"
 export const syncModule: ModuleDefinition = {
   id: "sync",
   label: "Sincronización",
+  group: "data",
   navItems: [
     { path: "/dashboard", label: "Sincronización" },
     { path: "/history", label: "Historial" },

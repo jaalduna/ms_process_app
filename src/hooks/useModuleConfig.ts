@@ -1,7 +1,12 @@
-interface ModuleConfig {
+export interface ModuleConfig {
   sync: boolean
   calibration: boolean
   elegibilidad: boolean
+  prices: boolean
+  weighting: boolean
+  mtr: boolean
+  traceability: boolean
+  [key: string]: boolean
 }
 
 export function useModuleConfig(): ModuleConfig {
@@ -10,5 +15,9 @@ export function useModuleConfig(): ModuleConfig {
     sync: config?.sync ?? true,
     calibration: config?.calibration ?? true,
     elegibilidad: config?.elegibilidad ?? true,
+    prices: config?.prices ?? false,
+    weighting: config?.weighting ?? false,
+    mtr: config?.mtr ?? false,
+    traceability: config?.traceability ?? false,
   }
 }
