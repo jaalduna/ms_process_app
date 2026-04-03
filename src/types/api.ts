@@ -149,8 +149,20 @@ export interface LastWeightingEntry {
   period: number
 }
 
+/** Last MTR entry for a country from GET /metadata/last-mtr */
+export interface LastMtrEntry {
+  country: string
+  completed_at: string
+  run_id: string
+  period: number
+}
+
 export interface LastWeightingResponse {
   countries: Record<string, LastWeightingEntry>
+}
+
+export interface LastMtrResponse {
+  countries: Record<string, LastMtrEntry>
 }
 
 /** Country metadata from GET /metadata/countries */

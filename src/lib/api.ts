@@ -6,6 +6,7 @@ import type {
   EventDetail,
   EventListResponse,
   LastElegibilidadResponse,
+  LastMtrResponse,
   LastSyncResponse,
   LastWeightingResponse,
   StagesResponse,
@@ -17,6 +18,7 @@ import type {
 import type { EligibilityFile, EligibilityRun, EligibilityRunCreate } from "@/modules/elegibilidad/types"
 import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
 import type { WeightingRun, WeightingRunCreate } from "@/modules/pesaje/types"
+import type { MtrRun, MtrRunCreate } from "@/modules/mtr/types"
 
 function getBaseUrl(): string {
   return (
@@ -282,6 +284,38 @@ export async function downloadWeightingCSV(runId: string): Promise<void> {
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
+}
+
+// -- MTR --
+
+export function getMtrRuns(params?: {
+  country?: string
+  period?: number
+  status?: string
+  limit?: number
+  offset?: number
+}) {
+  return api.get<{ items: MtrRun[]; total: number }>("/mtr/runs", { params }).then((r) => r.data)
+}
+
+export function getMtrRun(runId: string) {
+  return api.get<MtrRun>(`/mtr/runs/${runId}`).then((r) => r.data)
+}
+
+export function createMtrRun(data: MtrRunCreate) {
+  return api.post<MtrRun>("/mtr/runs", data).then((r) => r.data)
+}
+
+export function executeMtr(runId: string) {
+  return api.post<MtrRun>(`/mtr/runs/${runId}/execute`).then((r) => r.data)
+}
+
+export function cancelMtr(runId: string) {
+  return api.post<MtrRun>(`/mtr/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+export function getLastMtr() {
+  return api.get<LastMtrResponse>("/metadata/last-mtr").then((r) => r.data)
 }
 
 // -- Downloads --
