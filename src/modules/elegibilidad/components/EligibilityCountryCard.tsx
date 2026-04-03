@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { CheckCircle2, Eye, Loader2, RefreshCcw, Square } from "lucide-react"
 import { toast } from "sonner"
+import { DependencyIndicator } from "@/components/DependencyIndicator"
+import { usePipelineDeps } from "@/hooks/usePipelineDeps"
 import { useEligibilityRuns, useCreateEligibilityRun, useExecuteEligibility, useCancelEligibility } from "../hooks/useEligibility"
 import { EligibilityProgress } from "./EligibilityProgress"
 import { EligibilityDetailModal } from "./EligibilityDetailModal"
@@ -72,6 +74,7 @@ function periodStringToNumber(period: string): number {
 export function EligibilityCountryCard({ countryCode, period, eligibilityParams, lastFinalizedDate }: EligibilityCountryCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
 
+  const { dependencies, allMet } = usePipelineDeps("elegibilidad", countryCode)
   const { data: runs, isLoading } = useEligibilityRuns(countryCode, periodStringToNumber(period))
   const createRun = useCreateEligibilityRun()
   const executeRun = useExecuteEligibility()
@@ -143,6 +146,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
                 : "never"}
             </Badge>
           </div>
+          <DependencyIndicator dependencies={dependencies} />
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Latest run status */}
@@ -205,7 +209,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
             {!isProcessing && !hasActiveProcess && !isReady && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" disabled={!canExecute} className="flex-1">
+                  <Button size="sm" disabled={!canExecute} className="flex-1" title={!allMet ? "Upstream dependencies not met" : undefined}>
                     {(createRun.isPending || executeRun.isPending) ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

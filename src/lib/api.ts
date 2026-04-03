@@ -6,6 +6,7 @@ import type {
   EventDetail,
   EventListResponse,
   LastElegibilidadResponse,
+  LastStageCompletionResponse,
   LastSyncResponse,
   StagesResponse,
   TablesResponse,
@@ -128,6 +129,18 @@ export function getLastCalibration() {
 
 export function getLastElegibilidad() {
   return api.get<LastElegibilidadResponse>("/metadata/last-elegibilidad").then((r) => r.data)
+}
+
+export function getLastPrices() {
+  return api.get<LastStageCompletionResponse>("/metadata/last-prices").then((r) => r.data)
+}
+
+export function getLastWeighting() {
+  return api.get<LastStageCompletionResponse>("/metadata/last-weighting").then((r) => r.data)
+}
+
+export function getLastMtr() {
+  return api.get<LastStageCompletionResponse>("/metadata/last-mtr").then((r) => r.data)
 }
 
 // -- Eligibility --

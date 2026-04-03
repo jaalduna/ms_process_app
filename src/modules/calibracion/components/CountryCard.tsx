@@ -21,6 +21,8 @@ import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
 import { CalibrationProgress } from "./CalibrationProgress"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
+import { DependencyIndicator } from "@/components/DependencyIndicator"
+import { usePipelineDeps } from "@/hooks/usePipelineDeps"
 import { useCalibration } from "../hooks/useCalibration"
 import type { CountryInfo } from "@/types/api"
 import type { DataAvailability, CalibrationConfig } from "../types"
@@ -78,6 +80,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
   const [skipSync, setSkipSync] = useState(false)
   const [skipCopy, setSkipCopy] = useState(false)
   const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion")
+  const { dependencies, allMet } = usePipelineDeps("calibration", country.code)
 
   const isRunning = job?.status === "running" || job?.status === "pending"
   const isCompleted = job?.status === "completed"
@@ -126,6 +129,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
                 Cal: {lastCalibrationDate ? formatRelativeTime(lastCalibrationDate) : "never"}
               </Badge>
             </div>
+            <DependencyIndicator dependencies={dependencies} />
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -158,7 +162,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
                     size="sm"
                     disabled={!canTrigger}
                     className="flex-1"
-                    title={!canTrigger ? "Data extraction (Elegibilidad) required before calibration" : undefined}
+                    title={!canTrigger ? "Data extraction (Elegibilidad) required before calibration" : !allMet ? "Upstream dependencies not met" : undefined}
                   >
                     {isPending || isRunning ? (
                       <>
