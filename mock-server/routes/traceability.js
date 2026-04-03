@@ -55,26 +55,40 @@ const TABLE_TEMPLATES = {
 
 export function seedTraceability() {
   let tagCount = 0
-  // Spread tags across countries, stages, and periods to get 20+
-  for (const country of COUNTRIES.slice(0, 5)) { // 5 countries
+  // Spread tags across all countries, stages, and periods
+  for (const country of COUNTRIES) { // all 9 countries
     for (const stage of STAGES) { // 5 stages
-      const period = PERIODS[tagCount % PERIODS.length]
-      const daysAgo = Math.floor(Math.random() * 30) + 1
-      const completed = new Date(Date.now() - daysAgo * 86400000).toISOString()
-      const started = new Date(new Date(completed).getTime() - Math.random() * 3600000).toISOString()
-      const templates = TABLE_TEMPLATES[stage] || []
-      const tables = templates.map(t => ({
-        table_name: t.name,
-        full_name: `kpi_prd_01.${t.schema}.${country.code}_${t.name}`,
-        catalog: "kpi_prd_01",
-        schema_name: t.schema,
-        row_count: Math.floor(Math.random() * 5000) + 100,
-      }))
-      tagStore.add({ country: country.code, period, stage, triggered_by: "dev@localhost", started_at: started, completed_at: completed, status: "completed", tables, created_at: started })
-      tagCount++
+      for (const period of PERIODS) { // 3 periods
+        const daysAgo = Math.floor(Math.random() * 60) + 1
+        const completed = new Date(Date.now() - daysAgo * 86400000).toISOString()
+        const started = new Date(new Date(completed).getTime() - Math.random() * 3600000).toISOString()
+
+        // ~10% of tags are failed (empty tables)
+        const isFailed = tagCount % 10 === 7
+        const templates = isFailed ? [] : (TABLE_TEMPLATES[stage] || [])
+        const tables = templates.map(t => ({
+          table_name: t.name,
+          full_name: `kpi_prd_01.${t.schema}.${country.code}_${t.name}`,
+          catalog: "kpi_prd_01",
+          schema_name: t.schema,
+          row_count: Math.floor(Math.random() * 5000) + 100,
+        }))
+        tagStore.add({
+          country: country.code,
+          period,
+          stage,
+          triggered_by: "dev@localhost",
+          started_at: started,
+          completed_at: completed,
+          status: isFailed ? "failed" : "completed",
+          tables,
+          created_at: started,
+        })
+        tagCount++
+      }
     }
   }
-  // tagCount = 25 (5 countries x 5 stages)
+  // tagCount = 135 (9 countries x 5 stages x 3 periods)
 }
 
 export default router

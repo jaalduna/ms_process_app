@@ -19,6 +19,7 @@ import type { EligibilityFile, EligibilityRun, EligibilityRunCreate } from "@/mo
 import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
 import type { WeightingRun, WeightingRunCreate } from "@/modules/pesaje/types"
 import type { MtrRun, MtrRunCreate } from "@/modules/mtr/types"
+import type { TagListResponse, TagDetail, TagFilters } from "@/modules/trazabilidad/types"
 
 function getBaseUrl(): string {
   return (
@@ -316,6 +317,44 @@ export function cancelMtr(runId: string) {
 
 export function getLastMtr() {
   return api.get<LastMtrResponse>("/metadata/last-mtr").then((r) => r.data)
+}
+
+// -- Traceability --
+
+export function getTags(params?: TagFilters & { limit?: number; offset?: number }) {
+  return api.get<TagListResponse>("/traceability/tags", { params }).then((r) => r.data)
+}
+
+export function getTagDetail(tagId: string) {
+  return api.get<TagDetail>(`/traceability/tags/${tagId}`).then((r) => r.data)
+}
+
+export async function downloadTagTableCSV(tagId: string, tableName: string): Promise<void> {
+  const response = await api.get(`/traceability/tags/${tagId}/tables/${tableName}/download`, { responseType: "blob" })
+  const url = URL.createObjectURL(new Blob([response.data]))
+  const a = document.createElement("a")
+  a.href = url
+  const disposition = response.headers["content-disposition"] ?? ""
+  const match = disposition.match(/filename="?([^";\n]+)"?/)
+  a.download = match?.[1] ?? `${tableName}.csv`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+export async function downloadTagZip(tagId: string): Promise<void> {
+  const response = await api.get(`/traceability/tags/${tagId}/download`, { responseType: "blob" })
+  const url = URL.createObjectURL(new Blob([response.data]))
+  const a = document.createElement("a")
+  a.href = url
+  const disposition = response.headers["content-disposition"] ?? ""
+  const match = disposition.match(/filename="?([^";\n]+)"?/)
+  a.download = match?.[1] ?? `tag_${tagId}.zip`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 // -- Downloads --

@@ -4,11 +4,12 @@ import { elegibilidadModule } from "./elegibilidad"
 import { preciosModule } from "./precios"
 import { pesajeModule } from "./pesaje"
 import { mtrModule } from "./mtr"
+import { trazabilidadModule } from "./trazabilidad"
 import type { ModuleDefinition } from "./types"
 
 /**
  * Central module registry.
- * Add new modules here as they are built (Traceability).
+ * All modules registered.
  * Modules are rendered in the order they appear in this array.
  */
 export const allModules: ModuleDefinition[] = [
@@ -18,4 +19,5 @@ export const allModules: ModuleDefinition[] = [
   calibracionModule,
   preciosModule,
   mtrModule,
+  trazabilidadModule,
 ]
