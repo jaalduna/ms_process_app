@@ -250,10 +250,6 @@ export function cancelPrices(runId: string) {
   return api.post<PricesRun>(`/prices/runs/${runId}/cancel`).then((r) => r.data)
 }
 
-export function getLastPrices() {
-  return api.get<LastSyncResponse>("/metadata/last-prices").then((r) => r.data)
-}
-
 // -- Weighting --
 
 export function getWeightingRuns(params?: {
@@ -280,10 +276,6 @@ export function executeWeighting(runId: string) {
 
 export function cancelWeighting(runId: string) {
   return api.post<WeightingRun>(`/weighting/runs/${runId}/cancel`).then((r) => r.data)
-}
-
-export function getLastWeighting() {
-  return api.get<LastWeightingResponse>("/metadata/last-weighting").then((r) => r.data)
 }
 
 export async function downloadWeightingCSV(runId: string): Promise<void> {
@@ -326,10 +318,6 @@ export function executeMtr(runId: string) {
 
 export function cancelMtr(runId: string) {
   return api.post<MtrRun>(`/mtr/runs/${runId}/cancel`).then((r) => r.data)
-}
-
-export function getLastMtr() {
-  return api.get<LastMtrResponse>("/metadata/last-mtr").then((r) => r.data)
 }
 
 // -- Traceability --
