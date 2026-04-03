@@ -17,6 +17,7 @@ import { Eye, Loader2, Square } from "lucide-react"
 import { toast } from "sonner"
 import { MtrProgress } from "./MtrProgress"
 import { MtrDetailModal } from "./MtrDetailModal"
+import { MtrHistoryModal } from "./MtrHistoryModal"
 import { useMtrRuns, useCreateMtrRun, useExecuteMtr, useCancelMtr } from "../hooks/useMtr"
 import { MTR_ACTIVE_STATUSES, MTR_STATUS_CONFIG } from "../types"
 import type { MtrParams } from "../types"
@@ -67,7 +68,6 @@ interface MtrCountryCardProps {
   period: string
   mtrParams: MtrParams
   lastMtrDate: string | null
-  onShowHistory?: () => void
 }
 
 export function MtrCountryCard({
@@ -75,10 +75,10 @@ export function MtrCountryCard({
   period,
   mtrParams,
   lastMtrDate,
-  onShowHistory,
 }: MtrCountryCardProps) {
   const [detailRunId, setDetailRunId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   const { data: runs, isLoading } = useMtrRuns(countryCode, periodStringToNumber(period))
   const createRun = useCreateMtrRun()
@@ -130,8 +130,8 @@ export function MtrCountryCard({
       role="button"
       tabIndex={0}
       aria-label={`View MTR history for ${countryLabel}`}
-      onClick={() => onShowHistory?.()}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onShowHistory?.() } }}
+      onClick={() => setShowHistory(true)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowHistory(true) } }}
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -271,6 +271,14 @@ export function MtrCountryCard({
         runId={detailRunId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+
+      <MtrHistoryModal
+        country={countryCode}
+        countryLabel={countryLabel}
+        countryFlag={flag}
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
       />
     </Card>
   )
