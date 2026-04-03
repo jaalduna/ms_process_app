@@ -187,6 +187,21 @@ export interface StagesResponse {
   stages: StageInfo[]
 }
 
+/** Unified type for last-completion responses from pipeline stages.
+ * Sync/calibration endpoints use `job_id`; prices/weighting/mtr use `run_id`. */
+export interface LastStageCompletionEntry {
+  country: string
+  completed_at: string
+  job_id?: string
+  run_id?: string
+  period?: number | string
+  stage?: string
+}
+
+export interface LastStageCompletionResponse {
+  countries: Record<string, LastStageCompletionEntry>
+}
+
 /** Standard API error response */
 export interface ApiError {
   error: string
