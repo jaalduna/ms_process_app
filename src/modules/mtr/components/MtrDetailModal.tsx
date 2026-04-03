@@ -35,7 +35,7 @@ import {
 import { MtrProgress } from "./MtrProgress"
 import { useMtrRun, useCreateMtrRun, useExecuteMtr, useCancelMtr } from "../hooks/useMtr"
 import { MTR_STEPS, MTR_STEP_LABELS, MTR_ACTIVE_STATUSES, MTR_STATUS_CONFIG } from "../types"
-import type { MtrRun, MtrStep } from "../types"
+import type { MtrStep } from "../types"
 import { downloadMtrCsv } from "../utils/downloadMtrCsv"
 
 const COUNTRY_LABELS: Record<string, string> = {

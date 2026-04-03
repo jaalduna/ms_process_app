@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Eye, History, Loader2, RefreshCcw, Square } from "lucide-react"
+import { Eye, History, Loader2, Square } from "lucide-react"
 import { toast } from "sonner"
 import { useWeightingRuns, useCreateWeightingRun, useExecuteWeighting, useCancelWeighting } from "../hooks/useWeighting"
 import { WeightingProgress } from "./WeightingProgress"
