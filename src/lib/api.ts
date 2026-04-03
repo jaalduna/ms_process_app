@@ -7,6 +7,7 @@ import type {
   EventListResponse,
   LastElegibilidadResponse,
   LastSyncResponse,
+  LastWeightingResponse,
   StagesResponse,
   TablesResponse,
   TriggerRequest,
@@ -15,6 +16,7 @@ import type {
 } from "@/types/api"
 import type { EligibilityFile, EligibilityRun, EligibilityRunCreate } from "@/modules/elegibilidad/types"
 import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
+import type { WeightingRun, WeightingRunCreate } from "@/modules/pesaje/types"
 
 function getBaseUrl(): string {
   return (
@@ -234,6 +236,52 @@ export function cancelPrices(runId: string) {
 
 export function getLastPrices() {
   return api.get<LastSyncResponse>("/metadata/last-prices").then((r) => r.data)
+}
+
+// -- Weighting --
+
+export function getWeightingRuns(params?: {
+  country?: string
+  period?: number
+  status?: string
+  limit?: number
+  offset?: number
+}) {
+  return api.get<{ items: WeightingRun[]; total: number }>("/weighting/runs", { params }).then((r) => r.data.items)
+}
+
+export function getWeightingRun(runId: string) {
+  return api.get<WeightingRun>(`/weighting/runs/${runId}`).then((r) => r.data)
+}
+
+export function createWeightingRun(data: WeightingRunCreate) {
+  return api.post<WeightingRun>("/weighting/runs", data).then((r) => r.data)
+}
+
+export function executeWeighting(runId: string) {
+  return api.post<WeightingRun>(`/weighting/runs/${runId}/execute`).then((r) => r.data)
+}
+
+export function cancelWeighting(runId: string) {
+  return api.post<WeightingRun>(`/weighting/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+export function getLastWeighting() {
+  return api.get<LastWeightingResponse>("/metadata/last-weighting").then((r) => r.data)
+}
+
+export async function downloadWeightingCSV(runId: string): Promise<void> {
+  const response = await api.get(`/weighting/runs/${runId}/download`, { responseType: "blob" })
+  const url = URL.createObjectURL(new Blob([response.data]))
+  const a = document.createElement("a")
+  a.href = url
+  const disposition = response.headers["content-disposition"] ?? ""
+  const match = disposition.match(/filename="?([^";\n]+)"?/)
+  a.download = match?.[1] ?? `weighting_${runId.slice(0, 8)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 // -- Downloads --

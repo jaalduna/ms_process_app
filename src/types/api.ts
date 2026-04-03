@@ -141,6 +141,18 @@ export interface LastElegibilidadResponse {
   countries: Record<string, LastElegibilidadEntry>
 }
 
+/** Last weighting entry for a country from GET /metadata/last-weighting */
+export interface LastWeightingEntry {
+  country: string
+  completed_at: string
+  run_id: string
+  period: number
+}
+
+export interface LastWeightingResponse {
+  countries: Record<string, LastWeightingEntry>
+}
+
 /** Country metadata from GET /metadata/countries */
 export interface CountryInfo {
   code: string

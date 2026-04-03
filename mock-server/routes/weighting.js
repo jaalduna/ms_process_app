@@ -52,6 +52,25 @@ router.post("/weighting/runs/:runId/execute", (req, res) => {
   res.json(weightingStore.get(req.params.runId))
 })
 
+router.get("/weighting/runs/:runId/download", (req, res) => {
+  const run = weightingStore.get(req.params.runId)
+  if (!run) return res.status(404).json({ error: "not_found", message: `Run ${req.params.runId} not found` })
+  if (run.status !== "completed") return res.status(409).json({ error: "conflict", message: "Run is not completed" })
+
+  const stats = run.summary_stats || { total_households: 100, weighted_households: 98, min_weight: 10, max_weight: 500, mean_weight: 120, median_weight: 110, std_dev: 45 }
+  const rows = []
+  rows.push("household_id,country,period,weight,stratum")
+  for (let i = 1; i <= Math.min(stats.total_households, 50); i++) {
+    const w = +(stats.min_weight + Math.random() * (stats.max_weight - stats.min_weight)).toFixed(2)
+    rows.push(`HH-${String(i).padStart(5, "0")},${run.country},${run.period},${w},stratum_${(i % 5) + 1}`)
+  }
+  const csv = rows.join("\n")
+  const filename = `weighting_${run.country}_${run.period}.csv`
+  res.setHeader("Content-Type", "text/csv")
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
+  res.send(csv)
+})
+
 router.post("/weighting/runs/:runId/cancel", (req, res) => {
   const run = weightingStore.get(req.params.runId)
   if (!run) return res.status(404).json({ error: "not_found", message: `Run ${req.params.runId} not found` })
