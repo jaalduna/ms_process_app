@@ -14,6 +14,7 @@ import type {
   UserInfo,
 } from "@/types/api"
 import type { EligibilityFile, EligibilityRun, EligibilityRunCreate } from "@/modules/elegibilidad/types"
+import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
 
 function getBaseUrl(): string {
   return (
@@ -197,6 +198,42 @@ export async function uploadEligibilityFiles(runId: string, file: File): Promise
 
 export function cancelEligibility(runId: string) {
   return api.post<EligibilityRun>(`/eligibility/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+// -- Prices --
+
+export function getPricesRuns(params?: {
+  country?: string
+  period?: number
+  status?: string
+  limit?: number
+  offset?: number
+}) {
+  return api.get<{ items: PricesRun[]; total: number }>("/prices/runs", { params }).then((r) => r.data)
+}
+
+export function getPricesRun(runId: string) {
+  return api.get<PricesRun>(`/prices/runs/${runId}`).then((r) => r.data)
+}
+
+export function createPricesRun(data: PricesRunCreate) {
+  return api.post<PricesRun>("/prices/runs", data).then((r) => r.data)
+}
+
+export function executePrices(runId: string) {
+  return api.post<PricesRun>(`/prices/runs/${runId}/execute`).then((r) => r.data)
+}
+
+export function approvePrices(runId: string) {
+  return api.post<PricesRun>(`/prices/runs/${runId}/approve`).then((r) => r.data)
+}
+
+export function cancelPrices(runId: string) {
+  return api.post<PricesRun>(`/prices/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+export function getLastPrices() {
+  return api.get<LastSyncResponse>("/metadata/last-prices").then((r) => r.data)
 }
 
 // -- Downloads --
