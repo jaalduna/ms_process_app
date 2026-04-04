@@ -13,9 +13,9 @@ window.__APP_CONFIG__ = {
     sync: true,
     calibration: true,
     elegibilidad: true,
-    prices: false,
-    weighting: false,
-    mtr: false,
-    traceability: false,
+    prices: true,
+    weighting: true,
+    mtr: true,
+    traceability: true,
   },
 };
