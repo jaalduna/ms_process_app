@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Outlet, NavLink, useLocation } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { useUpdater } from "@/hooks/useUpdater"
@@ -6,100 +6,9 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CalibrationProvider } from "@/modules/calibracion/contexts/CalibrationContext"
 import type { ModuleDefinition } from "@/modules/types"
-import { MODULE_GROUP_LABELS, MODULE_GROUP_ORDER } from "@/modules/types"
-import type { ModuleGroup } from "@/modules/types"
 
 interface AuthenticatedLayoutProps {
   modules: ModuleDefinition[]
-}
-
-/** Dropdown component for a navigation group. */
-function NavGroup({
-  group,
-  label,
-  modules,
-  currentPath,
-}: {
-  group: ModuleGroup
-  label: string
-  modules: ModuleDefinition[]
-  currentPath: string
-}) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
-
-  const allPaths = modules.flatMap(m => m.navItems.map(n => n.path))
-  const isGroupActive = allPaths.some(
-    p => currentPath === p || currentPath.startsWith(p + "/"),
-  ) || (group === "data" && currentPath.startsWith("/events/"))
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(prev => !prev)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            setOpen(prev => !prev)
-          }
-          if (e.key === "Escape") setOpen(false)
-        }}
-        className={cn(
-          "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-          isGroupActive
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-        )}
-        aria-expanded={open}
-        aria-haspopup="true"
-        aria-label={`${label} navigation group`}
-      >
-        {label}
-        <span className="ml-1 text-xs">{open ? "▲" : "▼"}</span>
-      </button>
-      {open && (
-        <div
-          className="absolute left-0 top-full z-50 mt-1 min-w-[160px] rounded-md border bg-popover py-1 shadow-md"
-          role="menu"
-          aria-label={`${label} submenu`}
-        >
-          {modules.flatMap(m =>
-            m.navItems.map(item => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    "block px-4 py-2 text-sm transition-colors",
-                    isActive ||
-                      (item.path === "/history" &&
-                        currentPath.startsWith("/events/"))
-                      ? "bg-accent text-accent-foreground font-medium"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  )
-                }
-              >
-                {item.label}
-              </NavLink>
-            )),
-          )}
-        </div>
-      )}
-    </div>
-  )
 }
 
 export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
@@ -124,18 +33,6 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
       }
     })()
   }, [])
-
-  // Group modules by their group field
-  const grouped = new Map<ModuleGroup, ModuleDefinition[]>()
-  for (const m of modules) {
-    const g = m.group ?? "pipeline"
-    if (!grouped.has(g)) grouped.set(g, [])
-    grouped.get(g)!.push(m)
-  }
-
-  // If total nav items <= 5, render flat (no dropdowns needed)
-  const totalNavItems = modules.reduce((sum, m) => sum + m.navItems.length, 0)
-  const useFlat = totalNavItems <= 5
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -178,38 +75,28 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
                 </span>
               </span>
               <nav
-                className="flex gap-1"
+                className="flex flex-wrap gap-1"
                 role="navigation"
                 aria-label="Main navigation"
               >
-                {useFlat
-                  ? modules.flatMap(m =>
-                      m.navItems.map(item => (
-                        <NavLink
-                          key={item.path}
-                          to={item.path}
-                          className={({ isActive }) =>
-                            navLinkClass({
-                              isActive:
-                                isActive ||
-                                (item.path === "/history" &&
-                                  location.pathname.startsWith("/events/")),
-                            })
-                          }
-                        >
-                          {item.label}
-                        </NavLink>
-                      )),
-                    )
-                  : MODULE_GROUP_ORDER.filter(g => grouped.has(g)).map(g => (
-                      <NavGroup
-                        key={g}
-                        group={g}
-                        label={MODULE_GROUP_LABELS[g]}
-                        modules={grouped.get(g)!}
-                        currentPath={location.pathname}
-                      />
-                    ))}
+                {modules.flatMap(m =>
+                  m.navItems.map(item => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) =>
+                        navLinkClass({
+                          isActive:
+                            isActive ||
+                            (item.path === "/history" &&
+                              location.pathname.startsWith("/events/")),
+                        })
+                      }
+                    >
+                      {item.label}
+                    </NavLink>
+                  )),
+                )}
               </nav>
             </div>
             <div className="flex items-center gap-3">
