@@ -4,10 +4,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
+  /** If set, user must have at least one of these roles to access this route. */
+  requiredRoles?: string[]
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, loading } = useAuth()
+export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
+  const { isAuthenticated, loading, roles } = useAuth()
 
   if (loading) {
     return (
@@ -23,6 +25,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />
+  }
+
+  if (requiredRoles && requiredRoles.length > 0) {
+    const hasAccess = requiredRoles.some((r) => roles.includes(r))
+    if (!hasAccess) {
+      return <Navigate to="/" replace />
+    }
   }
 
   return <>{children}</>

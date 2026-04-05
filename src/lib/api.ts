@@ -18,7 +18,7 @@ import type { EligibilityFile, EligibilityRun, EligibilityRunCreate } from "@/mo
 import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
 import type { WeightingRun, WeightingRunCreate } from "@/modules/pesaje/types"
 import type { MtrRun, MtrRunCreate } from "@/modules/mtr/types"
-import type { TagListResponse, TagDetail, TagFilters } from "@/modules/trazabilidad/types"
+import type { TagListResponse, TagFilters } from "@/modules/trazabilidad/types"
 
 function getBaseUrl(): string {
   return (
@@ -321,15 +321,15 @@ export function cancelMtr(runId: string) {
 // -- Traceability --
 
 export function getTags(params?: TagFilters & { limit?: number; offset?: number }) {
-  return api.get<TagListResponse>("/traceability/tags", { params }).then((r) => r.data)
+  return api.get<TagListResponse>("/tags", { params }).then((r) => r.data)
 }
 
 export function getTagDetail(tagId: string) {
-  return api.get<TagDetail>(`/traceability/tags/${tagId}`).then((r) => r.data)
+  return api.get(`/tags/${tagId}`).then((r) => r.data)
 }
 
 export async function downloadTagTableCSV(tagId: string, tableName: string): Promise<void> {
-  const response = await api.get(`/traceability/tags/${tagId}/tables/${tableName}/download`, { responseType: "blob" })
+  const response = await api.get(`/tags/${tagId}/tables/${tableName}/download`, { responseType: "blob" })
   const url = URL.createObjectURL(new Blob([response.data]))
   const a = document.createElement("a")
   a.href = url
@@ -343,7 +343,7 @@ export async function downloadTagTableCSV(tagId: string, tableName: string): Pro
 }
 
 export async function downloadTagZip(tagId: string): Promise<void> {
-  const response = await api.get(`/traceability/tags/${tagId}/download`, { responseType: "blob" })
+  const response = await api.get(`/tags/${tagId}/download`, { responseType: "blob" })
   const url = URL.createObjectURL(new Blob([response.data]))
   const a = document.createElement("a")
   a.href = url

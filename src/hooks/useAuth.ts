@@ -3,6 +3,8 @@ import { createContext, useContext } from "react"
 export interface AuthState {
   isAuthenticated: boolean
   user: { email: string; name: string } | null
+  roles: string[]
+  countries: string[]
   loading: boolean
   login: () => Promise<void>
   logout: () => Promise<void>

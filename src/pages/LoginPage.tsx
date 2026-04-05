@@ -26,7 +26,11 @@ export default function LoginPage() {
             onClick={login}
             disabled={loading}
           >
-            {loading ? "Signing in..." : "Sign in with Microsoft"}
+            {loading
+              ? "Signing in..."
+              : (window as any).__APP_CONFIG__?.authProvider === "github"
+                ? "Sign in with GitHub"
+                : "Sign in with Microsoft"}
           </Button>
         </CardContent>
       </Card>

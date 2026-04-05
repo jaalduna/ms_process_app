@@ -3,10 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "@/components/ui/sonner"
 import { MsalAuthProvider } from "@/components/MsalAuthProvider"
+import { GithubAuthProvider } from "@/components/GithubAuthProvider"
 import { DevAuthProvider } from "@/components/DevAuthProvider"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout"
 import { useModuleConfig } from "@/hooks/useModuleConfig"
+import { useAuth } from "@/hooks/useAuth"
 import { allModules } from "@/modules/registry"
 import { Skeleton } from "@/components/ui/skeleton"
 import LoginPage from "@/pages/LoginPage"
@@ -25,11 +27,23 @@ const queryClient = new QueryClient({
 const isTauri = '__TAURI_INTERNALS__' in window
 const basename = isTauri ? "/" : import.meta.env.BASE_URL
 
-const AuthProvider = AUTH_BYPASS ? DevAuthProvider : MsalAuthProvider
+const authProviderConfig = (window as any).__APP_CONFIG__?.authProvider
+const AuthProvider = AUTH_BYPASS
+  ? DevAuthProvider
+  : authProviderConfig === "github"
+    ? GithubAuthProvider
+    : MsalAuthProvider
 
 function AppRoutes() {
   const modules = useModuleConfig()
-  const enabledModules = allModules.filter(m => modules[m.id])
+  const { roles } = useAuth()
+  const enabledModules = allModules.filter((m) => {
+    if (!modules[m.id]) return false
+    if (m.requiredRoles && m.requiredRoles.length > 0) {
+      return m.requiredRoles.some((r) => roles.includes(r))
+    }
+    return true
+  })
   const defaultRoute = enabledModules[0]?.routes[0]?.path ?? "/"
 
   return (

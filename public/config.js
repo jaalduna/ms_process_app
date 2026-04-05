@@ -5,12 +5,16 @@
 // NO es necesario reconstruir la app, solo editar y refrescar el navegador.
 
 window.__BRIDGE_CONFIG__ = {
-  API_URL: "http://127.0.0.1:8000/api/v1",
+  // Update this URL when using a tunnel (e.g. localtunnel, ngrok).
+  // sql-databricks-bridge default: http://localhost:8000/api/v1
+  API_URL: "http://localhost:8000/api/v1",
 };
 
 window.__APP_CONFIG__ = {
+  authProvider: "github",
   modules: {
-    sync: true,
+    overview: true,
+    sync: false,
     calibration: true,
     elegibilidad: true,
     prices: true,
