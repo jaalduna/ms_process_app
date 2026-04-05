@@ -13,7 +13,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Eye, Square } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -77,8 +76,6 @@ interface CountryCardProps {
 export function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const [skipSync, setSkipSync] = useState(false)
-  const [skipCopy, setSkipCopy] = useState(false)
   const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion")
   const { dependencies, allMet } = usePipelineDeps("calibration", country.code)
 
@@ -206,26 +203,6 @@ export function CountryCard({ country, period, availability, availabilityLoading
                       </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={skipSync}
-                      onCheckedChange={(v) => setSkipSync(v === true)}
-                    />
-                    <span>Skip data sync</span>
-                  </label>
-                  <p className="text-xs text-muted-foreground -mt-2">
-                    Use when data is already synced for this country
-                  </p>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={skipCopy}
-                      onCheckedChange={(v) => setSkipCopy(v === true)}
-                    />
-                    <span>Skip data copy</span>
-                  </label>
-                  <p className="text-xs text-muted-foreground -mt-2">
-                    Use when data is already in the calibration catalog
-                  </p>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={() => {
@@ -234,8 +211,6 @@ export function CountryCard({ country, period, availability, availabilityLoading
                         aggregations: calibrationConfig.aggregations,
                         row_limit: calibrationConfig.row_limit,
                         lookback_months: calibrationConfig.lookback_months,
-                        skip_sync: skipSync,
-                        skip_copy: skipCopy,
                       }).then(() => {
                         toast.success(`Calibration started for ${countryLabel}`);
                       }).catch((err: unknown) => {
