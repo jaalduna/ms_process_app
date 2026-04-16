@@ -8,6 +8,7 @@ import weightingRouter, { weightingStore } from "./routes/weighting.js"
 import mtrRouter, { mtrStore } from "./routes/mtr.js"
 import traceabilityRouter from "./routes/traceability.js"
 import testRouter from "./routes/test.js"
+import authRouter, { verifyAppToken } from "./routes/auth.js"
 import { seedAll } from "./fixtures/seed.js"
 
 const app = express()
@@ -22,8 +23,36 @@ const PORT = 5000
 
 app.get("/health/live", (_req, res) => res.json({ status: "ok" }))
 
-// Auth me (always mocked)
-app.get("/api/v1/auth/me", (_req, res) => {
+// ---------------------------------------------------------------------------
+// GitHub OAuth endpoints (browser-accessible, not versioned)
+// GET /auth/github          → redirect to GitHub authorization
+// GET /auth/github/callback → process callback, issue JWT, redirect to frontend
+// ---------------------------------------------------------------------------
+
+app.use(authRouter)
+
+// ---------------------------------------------------------------------------
+// Auth me — validate JWT if present, fall back to mock for dev bypass
+// ---------------------------------------------------------------------------
+
+app.get("/api/v1/auth/me", (req, res) => {
+  const authHeader = req.headers.authorization ?? ""
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null
+
+  if (token && token !== "dev-bypass-token") {
+    const claims = verifyAppToken(token)
+    if (claims) {
+      return res.json({
+        email: claims.email,
+        name: claims.name,
+        roles: claims.roles,
+        countries: claims.countries,
+      })
+    }
+    return res.status(401).json({ error: "invalid_token", message: "JWT verification failed" })
+  }
+
+  // Dev bypass / no token — return mock user
   res.json({ email: "dev@localhost", name: "Dev User", roles: ["admin"], countries: ["*"] })
 })
 

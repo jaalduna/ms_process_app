@@ -51,6 +51,12 @@ export interface TriggerRequest {
   aggregations?: AggregationOptions
   skip_sync?: boolean
   skip_copy?: boolean
+  table_suffix?: string | null
+  group_by?: string | null
+  start_period?: string | null
+  final_period?: string | null
+  skip_merge?: boolean
+  skip_simulation?: boolean
 }
 
 /** Response from POST /trigger */

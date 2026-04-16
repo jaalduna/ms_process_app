@@ -6,7 +6,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { Tag, TagListResponse } from "../types"
@@ -15,7 +14,6 @@ interface TagTableProps {
   data: TagListResponse | undefined
   page: number
   onPageChange: (page: number) => void
-  onRowClick: (tagId: string) => void
 }
 
 function formatDate(iso: string): string {
@@ -23,15 +21,13 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
 }
 
-function statusVariant(status: string): "default" | "destructive" {
-  return status === "failed" ? "destructive" : "default"
+function shortTableName(fullName: string): string {
+  // Extract just the table name from backtick-quoted catalog.schema.table
+  const parts = fullName.replace(/`/g, "").split(".")
+  return parts[parts.length - 1] ?? fullName
 }
 
-function statusLabel(status: string): string {
-  return status === "completed" ? "OK" : "Failed"
-}
-
-export function TagTable({ data, page, onPageChange, onRowClick }: TagTableProps) {
+export function TagTable({ data, page, onPageChange }: TagTableProps) {
   if (!data) return null
 
   const { items, total, limit } = data
@@ -50,36 +46,26 @@ export function TagTable({ data, page, onPageChange, onRowClick }: TagTableProps
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Country</TableHead>
-            <TableHead>Stage</TableHead>
-            <TableHead>Period</TableHead>
+            <TableHead>Tag</TableHead>
+            <TableHead>Table</TableHead>
+            <TableHead>Version</TableHead>
+            <TableHead>Created By</TableHead>
             <TableHead>Date</TableHead>
-            <TableHead>Tables</TableHead>
-            <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((tag: Tag) => (
-            <TableRow
-              key={tag.tag_id}
-              className="cursor-pointer"
-              onClick={() => onRowClick(tag.tag_id)}
-            >
-              <TableCell className="font-medium">
-                {tag.country.charAt(0).toUpperCase() + tag.country.slice(1)}
+          {items.map((tag: Tag, idx: number) => (
+            <TableRow key={`${tag.tag}-${tag.table_name}-${idx}`}>
+              <TableCell className="font-mono text-xs">{tag.tag}</TableCell>
+              <TableCell
+                className="max-w-[260px] truncate font-mono text-xs"
+                title={tag.table_name}
+              >
+                {shortTableName(tag.table_name)}
               </TableCell>
-              <TableCell>{tag.stage}</TableCell>
-              <TableCell className="font-mono text-xs">{tag.period}</TableCell>
-              <TableCell>{formatDate(tag.completed_at)}</TableCell>
-              <TableCell>{tag.tables_count.toLocaleString()}</TableCell>
-              <TableCell>
-                <Badge
-                  variant={statusVariant(tag.status)}
-                  className={tag.status === "completed" ? "bg-green-600 hover:bg-green-600/80" : ""}
-                >
-                  {statusLabel(tag.status)}
-                </Badge>
-              </TableCell>
+              <TableCell className="font-mono text-xs">{tag.version}</TableCell>
+              <TableCell className="text-xs">{tag.created_by}</TableCell>
+              <TableCell className="text-xs">{formatDate(tag.created_at)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

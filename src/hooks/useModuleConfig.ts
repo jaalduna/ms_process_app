@@ -1,4 +1,5 @@
 export interface ModuleConfig {
+  overview: boolean
   sync: boolean
   calibration: boolean
   elegibilidad: boolean
@@ -12,7 +13,8 @@ export interface ModuleConfig {
 export function useModuleConfig(): ModuleConfig {
   const config = (window as any).__APP_CONFIG__?.modules
   return {
-    sync: config?.sync ?? true,
+    overview: config?.overview ?? false,
+    sync: config?.sync ?? false,
     calibration: config?.calibration ?? true,
     elegibilidad: config?.elegibilidad ?? true,
     prices: config?.prices ?? false,

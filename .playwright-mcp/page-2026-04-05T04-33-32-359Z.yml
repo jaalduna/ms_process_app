@@ -1,0 +1,7 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: SQL-Databricks Bridge
+      - generic [ref=e7]: Data sync operations for LATAM countries
+    - button "Sign in with GitHub" [ref=e9]
+  - region "Notifications alt+T"

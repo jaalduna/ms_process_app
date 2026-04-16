@@ -1,0 +1,1688 @@
+- generic [ref=e2]:
+  - generic [ref=e11]:
+    - complementary [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - text: Bridge
+          - generic [ref=e15]: v0.1.0
+        - button "Colapsar menú" [ref=e16]:
+          - img [ref=e17]
+      - navigation "Main navigation" [ref=e19]:
+        - link "Overview" [ref=e20] [cursor=pointer]:
+          - /url: /ms-process-app/overview
+          - img [ref=e21]
+          - generic [ref=e23]: Overview
+        - link "Sincronización" [ref=e24] [cursor=pointer]:
+          - /url: /ms-process-app/dashboard
+          - img [ref=e25]
+          - generic [ref=e30]: Sincronización
+        - link "Historial" [ref=e31] [cursor=pointer]:
+          - /url: /ms-process-app/history
+          - img [ref=e32]
+          - generic [ref=e35]: Historial
+        - link "Precios" [ref=e36] [cursor=pointer]:
+          - /url: /ms-process-app/precios
+          - img [ref=e37]
+          - generic [ref=e40]: Precios
+        - link "Elegibilidad" [ref=e41] [cursor=pointer]:
+          - /url: /ms-process-app/elegibilidad
+          - img [ref=e42]
+          - generic [ref=e45]: Elegibilidad
+        - link "Pesaje" [ref=e46] [cursor=pointer]:
+          - /url: /ms-process-app/pesaje
+          - img [ref=e47]
+          - generic [ref=e51]: Pesaje
+        - link "Calibración" [ref=e52] [cursor=pointer]:
+          - /url: /ms-process-app/calibration
+          - img [ref=e53]
+          - generic [ref=e54]: Calibración
+        - link "MTR" [ref=e55] [cursor=pointer]:
+          - /url: /ms-process-app/mtr
+          - img [ref=e56]
+          - generic [ref=e58]: MTR
+        - link "Trazabilidad" [ref=e59] [cursor=pointer]:
+          - /url: /ms-process-app/trazabilidad
+          - img [ref=e60]
+          - generic [ref=e65]: Trazabilidad
+      - generic [ref=e66]:
+        - paragraph [ref=e67]: Dev User
+        - button "Cerrar sesión" [ref=e68]:
+          - img
+          - text: Cerrar sesión
+    - main [ref=e69]:
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - heading "Sincronización Manual" [level=1] [ref=e73]
+          - paragraph [ref=e74]: Dispara y monitorea sincronizaciones de datos por país
+        - generic [ref=e75]:
+          - generic [ref=e77]: Trigger Data Sync
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic [ref=e80]:
+                - text: Country
+                - combobox "Country" [ref=e81]:
+                  - generic: Select country
+                  - img
+              - generic [ref=e82]:
+                - text: Stage
+                - combobox "Stage" [ref=e83]:
+                  - generic: Select stage
+                  - img
+              - generic [ref=e84]:
+                - text: Rolling Months
+                - spinbutton "Rolling Months" [ref=e85]
+            - generic [ref=e86]:
+              - button "Trigger Sync" [disabled]
+        - generic [ref=e87]:
+          - heading "Recent Jobs" [level=2] [ref=e88]
+          - table [ref=e90]:
+            - rowgroup [ref=e91]:
+              - row "Country Tag Status Triggered By When" [ref=e92]:
+                - columnheader "Country" [ref=e93] [cursor=pointer]
+                - columnheader "Tag" [ref=e94] [cursor=pointer]
+                - columnheader "Status" [ref=e95]
+                - columnheader "Triggered By" [ref=e96] [cursor=pointer]
+                - columnheader "When" [ref=e97] [cursor=pointer]:
+                  - generic [ref=e98]: When
+            - rowgroup [ref=e99]:
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e100] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e101]
+                - cell "KTCLSQL004-sincronizacion-2026-04-04" [ref=e102]
+                - cell "Completed" [ref=e103]:
+                  - generic [ref=e104]: Completed
+                - cell "auth_disabled@local" [ref=e105]
+                - cell "just now" [ref=e106]:
+                  - generic [ref=e107]: just now
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e108] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e109]
+                - cell "KTCLSQL003-sincronizacion-2026-04-04" [ref=e110]
+                - cell "Completed" [ref=e111]:
+                  - generic [ref=e112]: Completed
+                - cell "auth_disabled@local" [ref=e113]
+                - cell "just now" [ref=e114]:
+                  - generic [ref=e115]: just now
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e116] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e117]
+                - cell "KTCLSQL002-sincronizacion-2026-04-04" [ref=e118]
+                - cell "Completed" [ref=e119]:
+                  - generic [ref=e120]: Completed
+                - cell "auth_disabled@local" [ref=e121]
+                - cell "just now" [ref=e122]:
+                  - generic [ref=e123]: just now
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e124] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e125]
+                - cell "KTCLSQL001-sincronizacion-2026-04-04" [ref=e126]
+                - cell "Completed" [ref=e127]:
+                  - generic [ref=e128]: Completed
+                - cell "auth_disabled@local" [ref=e129]
+                - cell "just now" [ref=e130]:
+                  - generic [ref=e131]: just now
+              - row "Peru peru-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e132] [cursor=pointer]:
+                - cell "Peru" [ref=e133]
+                - cell "peru-sincronizacion-2026-04-04" [ref=e134]
+                - cell "Completed" [ref=e135]:
+                  - generic [ref=e136]: Completed
+                - cell "auth_disabled@local" [ref=e137]
+                - cell "just now" [ref=e138]:
+                  - generic [ref=e139]: just now
+              - row "Mexico mexico-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e140] [cursor=pointer]:
+                - cell "Mexico" [ref=e141]
+                - cell "mexico-sincronizacion-2026-04-04" [ref=e142]
+                - cell "Completed" [ref=e143]:
+                  - generic [ref=e144]: Completed
+                - cell "auth_disabled@local" [ref=e145]
+                - cell "just now" [ref=e146]:
+                  - generic [ref=e147]: just now
+              - row "Ecuador ecuador-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e148] [cursor=pointer]:
+                - cell "Ecuador" [ref=e149]
+                - cell "ecuador-sincronizacion-2026-04-04" [ref=e150]
+                - cell "Completed" [ref=e151]:
+                  - generic [ref=e152]: Completed
+                - cell "auth_disabled@local" [ref=e153]
+                - cell "just now" [ref=e154]:
+                  - generic [ref=e155]: just now
+              - row "Colombia colombia-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e156] [cursor=pointer]:
+                - cell "Colombia" [ref=e157]
+                - cell "colombia-sincronizacion-2026-04-04" [ref=e158]
+                - cell "Completed" [ref=e159]:
+                  - generic [ref=e160]: Completed
+                - cell "auth_disabled@local" [ref=e161]
+                - cell "just now" [ref=e162]:
+                  - generic [ref=e163]: just now
+              - row "Chile chile-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e164] [cursor=pointer]:
+                - cell "Chile" [ref=e165]
+                - cell "chile-sincronizacion-2026-04-04" [ref=e166]
+                - cell "Completed" [ref=e167]:
+                  - generic [ref=e168]: Completed
+                - cell "auth_disabled@local" [ref=e169]
+                - cell "just now" [ref=e170]:
+                  - generic [ref=e171]: just now
+              - row "Cam cam-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e172] [cursor=pointer]:
+                - cell "Cam" [ref=e173]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e174]
+                - cell "Completed" [ref=e175]:
+                  - generic [ref=e176]: Completed
+                - cell "auth_disabled@local" [ref=e177]
+                - cell "just now" [ref=e178]:
+                  - generic [ref=e179]: just now
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e180] [cursor=pointer]:
+                - cell "Brasil" [ref=e181]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e182]
+                - cell "Completed" [ref=e183]:
+                  - generic [ref=e184]: Completed
+                - cell "auth_disabled@local" [ref=e185]
+                - cell "just now" [ref=e186]:
+                  - generic [ref=e187]: just now
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e188] [cursor=pointer]:
+                - cell "Bolivia" [ref=e189]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e190]
+                - cell "Completed" [ref=e191]:
+                  - generic [ref=e192]: Completed
+                - cell "auth_disabled@local" [ref=e193]
+                - cell "just now" [ref=e194]:
+                  - generic [ref=e195]: just now
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e196] [cursor=pointer]:
+                - cell "Argentina" [ref=e197]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e198]
+                - cell "Completed" [ref=e199]:
+                  - generic [ref=e200]: Completed
+                - cell "auth_disabled@local" [ref=e201]
+                - cell "just now" [ref=e202]:
+                  - generic [ref=e203]: just now
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e204] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e205]
+                - cell "KTCLSQL005-sincronizacion-2026-04-04" [ref=e206]
+                - cell "Completed" [ref=e207]:
+                  - generic [ref=e208]: Completed
+                - cell "auth_disabled@local" [ref=e209]
+                - cell "just now" [ref=e210]:
+                  - generic [ref=e211]: just now
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-04 Completed auth_disabled@local 1m ago" [ref=e212] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e213]
+                - cell "KTCLSQL004-sincronizacion-2026-04-04" [ref=e214]
+                - cell "Completed" [ref=e215]:
+                  - generic [ref=e216]: Completed
+                - cell "auth_disabled@local" [ref=e217]
+                - cell "1m ago" [ref=e218]:
+                  - generic [ref=e219]: 1m ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-04 Completed auth_disabled@local 3m ago" [ref=e220] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e221]
+                - cell "KTCLSQL003-sincronizacion-2026-04-04" [ref=e222]
+                - cell "Completed" [ref=e223]:
+                  - generic [ref=e224]: Completed
+                - cell "auth_disabled@local" [ref=e225]
+                - cell "3m ago" [ref=e226]:
+                  - generic [ref=e227]: 3m ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-04 Completed auth_disabled@local 7m ago" [ref=e228] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e229]
+                - cell "KTCLSQL002-sincronizacion-2026-04-04" [ref=e230]
+                - cell "Completed" [ref=e231]:
+                  - generic [ref=e232]: Completed
+                - cell "auth_disabled@local" [ref=e233]
+                - cell "7m ago" [ref=e234]:
+                  - generic [ref=e235]: 7m ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-04 Completed auth_disabled@local 8m ago" [ref=e236] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e237]
+                - cell "KTCLSQL001-sincronizacion-2026-04-04" [ref=e238]
+                - cell "Completed" [ref=e239]:
+                  - generic [ref=e240]: Completed
+                - cell "auth_disabled@local" [ref=e241]
+                - cell "8m ago" [ref=e242]:
+                  - generic [ref=e243]: 8m ago
+              - row "Peru peru-sincronizacion-2026-04-04 Completed auth_disabled@local 12m ago" [ref=e244] [cursor=pointer]:
+                - cell "Peru" [ref=e245]
+                - cell "peru-sincronizacion-2026-04-04" [ref=e246]
+                - cell "Completed" [ref=e247]:
+                  - generic [ref=e248]: Completed
+                - cell "auth_disabled@local" [ref=e249]
+                - cell "12m ago" [ref=e250]:
+                  - generic [ref=e251]: 12m ago
+              - row "Mexico mexico-sincronizacion-2026-04-04 Completed auth_disabled@local 16m ago" [ref=e252] [cursor=pointer]:
+                - cell "Mexico" [ref=e253]
+                - cell "mexico-sincronizacion-2026-04-04" [ref=e254]
+                - cell "Completed" [ref=e255]:
+                  - generic [ref=e256]: Completed
+                - cell "auth_disabled@local" [ref=e257]
+                - cell "16m ago" [ref=e258]:
+                  - generic [ref=e259]: 16m ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-04 Completed auth_disabled@local 17m ago" [ref=e260] [cursor=pointer]:
+                - cell "Ecuador" [ref=e261]
+                - cell "ecuador-sincronizacion-2026-04-04" [ref=e262]
+                - cell "Completed" [ref=e263]:
+                  - generic [ref=e264]: Completed
+                - cell "auth_disabled@local" [ref=e265]
+                - cell "17m ago" [ref=e266]:
+                  - generic [ref=e267]: 17m ago
+              - row "Colombia colombia-sincronizacion-2026-04-04 Completed auth_disabled@local 19m ago" [ref=e268] [cursor=pointer]:
+                - cell "Colombia" [ref=e269]
+                - cell "colombia-sincronizacion-2026-04-04" [ref=e270]
+                - cell "Completed" [ref=e271]:
+                  - generic [ref=e272]: Completed
+                - cell "auth_disabled@local" [ref=e273]
+                - cell "19m ago" [ref=e274]:
+                  - generic [ref=e275]: 19m ago
+              - row "Chile chile-sincronizacion-2026-04-04 Completed auth_disabled@local 20m ago" [ref=e276] [cursor=pointer]:
+                - cell "Chile" [ref=e277]
+                - cell "chile-sincronizacion-2026-04-04" [ref=e278]
+                - cell "Completed" [ref=e279]:
+                  - generic [ref=e280]: Completed
+                - cell "auth_disabled@local" [ref=e281]
+                - cell "20m ago" [ref=e282]:
+                  - generic [ref=e283]: 20m ago
+              - row "Cam cam-sincronizacion-2026-04-04 Completed auth_disabled@local 25m ago" [ref=e284] [cursor=pointer]:
+                - cell "Cam" [ref=e285]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e286]
+                - cell "Completed" [ref=e287]:
+                  - generic [ref=e288]: Completed
+                - cell "auth_disabled@local" [ref=e289]
+                - cell "25m ago" [ref=e290]:
+                  - generic [ref=e291]: 25m ago
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local 28m ago" [ref=e292] [cursor=pointer]:
+                - cell "Brasil" [ref=e293]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e294]
+                - cell "Completed" [ref=e295]:
+                  - generic [ref=e296]: Completed
+                - cell "auth_disabled@local" [ref=e297]
+                - cell "28m ago" [ref=e298]:
+                  - generic [ref=e299]: 28m ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local 30m ago" [ref=e300] [cursor=pointer]:
+                - cell "Bolivia" [ref=e301]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e302]
+                - cell "Completed" [ref=e303]:
+                  - generic [ref=e304]: Completed
+                - cell "auth_disabled@local" [ref=e305]
+                - cell "30m ago" [ref=e306]:
+                  - generic [ref=e307]: 30m ago
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local 31m ago" [ref=e308] [cursor=pointer]:
+                - cell "Argentina" [ref=e309]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e310]
+                - cell "Completed" [ref=e311]:
+                  - generic [ref=e312]: Completed
+                - cell "auth_disabled@local" [ref=e313]
+                - cell "31m ago" [ref=e314]:
+                  - generic [ref=e315]: 31m ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-04 Completed auth_disabled@local 1h ago" [ref=e316] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e317]
+                - cell "KTCLSQL005-sincronizacion-2026-04-04" [ref=e318]
+                - cell "Completed" [ref=e319]:
+                  - generic [ref=e320]: Completed
+                - cell "auth_disabled@local" [ref=e321]
+                - cell "1h ago" [ref=e322]:
+                  - generic [ref=e323]: 1h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-04 Completed auth_disabled@local 1h ago" [ref=e324] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e325]
+                - cell "KTCLSQL004-sincronizacion-2026-04-04" [ref=e326]
+                - cell "Completed" [ref=e327]:
+                  - generic [ref=e328]: Completed
+                - cell "auth_disabled@local" [ref=e329]
+                - cell "1h ago" [ref=e330]:
+                  - generic [ref=e331]: 1h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-04 Completed auth_disabled@local 1h ago" [ref=e332] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e333]
+                - cell "KTCLSQL003-sincronizacion-2026-04-04" [ref=e334]
+                - cell "Completed" [ref=e335]:
+                  - generic [ref=e336]: Completed
+                - cell "auth_disabled@local" [ref=e337]
+                - cell "1h ago" [ref=e338]:
+                  - generic [ref=e339]: 1h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-04 Completed auth_disabled@local 1h ago" [ref=e340] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e341]
+                - cell "KTCLSQL002-sincronizacion-2026-04-04" [ref=e342]
+                - cell "Completed" [ref=e343]:
+                  - generic [ref=e344]: Completed
+                - cell "auth_disabled@local" [ref=e345]
+                - cell "1h ago" [ref=e346]:
+                  - generic [ref=e347]: 1h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-04 Completed auth_disabled@local 1h ago" [ref=e348] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e349]
+                - cell "KTCLSQL001-sincronizacion-2026-04-04" [ref=e350]
+                - cell "Completed" [ref=e351]:
+                  - generic [ref=e352]: Completed
+                - cell "auth_disabled@local" [ref=e353]
+                - cell "1h ago" [ref=e354]:
+                  - generic [ref=e355]: 1h ago
+              - row "Peru peru-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e356] [cursor=pointer]:
+                - cell "Peru" [ref=e357]
+                - cell "peru-sincronizacion-2026-04-04" [ref=e358]
+                - cell "Completed" [ref=e359]:
+                  - generic [ref=e360]: Completed
+                - cell "auth_disabled@local" [ref=e361]
+                - cell "2h ago" [ref=e362]:
+                  - generic [ref=e363]: 2h ago
+              - row "Mexico mexico-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e364] [cursor=pointer]:
+                - cell "Mexico" [ref=e365]
+                - cell "mexico-sincronizacion-2026-04-04" [ref=e366]
+                - cell "Completed" [ref=e367]:
+                  - generic [ref=e368]: Completed
+                - cell "auth_disabled@local" [ref=e369]
+                - cell "2h ago" [ref=e370]:
+                  - generic [ref=e371]: 2h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e372] [cursor=pointer]:
+                - cell "Ecuador" [ref=e373]
+                - cell "ecuador-sincronizacion-2026-04-04" [ref=e374]
+                - cell "Completed" [ref=e375]:
+                  - generic [ref=e376]: Completed
+                - cell "auth_disabled@local" [ref=e377]
+                - cell "2h ago" [ref=e378]:
+                  - generic [ref=e379]: 2h ago
+              - row "Colombia colombia-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e380] [cursor=pointer]:
+                - cell "Colombia" [ref=e381]
+                - cell "colombia-sincronizacion-2026-04-04" [ref=e382]
+                - cell "Completed" [ref=e383]:
+                  - generic [ref=e384]: Completed
+                - cell "auth_disabled@local" [ref=e385]
+                - cell "2h ago" [ref=e386]:
+                  - generic [ref=e387]: 2h ago
+              - row "Chile chile-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e388] [cursor=pointer]:
+                - cell "Chile" [ref=e389]
+                - cell "chile-sincronizacion-2026-04-04" [ref=e390]
+                - cell "Completed" [ref=e391]:
+                  - generic [ref=e392]: Completed
+                - cell "auth_disabled@local" [ref=e393]
+                - cell "2h ago" [ref=e394]:
+                  - generic [ref=e395]: 2h ago
+              - row "Cam cam-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e396] [cursor=pointer]:
+                - cell "Cam" [ref=e397]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e398]
+                - cell "Completed" [ref=e399]:
+                  - generic [ref=e400]: Completed
+                - cell "auth_disabled@local" [ref=e401]
+                - cell "2h ago" [ref=e402]:
+                  - generic [ref=e403]: 2h ago
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e404] [cursor=pointer]:
+                - cell "Brasil" [ref=e405]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e406]
+                - cell "Completed" [ref=e407]:
+                  - generic [ref=e408]: Completed
+                - cell "auth_disabled@local" [ref=e409]
+                - cell "2h ago" [ref=e410]:
+                  - generic [ref=e411]: 2h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e412] [cursor=pointer]:
+                - cell "Bolivia" [ref=e413]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e414]
+                - cell "Completed" [ref=e415]:
+                  - generic [ref=e416]: Completed
+                - cell "auth_disabled@local" [ref=e417]
+                - cell "2h ago" [ref=e418]:
+                  - generic [ref=e419]: 2h ago
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local 2h ago" [ref=e420] [cursor=pointer]:
+                - cell "Argentina" [ref=e421]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e422]
+                - cell "Completed" [ref=e423]:
+                  - generic [ref=e424]: Completed
+                - cell "auth_disabled@local" [ref=e425]
+                - cell "2h ago" [ref=e426]:
+                  - generic [ref=e427]: 2h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e428] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e429]
+                - cell "KTCLSQL005-sincronizacion-2026-04-04" [ref=e430]
+                - cell "Completed" [ref=e431]:
+                  - generic [ref=e432]: Completed
+                - cell "auth_disabled@local" [ref=e433]
+                - cell "3h ago" [ref=e434]:
+                  - generic [ref=e435]: 3h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e436] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e437]
+                - cell "KTCLSQL004-sincronizacion-2026-04-04" [ref=e438]
+                - cell "Completed" [ref=e439]:
+                  - generic [ref=e440]: Completed
+                - cell "auth_disabled@local" [ref=e441]
+                - cell "3h ago" [ref=e442]:
+                  - generic [ref=e443]: 3h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e444] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e445]
+                - cell "KTCLSQL003-sincronizacion-2026-04-04" [ref=e446]
+                - cell "Completed" [ref=e447]:
+                  - generic [ref=e448]: Completed
+                - cell "auth_disabled@local" [ref=e449]
+                - cell "3h ago" [ref=e450]:
+                  - generic [ref=e451]: 3h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e452] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e453]
+                - cell "KTCLSQL002-sincronizacion-2026-04-04" [ref=e454]
+                - cell "Completed" [ref=e455]:
+                  - generic [ref=e456]: Completed
+                - cell "auth_disabled@local" [ref=e457]
+                - cell "3h ago" [ref=e458]:
+                  - generic [ref=e459]: 3h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e460] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e461]
+                - cell "KTCLSQL001-sincronizacion-2026-04-04" [ref=e462]
+                - cell "Completed" [ref=e463]:
+                  - generic [ref=e464]: Completed
+                - cell "auth_disabled@local" [ref=e465]
+                - cell "3h ago" [ref=e466]:
+                  - generic [ref=e467]: 3h ago
+              - row "Peru peru-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e468] [cursor=pointer]:
+                - cell "Peru" [ref=e469]
+                - cell "peru-sincronizacion-2026-04-04" [ref=e470]
+                - cell "Completed" [ref=e471]:
+                  - generic [ref=e472]: Completed
+                - cell "auth_disabled@local" [ref=e473]
+                - cell "3h ago" [ref=e474]:
+                  - generic [ref=e475]: 3h ago
+              - row "Mexico mexico-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e476] [cursor=pointer]:
+                - cell "Mexico" [ref=e477]
+                - cell "mexico-sincronizacion-2026-04-04" [ref=e478]
+                - cell "Completed" [ref=e479]:
+                  - generic [ref=e480]: Completed
+                - cell "auth_disabled@local" [ref=e481]
+                - cell "3h ago" [ref=e482]:
+                  - generic [ref=e483]: 3h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e484] [cursor=pointer]:
+                - cell "Ecuador" [ref=e485]
+                - cell "ecuador-sincronizacion-2026-04-04" [ref=e486]
+                - cell "Completed" [ref=e487]:
+                  - generic [ref=e488]: Completed
+                - cell "auth_disabled@local" [ref=e489]
+                - cell "3h ago" [ref=e490]:
+                  - generic [ref=e491]: 3h ago
+              - row "Colombia colombia-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e492] [cursor=pointer]:
+                - cell "Colombia" [ref=e493]
+                - cell "colombia-sincronizacion-2026-04-04" [ref=e494]
+                - cell "Completed" [ref=e495]:
+                  - generic [ref=e496]: Completed
+                - cell "auth_disabled@local" [ref=e497]
+                - cell "3h ago" [ref=e498]:
+                  - generic [ref=e499]: 3h ago
+              - row "Chile chile-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e500] [cursor=pointer]:
+                - cell "Chile" [ref=e501]
+                - cell "chile-sincronizacion-2026-04-04" [ref=e502]
+                - cell "Completed" [ref=e503]:
+                  - generic [ref=e504]: Completed
+                - cell "auth_disabled@local" [ref=e505]
+                - cell "3h ago" [ref=e506]:
+                  - generic [ref=e507]: 3h ago
+              - row "Cam cam-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e508] [cursor=pointer]:
+                - cell "Cam" [ref=e509]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e510]
+                - cell "Completed" [ref=e511]:
+                  - generic [ref=e512]: Completed
+                - cell "auth_disabled@local" [ref=e513]
+                - cell "3h ago" [ref=e514]:
+                  - generic [ref=e515]: 3h ago
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e516] [cursor=pointer]:
+                - cell "Brasil" [ref=e517]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e518]
+                - cell "Completed" [ref=e519]:
+                  - generic [ref=e520]: Completed
+                - cell "auth_disabled@local" [ref=e521]
+                - cell "3h ago" [ref=e522]:
+                  - generic [ref=e523]: 3h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e524] [cursor=pointer]:
+                - cell "Bolivia" [ref=e525]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e526]
+                - cell "Completed" [ref=e527]:
+                  - generic [ref=e528]: Completed
+                - cell "auth_disabled@local" [ref=e529]
+                - cell "3h ago" [ref=e530]:
+                  - generic [ref=e531]: 3h ago
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local 3h ago" [ref=e532] [cursor=pointer]:
+                - cell "Argentina" [ref=e533]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e534]
+                - cell "Completed" [ref=e535]:
+                  - generic [ref=e536]: Completed
+                - cell "auth_disabled@local" [ref=e537]
+                - cell "3h ago" [ref=e538]:
+                  - generic [ref=e539]: 3h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-04 Completed auth_disabled@local 5h ago" [ref=e540] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e541]
+                - cell "KTCLSQL005-sincronizacion-2026-04-04" [ref=e542]
+                - cell "Completed" [ref=e543]:
+                  - generic [ref=e544]: Completed
+                - cell "auth_disabled@local" [ref=e545]
+                - cell "5h ago" [ref=e546]:
+                  - generic [ref=e547]: 5h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-04 Completed auth_disabled@local 5h ago" [ref=e548] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e549]
+                - cell "KTCLSQL004-sincronizacion-2026-04-04" [ref=e550]
+                - cell "Completed" [ref=e551]:
+                  - generic [ref=e552]: Completed
+                - cell "auth_disabled@local" [ref=e553]
+                - cell "5h ago" [ref=e554]:
+                  - generic [ref=e555]: 5h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-04 Completed auth_disabled@local 5h ago" [ref=e556] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e557]
+                - cell "KTCLSQL003-sincronizacion-2026-04-04" [ref=e558]
+                - cell "Completed" [ref=e559]:
+                  - generic [ref=e560]: Completed
+                - cell "auth_disabled@local" [ref=e561]
+                - cell "5h ago" [ref=e562]:
+                  - generic [ref=e563]: 5h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-04 Completed auth_disabled@local 5h ago" [ref=e564] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e565]
+                - cell "KTCLSQL002-sincronizacion-2026-04-04" [ref=e566]
+                - cell "Completed" [ref=e567]:
+                  - generic [ref=e568]: Completed
+                - cell "auth_disabled@local" [ref=e569]
+                - cell "5h ago" [ref=e570]:
+                  - generic [ref=e571]: 5h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-04 Completed auth_disabled@local 5h ago" [ref=e572] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e573]
+                - cell "KTCLSQL001-sincronizacion-2026-04-04" [ref=e574]
+                - cell "Completed" [ref=e575]:
+                  - generic [ref=e576]: Completed
+                - cell "auth_disabled@local" [ref=e577]
+                - cell "5h ago" [ref=e578]:
+                  - generic [ref=e579]: 5h ago
+              - row "Peru peru-sincronizacion-2026-04-04 Completed auth_disabled@local 6h ago" [ref=e580] [cursor=pointer]:
+                - cell "Peru" [ref=e581]
+                - cell "peru-sincronizacion-2026-04-04" [ref=e582]
+                - cell "Completed" [ref=e583]:
+                  - generic [ref=e584]: Completed
+                - cell "auth_disabled@local" [ref=e585]
+                - cell "6h ago" [ref=e586]:
+                  - generic [ref=e587]: 6h ago
+              - row "Mexico mexico-sincronizacion-2026-04-04 Completed auth_disabled@local 6h ago" [ref=e588] [cursor=pointer]:
+                - cell "Mexico" [ref=e589]
+                - cell "mexico-sincronizacion-2026-04-04" [ref=e590]
+                - cell "Completed" [ref=e591]:
+                  - generic [ref=e592]: Completed
+                - cell "auth_disabled@local" [ref=e593]
+                - cell "6h ago" [ref=e594]:
+                  - generic [ref=e595]: 6h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-04 Completed auth_disabled@local 6h ago" [ref=e596] [cursor=pointer]:
+                - cell "Ecuador" [ref=e597]
+                - cell "ecuador-sincronizacion-2026-04-04" [ref=e598]
+                - cell "Completed" [ref=e599]:
+                  - generic [ref=e600]: Completed
+                - cell "auth_disabled@local" [ref=e601]
+                - cell "6h ago" [ref=e602]:
+                  - generic [ref=e603]: 6h ago
+              - row "Colombia colombia-sincronizacion-2026-04-04 Completed auth_disabled@local 6h ago" [ref=e604] [cursor=pointer]:
+                - cell "Colombia" [ref=e605]
+                - cell "colombia-sincronizacion-2026-04-04" [ref=e606]
+                - cell "Completed" [ref=e607]:
+                  - generic [ref=e608]: Completed
+                - cell "auth_disabled@local" [ref=e609]
+                - cell "6h ago" [ref=e610]:
+                  - generic [ref=e611]: 6h ago
+              - row "Chile chile-sincronizacion-2026-04-04 Completed auth_disabled@local 6h ago" [ref=e612] [cursor=pointer]:
+                - cell "Chile" [ref=e613]
+                - cell "chile-sincronizacion-2026-04-04" [ref=e614]
+                - cell "Completed" [ref=e615]:
+                  - generic [ref=e616]: Completed
+                - cell "auth_disabled@local" [ref=e617]
+                - cell "6h ago" [ref=e618]:
+                  - generic [ref=e619]: 6h ago
+              - row "Cam cam-sincronizacion-2026-04-04 Completed auth_disabled@local 7h ago" [ref=e620] [cursor=pointer]:
+                - cell "Cam" [ref=e621]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e622]
+                - cell "Completed" [ref=e623]:
+                  - generic [ref=e624]: Completed
+                - cell "auth_disabled@local" [ref=e625]
+                - cell "7h ago" [ref=e626]:
+                  - generic [ref=e627]: 7h ago
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local 8h ago" [ref=e628] [cursor=pointer]:
+                - cell "Brasil" [ref=e629]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e630]
+                - cell "Completed" [ref=e631]:
+                  - generic [ref=e632]: Completed
+                - cell "auth_disabled@local" [ref=e633]
+                - cell "8h ago" [ref=e634]:
+                  - generic [ref=e635]: 8h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local 8h ago" [ref=e636] [cursor=pointer]:
+                - cell "Bolivia" [ref=e637]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e638]
+                - cell "Completed" [ref=e639]:
+                  - generic [ref=e640]: Completed
+                - cell "auth_disabled@local" [ref=e641]
+                - cell "8h ago" [ref=e642]:
+                  - generic [ref=e643]: 8h ago
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local 9h ago" [ref=e644] [cursor=pointer]:
+                - cell "Argentina" [ref=e645]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e646]
+                - cell "Completed" [ref=e647]:
+                  - generic [ref=e648]: Completed
+                - cell "auth_disabled@local" [ref=e649]
+                - cell "9h ago" [ref=e650]:
+                  - generic [ref=e651]: 9h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-04 Failed auth_disabled@local 10h ago" [ref=e652] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e653]
+                - cell "KTCLSQL005-sincronizacion-2026-04-04" [ref=e654]
+                - cell "Failed" [ref=e655]:
+                  - generic [ref=e656]: Failed
+                - cell "auth_disabled@local" [ref=e657]
+                - cell "10h ago" [ref=e658]:
+                  - generic [ref=e659]: 10h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-04 Failed auth_disabled@local 10h ago" [ref=e660] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e661]
+                - cell "KTCLSQL004-sincronizacion-2026-04-04" [ref=e662]
+                - cell "Failed" [ref=e663]:
+                  - generic [ref=e664]: Failed
+                - cell "auth_disabled@local" [ref=e665]
+                - cell "10h ago" [ref=e666]:
+                  - generic [ref=e667]: 10h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-04 Failed auth_disabled@local 10h ago" [ref=e668] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e669]
+                - cell "KTCLSQL003-sincronizacion-2026-04-04" [ref=e670]
+                - cell "Failed" [ref=e671]:
+                  - generic [ref=e672]: Failed
+                - cell "auth_disabled@local" [ref=e673]
+                - cell "10h ago" [ref=e674]:
+                  - generic [ref=e675]: 10h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-04 Failed auth_disabled@local 10h ago" [ref=e676] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e677]
+                - cell "KTCLSQL002-sincronizacion-2026-04-04" [ref=e678]
+                - cell "Failed" [ref=e679]:
+                  - generic [ref=e680]: Failed
+                - cell "auth_disabled@local" [ref=e681]
+                - cell "10h ago" [ref=e682]:
+                  - generic [ref=e683]: 10h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-04 Failed auth_disabled@local 10h ago" [ref=e684] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e685]
+                - cell "KTCLSQL001-sincronizacion-2026-04-04" [ref=e686]
+                - cell "Failed" [ref=e687]:
+                  - generic [ref=e688]: Failed
+                - cell "auth_disabled@local" [ref=e689]
+                - cell "10h ago" [ref=e690]:
+                  - generic [ref=e691]: 10h ago
+              - row "Peru peru-sincronizacion-2026-04-04 Completed auth_disabled@local 11h ago" [ref=e692] [cursor=pointer]:
+                - cell "Peru" [ref=e693]
+                - cell "peru-sincronizacion-2026-04-04" [ref=e694]
+                - cell "Completed" [ref=e695]:
+                  - generic [ref=e696]: Completed
+                - cell "auth_disabled@local" [ref=e697]
+                - cell "11h ago" [ref=e698]:
+                  - generic [ref=e699]: 11h ago
+              - row "Mexico mexico-sincronizacion-2026-04-04 Completed auth_disabled@local 12h ago" [ref=e700] [cursor=pointer]:
+                - cell "Mexico" [ref=e701]
+                - cell "mexico-sincronizacion-2026-04-04" [ref=e702]
+                - cell "Completed" [ref=e703]:
+                  - generic [ref=e704]: Completed
+                - cell "auth_disabled@local" [ref=e705]
+                - cell "12h ago" [ref=e706]:
+                  - generic [ref=e707]: 12h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-04 Completed auth_disabled@local 12h ago" [ref=e708] [cursor=pointer]:
+                - cell "Ecuador" [ref=e709]
+                - cell "ecuador-sincronizacion-2026-04-04" [ref=e710]
+                - cell "Completed" [ref=e711]:
+                  - generic [ref=e712]: Completed
+                - cell "auth_disabled@local" [ref=e713]
+                - cell "12h ago" [ref=e714]:
+                  - generic [ref=e715]: 12h ago
+              - row "Colombia colombia-sincronizacion-2026-04-04 Completed auth_disabled@local 12h ago" [ref=e716] [cursor=pointer]:
+                - cell "Colombia" [ref=e717]
+                - cell "colombia-sincronizacion-2026-04-04" [ref=e718]
+                - cell "Completed" [ref=e719]:
+                  - generic [ref=e720]: Completed
+                - cell "auth_disabled@local" [ref=e721]
+                - cell "12h ago" [ref=e722]:
+                  - generic [ref=e723]: 12h ago
+              - row "Chile chile-sincronizacion-2026-04-04 Completed auth_disabled@local 12h ago" [ref=e724] [cursor=pointer]:
+                - cell "Chile" [ref=e725]
+                - cell "chile-sincronizacion-2026-04-04" [ref=e726]
+                - cell "Completed" [ref=e727]:
+                  - generic [ref=e728]: Completed
+                - cell "auth_disabled@local" [ref=e729]
+                - cell "12h ago" [ref=e730]:
+                  - generic [ref=e731]: 12h ago
+              - row "Cam cam-sincronizacion-2026-04-04 Completed auth_disabled@local 12h ago" [ref=e732] [cursor=pointer]:
+                - cell "Cam" [ref=e733]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e734]
+                - cell "Completed" [ref=e735]:
+                  - generic [ref=e736]: Completed
+                - cell "auth_disabled@local" [ref=e737]
+                - cell "12h ago" [ref=e738]:
+                  - generic [ref=e739]: 12h ago
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local 12h ago" [ref=e740] [cursor=pointer]:
+                - cell "Brasil" [ref=e741]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e742]
+                - cell "Completed" [ref=e743]:
+                  - generic [ref=e744]: Completed
+                - cell "auth_disabled@local" [ref=e745]
+                - cell "12h ago" [ref=e746]:
+                  - generic [ref=e747]: 12h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local 12h ago" [ref=e748] [cursor=pointer]:
+                - cell "Bolivia" [ref=e749]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e750]
+                - cell "Completed" [ref=e751]:
+                  - generic [ref=e752]: Completed
+                - cell "auth_disabled@local" [ref=e753]
+                - cell "12h ago" [ref=e754]:
+                  - generic [ref=e755]: 12h ago
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local 13h ago" [ref=e756] [cursor=pointer]:
+                - cell "Argentina" [ref=e757]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e758]
+                - cell "Completed" [ref=e759]:
+                  - generic [ref=e760]: Completed
+                - cell "auth_disabled@local" [ref=e761]
+                - cell "13h ago" [ref=e762]:
+                  - generic [ref=e763]: 13h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-04 Completed auth_disabled@local 14h ago" [ref=e764] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e765]
+                - cell "KTCLSQL005-sincronizacion-2026-04-04" [ref=e766]
+                - cell "Completed" [ref=e767]:
+                  - generic [ref=e768]: Completed
+                - cell "auth_disabled@local" [ref=e769]
+                - cell "14h ago" [ref=e770]:
+                  - generic [ref=e771]: 14h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-04 Completed auth_disabled@local 14h ago" [ref=e772] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e773]
+                - cell "KTCLSQL004-sincronizacion-2026-04-04" [ref=e774]
+                - cell "Completed" [ref=e775]:
+                  - generic [ref=e776]: Completed
+                - cell "auth_disabled@local" [ref=e777]
+                - cell "14h ago" [ref=e778]:
+                  - generic [ref=e779]: 14h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-04 Completed auth_disabled@local 14h ago" [ref=e780] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e781]
+                - cell "KTCLSQL003-sincronizacion-2026-04-04" [ref=e782]
+                - cell "Completed" [ref=e783]:
+                  - generic [ref=e784]: Completed
+                - cell "auth_disabled@local" [ref=e785]
+                - cell "14h ago" [ref=e786]:
+                  - generic [ref=e787]: 14h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-04 Completed auth_disabled@local 14h ago" [ref=e788] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e789]
+                - cell "KTCLSQL002-sincronizacion-2026-04-04" [ref=e790]
+                - cell "Completed" [ref=e791]:
+                  - generic [ref=e792]: Completed
+                - cell "auth_disabled@local" [ref=e793]
+                - cell "14h ago" [ref=e794]:
+                  - generic [ref=e795]: 14h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e796] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e797]
+                - cell "KTCLSQL001-sincronizacion-2026-04-04" [ref=e798]
+                - cell "Completed" [ref=e799]:
+                  - generic [ref=e800]: Completed
+                - cell "auth_disabled@local" [ref=e801]
+                - cell "15h ago" [ref=e802]:
+                  - generic [ref=e803]: 15h ago
+              - row "Peru peru-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e804] [cursor=pointer]:
+                - cell "Peru" [ref=e805]
+                - cell "peru-sincronizacion-2026-04-04" [ref=e806]
+                - cell "Completed" [ref=e807]:
+                  - generic [ref=e808]: Completed
+                - cell "auth_disabled@local" [ref=e809]
+                - cell "15h ago" [ref=e810]:
+                  - generic [ref=e811]: 15h ago
+              - row "Mexico mexico-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e812] [cursor=pointer]:
+                - cell "Mexico" [ref=e813]
+                - cell "mexico-sincronizacion-2026-04-04" [ref=e814]
+                - cell "Completed" [ref=e815]:
+                  - generic [ref=e816]: Completed
+                - cell "auth_disabled@local" [ref=e817]
+                - cell "15h ago" [ref=e818]:
+                  - generic [ref=e819]: 15h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e820] [cursor=pointer]:
+                - cell "Ecuador" [ref=e821]
+                - cell "ecuador-sincronizacion-2026-04-04" [ref=e822]
+                - cell "Completed" [ref=e823]:
+                  - generic [ref=e824]: Completed
+                - cell "auth_disabled@local" [ref=e825]
+                - cell "15h ago" [ref=e826]:
+                  - generic [ref=e827]: 15h ago
+              - row "Colombia colombia-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e828] [cursor=pointer]:
+                - cell "Colombia" [ref=e829]
+                - cell "colombia-sincronizacion-2026-04-04" [ref=e830]
+                - cell "Completed" [ref=e831]:
+                  - generic [ref=e832]: Completed
+                - cell "auth_disabled@local" [ref=e833]
+                - cell "15h ago" [ref=e834]:
+                  - generic [ref=e835]: 15h ago
+              - row "Chile chile-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e836] [cursor=pointer]:
+                - cell "Chile" [ref=e837]
+                - cell "chile-sincronizacion-2026-04-04" [ref=e838]
+                - cell "Completed" [ref=e839]:
+                  - generic [ref=e840]: Completed
+                - cell "auth_disabled@local" [ref=e841]
+                - cell "15h ago" [ref=e842]:
+                  - generic [ref=e843]: 15h ago
+              - row "Cam cam-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e844] [cursor=pointer]:
+                - cell "Cam" [ref=e845]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e846]
+                - cell "Completed" [ref=e847]:
+                  - generic [ref=e848]: Completed
+                - cell "auth_disabled@local" [ref=e849]
+                - cell "15h ago" [ref=e850]:
+                  - generic [ref=e851]: 15h ago
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e852] [cursor=pointer]:
+                - cell "Brasil" [ref=e853]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e854]
+                - cell "Completed" [ref=e855]:
+                  - generic [ref=e856]: Completed
+                - cell "auth_disabled@local" [ref=e857]
+                - cell "15h ago" [ref=e858]:
+                  - generic [ref=e859]: 15h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e860] [cursor=pointer]:
+                - cell "Bolivia" [ref=e861]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e862]
+                - cell "Completed" [ref=e863]:
+                  - generic [ref=e864]: Completed
+                - cell "auth_disabled@local" [ref=e865]
+                - cell "15h ago" [ref=e866]:
+                  - generic [ref=e867]: 15h ago
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local 15h ago" [ref=e868] [cursor=pointer]:
+                - cell "Argentina" [ref=e869]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e870]
+                - cell "Completed" [ref=e871]:
+                  - generic [ref=e872]: Completed
+                - cell "auth_disabled@local" [ref=e873]
+                - cell "15h ago" [ref=e874]:
+                  - generic [ref=e875]: 15h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-04 Completed auth_disabled@local 16h ago" [ref=e876] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e877]
+                - cell "KTCLSQL005-sincronizacion-2026-04-04" [ref=e878]
+                - cell "Completed" [ref=e879]:
+                  - generic [ref=e880]: Completed
+                - cell "auth_disabled@local" [ref=e881]
+                - cell "16h ago" [ref=e882]:
+                  - generic [ref=e883]: 16h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e884] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e885]
+                - cell "KTCLSQL004-sincronizacion-2026-04-04" [ref=e886]
+                - cell "Completed" [ref=e887]:
+                  - generic [ref=e888]: Completed
+                - cell "auth_disabled@local" [ref=e889]
+                - cell "17h ago" [ref=e890]:
+                  - generic [ref=e891]: 17h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e892] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e893]
+                - cell "KTCLSQL003-sincronizacion-2026-04-04" [ref=e894]
+                - cell "Completed" [ref=e895]:
+                  - generic [ref=e896]: Completed
+                - cell "auth_disabled@local" [ref=e897]
+                - cell "17h ago" [ref=e898]:
+                  - generic [ref=e899]: 17h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e900] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e901]
+                - cell "KTCLSQL002-sincronizacion-2026-04-04" [ref=e902]
+                - cell "Completed" [ref=e903]:
+                  - generic [ref=e904]: Completed
+                - cell "auth_disabled@local" [ref=e905]
+                - cell "17h ago" [ref=e906]:
+                  - generic [ref=e907]: 17h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e908] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e909]
+                - cell "KTCLSQL001-sincronizacion-2026-04-04" [ref=e910]
+                - cell "Completed" [ref=e911]:
+                  - generic [ref=e912]: Completed
+                - cell "auth_disabled@local" [ref=e913]
+                - cell "17h ago" [ref=e914]:
+                  - generic [ref=e915]: 17h ago
+              - row "Peru peru-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e916] [cursor=pointer]:
+                - cell "Peru" [ref=e917]
+                - cell "peru-sincronizacion-2026-04-04" [ref=e918]
+                - cell "Completed" [ref=e919]:
+                  - generic [ref=e920]: Completed
+                - cell "auth_disabled@local" [ref=e921]
+                - cell "17h ago" [ref=e922]:
+                  - generic [ref=e923]: 17h ago
+              - row "Mexico mexico-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e924] [cursor=pointer]:
+                - cell "Mexico" [ref=e925]
+                - cell "mexico-sincronizacion-2026-04-04" [ref=e926]
+                - cell "Completed" [ref=e927]:
+                  - generic [ref=e928]: Completed
+                - cell "auth_disabled@local" [ref=e929]
+                - cell "17h ago" [ref=e930]:
+                  - generic [ref=e931]: 17h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e932] [cursor=pointer]:
+                - cell "Ecuador" [ref=e933]
+                - cell "ecuador-sincronizacion-2026-04-04" [ref=e934]
+                - cell "Completed" [ref=e935]:
+                  - generic [ref=e936]: Completed
+                - cell "auth_disabled@local" [ref=e937]
+                - cell "17h ago" [ref=e938]:
+                  - generic [ref=e939]: 17h ago
+              - row "Colombia colombia-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e940] [cursor=pointer]:
+                - cell "Colombia" [ref=e941]
+                - cell "colombia-sincronizacion-2026-04-04" [ref=e942]
+                - cell "Completed" [ref=e943]:
+                  - generic [ref=e944]: Completed
+                - cell "auth_disabled@local" [ref=e945]
+                - cell "17h ago" [ref=e946]:
+                  - generic [ref=e947]: 17h ago
+              - row "Chile chile-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e948] [cursor=pointer]:
+                - cell "Chile" [ref=e949]
+                - cell "chile-sincronizacion-2026-04-04" [ref=e950]
+                - cell "Completed" [ref=e951]:
+                  - generic [ref=e952]: Completed
+                - cell "auth_disabled@local" [ref=e953]
+                - cell "17h ago" [ref=e954]:
+                  - generic [ref=e955]: 17h ago
+              - row "Cam cam-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e956] [cursor=pointer]:
+                - cell "Cam" [ref=e957]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e958]
+                - cell "Completed" [ref=e959]:
+                  - generic [ref=e960]: Completed
+                - cell "auth_disabled@local" [ref=e961]
+                - cell "17h ago" [ref=e962]:
+                  - generic [ref=e963]: 17h ago
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e964] [cursor=pointer]:
+                - cell "Brasil" [ref=e965]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e966]
+                - cell "Completed" [ref=e967]:
+                  - generic [ref=e968]: Completed
+                - cell "auth_disabled@local" [ref=e969]
+                - cell "17h ago" [ref=e970]:
+                  - generic [ref=e971]: 17h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e972] [cursor=pointer]:
+                - cell "Bolivia" [ref=e973]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e974]
+                - cell "Completed" [ref=e975]:
+                  - generic [ref=e976]: Completed
+                - cell "auth_disabled@local" [ref=e977]
+                - cell "17h ago" [ref=e978]:
+                  - generic [ref=e979]: 17h ago
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local 17h ago" [ref=e980] [cursor=pointer]:
+                - cell "Argentina" [ref=e981]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e982]
+                - cell "Completed" [ref=e983]:
+                  - generic [ref=e984]: Completed
+                - cell "auth_disabled@local" [ref=e985]
+                - cell "17h ago" [ref=e986]:
+                  - generic [ref=e987]: 17h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e988] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e989]
+                - cell "KTCLSQL005-sincronizacion-2026-04-03" [ref=e990]
+                - cell "Completed" [ref=e991]:
+                  - generic [ref=e992]: Completed
+                - cell "auth_disabled@local" [ref=e993]
+                - cell "19h ago" [ref=e994]:
+                  - generic [ref=e995]: 19h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e996] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e997]
+                - cell "KTCLSQL004-sincronizacion-2026-04-03" [ref=e998]
+                - cell "Completed" [ref=e999]:
+                  - generic [ref=e1000]: Completed
+                - cell "auth_disabled@local" [ref=e1001]
+                - cell "19h ago" [ref=e1002]:
+                  - generic [ref=e1003]: 19h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1004] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e1005]
+                - cell "KTCLSQL003-sincronizacion-2026-04-03" [ref=e1006]
+                - cell "Completed" [ref=e1007]:
+                  - generic [ref=e1008]: Completed
+                - cell "auth_disabled@local" [ref=e1009]
+                - cell "19h ago" [ref=e1010]:
+                  - generic [ref=e1011]: 19h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1012] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e1013]
+                - cell "KTCLSQL002-sincronizacion-2026-04-03" [ref=e1014]
+                - cell "Completed" [ref=e1015]:
+                  - generic [ref=e1016]: Completed
+                - cell "auth_disabled@local" [ref=e1017]
+                - cell "19h ago" [ref=e1018]:
+                  - generic [ref=e1019]: 19h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1020] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e1021]
+                - cell "KTCLSQL001-sincronizacion-2026-04-03" [ref=e1022]
+                - cell "Completed" [ref=e1023]:
+                  - generic [ref=e1024]: Completed
+                - cell "auth_disabled@local" [ref=e1025]
+                - cell "19h ago" [ref=e1026]:
+                  - generic [ref=e1027]: 19h ago
+              - row "Peru peru-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1028] [cursor=pointer]:
+                - cell "Peru" [ref=e1029]
+                - cell "peru-sincronizacion-2026-04-03" [ref=e1030]
+                - cell "Completed" [ref=e1031]:
+                  - generic [ref=e1032]: Completed
+                - cell "auth_disabled@local" [ref=e1033]
+                - cell "19h ago" [ref=e1034]:
+                  - generic [ref=e1035]: 19h ago
+              - row "Mexico mexico-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1036] [cursor=pointer]:
+                - cell "Mexico" [ref=e1037]
+                - cell "mexico-sincronizacion-2026-04-03" [ref=e1038]
+                - cell "Completed" [ref=e1039]:
+                  - generic [ref=e1040]: Completed
+                - cell "auth_disabled@local" [ref=e1041]
+                - cell "19h ago" [ref=e1042]:
+                  - generic [ref=e1043]: 19h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1044] [cursor=pointer]:
+                - cell "Ecuador" [ref=e1045]
+                - cell "ecuador-sincronizacion-2026-04-03" [ref=e1046]
+                - cell "Completed" [ref=e1047]:
+                  - generic [ref=e1048]: Completed
+                - cell "auth_disabled@local" [ref=e1049]
+                - cell "19h ago" [ref=e1050]:
+                  - generic [ref=e1051]: 19h ago
+              - row "Colombia colombia-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1052] [cursor=pointer]:
+                - cell "Colombia" [ref=e1053]
+                - cell "colombia-sincronizacion-2026-04-03" [ref=e1054]
+                - cell "Completed" [ref=e1055]:
+                  - generic [ref=e1056]: Completed
+                - cell "auth_disabled@local" [ref=e1057]
+                - cell "19h ago" [ref=e1058]:
+                  - generic [ref=e1059]: 19h ago
+              - row "Chile chile-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1060] [cursor=pointer]:
+                - cell "Chile" [ref=e1061]
+                - cell "chile-sincronizacion-2026-04-03" [ref=e1062]
+                - cell "Completed" [ref=e1063]:
+                  - generic [ref=e1064]: Completed
+                - cell "auth_disabled@local" [ref=e1065]
+                - cell "19h ago" [ref=e1066]:
+                  - generic [ref=e1067]: 19h ago
+              - row "Cam cam-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1068] [cursor=pointer]:
+                - cell "Cam" [ref=e1069]
+                - cell "cam-sincronizacion-2026-04-03" [ref=e1070]
+                - cell "Completed" [ref=e1071]:
+                  - generic [ref=e1072]: Completed
+                - cell "auth_disabled@local" [ref=e1073]
+                - cell "19h ago" [ref=e1074]:
+                  - generic [ref=e1075]: 19h ago
+              - row "Brasil brasil-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1076] [cursor=pointer]:
+                - cell "Brasil" [ref=e1077]
+                - cell "brasil-sincronizacion-2026-04-03" [ref=e1078]
+                - cell "Completed" [ref=e1079]:
+                  - generic [ref=e1080]: Completed
+                - cell "auth_disabled@local" [ref=e1081]
+                - cell "19h ago" [ref=e1082]:
+                  - generic [ref=e1083]: 19h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1084] [cursor=pointer]:
+                - cell "Bolivia" [ref=e1085]
+                - cell "bolivia-sincronizacion-2026-04-03" [ref=e1086]
+                - cell "Completed" [ref=e1087]:
+                  - generic [ref=e1088]: Completed
+                - cell "auth_disabled@local" [ref=e1089]
+                - cell "19h ago" [ref=e1090]:
+                  - generic [ref=e1091]: 19h ago
+              - row "Argentina argentina-sincronizacion-2026-04-03 Completed auth_disabled@local 19h ago" [ref=e1092] [cursor=pointer]:
+                - cell "Argentina" [ref=e1093]
+                - cell "argentina-sincronizacion-2026-04-03" [ref=e1094]
+                - cell "Completed" [ref=e1095]:
+                  - generic [ref=e1096]: Completed
+                - cell "auth_disabled@local" [ref=e1097]
+                - cell "19h ago" [ref=e1098]:
+                  - generic [ref=e1099]: 19h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-03 Completed auth_disabled@local 20h ago" [ref=e1100] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e1101]
+                - cell "KTCLSQL005-sincronizacion-2026-04-03" [ref=e1102]
+                - cell "Completed" [ref=e1103]:
+                  - generic [ref=e1104]: Completed
+                - cell "auth_disabled@local" [ref=e1105]
+                - cell "20h ago" [ref=e1106]:
+                  - generic [ref=e1107]: 20h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-03 Completed auth_disabled@local 20h ago" [ref=e1108] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e1109]
+                - cell "KTCLSQL004-sincronizacion-2026-04-03" [ref=e1110]
+                - cell "Completed" [ref=e1111]:
+                  - generic [ref=e1112]: Completed
+                - cell "auth_disabled@local" [ref=e1113]
+                - cell "20h ago" [ref=e1114]:
+                  - generic [ref=e1115]: 20h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-03 Completed auth_disabled@local 20h ago" [ref=e1116] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e1117]
+                - cell "KTCLSQL003-sincronizacion-2026-04-03" [ref=e1118]
+                - cell "Completed" [ref=e1119]:
+                  - generic [ref=e1120]: Completed
+                - cell "auth_disabled@local" [ref=e1121]
+                - cell "20h ago" [ref=e1122]:
+                  - generic [ref=e1123]: 20h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-03 Completed auth_disabled@local 20h ago" [ref=e1124] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e1125]
+                - cell "KTCLSQL002-sincronizacion-2026-04-03" [ref=e1126]
+                - cell "Completed" [ref=e1127]:
+                  - generic [ref=e1128]: Completed
+                - cell "auth_disabled@local" [ref=e1129]
+                - cell "20h ago" [ref=e1130]:
+                  - generic [ref=e1131]: 20h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-03 Completed auth_disabled@local 20h ago" [ref=e1132] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e1133]
+                - cell "KTCLSQL001-sincronizacion-2026-04-03" [ref=e1134]
+                - cell "Completed" [ref=e1135]:
+                  - generic [ref=e1136]: Completed
+                - cell "auth_disabled@local" [ref=e1137]
+                - cell "20h ago" [ref=e1138]:
+                  - generic [ref=e1139]: 20h ago
+              - row "Peru peru-sincronizacion-2026-04-03 Completed auth_disabled@local 20h ago" [ref=e1140] [cursor=pointer]:
+                - cell "Peru" [ref=e1141]
+                - cell "peru-sincronizacion-2026-04-03" [ref=e1142]
+                - cell "Completed" [ref=e1143]:
+                  - generic [ref=e1144]: Completed
+                - cell "auth_disabled@local" [ref=e1145]
+                - cell "20h ago" [ref=e1146]:
+                  - generic [ref=e1147]: 20h ago
+              - row "Mexico mexico-sincronizacion-2026-04-03 Completed auth_disabled@local 20h ago" [ref=e1148] [cursor=pointer]:
+                - cell "Mexico" [ref=e1149]
+                - cell "mexico-sincronizacion-2026-04-03" [ref=e1150]
+                - cell "Completed" [ref=e1151]:
+                  - generic [ref=e1152]: Completed
+                - cell "auth_disabled@local" [ref=e1153]
+                - cell "20h ago" [ref=e1154]:
+                  - generic [ref=e1155]: 20h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-03 Completed auth_disabled@local 21h ago" [ref=e1156] [cursor=pointer]:
+                - cell "Ecuador" [ref=e1157]
+                - cell "ecuador-sincronizacion-2026-04-03" [ref=e1158]
+                - cell "Completed" [ref=e1159]:
+                  - generic [ref=e1160]: Completed
+                - cell "auth_disabled@local" [ref=e1161]
+                - cell "21h ago" [ref=e1162]:
+                  - generic [ref=e1163]: 21h ago
+              - row "Colombia colombia-sincronizacion-2026-04-03 Completed auth_disabled@local 21h ago" [ref=e1164] [cursor=pointer]:
+                - cell "Colombia" [ref=e1165]
+                - cell "colombia-sincronizacion-2026-04-03" [ref=e1166]
+                - cell "Completed" [ref=e1167]:
+                  - generic [ref=e1168]: Completed
+                - cell "auth_disabled@local" [ref=e1169]
+                - cell "21h ago" [ref=e1170]:
+                  - generic [ref=e1171]: 21h ago
+              - row "Chile chile-sincronizacion-2026-04-03 Completed auth_disabled@local 21h ago" [ref=e1172] [cursor=pointer]:
+                - cell "Chile" [ref=e1173]
+                - cell "chile-sincronizacion-2026-04-03" [ref=e1174]
+                - cell "Completed" [ref=e1175]:
+                  - generic [ref=e1176]: Completed
+                - cell "auth_disabled@local" [ref=e1177]
+                - cell "21h ago" [ref=e1178]:
+                  - generic [ref=e1179]: 21h ago
+              - row "Cam cam-sincronizacion-2026-04-03 Completed auth_disabled@local 21h ago" [ref=e1180] [cursor=pointer]:
+                - cell "Cam" [ref=e1181]
+                - cell "cam-sincronizacion-2026-04-03" [ref=e1182]
+                - cell "Completed" [ref=e1183]:
+                  - generic [ref=e1184]: Completed
+                - cell "auth_disabled@local" [ref=e1185]
+                - cell "21h ago" [ref=e1186]:
+                  - generic [ref=e1187]: 21h ago
+              - row "Brasil brasil-sincronizacion-2026-04-03 Completed auth_disabled@local 21h ago" [ref=e1188] [cursor=pointer]:
+                - cell "Brasil" [ref=e1189]
+                - cell "brasil-sincronizacion-2026-04-03" [ref=e1190]
+                - cell "Completed" [ref=e1191]:
+                  - generic [ref=e1192]: Completed
+                - cell "auth_disabled@local" [ref=e1193]
+                - cell "21h ago" [ref=e1194]:
+                  - generic [ref=e1195]: 21h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-03 Completed auth_disabled@local 21h ago" [ref=e1196] [cursor=pointer]:
+                - cell "Bolivia" [ref=e1197]
+                - cell "bolivia-sincronizacion-2026-04-03" [ref=e1198]
+                - cell "Completed" [ref=e1199]:
+                  - generic [ref=e1200]: Completed
+                - cell "auth_disabled@local" [ref=e1201]
+                - cell "21h ago" [ref=e1202]:
+                  - generic [ref=e1203]: 21h ago
+              - row "Argentina argentina-sincronizacion-2026-04-03 Completed auth_disabled@local 21h ago" [ref=e1204] [cursor=pointer]:
+                - cell "Argentina" [ref=e1205]
+                - cell "argentina-sincronizacion-2026-04-03" [ref=e1206]
+                - cell "Completed" [ref=e1207]:
+                  - generic [ref=e1208]: Completed
+                - cell "auth_disabled@local" [ref=e1209]
+                - cell "21h ago" [ref=e1210]:
+                  - generic [ref=e1211]: 21h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1212] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e1213]
+                - cell "KTCLSQL005-sincronizacion-2026-04-03" [ref=e1214]
+                - cell "Completed" [ref=e1215]:
+                  - generic [ref=e1216]: Completed
+                - cell "auth_disabled@local" [ref=e1217]
+                - cell "22h ago" [ref=e1218]:
+                  - generic [ref=e1219]: 22h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1220] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e1221]
+                - cell "KTCLSQL004-sincronizacion-2026-04-03" [ref=e1222]
+                - cell "Completed" [ref=e1223]:
+                  - generic [ref=e1224]: Completed
+                - cell "auth_disabled@local" [ref=e1225]
+                - cell "22h ago" [ref=e1226]:
+                  - generic [ref=e1227]: 22h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1228] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e1229]
+                - cell "KTCLSQL003-sincronizacion-2026-04-03" [ref=e1230]
+                - cell "Completed" [ref=e1231]:
+                  - generic [ref=e1232]: Completed
+                - cell "auth_disabled@local" [ref=e1233]
+                - cell "22h ago" [ref=e1234]:
+                  - generic [ref=e1235]: 22h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1236] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e1237]
+                - cell "KTCLSQL002-sincronizacion-2026-04-03" [ref=e1238]
+                - cell "Completed" [ref=e1239]:
+                  - generic [ref=e1240]: Completed
+                - cell "auth_disabled@local" [ref=e1241]
+                - cell "22h ago" [ref=e1242]:
+                  - generic [ref=e1243]: 22h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1244] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e1245]
+                - cell "KTCLSQL001-sincronizacion-2026-04-03" [ref=e1246]
+                - cell "Completed" [ref=e1247]:
+                  - generic [ref=e1248]: Completed
+                - cell "auth_disabled@local" [ref=e1249]
+                - cell "22h ago" [ref=e1250]:
+                  - generic [ref=e1251]: 22h ago
+              - row "Peru peru-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1252] [cursor=pointer]:
+                - cell "Peru" [ref=e1253]
+                - cell "peru-sincronizacion-2026-04-03" [ref=e1254]
+                - cell "Completed" [ref=e1255]:
+                  - generic [ref=e1256]: Completed
+                - cell "auth_disabled@local" [ref=e1257]
+                - cell "22h ago" [ref=e1258]:
+                  - generic [ref=e1259]: 22h ago
+              - row "Mexico mexico-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1260] [cursor=pointer]:
+                - cell "Mexico" [ref=e1261]
+                - cell "mexico-sincronizacion-2026-04-03" [ref=e1262]
+                - cell "Completed" [ref=e1263]:
+                  - generic [ref=e1264]: Completed
+                - cell "auth_disabled@local" [ref=e1265]
+                - cell "22h ago" [ref=e1266]:
+                  - generic [ref=e1267]: 22h ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1268] [cursor=pointer]:
+                - cell "Ecuador" [ref=e1269]
+                - cell "ecuador-sincronizacion-2026-04-03" [ref=e1270]
+                - cell "Completed" [ref=e1271]:
+                  - generic [ref=e1272]: Completed
+                - cell "auth_disabled@local" [ref=e1273]
+                - cell "22h ago" [ref=e1274]:
+                  - generic [ref=e1275]: 22h ago
+              - row "Colombia colombia-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1276] [cursor=pointer]:
+                - cell "Colombia" [ref=e1277]
+                - cell "colombia-sincronizacion-2026-04-03" [ref=e1278]
+                - cell "Completed" [ref=e1279]:
+                  - generic [ref=e1280]: Completed
+                - cell "auth_disabled@local" [ref=e1281]
+                - cell "22h ago" [ref=e1282]:
+                  - generic [ref=e1283]: 22h ago
+              - row "Chile chile-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1284] [cursor=pointer]:
+                - cell "Chile" [ref=e1285]
+                - cell "chile-sincronizacion-2026-04-03" [ref=e1286]
+                - cell "Completed" [ref=e1287]:
+                  - generic [ref=e1288]: Completed
+                - cell "auth_disabled@local" [ref=e1289]
+                - cell "22h ago" [ref=e1290]:
+                  - generic [ref=e1291]: 22h ago
+              - row "Cam cam-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1292] [cursor=pointer]:
+                - cell "Cam" [ref=e1293]
+                - cell "cam-sincronizacion-2026-04-03" [ref=e1294]
+                - cell "Completed" [ref=e1295]:
+                  - generic [ref=e1296]: Completed
+                - cell "auth_disabled@local" [ref=e1297]
+                - cell "22h ago" [ref=e1298]:
+                  - generic [ref=e1299]: 22h ago
+              - row "Brasil brasil-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1300] [cursor=pointer]:
+                - cell "Brasil" [ref=e1301]
+                - cell "brasil-sincronizacion-2026-04-03" [ref=e1302]
+                - cell "Completed" [ref=e1303]:
+                  - generic [ref=e1304]: Completed
+                - cell "auth_disabled@local" [ref=e1305]
+                - cell "22h ago" [ref=e1306]:
+                  - generic [ref=e1307]: 22h ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1308] [cursor=pointer]:
+                - cell "Bolivia" [ref=e1309]
+                - cell "bolivia-sincronizacion-2026-04-03" [ref=e1310]
+                - cell "Completed" [ref=e1311]:
+                  - generic [ref=e1312]: Completed
+                - cell "auth_disabled@local" [ref=e1313]
+                - cell "22h ago" [ref=e1314]:
+                  - generic [ref=e1315]: 22h ago
+              - row "Argentina argentina-sincronizacion-2026-04-03 Completed auth_disabled@local 22h ago" [ref=e1316] [cursor=pointer]:
+                - cell "Argentina" [ref=e1317]
+                - cell "argentina-sincronizacion-2026-04-03" [ref=e1318]
+                - cell "Completed" [ref=e1319]:
+                  - generic [ref=e1320]: Completed
+                - cell "auth_disabled@local" [ref=e1321]
+                - cell "22h ago" [ref=e1322]:
+                  - generic [ref=e1323]: 22h ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-03 Completed auth_disabled@local 23h ago" [ref=e1324] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e1325]
+                - cell "KTCLSQL005-sincronizacion-2026-04-03" [ref=e1326]
+                - cell "Completed" [ref=e1327]:
+                  - generic [ref=e1328]: Completed
+                - cell "auth_disabled@local" [ref=e1329]
+                - cell "23h ago" [ref=e1330]:
+                  - generic [ref=e1331]: 23h ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-03 Completed auth_disabled@local 23h ago" [ref=e1332] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e1333]
+                - cell "KTCLSQL004-sincronizacion-2026-04-03" [ref=e1334]
+                - cell "Completed" [ref=e1335]:
+                  - generic [ref=e1336]: Completed
+                - cell "auth_disabled@local" [ref=e1337]
+                - cell "23h ago" [ref=e1338]:
+                  - generic [ref=e1339]: 23h ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-03 Completed auth_disabled@local 23h ago" [ref=e1340] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e1341]
+                - cell "KTCLSQL003-sincronizacion-2026-04-03" [ref=e1342]
+                - cell "Completed" [ref=e1343]:
+                  - generic [ref=e1344]: Completed
+                - cell "auth_disabled@local" [ref=e1345]
+                - cell "23h ago" [ref=e1346]:
+                  - generic [ref=e1347]: 23h ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-03 Completed auth_disabled@local 23h ago" [ref=e1348] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e1349]
+                - cell "KTCLSQL002-sincronizacion-2026-04-03" [ref=e1350]
+                - cell "Completed" [ref=e1351]:
+                  - generic [ref=e1352]: Completed
+                - cell "auth_disabled@local" [ref=e1353]
+                - cell "23h ago" [ref=e1354]:
+                  - generic [ref=e1355]: 23h ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-03 Completed auth_disabled@local 23h ago" [ref=e1356] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e1357]
+                - cell "KTCLSQL001-sincronizacion-2026-04-03" [ref=e1358]
+                - cell "Completed" [ref=e1359]:
+                  - generic [ref=e1360]: Completed
+                - cell "auth_disabled@local" [ref=e1361]
+                - cell "23h ago" [ref=e1362]:
+                  - generic [ref=e1363]: 23h ago
+              - row "Peru peru-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1364] [cursor=pointer]:
+                - cell "Peru" [ref=e1365]
+                - cell "peru-sincronizacion-2026-04-03" [ref=e1366]
+                - cell "Completed" [ref=e1367]:
+                  - generic [ref=e1368]: Completed
+                - cell "auth_disabled@local" [ref=e1369]
+                - cell "1d ago" [ref=e1370]:
+                  - generic [ref=e1371]: 1d ago
+              - row "Mexico mexico-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1372] [cursor=pointer]:
+                - cell "Mexico" [ref=e1373]
+                - cell "mexico-sincronizacion-2026-04-03" [ref=e1374]
+                - cell "Completed" [ref=e1375]:
+                  - generic [ref=e1376]: Completed
+                - cell "auth_disabled@local" [ref=e1377]
+                - cell "1d ago" [ref=e1378]:
+                  - generic [ref=e1379]: 1d ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1380] [cursor=pointer]:
+                - cell "Ecuador" [ref=e1381]
+                - cell "ecuador-sincronizacion-2026-04-03" [ref=e1382]
+                - cell "Completed" [ref=e1383]:
+                  - generic [ref=e1384]: Completed
+                - cell "auth_disabled@local" [ref=e1385]
+                - cell "1d ago" [ref=e1386]:
+                  - generic [ref=e1387]: 1d ago
+              - row "Colombia colombia-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1388] [cursor=pointer]:
+                - cell "Colombia" [ref=e1389]
+                - cell "colombia-sincronizacion-2026-04-03" [ref=e1390]
+                - cell "Completed" [ref=e1391]:
+                  - generic [ref=e1392]: Completed
+                - cell "auth_disabled@local" [ref=e1393]
+                - cell "1d ago" [ref=e1394]:
+                  - generic [ref=e1395]: 1d ago
+              - row "Chile chile-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1396] [cursor=pointer]:
+                - cell "Chile" [ref=e1397]
+                - cell "chile-sincronizacion-2026-04-03" [ref=e1398]
+                - cell "Completed" [ref=e1399]:
+                  - generic [ref=e1400]: Completed
+                - cell "auth_disabled@local" [ref=e1401]
+                - cell "1d ago" [ref=e1402]:
+                  - generic [ref=e1403]: 1d ago
+              - row "Cam cam-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1404] [cursor=pointer]:
+                - cell "Cam" [ref=e1405]
+                - cell "cam-sincronizacion-2026-04-03" [ref=e1406]
+                - cell "Completed" [ref=e1407]:
+                  - generic [ref=e1408]: Completed
+                - cell "auth_disabled@local" [ref=e1409]
+                - cell "1d ago" [ref=e1410]:
+                  - generic [ref=e1411]: 1d ago
+              - row "Brasil brasil-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1412] [cursor=pointer]:
+                - cell "Brasil" [ref=e1413]
+                - cell "brasil-sincronizacion-2026-04-03" [ref=e1414]
+                - cell "Completed" [ref=e1415]:
+                  - generic [ref=e1416]: Completed
+                - cell "auth_disabled@local" [ref=e1417]
+                - cell "1d ago" [ref=e1418]:
+                  - generic [ref=e1419]: 1d ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1420] [cursor=pointer]:
+                - cell "Bolivia" [ref=e1421]
+                - cell "bolivia-sincronizacion-2026-04-03" [ref=e1422]
+                - cell "Completed" [ref=e1423]:
+                  - generic [ref=e1424]: Completed
+                - cell "auth_disabled@local" [ref=e1425]
+                - cell "1d ago" [ref=e1426]:
+                  - generic [ref=e1427]: 1d ago
+              - row "Argentina argentina-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1428] [cursor=pointer]:
+                - cell "Argentina" [ref=e1429]
+                - cell "argentina-sincronizacion-2026-04-03" [ref=e1430]
+                - cell "Completed" [ref=e1431]:
+                  - generic [ref=e1432]: Completed
+                - cell "auth_disabled@local" [ref=e1433]
+                - cell "1d ago" [ref=e1434]:
+                  - generic [ref=e1435]: 1d ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1436] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e1437]
+                - cell "KTCLSQL005-sincronizacion-2026-04-03" [ref=e1438]
+                - cell "Completed" [ref=e1439]:
+                  - generic [ref=e1440]: Completed
+                - cell "auth_disabled@local" [ref=e1441]
+                - cell "1d ago" [ref=e1442]:
+                  - generic [ref=e1443]: 1d ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1444] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e1445]
+                - cell "KTCLSQL004-sincronizacion-2026-04-03" [ref=e1446]
+                - cell "Completed" [ref=e1447]:
+                  - generic [ref=e1448]: Completed
+                - cell "auth_disabled@local" [ref=e1449]
+                - cell "1d ago" [ref=e1450]:
+                  - generic [ref=e1451]: 1d ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1452] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e1453]
+                - cell "KTCLSQL003-sincronizacion-2026-04-03" [ref=e1454]
+                - cell "Completed" [ref=e1455]:
+                  - generic [ref=e1456]: Completed
+                - cell "auth_disabled@local" [ref=e1457]
+                - cell "1d ago" [ref=e1458]:
+                  - generic [ref=e1459]: 1d ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1460] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e1461]
+                - cell "KTCLSQL002-sincronizacion-2026-04-03" [ref=e1462]
+                - cell "Completed" [ref=e1463]:
+                  - generic [ref=e1464]: Completed
+                - cell "auth_disabled@local" [ref=e1465]
+                - cell "1d ago" [ref=e1466]:
+                  - generic [ref=e1467]: 1d ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1468] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e1469]
+                - cell "KTCLSQL001-sincronizacion-2026-04-03" [ref=e1470]
+                - cell "Completed" [ref=e1471]:
+                  - generic [ref=e1472]: Completed
+                - cell "auth_disabled@local" [ref=e1473]
+                - cell "1d ago" [ref=e1474]:
+                  - generic [ref=e1475]: 1d ago
+              - row "Peru peru-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1476] [cursor=pointer]:
+                - cell "Peru" [ref=e1477]
+                - cell "peru-sincronizacion-2026-04-03" [ref=e1478]
+                - cell "Completed" [ref=e1479]:
+                  - generic [ref=e1480]: Completed
+                - cell "auth_disabled@local" [ref=e1481]
+                - cell "1d ago" [ref=e1482]:
+                  - generic [ref=e1483]: 1d ago
+              - row "Mexico mexico-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1484] [cursor=pointer]:
+                - cell "Mexico" [ref=e1485]
+                - cell "mexico-sincronizacion-2026-04-03" [ref=e1486]
+                - cell "Completed" [ref=e1487]:
+                  - generic [ref=e1488]: Completed
+                - cell "auth_disabled@local" [ref=e1489]
+                - cell "1d ago" [ref=e1490]:
+                  - generic [ref=e1491]: 1d ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1492] [cursor=pointer]:
+                - cell "Ecuador" [ref=e1493]
+                - cell "ecuador-sincronizacion-2026-04-03" [ref=e1494]
+                - cell "Completed" [ref=e1495]:
+                  - generic [ref=e1496]: Completed
+                - cell "auth_disabled@local" [ref=e1497]
+                - cell "1d ago" [ref=e1498]:
+                  - generic [ref=e1499]: 1d ago
+              - row "Colombia colombia-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1500] [cursor=pointer]:
+                - cell "Colombia" [ref=e1501]
+                - cell "colombia-sincronizacion-2026-04-03" [ref=e1502]
+                - cell "Completed" [ref=e1503]:
+                  - generic [ref=e1504]: Completed
+                - cell "auth_disabled@local" [ref=e1505]
+                - cell "1d ago" [ref=e1506]:
+                  - generic [ref=e1507]: 1d ago
+              - row "Chile chile-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1508] [cursor=pointer]:
+                - cell "Chile" [ref=e1509]
+                - cell "chile-sincronizacion-2026-04-03" [ref=e1510]
+                - cell "Completed" [ref=e1511]:
+                  - generic [ref=e1512]: Completed
+                - cell "auth_disabled@local" [ref=e1513]
+                - cell "1d ago" [ref=e1514]:
+                  - generic [ref=e1515]: 1d ago
+              - row "Cam cam-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1516] [cursor=pointer]:
+                - cell "Cam" [ref=e1517]
+                - cell "cam-sincronizacion-2026-04-03" [ref=e1518]
+                - cell "Completed" [ref=e1519]:
+                  - generic [ref=e1520]: Completed
+                - cell "auth_disabled@local" [ref=e1521]
+                - cell "1d ago" [ref=e1522]:
+                  - generic [ref=e1523]: 1d ago
+              - row "Brasil brasil-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1524] [cursor=pointer]:
+                - cell "Brasil" [ref=e1525]
+                - cell "brasil-sincronizacion-2026-04-03" [ref=e1526]
+                - cell "Completed" [ref=e1527]:
+                  - generic [ref=e1528]: Completed
+                - cell "auth_disabled@local" [ref=e1529]
+                - cell "1d ago" [ref=e1530]:
+                  - generic [ref=e1531]: 1d ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1532] [cursor=pointer]:
+                - cell "Bolivia" [ref=e1533]
+                - cell "bolivia-sincronizacion-2026-04-03" [ref=e1534]
+                - cell "Completed" [ref=e1535]:
+                  - generic [ref=e1536]: Completed
+                - cell "auth_disabled@local" [ref=e1537]
+                - cell "1d ago" [ref=e1538]:
+                  - generic [ref=e1539]: 1d ago
+              - row "Argentina argentina-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1540] [cursor=pointer]:
+                - cell "Argentina" [ref=e1541]
+                - cell "argentina-sincronizacion-2026-04-03" [ref=e1542]
+                - cell "Completed" [ref=e1543]:
+                  - generic [ref=e1544]: Completed
+                - cell "auth_disabled@local" [ref=e1545]
+                - cell "1d ago" [ref=e1546]:
+                  - generic [ref=e1547]: 1d ago
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1548] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e1549]
+                - cell "KTCLSQL005-sincronizacion-2026-04-03" [ref=e1550]
+                - cell "Completed" [ref=e1551]:
+                  - generic [ref=e1552]: Completed
+                - cell "auth_disabled@local" [ref=e1553]
+                - cell "1d ago" [ref=e1554]:
+                  - generic [ref=e1555]: 1d ago
+              - row "KTCLSQL004 KTCLSQL004-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1556] [cursor=pointer]:
+                - cell "KTCLSQL004" [ref=e1557]
+                - cell "KTCLSQL004-sincronizacion-2026-04-03" [ref=e1558]
+                - cell "Completed" [ref=e1559]:
+                  - generic [ref=e1560]: Completed
+                - cell "auth_disabled@local" [ref=e1561]
+                - cell "1d ago" [ref=e1562]:
+                  - generic [ref=e1563]: 1d ago
+              - row "KTCLSQL003 KTCLSQL003-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1564] [cursor=pointer]:
+                - cell "KTCLSQL003" [ref=e1565]
+                - cell "KTCLSQL003-sincronizacion-2026-04-03" [ref=e1566]
+                - cell "Completed" [ref=e1567]:
+                  - generic [ref=e1568]: Completed
+                - cell "auth_disabled@local" [ref=e1569]
+                - cell "1d ago" [ref=e1570]:
+                  - generic [ref=e1571]: 1d ago
+              - row "KTCLSQL002 KTCLSQL002-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1572] [cursor=pointer]:
+                - cell "KTCLSQL002" [ref=e1573]
+                - cell "KTCLSQL002-sincronizacion-2026-04-03" [ref=e1574]
+                - cell "Completed" [ref=e1575]:
+                  - generic [ref=e1576]: Completed
+                - cell "auth_disabled@local" [ref=e1577]
+                - cell "1d ago" [ref=e1578]:
+                  - generic [ref=e1579]: 1d ago
+              - row "KTCLSQL001 KTCLSQL001-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1580] [cursor=pointer]:
+                - cell "KTCLSQL001" [ref=e1581]
+                - cell "KTCLSQL001-sincronizacion-2026-04-03" [ref=e1582]
+                - cell "Completed" [ref=e1583]:
+                  - generic [ref=e1584]: Completed
+                - cell "auth_disabled@local" [ref=e1585]
+                - cell "1d ago" [ref=e1586]:
+                  - generic [ref=e1587]: 1d ago
+              - row "Peru peru-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1588] [cursor=pointer]:
+                - cell "Peru" [ref=e1589]
+                - cell "peru-sincronizacion-2026-04-03" [ref=e1590]
+                - cell "Completed" [ref=e1591]:
+                  - generic [ref=e1592]: Completed
+                - cell "auth_disabled@local" [ref=e1593]
+                - cell "1d ago" [ref=e1594]:
+                  - generic [ref=e1595]: 1d ago
+              - row "Mexico mexico-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1596] [cursor=pointer]:
+                - cell "Mexico" [ref=e1597]
+                - cell "mexico-sincronizacion-2026-04-03" [ref=e1598]
+                - cell "Completed" [ref=e1599]:
+                  - generic [ref=e1600]: Completed
+                - cell "auth_disabled@local" [ref=e1601]
+                - cell "1d ago" [ref=e1602]:
+                  - generic [ref=e1603]: 1d ago
+              - row "Ecuador ecuador-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1604] [cursor=pointer]:
+                - cell "Ecuador" [ref=e1605]
+                - cell "ecuador-sincronizacion-2026-04-03" [ref=e1606]
+                - cell "Completed" [ref=e1607]:
+                  - generic [ref=e1608]: Completed
+                - cell "auth_disabled@local" [ref=e1609]
+                - cell "1d ago" [ref=e1610]:
+                  - generic [ref=e1611]: 1d ago
+              - row "Colombia colombia-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1612] [cursor=pointer]:
+                - cell "Colombia" [ref=e1613]
+                - cell "colombia-sincronizacion-2026-04-03" [ref=e1614]
+                - cell "Completed" [ref=e1615]:
+                  - generic [ref=e1616]: Completed
+                - cell "auth_disabled@local" [ref=e1617]
+                - cell "1d ago" [ref=e1618]:
+                  - generic [ref=e1619]: 1d ago
+              - row "Chile chile-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1620] [cursor=pointer]:
+                - cell "Chile" [ref=e1621]
+                - cell "chile-sincronizacion-2026-04-03" [ref=e1622]
+                - cell "Completed" [ref=e1623]:
+                  - generic [ref=e1624]: Completed
+                - cell "auth_disabled@local" [ref=e1625]
+                - cell "1d ago" [ref=e1626]:
+                  - generic [ref=e1627]: 1d ago
+              - row "Cam cam-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1628] [cursor=pointer]:
+                - cell "Cam" [ref=e1629]
+                - cell "cam-sincronizacion-2026-04-03" [ref=e1630]
+                - cell "Completed" [ref=e1631]:
+                  - generic [ref=e1632]: Completed
+                - cell "auth_disabled@local" [ref=e1633]
+                - cell "1d ago" [ref=e1634]:
+                  - generic [ref=e1635]: 1d ago
+              - row "Brasil brasil-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1636] [cursor=pointer]:
+                - cell "Brasil" [ref=e1637]
+                - cell "brasil-sincronizacion-2026-04-03" [ref=e1638]
+                - cell "Completed" [ref=e1639]:
+                  - generic [ref=e1640]: Completed
+                - cell "auth_disabled@local" [ref=e1641]
+                - cell "1d ago" [ref=e1642]:
+                  - generic [ref=e1643]: 1d ago
+              - row "Bolivia bolivia-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1644] [cursor=pointer]:
+                - cell "Bolivia" [ref=e1645]
+                - cell "bolivia-sincronizacion-2026-04-03" [ref=e1646]
+                - cell "Completed" [ref=e1647]:
+                  - generic [ref=e1648]: Completed
+                - cell "auth_disabled@local" [ref=e1649]
+                - cell "1d ago" [ref=e1650]:
+                  - generic [ref=e1651]: 1d ago
+              - row "Argentina argentina-sincronizacion-2026-04-03 Completed auth_disabled@local 1d ago" [ref=e1652] [cursor=pointer]:
+                - cell "Argentina" [ref=e1653]
+                - cell "argentina-sincronizacion-2026-04-03" [ref=e1654]
+                - cell "Completed" [ref=e1655]:
+                  - generic [ref=e1656]: Completed
+                - cell "auth_disabled@local" [ref=e1657]
+                - cell "1d ago" [ref=e1658]:
+                  - generic [ref=e1659]: 1d ago
+              - row "Cam cam-sincronizacion-2026-04-04 Running auth_disabled@local just now" [ref=e1660] [cursor=pointer]:
+                - cell "Cam" [ref=e1661]
+                - cell "cam-sincronizacion-2026-04-04" [ref=e1662]
+                - cell "Running" [ref=e1663]:
+                  - generic [ref=e1664]: Running
+                - cell "auth_disabled@local" [ref=e1665]
+                - cell "just now" [ref=e1666]:
+                  - generic [ref=e1667]: just now
+              - row "Brasil brasil-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e1668] [cursor=pointer]:
+                - cell "Brasil" [ref=e1669]
+                - cell "brasil-sincronizacion-2026-04-04" [ref=e1670]
+                - cell "Completed" [ref=e1671]:
+                  - generic [ref=e1672]: Completed
+                - cell "auth_disabled@local" [ref=e1673]
+                - cell "just now" [ref=e1674]:
+                  - generic [ref=e1675]: just now
+              - row "Bolivia bolivia-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e1676] [cursor=pointer]:
+                - cell "Bolivia" [ref=e1677]
+                - cell "bolivia-sincronizacion-2026-04-04" [ref=e1678]
+                - cell "Completed" [ref=e1679]:
+                  - generic [ref=e1680]: Completed
+                - cell "auth_disabled@local" [ref=e1681]
+                - cell "just now" [ref=e1682]:
+                  - generic [ref=e1683]: just now
+              - row "Argentina argentina-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e1684] [cursor=pointer]:
+                - cell "Argentina" [ref=e1685]
+                - cell "argentina-sincronizacion-2026-04-04" [ref=e1686]
+                - cell "Completed" [ref=e1687]:
+                  - generic [ref=e1688]: Completed
+                - cell "auth_disabled@local" [ref=e1689]
+                - cell "just now" [ref=e1690]:
+                  - generic [ref=e1691]: just now
+              - row "KTCLSQL005 KTCLSQL005-sincronizacion-2026-04-04 Completed auth_disabled@local just now" [ref=e1692] [cursor=pointer]:
+                - cell "KTCLSQL005" [ref=e1693]
+                - cell "KTCLSQL005-sincronizacion-2026-04-04" [ref=e1694]
+                - cell "Completed" [ref=e1695]:
+                  - generic [ref=e1696]: Completed
+                - cell "auth_disabled@local" [ref=e1697]
+                - cell "just now" [ref=e1698]:
+                  - generic [ref=e1699]: just now
+  - region "Notifications alt+T"

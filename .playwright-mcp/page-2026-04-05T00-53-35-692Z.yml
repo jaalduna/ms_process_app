@@ -1,0 +1,225 @@
+- generic [ref=e2]:
+  - generic [ref=e11]:
+    - complementary [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - text: Bridge
+          - generic [ref=e15]: v0.1.0
+        - button "Colapsar menú" [ref=e16]:
+          - img [ref=e17]
+      - navigation "Main navigation" [ref=e19]:
+        - link "Overview" [ref=e20] [cursor=pointer]:
+          - /url: /ms-process-app/overview
+          - img [ref=e21]
+          - generic [ref=e23]: Overview
+        - link "Precios" [ref=e24] [cursor=pointer]:
+          - /url: /ms-process-app/precios
+          - img [ref=e25]
+          - generic [ref=e28]: Precios
+        - link "Elegibilidad" [ref=e29] [cursor=pointer]:
+          - /url: /ms-process-app/elegibilidad
+          - img [ref=e30]
+          - generic [ref=e33]: Elegibilidad
+        - link "Pesaje" [ref=e34] [cursor=pointer]:
+          - /url: /ms-process-app/pesaje
+          - img [ref=e35]
+          - generic [ref=e39]: Pesaje
+        - link "Calibración" [active] [ref=e40] [cursor=pointer]:
+          - /url: /ms-process-app/calibration
+          - img [ref=e41]
+          - generic [ref=e42]: Calibración
+        - link "MTR" [ref=e43] [cursor=pointer]:
+          - /url: /ms-process-app/mtr
+          - img [ref=e44]
+          - generic [ref=e46]: MTR
+        - link "Trazabilidad" [ref=e47] [cursor=pointer]:
+          - /url: /ms-process-app/trazabilidad
+          - img [ref=e48]
+          - generic [ref=e53]: Trazabilidad
+      - generic [ref=e54]:
+        - paragraph [ref=e55]: Dev User
+        - button "Cerrar sesión" [ref=e56]:
+          - img
+          - text: Cerrar sesión
+    - main [ref=e57]:
+      - generic [ref=e917]:
+        - generic [ref=e918]:
+          - generic [ref=e919]:
+            - heading "Calibración" [level=1] [ref=e920]
+            - paragraph [ref=e921]: Dispara y monitorea jobs de calibración por país
+          - generic [ref=e922]:
+            - combobox [ref=e923]:
+              - generic: Mar 2026
+              - img
+            - button "Calibration settings" [ref=e924]:
+              - img
+        - generic [ref=e925]:
+          - button "View calibration history for Argentina" [ref=e926] [cursor=pointer]:
+            - generic [ref=e928]:
+              - generic [ref=e929]: 🇦🇷Argentina
+              - generic [ref=e930]:
+                - 'generic "Sync: 2026-02-27 04:34" [ref=e931]': "Sync: 36d ago"
+                - generic [ref=e932]: "Cal: never"
+              - 'status "Pesaje: status unknown" [ref=e934]':
+                - img [ref=e935]
+                - generic [ref=e938]: Pesaje
+            - generic [ref=e939]:
+              - generic [ref=e940]:
+                - generic [ref=e941]:
+                  - img [ref=e942]
+                  - generic [ref=e945]: Elegibilidad
+                - generic [ref=e946]:
+                  - img [ref=e947]
+                  - generic [ref=e950]: Pesaje
+              - button "Calibrar" [ref=e953]
+          - button "View calibration history for Bolivia" [ref=e954] [cursor=pointer]:
+            - generic [ref=e956]:
+              - generic [ref=e957]: 🇧🇴Bolivia
+              - generic [ref=e958]:
+                - 'generic "Sync: 2026-02-27 04:34" [ref=e959]': "Sync: 36d ago"
+                - generic [ref=e960]: "Cal: never"
+              - 'status "Pesaje: status unknown" [ref=e962]':
+                - img [ref=e963]
+                - generic [ref=e966]: Pesaje
+            - generic [ref=e967]:
+              - generic [ref=e968]:
+                - generic [ref=e969]:
+                  - img [ref=e970]
+                  - generic [ref=e974]: Elegibilidad
+                - generic [ref=e975]:
+                  - img [ref=e976]
+                  - generic [ref=e980]: Pesaje
+              - generic [ref=e982]:
+                - button "Calibrar" [disabled]
+          - button "View calibration history for Brasil" [ref=e983] [cursor=pointer]:
+            - generic [ref=e985]:
+              - generic [ref=e986]: 🇧🇷Brasil
+              - generic [ref=e987]:
+                - 'generic "Sync: 2026-02-27 04:34" [ref=e988]': "Sync: 36d ago"
+                - generic [ref=e989]: "Cal: never"
+              - 'status "Pesaje: status unknown" [ref=e991]':
+                - img [ref=e992]
+                - generic [ref=e995]: Pesaje
+            - generic [ref=e996]:
+              - generic [ref=e997]:
+                - generic [ref=e998]:
+                  - img [ref=e999]
+                  - generic [ref=e1003]: Elegibilidad
+                - generic [ref=e1004]:
+                  - img [ref=e1005]
+                  - generic [ref=e1009]: Pesaje
+              - generic [ref=e1011]:
+                - button "Calibrar" [disabled]
+          - button "View calibration history for CAM" [ref=e1012] [cursor=pointer]:
+            - generic [ref=e1014]:
+              - generic [ref=e1015]: 🌎CAM
+              - generic [ref=e1016]:
+                - 'generic "Sync: 2026-02-27 17:07" [ref=e1017]': "Sync: 36d ago"
+                - generic [ref=e1018]: "Cal: never"
+              - 'status "Pesaje: status unknown" [ref=e1020]':
+                - img [ref=e1021]
+                - generic [ref=e1024]: Pesaje
+            - generic [ref=e1025]:
+              - generic [ref=e1026]:
+                - generic [ref=e1027]:
+                  - img [ref=e1028]
+                  - generic [ref=e1031]: Elegibilidad
+                - generic [ref=e1032]:
+                  - img [ref=e1033]
+                  - generic [ref=e1036]: Pesaje
+              - button "Calibrar" [ref=e1039]
+          - button "View calibration history for Chile" [ref=e1040] [cursor=pointer]:
+            - generic [ref=e1042]:
+              - generic [ref=e1043]: 🇨🇱Chile
+              - generic [ref=e1044]:
+                - 'generic "Sync: 2026-02-27 04:34" [ref=e1045]': "Sync: 36d ago"
+                - generic [ref=e1046]: "Cal: never"
+              - 'status "Pesaje: status unknown" [ref=e1048]':
+                - img [ref=e1049]
+                - generic [ref=e1052]: Pesaje
+            - generic [ref=e1053]:
+              - generic [ref=e1054]:
+                - generic [ref=e1055]:
+                  - img [ref=e1056]
+                  - generic [ref=e1060]: Elegibilidad
+                - generic [ref=e1061]:
+                  - img [ref=e1062]
+                  - generic [ref=e1066]: Pesaje
+              - generic [ref=e1068]:
+                - button "Calibrar" [disabled]
+          - button "View calibration history for Colombia" [ref=e1069] [cursor=pointer]:
+            - generic [ref=e1071]:
+              - generic [ref=e1072]: 🇨🇴Colombia
+              - generic [ref=e1073]:
+                - 'generic "Sync: 2026-03-01 23:26" [ref=e1074]': "Sync: 33d ago"
+                - generic [ref=e1075]: "Cal: never"
+              - 'status "Pesaje: status unknown" [ref=e1077]':
+                - img [ref=e1078]
+                - generic [ref=e1081]: Pesaje
+            - generic [ref=e1082]:
+              - generic [ref=e1083]:
+                - generic [ref=e1084]:
+                  - img [ref=e1085]
+                  - generic [ref=e1089]: Elegibilidad
+                - generic [ref=e1090]:
+                  - img [ref=e1091]
+                  - generic [ref=e1095]: Pesaje
+              - generic [ref=e1097]:
+                - button "Calibrar" [disabled]
+          - button "View calibration history for Ecuador" [ref=e1098] [cursor=pointer]:
+            - generic [ref=e1100]:
+              - generic [ref=e1101]: 🇪🇨Ecuador
+              - generic [ref=e1102]:
+                - 'generic "Sync: 2026-02-27 04:34" [ref=e1103]': "Sync: 36d ago"
+                - 'generic "Cal: 2026-02-19 13:44" [ref=e1104]': "Cal: 44d ago"
+              - 'status "Pesaje: status unknown" [ref=e1106]':
+                - img [ref=e1107]
+                - generic [ref=e1110]: Pesaje
+            - generic [ref=e1111]:
+              - generic [ref=e1112]:
+                - generic [ref=e1113]:
+                  - img [ref=e1114]
+                  - generic [ref=e1117]: Elegibilidad
+                - generic [ref=e1118]:
+                  - img [ref=e1119]
+                  - generic [ref=e1122]: Pesaje
+              - button "Calibrar" [ref=e1125]
+          - button "View calibration history for Mexico" [ref=e1126] [cursor=pointer]:
+            - generic [ref=e1128]:
+              - generic [ref=e1129]: 🇲🇽Mexico
+              - generic [ref=e1130]:
+                - 'generic "Sync: 2026-03-01 23:23" [ref=e1131]': "Sync: 33d ago"
+                - generic [ref=e1132]: "Cal: never"
+              - 'status "Pesaje: status unknown" [ref=e1134]':
+                - img [ref=e1135]
+                - generic [ref=e1138]: Pesaje
+            - generic [ref=e1139]:
+              - generic [ref=e1140]:
+                - generic [ref=e1141]:
+                  - img [ref=e1142]
+                  - generic [ref=e1146]: Elegibilidad
+                - generic [ref=e1147]:
+                  - img [ref=e1148]
+                  - generic [ref=e1152]: Pesaje
+              - generic [ref=e1154]:
+                - button "Calibrar" [disabled]
+          - button "View calibration history for Peru" [ref=e1155] [cursor=pointer]:
+            - generic [ref=e1157]:
+              - generic [ref=e1158]: 🇵🇪Peru
+              - generic [ref=e1159]:
+                - 'generic "Sync: 2026-02-27 04:34" [ref=e1160]': "Sync: 36d ago"
+                - generic [ref=e1161]: "Cal: never"
+              - 'status "Pesaje: status unknown" [ref=e1163]':
+                - img [ref=e1164]
+                - generic [ref=e1167]: Pesaje
+            - generic [ref=e1168]:
+              - generic [ref=e1169]:
+                - generic [ref=e1170]:
+                  - img [ref=e1171]
+                  - generic [ref=e1175]: Elegibilidad
+                - generic [ref=e1176]:
+                  - img [ref=e1177]
+                  - generic [ref=e1181]: Pesaje
+              - generic [ref=e1183]:
+                - button "Calibrar" [disabled]
+  - region "Notifications alt+T"

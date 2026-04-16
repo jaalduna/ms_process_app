@@ -5,6 +5,7 @@ import { preciosModule } from "./precios"
 import { pesajeModule } from "./pesaje"
 import { mtrModule } from "./mtr"
 import { trazabilidadModule } from "./trazabilidad"
+import { overviewModule } from "./overview"
 import type { ModuleDefinition } from "./types"
 
 /**
@@ -13,11 +14,12 @@ import type { ModuleDefinition } from "./types"
  * Modules are rendered in the order they appear in this array.
  */
 export const allModules: ModuleDefinition[] = [
+  overviewModule,
   syncModule,
+  preciosModule,
   elegibilidadModule,
   pesajeModule,
   calibracionModule,
-  preciosModule,
   mtrModule,
   trazabilidadModule,
 ]

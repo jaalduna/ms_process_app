@@ -20,11 +20,10 @@ import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
 import { CalibrationProgress } from "./CalibrationProgress"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
-import { DependencyIndicator } from "@/components/DependencyIndicator"
-import { usePipelineDeps } from "@/hooks/usePipelineDeps"
 import { useCalibration } from "../hooks/useCalibration"
 import type { CountryInfo } from "@/types/api"
 import type { DataAvailability, CalibrationConfig } from "../types"
+import { DEFAULT_GROUP_BY } from "../types"
 
 function formatRelativeTime(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime()
@@ -77,7 +76,6 @@ export function CountryCard({ country, period, availability, availabilityLoading
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion")
-  const { dependencies, allMet } = usePipelineDeps("calibration", country.code)
 
   const isRunning = job?.status === "running" || job?.status === "pending"
   const isCompleted = job?.status === "completed"
@@ -91,7 +89,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
   return (
     <>
       <Card
-        className="cursor-pointer hover:shadow-md transition-shadow"
+        className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
         role="button"
         tabIndex={0}
         aria-label={`View calibration history for ${countryLabel}`}
@@ -126,7 +124,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
                 Cal: {lastCalibrationDate ? formatRelativeTime(lastCalibrationDate) : "never"}
               </Badge>
             </div>
-            <DependencyIndicator dependencies={dependencies} />
+            {/* DependencyIndicator removed — sync is skipped, data already in Databricks */}
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -152,14 +150,14 @@ export function CountryCard({ country, period, availability, availabilityLoading
 
           {/* Actions */}
           <div onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-2">
+            <div className="flex gap-2 min-w-0">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     size="sm"
                     disabled={!canTrigger}
                     className="flex-1"
-                    title={!canTrigger ? "Data extraction (Elegibilidad) required before calibration" : !allMet ? "Upstream dependencies not met" : undefined}
+                    title={!canTrigger ? "Data not available or calibration already running" : undefined}
                   >
                     {isPending || isRunning ? (
                       <>
@@ -189,6 +187,20 @@ export function CountryCard({ country, period, availability, availabilityLoading
                               .join(", ")}
                           </p>
                         )}
+                        <p className="mt-2">
+                          Group by:{" "}
+                          <code className="text-xs bg-muted px-1 rounded">
+                            {calibrationConfig.group_by || DEFAULT_GROUP_BY[country.code] || "default"}
+                          </code>
+                        </p>
+                        {(calibrationConfig.skip_merge || calibrationConfig.skip_simulation) && (
+                          <p className="mt-1">
+                            Skipping:{" "}
+                            {[calibrationConfig.skip_merge && "merge", calibrationConfig.skip_simulation && "simulation"]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </p>
+                        )}
                         {(calibrationConfig.row_limit != null || calibrationConfig.lookback_months != null) && (
                           <p className="mt-2">
                             Overrides:{" "}
@@ -211,6 +223,12 @@ export function CountryCard({ country, period, availability, availabilityLoading
                         aggregations: calibrationConfig.aggregations,
                         row_limit: calibrationConfig.row_limit,
                         lookback_months: calibrationConfig.lookback_months,
+                        skip_sync: true,
+                        table_suffix: "_full",
+                        group_by: calibrationConfig.group_by || DEFAULT_GROUP_BY[country.code] || null,
+                        start_period: calibrationConfig.start_period || null,
+                        skip_merge: calibrationConfig.skip_merge,
+                        skip_simulation: calibrationConfig.skip_simulation,
                       }).then(() => {
                         toast.success(`Calibration started for ${countryLabel}`);
                       }).catch((err: unknown) => {

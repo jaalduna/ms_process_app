@@ -1,0 +1,59 @@
+- generic [ref=e2]:
+  - generic [ref=e11]:
+    - complementary [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - text: Bridge
+          - generic [ref=e15]: v0.1.0
+        - button "Colapsar menú" [ref=e16]:
+          - img [ref=e17]
+      - navigation "Main navigation" [ref=e19]:
+        - link "Overview" [ref=e20] [cursor=pointer]:
+          - /url: /ms-process-app/overview
+          - img [ref=e21]
+          - generic [ref=e23]: Overview
+        - link "Precios" [ref=e24] [cursor=pointer]:
+          - /url: /ms-process-app/precios
+          - img [ref=e25]
+          - generic [ref=e28]: Precios
+        - link "Elegibilidad" [ref=e29] [cursor=pointer]:
+          - /url: /ms-process-app/elegibilidad
+          - img [ref=e30]
+          - generic [ref=e33]: Elegibilidad
+        - link "Pesaje" [ref=e34] [cursor=pointer]:
+          - /url: /ms-process-app/pesaje
+          - img [ref=e35]
+          - generic [ref=e39]: Pesaje
+        - link "Calibración" [ref=e40] [cursor=pointer]:
+          - /url: /ms-process-app/calibration
+          - img [ref=e41]
+          - generic [ref=e42]: Calibración
+        - link "MTR" [ref=e43] [cursor=pointer]:
+          - /url: /ms-process-app/mtr
+          - img [ref=e44]
+          - generic [ref=e46]: MTR
+        - link "Trazabilidad" [active] [ref=e47] [cursor=pointer]:
+          - /url: /ms-process-app/trazabilidad
+          - img [ref=e48]
+          - generic [ref=e53]: Trazabilidad
+      - generic [ref=e54]:
+        - paragraph [ref=e55]: Dev User
+        - button "Cerrar sesión" [ref=e56]:
+          - img
+          - text: Cerrar sesión
+    - main [ref=e57]:
+      - generic [ref=e255]:
+        - generic [ref=e256]:
+          - heading "Trazabilidad" [level=1] [ref=e257]
+          - paragraph [ref=e258]: Explora tags de pipeline y descarga tablas de cualquier ejecucion historica
+        - generic [ref=e259]:
+          - textbox "Filter by tag" [ref=e260]
+          - textbox "Filter by table name" [ref=e261]
+          - generic [ref=e262] [cursor=pointer]:
+            - checkbox "Ocultar sincronización" [checked] [ref=e263]:
+              - generic:
+                - img
+            - text: Ocultar sincronización
+        - paragraph [ref=e264]: Cargando datos… 1/74 páginas
+        - paragraph [ref=e266]: No tags found matching your filters
+  - region "Notifications alt+T"

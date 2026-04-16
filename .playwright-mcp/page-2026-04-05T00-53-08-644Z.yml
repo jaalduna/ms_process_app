@@ -1,0 +1,102 @@
+- generic [ref=e2]:
+  - generic [ref=e11]:
+    - complementary [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - text: Bridge
+          - generic [ref=e15]: v0.1.0
+        - button "Colapsar menú" [ref=e16]:
+          - img [ref=e17]
+      - navigation "Main navigation" [ref=e19]:
+        - link "Overview" [ref=e20] [cursor=pointer]:
+          - /url: /ms-process-app/overview
+          - img [ref=e21]
+          - generic [ref=e23]: Overview
+        - link "Precios" [ref=e24] [cursor=pointer]:
+          - /url: /ms-process-app/precios
+          - img [ref=e25]
+          - generic [ref=e28]: Precios
+        - link "Elegibilidad" [ref=e29] [cursor=pointer]:
+          - /url: /ms-process-app/elegibilidad
+          - img [ref=e30]
+          - generic [ref=e33]: Elegibilidad
+        - link "Pesaje" [active] [ref=e34] [cursor=pointer]:
+          - /url: /ms-process-app/pesaje
+          - img [ref=e35]
+          - generic [ref=e39]: Pesaje
+        - link "Calibración" [ref=e40] [cursor=pointer]:
+          - /url: /ms-process-app/calibration
+          - img [ref=e41]
+          - generic [ref=e42]: Calibración
+        - link "MTR" [ref=e43] [cursor=pointer]:
+          - /url: /ms-process-app/mtr
+          - img [ref=e44]
+          - generic [ref=e46]: MTR
+        - link "Trazabilidad" [ref=e47] [cursor=pointer]:
+          - /url: /ms-process-app/trazabilidad
+          - img [ref=e48]
+          - generic [ref=e53]: Trazabilidad
+      - generic [ref=e54]:
+        - paragraph [ref=e55]: Dev User
+        - button "Cerrar sesión" [ref=e56]:
+          - img
+          - text: Cerrar sesión
+    - main [ref=e57]:
+      - generic [ref=e830]:
+        - generic [ref=e831]:
+          - generic [ref=e832]:
+            - heading "Pesaje" [level=1] [ref=e833]
+            - paragraph [ref=e834]: Ejecuta y monitorea procesos de pesaje por pais
+          - generic [ref=e835]:
+            - combobox [ref=e836]:
+              - generic: Mar 2026
+              - img
+            - button "Parametros de pesaje" [ref=e837]:
+              - img
+        - generic [ref=e838]:
+          - generic [ref=e839]:
+            - generic [ref=e841]:
+              - generic [ref=e842]: 🇦🇷Argentina
+              - generic [ref=e843]: never
+            - button "Ejecutar" [ref=e846]
+          - generic [ref=e847]:
+            - generic [ref=e849]:
+              - generic [ref=e850]: 🇧🇴Bolivia
+              - generic [ref=e851]: never
+            - button "Ejecutar" [ref=e854]
+          - generic [ref=e855]:
+            - generic [ref=e857]:
+              - generic [ref=e858]: 🇧🇷Brasil
+              - generic [ref=e859]: never
+            - button "Ejecutar" [ref=e863]
+          - generic [ref=e864]:
+            - generic [ref=e866]:
+              - generic [ref=e867]: 🌎CAM
+              - generic [ref=e868]: never
+            - button "Ejecutar" [ref=e872]
+          - generic [ref=e873]:
+            - generic [ref=e875]:
+              - generic [ref=e876]: 🇨🇱Chile
+              - generic [ref=e877]: never
+            - button "Ejecutar" [ref=e880]
+          - generic [ref=e881]:
+            - generic [ref=e883]:
+              - generic [ref=e884]: 🇨🇴Colombia
+              - generic [ref=e885]: never
+            - button "Ejecutar" [ref=e889]
+          - generic [ref=e890]:
+            - generic [ref=e892]:
+              - generic [ref=e893]: 🇪🇨Ecuador
+              - generic [ref=e894]: never
+            - button "Ejecutar" [ref=e898]
+          - generic [ref=e899]:
+            - generic [ref=e901]:
+              - generic [ref=e902]: 🇲🇽Mexico
+              - generic [ref=e903]: never
+            - button "Ejecutar" [ref=e907]
+          - generic [ref=e908]:
+            - generic [ref=e910]:
+              - generic [ref=e911]: 🇵🇪Peru
+              - generic [ref=e912]: never
+            - button "Ejecutar" [ref=e916]
+  - region "Notifications alt+T"

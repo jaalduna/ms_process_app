@@ -11,10 +11,19 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle2, ChevronDown, ChevronRight, Circle, Download, Loader2, XCircle } from "lucide-react"
-import { downloadCSV } from "@/lib/api"
+import { downloadCalibrationReport } from "@/lib/api"
 import type { EventDetail } from "@/types/api"
 import type { CalibrationStep } from "../types"
-import { CALIBRATION_STEPS, CALIBRATION_STEP_LABELS } from "../types"
+import { CALIBRATION_STEP_LABELS } from "../types"
+
+/** Steps shown in the detail view (sync_data is always skipped). */
+const VISIBLE_STEPS = [
+  "copy_to_calibration",
+  "merge_data",
+  "simulate_kpis",
+  "calculate_penetration",
+  "download_csv",
+] as const
 
 const COUNTRY_LABELS: Record<string, string> = {
   argentina: "Argentina",
@@ -157,8 +166,7 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
     })
   }
 
-  function stepHasDetails(stepName: string, step: CalibrationStep): boolean {
-    if (stepName === "sync_data" && job?.results && job.results.length > 0) return true
+  function stepHasDetails(_stepName: string, step: CalibrationStep): boolean {
     if (step.tasks && step.tasks.length > 0) return true
     if (step.error) return true
     if (step.started_at) return true
@@ -226,7 +234,7 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
               <div>
                 <span className="text-muted-foreground">Pipeline Steps</span>
                 <div className="mt-2 space-y-1">
-                  {CALIBRATION_STEPS.map((stepName) => {
+                  {VISIBLE_STEPS.map((stepName) => {
                     const step = steps.find((s) => s.name === stepName)
                     if (!step) return null
 
@@ -243,7 +251,7 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
                       >
                         <div className="ml-6 mt-1 space-y-1 border-l-2 border-muted pl-2 pb-1">
                           {/* Timing details for any started step */}
-                          {step.started_at && stepName !== "sync_data" && (
+                          {step.started_at && (
                             <div className="text-[11px] text-muted-foreground px-2 py-0.5">
                               <span>Started: {new Date(parseUTC(step.started_at)).toLocaleTimeString()}</span>
                               {step.completed_at && (
@@ -292,45 +300,6 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
                             </>
                           )}
 
-                          {/* Query results nested under sync_data */}
-                          {stepName === "sync_data" && job.results && job.results.length > 0 && (
-                            <>
-                              {job.results.map((r) => (
-                                <div
-                                  key={r.query_name}
-                                  className={`flex items-center justify-between rounded px-2 py-1 text-[11px] ${
-                                    r.status === "failed" ? "bg-destructive/5" : "bg-transparent"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <StepIcon status={r.status} />
-                                    <span className="font-mono truncate">{r.query_name}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 shrink-0 ml-2 text-muted-foreground">
-                                    {r.status !== "pending" && (
-                                      <>
-                                        <span>{r.rows_extracted.toLocaleString()} rows</span>
-                                        <span>{r.duration_seconds.toFixed(1)}s</span>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                              {job.results.some((r) => r.error) && (
-                                <div className="mt-1 space-y-0.5">
-                                  {job.results
-                                    .filter((r) => r.error)
-                                    .map((r) => (
-                                      <div key={`${r.query_name}-error`} className="rounded bg-destructive/10 p-1.5">
-                                        <span className="font-mono text-[10px]">{r.query_name}:</span>
-                                        <p className="text-destructive font-mono text-[10px] mt-0.5">{r.error}</p>
-                                      </div>
-                                    ))}
-                                </div>
-                              )}
-                            </>
-                          )}
-
                           {/* Step error */}
                           {step.error && (
                             <div className="rounded bg-destructive/10 p-1.5">
@@ -363,17 +332,14 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
           <Button
             variant="outline"
             className="w-full"
-            disabled={isDownloading || (
-              job.status !== "completed" && job.status !== "failed" &&
-              !(steps && steps.length > 0 && steps.every((s) => s.status === "completed" || s.status === "failed"))
-            )}
+            disabled={isDownloading || job.status !== "completed"}
             onClick={async () => {
               setIsDownloading(true)
               try {
-                await downloadCSV(job.job_id)
-                toast.success("CSV downloaded")
+                await downloadCalibrationReport(job.tag, job.country)
+                toast.success("Report downloaded")
               } catch {
-                toast.error("Download failed")
+                toast.error("Download failed — report may not be ready yet")
               } finally {
                 setIsDownloading(false)
               }
@@ -384,7 +350,7 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
             ) : (
               <Download className="mr-2 h-4 w-4" />
             )}
-            {isDownloading ? "Downloading..." : "Download CSV"}
+            {isDownloading ? "Downloading..." : "Download Report"}
           </Button>
         </div>
       </DialogContent>

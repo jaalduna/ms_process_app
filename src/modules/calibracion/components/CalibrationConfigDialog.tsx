@@ -100,6 +100,43 @@ export function CalibrationConfigDialog({ config, onChange }: CalibrationConfigD
               />
             </label>
           </fieldset>
+
+          {/* Calibration pipeline */}
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Pipeline</legend>
+            <label className="space-y-1">
+              <span className="text-xs text-muted-foreground">Group by (semicolon-separated)</span>
+              <Input
+                placeholder="e.g. IdProduto_Calib;IdProduto_Calib,Region"
+                value={config.group_by}
+                onChange={(e) => onChange({ ...config, group_by: e.target.value })}
+                className="h-8 text-sm"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs text-muted-foreground">Start period</span>
+              <Input
+                placeholder="202102"
+                value={config.start_period}
+                onChange={(e) => onChange({ ...config, start_period: e.target.value })}
+                className="h-8 text-sm"
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={config.skip_merge}
+                onCheckedChange={(v) => onChange({ ...config, skip_merge: v === true })}
+              />
+              Skip merge
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={config.skip_simulation}
+                onCheckedChange={(v) => onChange({ ...config, skip_simulation: v === true })}
+              />
+              Skip simulation
+            </label>
+          </fieldset>
         </div>
       </DialogContent>
     </Dialog>

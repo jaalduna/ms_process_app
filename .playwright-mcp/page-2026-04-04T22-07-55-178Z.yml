@@ -1,0 +1,124 @@
+- generic [ref=e2]:
+  - generic [ref=e11]:
+    - complementary [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - text: Bridge
+          - generic [ref=e15]: v0.1.0
+        - button "Colapsar menú" [ref=e16]:
+          - img [ref=e17]
+      - navigation "Main navigation" [ref=e19]:
+        - link "Sincronización" [ref=e20] [cursor=pointer]:
+          - /url: /ms-process-app/dashboard
+          - img [ref=e21]
+          - generic [ref=e26]: Sincronización
+        - link "Historial" [ref=e27] [cursor=pointer]:
+          - /url: /ms-process-app/history
+          - img [ref=e28]
+          - generic [ref=e31]: Historial
+        - link "Precios" [ref=e32] [cursor=pointer]:
+          - /url: /ms-process-app/precios
+          - img [ref=e33]
+          - generic [ref=e36]: Precios
+        - link "Elegibilidad" [ref=e37] [cursor=pointer]:
+          - /url: /ms-process-app/elegibilidad
+          - img [ref=e38]
+          - generic [ref=e41]: Elegibilidad
+        - link "Pesaje" [ref=e42] [cursor=pointer]:
+          - /url: /ms-process-app/pesaje
+          - img [ref=e43]
+          - generic [ref=e47]: Pesaje
+        - link "Calibración" [ref=e48] [cursor=pointer]:
+          - /url: /ms-process-app/calibration
+          - img [ref=e49]
+          - generic [ref=e50]: Calibración
+        - link "MTR" [ref=e51] [cursor=pointer]:
+          - /url: /ms-process-app/mtr
+          - img [ref=e52]
+          - generic [ref=e54]: MTR
+        - link "Trazabilidad" [ref=e55] [cursor=pointer]:
+          - /url: /ms-process-app/trazabilidad
+          - img [ref=e56]
+          - generic [ref=e61]: Trazabilidad
+      - generic [ref=e62]:
+        - paragraph [ref=e63]: Dev User
+        - button "Cerrar sesión" [ref=e64]:
+          - img
+          - text: Cerrar sesión
+    - main [ref=e65]:
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - heading "Sincronización Manual" [level=1] [ref=e69]
+          - paragraph [ref=e70]: Dispara y monitorea sincronizaciones de datos por país
+        - generic [ref=e71]:
+          - generic [ref=e73]: Trigger Data Sync
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - generic [ref=e76]:
+                - text: Country
+                - combobox "Country" [ref=e77]:
+                  - generic: Select country
+                  - img
+              - generic [ref=e78]:
+                - text: Stage
+                - combobox "Stage" [ref=e79]:
+                  - generic: Select stage
+                  - img
+              - generic [ref=e80]:
+                - text: Rolling Months
+                - spinbutton "Rolling Months" [ref=e81]
+            - generic [ref=e82]:
+              - button "Trigger Sync" [disabled]
+        - generic [ref=e83]:
+          - heading "Recent Jobs" [level=2] [ref=e84]
+          - table [ref=e86]:
+            - rowgroup [ref=e87]:
+              - row "Country Tag Status Triggered By When" [ref=e88]:
+                - columnheader "Country" [ref=e89] [cursor=pointer]
+                - columnheader "Tag" [ref=e90] [cursor=pointer]
+                - columnheader "Status" [ref=e91]
+                - columnheader "Triggered By" [ref=e92] [cursor=pointer]
+                - columnheader "When" [ref=e93] [cursor=pointer]:
+                  - generic [ref=e94]: When
+            - rowgroup [ref=e95]:
+              - row "Brasil brasil-pesaje-seed Completed system-seed 21h ago" [ref=e96] [cursor=pointer]:
+                - cell "Brasil" [ref=e97]
+                - cell "brasil-pesaje-seed" [ref=e98]
+                - cell "Completed" [ref=e99]:
+                  - generic [ref=e100]: Completed
+                - cell "system-seed" [ref=e101]
+                - cell "21h ago" [ref=e102]:
+                  - generic [ref=e103]: 21h ago
+              - row "Bolivia bolivia-pesaje-seed Completed system-seed 1d ago" [ref=e104] [cursor=pointer]:
+                - cell "Bolivia" [ref=e105]
+                - cell "bolivia-pesaje-seed" [ref=e106]
+                - cell "Completed" [ref=e107]:
+                  - generic [ref=e108]: Completed
+                - cell "system-seed" [ref=e109]
+                - cell "1d ago" [ref=e110]:
+                  - generic [ref=e111]: 1d ago
+              - row "Mexico mexico-pesaje-seed Completed system-seed 1d ago" [ref=e112] [cursor=pointer]:
+                - cell "Mexico" [ref=e113]
+                - cell "mexico-pesaje-seed" [ref=e114]
+                - cell "Completed" [ref=e115]:
+                  - generic [ref=e116]: Completed
+                - cell "system-seed" [ref=e117]
+                - cell "1d ago" [ref=e118]:
+                  - generic [ref=e119]: 1d ago
+              - row "Argentina argentina-pesaje-seed Completed system-seed 2d ago" [ref=e120] [cursor=pointer]:
+                - cell "Argentina" [ref=e121]
+                - cell "argentina-pesaje-seed" [ref=e122]
+                - cell "Completed" [ref=e123]:
+                  - generic [ref=e124]: Completed
+                - cell "system-seed" [ref=e125]
+                - cell "2d ago" [ref=e126]:
+                  - generic [ref=e127]: 2d ago
+              - row "Chile chile-pesaje-seed Completed system-seed 2d ago" [ref=e128] [cursor=pointer]:
+                - cell "Chile" [ref=e129]
+                - cell "chile-pesaje-seed" [ref=e130]
+                - cell "Completed" [ref=e131]:
+                  - generic [ref=e132]: Completed
+                - cell "system-seed" [ref=e133]
+                - cell "2d ago" [ref=e134]:
+                  - generic [ref=e135]: 2d ago
+  - region "Notifications alt+T"

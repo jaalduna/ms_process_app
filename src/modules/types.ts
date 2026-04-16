@@ -27,6 +27,8 @@ export interface ModuleDefinition {
   label: string
   /** Navigation group for categorizing this module. Defaults to "pipeline" if omitted. */
   group?: ModuleGroup
+  /** If set, only users with at least one of these roles can access this module. */
+  requiredRoles?: string[]
   navItems: ModuleNavItem[]
   routes: ModuleRoute[]
 }

@@ -1,7 +1,16 @@
 import { Progress } from "@/components/ui/progress"
 import { CheckCircle2, Circle, Loader2, XCircle } from "lucide-react"
 import type { EventDetail } from "@/types/api"
-import { CALIBRATION_STEPS, CALIBRATION_STEP_LABELS } from "../types"
+import { CALIBRATION_STEP_LABELS } from "../types"
+
+/** Steps shown in the progress indicator (sync_data is always skipped). */
+const VISIBLE_STEPS = [
+  "copy_to_calibration",
+  "merge_data",
+  "simulate_kpis",
+  "calculate_penetration",
+  "download_csv",
+] as const
 
 interface CalibrationProgressProps {
   job: EventDetail
@@ -61,7 +70,7 @@ export function CalibrationProgress({ job }: CalibrationProgressProps) {
       {/* Step indicators */}
       {hasSteps && (
         <div className="flex items-center gap-0.5 pt-1">
-          {CALIBRATION_STEPS.map((stepName) => {
+          {VISIBLE_STEPS.map((stepName) => {
             const step = steps.find((s) => s.name === stepName)
             const status = step?.status ?? "pending"
             return (

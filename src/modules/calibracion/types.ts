@@ -59,12 +59,31 @@ export interface CalibrationConfig {
   aggregations: AggregationOptions
   row_limit: number | null
   lookback_months: number | null
+  group_by: string
+  start_period: string
+  skip_merge: boolean
+  skip_simulation: boolean
 }
 
 export const DEFAULT_CALIBRATION_CONFIG: CalibrationConfig = {
   aggregations: { region: false, nivel_2: false },
   row_limit: null,
   lookback_months: null,
+  group_by: "",
+  start_period: "202102",
+  skip_merge: false,
+  skip_simulation: false,
+}
+
+/** Default group_by per country (semicolon-separated dimension combos). */
+export const DEFAULT_GROUP_BY: Record<string, string> = {
+  bolivia:  "IdProduto_Calib;IdProduto_Calib,Region",
+  cam:      "IdProduto_Calib,Pais",
+  chile:    "IdProduto_Calib;IdProduto_Calib,Region",
+  colombia: "IdProduto_Calib;IdProduto_Calib,Region",
+  ecuador:  "IdProduto_Calib,Region_A;IdProduto_Calib,Region_A,Nivel_2",
+  mexico:   "IdProduto_Calib;IdProduto_Calib,Region",
+  peru:     "IdProduto_Calib;IdProduto_Calib,Region",
 }
 
 /** Data availability for a country+period */

@@ -1,0 +1,102 @@
+- generic [ref=e2]:
+  - generic [ref=e11]:
+    - complementary [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - text: Bridge
+          - generic [ref=e15]: v0.1.0
+        - button "Colapsar menú" [ref=e16]:
+          - img [ref=e17]
+      - navigation "Main navigation" [ref=e19]:
+        - link "Overview" [ref=e20] [cursor=pointer]:
+          - /url: /ms-process-app/overview
+          - img [ref=e21]
+          - generic [ref=e23]: Overview
+        - link "Precios" [ref=e24] [cursor=pointer]:
+          - /url: /ms-process-app/precios
+          - img [ref=e25]
+          - generic [ref=e28]: Precios
+        - link "Elegibilidad" [ref=e29] [cursor=pointer]:
+          - /url: /ms-process-app/elegibilidad
+          - img [ref=e30]
+          - generic [ref=e33]: Elegibilidad
+        - link "Pesaje" [ref=e34] [cursor=pointer]:
+          - /url: /ms-process-app/pesaje
+          - img [ref=e35]
+          - generic [ref=e39]: Pesaje
+        - link "Calibración" [ref=e40] [cursor=pointer]:
+          - /url: /ms-process-app/calibration
+          - img [ref=e41]
+          - generic [ref=e42]: Calibración
+        - link "MTR" [active] [ref=e43] [cursor=pointer]:
+          - /url: /ms-process-app/mtr
+          - img [ref=e44]
+          - generic [ref=e46]: MTR
+        - link "Trazabilidad" [ref=e47] [cursor=pointer]:
+          - /url: /ms-process-app/trazabilidad
+          - img [ref=e48]
+          - generic [ref=e53]: Trazabilidad
+      - generic [ref=e54]:
+        - paragraph [ref=e55]: Dev User
+        - button "Cerrar sesión" [ref=e56]:
+          - img
+          - text: Cerrar sesión
+    - main [ref=e57]:
+      - generic [ref=e1184]:
+        - generic [ref=e1185]:
+          - generic [ref=e1186]:
+            - heading "MTR" [level=1] [ref=e1187]
+            - paragraph [ref=e1188]: Deeper calibration targets and imputations
+          - generic [ref=e1189]:
+            - combobox [ref=e1190]:
+              - generic: Mar 2026
+              - img
+            - button "MTR settings" [ref=e1191]:
+              - img
+        - generic [ref=e1192]:
+          - button "View MTR history for Argentina" [ref=e1193] [cursor=pointer]:
+            - generic [ref=e1195]:
+              - generic [ref=e1196]: 🇦🇷Argentina
+              - generic [ref=e1197]: never
+            - button "Ejecutar" [ref=e1201]
+          - button "View MTR history for Bolivia" [ref=e1202] [cursor=pointer]:
+            - generic [ref=e1204]:
+              - generic [ref=e1205]: 🇧🇴Bolivia
+              - generic [ref=e1206]: never
+            - button "Ejecutar" [ref=e1210]
+          - button "View MTR history for Brasil" [ref=e1211] [cursor=pointer]:
+            - generic [ref=e1213]:
+              - generic [ref=e1214]: 🇧🇷Brasil
+              - generic [ref=e1215]: never
+            - button "Ejecutar" [ref=e1219]
+          - button "View MTR history for CAM" [ref=e1220] [cursor=pointer]:
+            - generic [ref=e1222]:
+              - generic [ref=e1223]: 🌎CAM
+              - generic [ref=e1224]: never
+            - button "Ejecutar" [ref=e1228]
+          - button "View MTR history for Chile" [ref=e1229] [cursor=pointer]:
+            - generic [ref=e1231]:
+              - generic [ref=e1232]: 🇨🇱Chile
+              - generic [ref=e1233]: never
+            - button "Ejecutar" [ref=e1237]
+          - button "View MTR history for Colombia" [ref=e1238] [cursor=pointer]:
+            - generic [ref=e1240]:
+              - generic [ref=e1241]: 🇨🇴Colombia
+              - generic [ref=e1242]: never
+            - button "Ejecutar" [ref=e1246]
+          - button "View MTR history for Ecuador" [ref=e1247] [cursor=pointer]:
+            - generic [ref=e1249]:
+              - generic [ref=e1250]: 🇪🇨Ecuador
+              - generic [ref=e1251]: never
+            - button "Ejecutar" [ref=e1255]
+          - button "View MTR history for Mexico" [ref=e1256] [cursor=pointer]:
+            - generic [ref=e1258]:
+              - generic [ref=e1259]: 🇲🇽Mexico
+              - generic [ref=e1260]: never
+            - button "Ejecutar" [ref=e1265]
+          - button "View MTR history for Peru" [ref=e1266] [cursor=pointer]:
+            - generic [ref=e1268]:
+              - generic [ref=e1269]: 🇵🇪Peru
+              - generic [ref=e1270]: never
+            - button "Ejecutar" [ref=e1274]
+  - region "Notifications alt+T"
