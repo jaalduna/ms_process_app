@@ -19,7 +19,8 @@ jobs:
         env:
           VITE_BASE_PATH: "/"
           VITE_AUTH_BYPASS: "true"
-          VITE_MOCK_API: "true"
+          VITE_MOCK_API: "false"
+          VITE_BRIDGE_API_URL: "https://deskbound-lisp-humorist.ngrok-free.dev/api/v1"
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
