@@ -3,6 +3,10 @@ import { createRoot } from "react-dom/client"
 import "./index.css"
 import App from "./App.tsx"
 
+if (import.meta.env.VITE_MOCK_API === "true") {
+  import("./lib/mock-api").then(({ installMockApi }) => installMockApi())
+}
+
 async function loadConfig() {
   if ("__TAURI_INTERNALS__" in window) {
     const { invoke } = await import("@tauri-apps/api/core")

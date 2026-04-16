@@ -22,7 +22,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: isTauri ? "/" : "/ms-process-app/",
+  base: isTauri ? "/" : (process.env.VITE_BASE_PATH ?? "/ms-process-app/"),
   server: {
     host: process.env.TAURI_DEV_HOST || false,
     port: 5173,
