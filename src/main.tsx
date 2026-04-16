@@ -3,8 +3,11 @@ import { createRoot } from "react-dom/client"
 import "./index.css"
 import App from "./App.tsx"
 
-if (import.meta.env.VITE_MOCK_API === "true") {
-  import("./lib/mock-api").then(({ installMockApi }) => installMockApi())
+async function installMocks() {
+  if (import.meta.env.VITE_MOCK_API === "true") {
+    const { installMockApi } = await import("./lib/mock-api")
+    installMockApi()
+  }
 }
 
 async function loadConfig() {
@@ -38,7 +41,7 @@ async function loadConfig() {
   }
 }
 
-loadConfig().then(() => {
+installMocks().then(() => loadConfig()).then(() => {
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <App />

@@ -1,8 +1,11 @@
 /**
  * Mock API adapter — intercepts all axios requests and returns realistic demo data.
  * Activated by VITE_MOCK_API=true at build time.
+ *
+ * Uses axios `adapter` to short-circuit requests before they hit the network,
+ * so the response flows through response interceptors normally.
  */
-import type { InternalAxiosRequestConfig, AxiosResponse } from "axios"
+import type { AxiosResponse, InternalAxiosRequestConfig } from "axios"
 import { api } from "./api"
 
 const COUNTRIES = [
@@ -226,34 +229,31 @@ function matchRoute(url: string, config: InternalAxiosRequestConfig): unknown | 
 }
 
 export function installMockApi() {
-  // Intercept requests and return mock data
-  api.interceptors.request.use((config) => {
-    const url = (config.url ?? "").replace(config.baseURL ?? "", "")
+  // Use a custom adapter that returns mock data instead of making real HTTP requests.
+  // This runs BEFORE any response interceptors, so the mock response flows through
+  // the normal axios pipeline.
+  const originalAdapter = api.defaults.adapter
+
+  api.defaults.adapter = (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => {
+    const url = config.url ?? ""
     const data = matchRoute(url, config)
     if (data !== undefined) {
-      // Abort the real request and resolve with mock data
-      const mockResponse: AxiosResponse = {
+      console.debug("[mock-api] matched:", url)
+      return Promise.resolve({
         data,
         status: 200,
         statusText: "OK (mock)",
         headers: {},
         config,
-      }
-      return Promise.reject({ __mock: true, response: mockResponse })
+      } as AxiosResponse)
     }
-    return config
-  })
-
-  // Catch the mock "rejection" and resolve it as a successful response
-  api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error?.__mock) {
-        return Promise.resolve(error.response)
-      }
-      return Promise.reject(error)
-    },
-  )
+    // Not matched — fall through to real adapter (will likely fail in demo mode)
+    console.warn("[mock-api] unmatched route:", url)
+    if (typeof originalAdapter === "function") {
+      return originalAdapter(config)
+    }
+    return Promise.reject(new Error(`[mock-api] No adapter for: ${url}`))
+  }
 
   console.info("[mock-api] Mock API installed — all backend calls return demo data")
 }
