@@ -28,9 +28,7 @@ export default function LoginPage() {
           >
             {loading
               ? "Signing in..."
-              : (window as any).__APP_CONFIG__?.authProvider === "github"
-                ? "Sign in with GitHub"
-                : "Sign in with Microsoft"}
+              : "Sign in with Microsoft"}
           </Button>
         </CardContent>
       </Card>

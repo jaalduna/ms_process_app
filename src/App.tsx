@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { MsalAuthProvider } from "@/components/MsalAuthProvider"
 import { GithubAuthProvider } from "@/components/GithubAuthProvider"
 import { DevAuthProvider } from "@/components/DevAuthProvider"
+import { AzureBuiltInAuthProvider } from "@/components/AzureBuiltInAuthProvider"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout"
 import { useModuleConfig } from "@/hooks/useModuleConfig"
@@ -27,12 +28,14 @@ const queryClient = new QueryClient({
 const isTauri = '__TAURI_INTERNALS__' in window
 const basename = isTauri ? "/" : import.meta.env.BASE_URL
 
-const authProviderConfig = (window as any).__APP_CONFIG__?.authProvider
+const authProviderConfig = import.meta.env.VITE_AUTH_PROVIDER ?? (window as any).__APP_CONFIG__?.authProvider
 const AuthProvider = AUTH_BYPASS
   ? DevAuthProvider
-  : authProviderConfig === "github"
-    ? GithubAuthProvider
-    : MsalAuthProvider
+  : authProviderConfig === "azure-builtin"
+    ? AzureBuiltInAuthProvider
+    : authProviderConfig === "github"
+      ? GithubAuthProvider
+      : MsalAuthProvider
 
 function AppRoutes() {
   const modules = useModuleConfig()
