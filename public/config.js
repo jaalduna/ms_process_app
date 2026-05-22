@@ -7,14 +7,14 @@
 window.__BRIDGE_CONFIG__ = {
   // Update this URL when using a tunnel (e.g. localtunnel, ngrok).
   // sql-databricks-bridge default: http://localhost:8000/api/v1
-  API_URL: "http://localhost:8000/api/v1",
+  API_URL: "/api/v1",
 };
 
 window.__APP_CONFIG__ = {
   authProvider: "github",
   modules: {
     overview: true,
-    sync: false,
+    sync: true,
     calibration: true,
     elegibilidad: true,
     prices: true,

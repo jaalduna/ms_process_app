@@ -27,6 +27,12 @@ export default defineConfig({
     host: process.env.TAURI_DEV_HOST || false,
     port: 5173,
     strictPort: true,
+    proxy: {
+      "/api": {
+        target: process.env.VITE_BRIDGE_PROXY_TARGET ?? "http://myworkspace.adds.wp.numerator.com:8000",
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     rollupOptions: {
