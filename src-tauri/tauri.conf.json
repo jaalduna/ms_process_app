@@ -1,6 +1,6 @@
 {
   "productName": "MS Process App",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "identifier": "com.kantar.msprocessapp",
   "build": {
     "beforeBuildCommand": "npm run build",
@@ -15,8 +15,7 @@
         "width": 1400,
         "height": 900,
         "minWidth": 800,
-        "minHeight": 600,
-        "additionalBrowserArgs": "--disable-web-security --disable-features=msEdgeContentScript --disable-site-isolation-trials"
+        "minHeight": 600
       }
     ],
     "security": {
