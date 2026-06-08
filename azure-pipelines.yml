@@ -1,0 +1,42 @@
+# CI pipeline (Azure DevOps) — lint + test + build. No deploy (see deploy pipeline).
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  NODE_VERSION: "20.x"
+
+stages:
+  - stage: ci
+    displayName: "CI — lint + test + build"
+    jobs:
+      - job: build_test
+        displayName: "Lint, test, build"
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "$(NODE_VERSION)"
+            displayName: "Use Node $(NODE_VERSION)"
+
+          - script: npm ci
+            displayName: "Install deps"
+
+          - script: npm run lint
+            displayName: "Lint (eslint)"
+
+          - script: npm run test
+            displayName: "Tests (vitest)"
+
+          - script: npm run build
+            displayName: "Build (tsc + vite)"
