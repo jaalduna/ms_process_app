@@ -1,40 +1,58 @@
-name: Deploy to Azure Static Web App
+name: Deploy SPA to Azure Storage ($web)
 
+# New-version deploy of the frontend: build the React app and upload it to the
+# Storage static-website ($web) container. Auth is OIDC to the shared deploy SP
+# (Storage Blob Data Contributor) — no API tokens or access keys.
+#
+# Required repo config (Settings -> Secrets and variables -> Actions):
+#   vars:    AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
+#            STORAGE_ACCOUNT (nmrwpmsprocspaprd), API_BASE_URL (App Service URL + /api/v1)
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC
+  contents: read
 
 jobs:
   build_and_deploy:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy
-        uses: Azure/static-web-apps-deploy@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Build
         env:
           VITE_BASE_PATH: "/"
           VITE_AUTH_BYPASS: "false"
           VITE_AUTH_PROVIDER: "azure-builtin"
           VITE_MOCK_API: "false"
-          VITE_BRIDGE_API_URL: "https://deskbound-lisp-humorist.ngrok-free.dev/api/v1"
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "/"
-          output_location: "dist"
+          VITE_BRIDGE_API_URL: ${{ vars.API_BASE_URL }}
+        run: npm run build
 
-  close_pull_request:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Close PR preview
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: "close"
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Upload to $web
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az storage blob upload-batch \
+              --account-name "${{ vars.STORAGE_ACCOUNT }}" \
+              --auth-mode login \
+              --destination '$web' \
+              --source dist \
+              --overwrite true
