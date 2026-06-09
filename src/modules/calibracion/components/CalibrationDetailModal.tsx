@@ -14,16 +14,7 @@ import { CheckCircle2, ChevronDown, ChevronRight, Circle, Download, Loader2, XCi
 import { downloadCalibrationReport } from "@/lib/api"
 import type { EventDetail } from "@/types/api"
 import type { CalibrationStep } from "../types"
-import { CALIBRATION_STEP_LABELS } from "../types"
-
-/** Steps shown in the detail view (sync_data is always skipped). */
-const VISIBLE_STEPS = [
-  "copy_to_calibration",
-  "merge_data",
-  "simulate_kpis",
-  "calculate_penetration",
-  "download_csv",
-] as const
+import { stepLabel } from "../types"
 
 const COUNTRY_LABELS: Record<string, string> = {
   argentina: "Argentina",
@@ -58,8 +49,11 @@ function statusVariant(status: string) {
 }
 
 function parseUTC(ts: string): number {
-  // Backend sends ISO timestamps without 'Z' — ensure UTC parsing
-  return new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime()
+  // Backend sends ISO 8601 timestamps that may already carry a timezone
+  // (e.g. "+00:00" or "Z") or none at all. Only assume UTC by appending "Z"
+  // when there is no timezone designator — otherwise the string is valid as-is.
+  const hasTz = /([zZ]|[+-]\d{2}:?\d{2})$/.test(ts)
+  return new Date(hasTz ? ts : ts + "Z").getTime()
 }
 
 function formatDuration(start: string | null, end: string | null): string {
@@ -101,7 +95,7 @@ interface StepRowProps {
 }
 
 function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProps) {
-  const label = CALIBRATION_STEP_LABELS[step.name] ?? step.name
+  const label = stepLabel(step.name)
   const duration = formatDuration(step.started_at, step.completed_at)
 
   return (
@@ -153,6 +147,11 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
 
   const steps = job.steps
   const hasSteps = steps && steps.length > 0
+
+  // Distinguish catalog-promotion failures (000 → 001) from calculation failures.
+  // The user needs to know which side of the pipeline broke.
+  const copyStep = steps?.find((s) => s.name === "copy_to_calibration")
+  const copyFailed = copyStep?.status === "failed"
 
   function toggleStep(stepName: string) {
     setExpandedSteps((prev) => {
@@ -227,6 +226,21 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
             </div>
           </div>
 
+          {copyFailed && (
+            <>
+              <Separator />
+              <div>
+                <span className="text-muted-foreground">Catalog Promotion</span>
+                <div className="mt-1 rounded bg-destructive/10 p-2 text-xs text-destructive">
+                  <p className="font-medium">Failed to promote data to calibration catalog (000 → 001).</p>
+                  {copyStep?.error && (
+                    <p className="font-mono text-[10px] mt-1">{copyStep.error}</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Pipeline Steps */}
           {hasSteps && (
             <>
@@ -234,19 +248,16 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
               <div>
                 <span className="text-muted-foreground">Pipeline Steps</span>
                 <div className="mt-2 space-y-1">
-                  {VISIBLE_STEPS.map((stepName) => {
-                    const step = steps.find((s) => s.name === stepName)
-                    if (!step) return null
-
-                    const hasDetails = stepHasDetails(stepName, step)
-                    const isExpanded = expandedSteps.has(stepName)
+                  {steps.map((step) => {
+                    const hasDetails = stepHasDetails(step.name, step)
+                    const isExpanded = expandedSteps.has(step.name)
 
                     return (
                       <StepRow
-                        key={stepName}
+                        key={step.name}
                         step={step}
                         expanded={isExpanded}
-                        onToggle={() => toggleStep(stepName)}
+                        onToggle={() => toggleStep(step.name)}
                         hasDetails={hasDetails}
                       >
                         <div className="ml-6 mt-1 space-y-1 border-l-2 border-muted pl-2 pb-1">

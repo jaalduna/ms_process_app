@@ -107,7 +107,7 @@ export interface EventSummary {
   queries_running: number
   total_rows_extracted: number
   steps?: CalibrationStep[]
-  current_step?: CalibrationStepName | null
+  current_step?: string | null
 }
 
 /** Detailed job info including per-query results */
