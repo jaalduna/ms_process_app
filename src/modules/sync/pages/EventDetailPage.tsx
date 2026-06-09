@@ -51,8 +51,10 @@ function formatDuration(seconds: number): string {
 
 /** Parse a timestamp string as UTC (backend sends naive UTC without 'Z'). */
 function parseUTC(dateStr: string): Date {
-  // Append 'Z' if no timezone indicator present so JS parses as UTC
-  if (!/[Z+\-]\d{0,4}$/.test(dateStr)) return new Date(dateStr + "Z")
+  // Append 'Z' only when there is no timezone designator (offset like +00:00
+  // or trailing Z) so naive timestamps parse as UTC without corrupting strings
+  // that already carry an offset.
+  if (!/([zZ]|[+-]\d{2}:?\d{2})$/.test(dateStr)) return new Date(dateStr + "Z")
   return new Date(dateStr)
 }
 

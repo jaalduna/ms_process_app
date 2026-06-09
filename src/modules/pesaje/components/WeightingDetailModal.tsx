@@ -176,6 +176,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
     if (run?.parameters_json && Object.keys(run.parameters_json).length > 0) {
       setEditableParams({ ...run.parameters_json })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing, preserving behavior
   }, [run?.run_id, open])
 
   if (!run) return null

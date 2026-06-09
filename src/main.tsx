@@ -17,20 +17,25 @@ async function loadConfig() {
     try {
       const config = JSON.parse(configStr)
 
+      type BridgeConfig = { API_URL?: string }
+      type AppConfig = { modules?: Record<string, boolean>; authProvider?: string }
+      type WindowGlobals = { __BRIDGE_CONFIG__?: BridgeConfig; __APP_CONFIG__?: AppConfig }
+      const win = window as unknown as WindowGlobals
+
       // Apply API_URL to __BRIDGE_CONFIG__
       if (config.API_URL) {
-        ;(window as any).__BRIDGE_CONFIG__ = {
-          ...(window as any).__BRIDGE_CONFIG__,
+        win.__BRIDGE_CONFIG__ = {
+          ...win.__BRIDGE_CONFIG__,
           API_URL: config.API_URL,
         }
       }
 
       // Apply modules to __APP_CONFIG__
       if (config.modules) {
-        ;(window as any).__APP_CONFIG__ = {
-          ...(window as any).__APP_CONFIG__,
+        win.__APP_CONFIG__ = {
+          ...win.__APP_CONFIG__,
           modules: {
-            ...(window as any).__APP_CONFIG__?.modules,
+            ...win.__APP_CONFIG__?.modules,
             ...config.modules,
           },
         }

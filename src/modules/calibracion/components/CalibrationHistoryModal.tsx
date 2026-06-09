@@ -33,7 +33,7 @@ interface CalibrationHistoryModalProps {
 }
 
 function parseUTC(ts: string): number {
-  return new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime()
+  return new Date(/([zZ]|[+-]\d{2}:?\d{2})$/.test(ts) ? ts : ts + "Z").getTime()
 }
 
 function formatDate(isoDate: string): string {

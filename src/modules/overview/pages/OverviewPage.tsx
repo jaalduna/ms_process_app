@@ -139,7 +139,7 @@ export default function OverviewPage() {
                     }
                     const entry = getEntry(stage.key, country.code)
                     const completedAt = entry?.completed_at
-                    const period = (entry as any)?.period
+                    const period = (entry as { period?: number | string } | undefined)?.period
                     return (
                       <td key={stage.key} className="px-4 py-2">
                         <span

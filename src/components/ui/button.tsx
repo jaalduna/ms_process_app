@@ -61,4 +61,5 @@ function Button({
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- intentional shadcn pattern: co-exports variant helper with component
 export { Button, buttonVariants }

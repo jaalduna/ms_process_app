@@ -39,6 +39,7 @@ export function DataTable<TData>({
   const sorting = controlledSorting ?? internalSorting
   const onSortingChange = controlledOnSortingChange ?? setInternalSorting
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- pre-existing, preserving behavior
   const table = useReactTable({
     data,
     columns,

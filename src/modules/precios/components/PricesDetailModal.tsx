@@ -41,7 +41,7 @@ const COUNTRY_LABELS: Record<string, string> = {
 }
 
 function parseUTC(ts: string): number {
-  return new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime()
+  return new Date(/([zZ]|[+-]\d{2}:?\d{2})$/.test(ts) ? ts : ts + "Z").getTime()
 }
 
 function formatDate(isoDate: string): string {
@@ -64,6 +64,7 @@ export function PricesDetailModal({ run, open, onClose }: PricesDetailModalProps
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const approve = useApprovePrices()
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- pre-existing, preserving behavior
   const sortedOutliers = useMemo(() => {
     if (!run?.outliers) return []
     return [...run.outliers].sort((a, b) => {

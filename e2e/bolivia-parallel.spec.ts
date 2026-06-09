@@ -27,7 +27,7 @@ test.describe("Bolivia Parallel Execution Verification", () => {
     let sawParallel = false
     let maxRunning = 0
     let lastRunningQueries: string[] = []
-    let finalDetail: any = null
+    let finalDetail: Record<string, unknown> | null = null
     const pollSnapshots: { ts: string; running: number; completed: number; failed: number; running_queries: string[] }[] = []
 
     for (let i = 0; i < 300; i++) {
@@ -76,7 +76,7 @@ test.describe("Bolivia Parallel Execution Verification", () => {
     expect(listResp.status()).toBe(200)
     const listData = await listResp.json()
     expect(listData.items.length).toBeGreaterThan(0)
-    const listItem = listData.items.find((it: any) => it.job_id === jobId)
+    const listItem = listData.items.find((it: Record<string, unknown>) => it.job_id === jobId)
     expect(listItem).toBeDefined()
     // Verify new fields exist on list endpoint
     expect(listItem).toHaveProperty("queries_running")

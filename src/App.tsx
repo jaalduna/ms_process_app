@@ -28,7 +28,7 @@ const queryClient = new QueryClient({
 const isTauri = '__TAURI_INTERNALS__' in window
 const basename = isTauri ? "/" : import.meta.env.BASE_URL
 
-const authProviderConfig = import.meta.env.VITE_AUTH_PROVIDER ?? (window as any).__APP_CONFIG__?.authProvider
+const authProviderConfig = import.meta.env.VITE_AUTH_PROVIDER ?? (window as unknown as { __APP_CONFIG__?: { authProvider?: string } }).__APP_CONFIG__?.authProvider
 const AuthProvider = AUTH_BYPASS
   ? DevAuthProvider
   : authProviderConfig === "azure-builtin"

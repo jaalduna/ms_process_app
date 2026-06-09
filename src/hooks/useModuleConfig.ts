@@ -11,7 +11,7 @@ export interface ModuleConfig {
 }
 
 export function useModuleConfig(): ModuleConfig {
-  const config = (window as any).__APP_CONFIG__?.modules
+  const config = (window as unknown as { __APP_CONFIG__?: { modules?: Partial<ModuleConfig> } }).__APP_CONFIG__?.modules
   return {
     overview: config?.overview ?? false,
     sync: config?.sync ?? false,
