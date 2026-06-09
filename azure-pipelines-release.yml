@@ -1,0 +1,161 @@
+# Release pipeline (Azure DevOps) — build + SIGN the Tauri desktop app and
+# publish to the PUBLIC GitHub Releases host that the auto-updater reads.
+#
+# Flow:  push a tag  vX.Y.Z  ->  build Windows (NSIS) + Linux (AppImage),
+#        sign the updater artifacts, assemble latest.json, and create the
+#        GitHub Release  vX.Y.Z  with the installers + .sig + latest.json.
+#
+# The app's updater endpoint (src-tauri/tauri.conf.json) points at:
+#   https://github.com/jaalduna/ms_process_app/releases/latest/download/latest.json
+# so latest.json on the newest release is what every installed app checks.
+#
+# REQUIRED secret pipeline variables (set in a variable group or pipeline UI):
+#   TAURI_SIGNING_PRIVATE_KEY           - contents of the minisign private key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  - its password
+#   GH_TOKEN                            - GitHub PAT, scope: contents:write on
+#                                         jaalduna/ms_process_app
+# The signing key's PUBLIC half is embedded in tauri.conf.json (plugins.updater.pubkey).
+
+trigger:
+  tags:
+    include:
+      - "v*"
+
+pr: none
+
+variables:
+  NODE_VERSION: "20.x"
+  RELEASE_REPO: "jaalduna/ms_process_app"
+  # Tag like refs/tags/v0.2.0 -> 0.2.0
+  APP_VERSION: $[ replace(variables['Build.SourceBranchName'], 'v', '') ]
+
+stages:
+  - stage: build
+    displayName: "Build + sign (per platform)"
+    jobs:
+      - job: build
+        strategy:
+          matrix:
+            linux:
+              osImage: "ubuntu-latest"
+              bundles: "appimage"
+              artifactName: "linux"
+            windows:
+              osImage: "windows-latest"
+              bundles: "nsis"
+              artifactName: "windows"
+        pool:
+          vmImage: $(osImage)
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "$(NODE_VERSION)"
+            displayName: "Use Node $(NODE_VERSION)"
+
+          - script: rustup toolchain install stable --profile minimal && rustup default stable
+            displayName: "Rust toolchain"
+
+          # Linux needs the WebKitGTK + build deps for Tauri.
+          - bash: |
+              sudo apt-get update
+              sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libfuse2
+            displayName: "Linux system deps"
+            condition: eq(variables['artifactName'], 'linux')
+
+          - script: npm ci
+            displayName: "Install deps"
+
+          - bash: npx tauri build --bundles $(bundles)
+            displayName: "tauri build (signed)"
+            env:
+              TAURI_SIGNING_PRIVATE_KEY: $(TAURI_SIGNING_PRIVATE_KEY)
+              TAURI_SIGNING_PRIVATE_KEY_PASSWORD: $(TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
+              # Bake the prod API base into the SPA shipped inside the desktop app.
+              VITE_AUTH_BYPASS: "false"
+              VITE_AUTH_PROVIDER: "github"
+              VITE_BRIDGE_API_URL: "$(API_BASE_URL)"
+
+          # Collect the updater artifacts (installer + .sig) into a flat folder.
+          - bash: |
+              set -euo pipefail
+              mkdir -p "$(Build.ArtifactStagingDirectory)/out"
+              # AppImage (+ .sig) on Linux, NSIS zip (+ .sig) on Windows.
+              find src-tauri/target/release/bundle -type f \
+                \( -name "*.AppImage" -o -name "*.AppImage.sig" \
+                   -o -name "*-setup.exe" -o -name "*.nsis.zip" -o -name "*.nsis.zip.sig" \) \
+                -exec cp {} "$(Build.ArtifactStagingDirectory)/out/" \;
+              ls -l "$(Build.ArtifactStagingDirectory)/out/"
+            displayName: "Stage updater artifacts"
+
+          - publish: "$(Build.ArtifactStagingDirectory)/out"
+            artifact: "$(artifactName)"
+            displayName: "Publish $(artifactName) artifact"
+
+  - stage: release
+    displayName: "Assemble latest.json + GitHub Release"
+    dependsOn: build
+    condition: succeeded()
+    pool:
+      vmImage: ubuntu-latest
+    jobs:
+      - job: publish
+        steps:
+          - download: current
+            displayName: "Download platform artifacts"
+
+          - bash: |
+              set -euo pipefail
+              VERSION="$(APP_VERSION)"
+              TAG="v${VERSION}"
+              BASE="https://github.com/$(RELEASE_REPO)/releases/download/${TAG}"
+              WORK="$(Pipeline.Workspace)"
+              OUT="$(Build.ArtifactStagingDirectory)/release"
+              mkdir -p "$OUT"
+
+              # Helper: emit a platforms.<target> JSON entry for a bundle + its .sig.
+              entry() {  # $1=target  $2=bundle-glob  $3=sig-glob
+                local target="$1" bundle sig
+                bundle=$(ls $2 2>/dev/null | head -1 || true)
+                sig=$(ls $3 2>/dev/null | head -1 || true)
+                [ -z "$bundle" ] && return 0
+                cp "$bundle" "$OUT/"
+                local fname; fname=$(basename "$bundle")
+                local sigcontent=""
+                [ -n "$sig" ] && sigcontent=$(cat "$sig")
+                printf '"%s":{"signature":"%s","url":"%s/%s"}' \
+                  "$target" "$sigcontent" "$BASE" "$fname"
+              }
+
+              LINUX=$(entry "linux-x86_64" "$WORK/linux/*.AppImage" "$WORK/linux/*.AppImage.sig")
+              # NSIS updater artifact is the *-setup.nsis.zip (+ .sig); also ship the .exe for manual installs.
+              WIN=$(entry "windows-x86_64" "$WORK/windows/*.nsis.zip" "$WORK/windows/*.nsis.zip.sig")
+              cp "$WORK/windows/"*-setup.exe "$OUT/" 2>/dev/null || true
+
+              PLATFORMS=$(printf '%s' "$LINUX")
+              [ -n "$WIN" ] && PLATFORMS=$(printf '%s,%s' "$PLATFORMS" "$WIN")
+
+              cat > "$OUT/latest.json" <<JSON
+              {
+                "version": "${VERSION}",
+                "notes": "Release ${TAG}",
+                "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "platforms": { ${PLATFORMS} }
+              }
+              JSON
+              echo "--- latest.json ---"; cat "$OUT/latest.json"
+              ls -l "$OUT"
+            displayName: "Assemble latest.json"
+
+          - bash: |
+              set -euo pipefail
+              VERSION="$(APP_VERSION)"; TAG="v${VERSION}"
+              OUT="$(Build.ArtifactStagingDirectory)/release"
+              # gh resolves the repo from GH_TOKEN; --repo makes it explicit.
+              gh release create "$TAG" "$OUT"/* \
+                --repo "$(RELEASE_REPO)" \
+                --title "$TAG" \
+                --notes "Automated release $TAG" \
+                --latest
+            displayName: "gh release create"
+            env:
+              GH_TOKEN: $(GH_TOKEN)
