@@ -22,7 +22,7 @@ import type { TagListResponse, TagFilters } from "@/modules/trazabilidad/types"
 
 function getBaseUrl(): string {
   return (
-    (window as any).__BRIDGE_CONFIG__?.API_URL ??
+    (window as unknown as { __BRIDGE_CONFIG__?: { API_URL?: string } }).__BRIDGE_CONFIG__?.API_URL ??
     import.meta.env.VITE_BRIDGE_API_URL ??
     "http://localhost:8000/api/v1"
   )

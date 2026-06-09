@@ -46,6 +46,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   peru: "\u{1F1F5}\u{1F1EA}",
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- intentional shadcn/context pattern: co-exports constant with component
 export const COUNTRY_LABELS: Record<string, string> = {
   argentina: "Argentina",
   bolivia: "Bolivia",

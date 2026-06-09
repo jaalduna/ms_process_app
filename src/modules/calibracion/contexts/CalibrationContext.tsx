@@ -98,7 +98,6 @@ export function CalibrationProvider({ children }: { children: ReactNode }) {
           }
         })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -108,6 +107,7 @@ export function CalibrationProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- intentional context pattern: co-exports hook with provider
 export function useCalibrationContext(): CalibrationContextValue {
   const ctx = useContext(CalibrationContext)
   if (!ctx) {

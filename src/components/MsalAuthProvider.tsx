@@ -27,6 +27,7 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isAuthenticated || !account) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-existing, preserving behavior
       setUserInfo(null)
       return
     }

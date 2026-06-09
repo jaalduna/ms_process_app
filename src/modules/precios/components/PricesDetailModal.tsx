@@ -64,6 +64,7 @@ export function PricesDetailModal({ run, open, onClose }: PricesDetailModalProps
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const approve = useApprovePrices()
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- pre-existing, preserving behavior
   const sortedOutliers = useMemo(() => {
     if (!run?.outliers) return []
     return [...run.outliers].sort((a, b) => {

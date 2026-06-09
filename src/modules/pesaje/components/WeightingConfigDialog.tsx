@@ -18,6 +18,7 @@ export interface WeightingParams {
   trim_percentile: number
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- intentional shadcn/context pattern: co-exports constant with component
 export const DEFAULT_WEIGHTING_PARAMS: WeightingParams = {
   max_weight: 500,
   min_weight: 10,
