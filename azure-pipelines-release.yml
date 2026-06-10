@@ -47,9 +47,6 @@ stages:
               artifactName: "windows"
         pool:
           vmImage: $(osImage)
-        variables:
-          # Pin cargo home to a workspace path so it is cacheable cross-platform.
-          CARGO_HOME: $(Pipeline.Workspace)/.cargo
         steps:
           - task: NodeTool@0
             inputs:
@@ -57,14 +54,10 @@ stages:
             displayName: "Use Node $(NODE_VERSION)"
 
           # --- Caches (keyed on lockfiles + OS) so repeat builds are incremental.
-          # Populated from the default branch so tag builds can restore them.
-          - task: Cache@2
-            inputs:
-              key: 'cargo-home | "$(artifactName)" | src-tauri/Cargo.lock'
-              restoreKeys: 'cargo-home | "$(artifactName)"'
-              path: $(CARGO_HOME)
-            displayName: "Cache cargo registry/git"
-
+          # NOTE: we do NOT override CARGO_HOME — the agent's pre-installed rustup
+          # lives in the default ~/.cargo and breaks if CARGO_HOME is moved.
+          # Caching src-tauri/target/ (compiled deps) is the dominant speedup and
+          # is a repo-relative path that works cross-platform.
           - task: Cache@2
             inputs:
               key: 'cargo-target | "$(artifactName)" | src-tauri/Cargo.lock'
