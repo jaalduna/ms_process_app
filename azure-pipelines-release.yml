@@ -34,6 +34,7 @@ stages:
     displayName: "Build + sign (per platform)"
     jobs:
       - job: build
+        timeoutInMinutes: 90
         strategy:
           matrix:
             linux:
@@ -46,11 +47,37 @@ stages:
               artifactName: "windows"
         pool:
           vmImage: $(osImage)
+        variables:
+          # Pin cargo home to a workspace path so it is cacheable cross-platform.
+          CARGO_HOME: $(Pipeline.Workspace)/.cargo
         steps:
           - task: NodeTool@0
             inputs:
               versionSpec: "$(NODE_VERSION)"
             displayName: "Use Node $(NODE_VERSION)"
+
+          # --- Caches (keyed on lockfiles + OS) so repeat builds are incremental.
+          # Populated from the default branch so tag builds can restore them.
+          - task: Cache@2
+            inputs:
+              key: 'cargo-home | "$(artifactName)" | src-tauri/Cargo.lock'
+              restoreKeys: 'cargo-home | "$(artifactName)"'
+              path: $(CARGO_HOME)
+            displayName: "Cache cargo registry/git"
+
+          - task: Cache@2
+            inputs:
+              key: 'cargo-target | "$(artifactName)" | src-tauri/Cargo.lock'
+              restoreKeys: 'cargo-target | "$(artifactName)"'
+              path: src-tauri/target
+            displayName: "Cache Rust target/ (incremental compile)"
+
+          - task: Cache@2
+            inputs:
+              key: 'npm | "$(artifactName)" | package-lock.json'
+              path: node_modules
+              cacheHitVar: NODE_MODULES_RESTORED
+            displayName: "Cache node_modules"
 
           - script: rustup toolchain install stable --profile minimal && rustup default stable
             displayName: "Rust toolchain"
@@ -64,6 +91,7 @@ stages:
 
           - script: npm ci
             displayName: "Install deps"
+            condition: ne(variables.NODE_MODULES_RESTORED, 'true')
 
           - bash: npx tauri build --bundles $(bundles)
             displayName: "tauri build (signed)"
@@ -79,10 +107,11 @@ stages:
           - bash: |
               set -euo pipefail
               mkdir -p "$(Build.ArtifactStagingDirectory)/out"
-              # AppImage (+ .sig) on Linux, NSIS zip (+ .sig) on Windows.
+              # Updater artifacts: AppImage (+ .sig) on Linux; NSIS -setup.exe (+ .sig)
+              # on Windows — in Tauri 2 the NSIS updater target IS the -setup.exe.
               find src-tauri/target/release/bundle -type f \
                 \( -name "*.AppImage" -o -name "*.AppImage.sig" \
-                   -o -name "*-setup.exe" -o -name "*.nsis.zip" -o -name "*.nsis.zip.sig" \) \
+                   -o -name "*-setup.exe" -o -name "*-setup.exe.sig" \) \
                 -exec cp {} "$(Build.ArtifactStagingDirectory)/out/" \;
               ls -l "$(Build.ArtifactStagingDirectory)/out/"
             displayName: "Stage updater artifacts"
@@ -113,13 +142,16 @@ stages:
               mkdir -p "$OUT"
 
               # Helper: emit a platforms.<target> JSON entry for a bundle + its .sig.
+              # GitHub replaces spaces in asset names with dots on upload, so we
+              # rename bundle+sig to dotted names BEFORE upload and reference those
+              # exact names in the manifest url (otherwise the download 404s).
               entry() {  # $1=target  $2=bundle-glob  $3=sig-glob
                 local target="$1" bundle sig
                 bundle=$(ls $2 2>/dev/null | head -1 || true)
                 sig=$(ls $3 2>/dev/null | head -1 || true)
                 [ -z "$bundle" ] && return 0
-                cp "$bundle" "$OUT/"
-                local fname; fname=$(basename "$bundle")
+                local fname; fname=$(basename "$bundle" | tr ' ' '.')
+                cp "$bundle" "$OUT/$fname"
                 local sigcontent=""
                 [ -n "$sig" ] && sigcontent=$(cat "$sig")
                 printf '"%s":{"signature":"%s","url":"%s/%s"}' \
@@ -127,9 +159,8 @@ stages:
               }
 
               LINUX=$(entry "linux-x86_64" "$WORK/linux/*.AppImage" "$WORK/linux/*.AppImage.sig")
-              # NSIS updater artifact is the *-setup.nsis.zip (+ .sig); also ship the .exe for manual installs.
-              WIN=$(entry "windows-x86_64" "$WORK/windows/*.nsis.zip" "$WORK/windows/*.nsis.zip.sig")
-              cp "$WORK/windows/"*-setup.exe "$OUT/" 2>/dev/null || true
+              # NSIS updater artifact IS the -setup.exe (+ .sig); this also doubles as the manual installer.
+              WIN=$(entry "windows-x86_64" "$WORK/windows/*-setup.exe" "$WORK/windows/*-setup.exe.sig")
 
               PLATFORMS=$(printf '%s' "$LINUX")
               [ -n "$WIN" ] && PLATFORMS=$(printf '%s,%s' "$PLATFORMS" "$WIN")
