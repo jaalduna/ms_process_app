@@ -32,7 +32,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          msal: ["@azure/msal-browser", "@azure/msal-react"],
           tanstack: ["@tanstack/react-query", "@tanstack/react-table"],
         },
       },

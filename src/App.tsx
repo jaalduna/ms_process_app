@@ -1,19 +1,16 @@
-import { Suspense } from "react"
+import { Suspense, lazy } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ThemeProvider } from "next-themes"
 import { Toaster } from "@/components/ui/sonner"
-import { MsalAuthProvider } from "@/components/MsalAuthProvider"
-import { GithubAuthProvider } from "@/components/GithubAuthProvider"
-import { DevAuthProvider } from "@/components/DevAuthProvider"
-import { AzureBuiltInAuthProvider } from "@/components/AzureBuiltInAuthProvider"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout"
 import { useModuleConfig } from "@/hooks/useModuleConfig"
 import { useAuth } from "@/hooks/useAuth"
 import { allModules } from "@/modules/registry"
 import { Skeleton } from "@/components/ui/skeleton"
-import LoginPage from "@/pages/LoginPage"
+
+const LoginPage = lazy(() => import("@/pages/LoginPage"))
 
 const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === "true"
 
@@ -30,13 +27,18 @@ const isTauri = '__TAURI_INTERNALS__' in window
 const basename = isTauri ? "/" : import.meta.env.BASE_URL
 
 const authProviderConfig = import.meta.env.VITE_AUTH_PROVIDER ?? (window as unknown as { __APP_CONFIG__?: { authProvider?: string } }).__APP_CONFIG__?.authProvider
-const AuthProvider = AUTH_BYPASS
-  ? DevAuthProvider
+
+// Only the configured provider's chunk is fetched (keeps MSAL ~220KB out of the
+// bundle for the other providers). The import starts eagerly so it downloads in
+// parallel with the initial render instead of waterfalling behind it.
+const authProviderImport = AUTH_BYPASS
+  ? import("@/components/DevAuthProvider").then((m) => ({ default: m.DevAuthProvider }))
   : authProviderConfig === "azure-builtin"
-    ? AzureBuiltInAuthProvider
+    ? import("@/components/AzureBuiltInAuthProvider").then((m) => ({ default: m.AzureBuiltInAuthProvider }))
     : authProviderConfig === "github"
-      ? GithubAuthProvider
-      : MsalAuthProvider
+      ? import("@/components/GithubAuthProvider").then((m) => ({ default: m.GithubAuthProvider }))
+      : import("@/components/MsalAuthProvider").then((m) => ({ default: m.MsalAuthProvider }))
+const AuthProvider = lazy(() => authProviderImport)
 
 function AppRoutes() {
   const modules = useModuleConfig()
@@ -54,7 +56,14 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<LoginPage />} />
+      <Route
+        path="/"
+        element={
+          <Suspense fallback={null}>
+            <LoginPage />
+          </Suspense>
+        }
+      />
       <Route
         element={
           <ProtectedRoute>
@@ -84,14 +93,16 @@ function AppRoutes() {
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter basename={basename}>
-            <AppRoutes />
-            <Toaster />
-          </BrowserRouter>
-        </QueryClientProvider>
-      </AuthProvider>
+      <Suspense fallback={null}>
+        <AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter basename={basename}>
+              <AppRoutes />
+              <Toaster />
+            </BrowserRouter>
+          </QueryClientProvider>
+        </AuthProvider>
+      </Suspense>
     </ThemeProvider>
   )
 }

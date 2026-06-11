@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { AuthContext } from "@/hooks/useAuth"
 
 // Override with VITE_DEV_ROLES="prices_specialist,analyst" to preview
@@ -12,9 +12,10 @@ const DEV_COUNTRIES = ["CL", "CO", "MX", "PE", "BR", "BO", "EC", "PY"]
 export function DevAuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  const user = isAuthenticated
-    ? { email: "dev@localhost", name: "Dev User" }
-    : null
+  const user = useMemo(
+    () => (isAuthenticated ? { email: "dev@localhost", name: "Dev User" } : null),
+    [isAuthenticated],
+  )
 
   const login = useCallback(async () => {
     setIsAuthenticated(true)
@@ -26,18 +27,23 @@ export function DevAuthProvider({ children }: { children: React.ReactNode }) {
 
   const getAccessToken = useCallback(async () => "dev-bypass-token", [])
 
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      user,
+      roles: isAuthenticated ? DEV_ROLES : [],
+      countries: isAuthenticated ? DEV_COUNTRIES : [],
+      loading: false as const,
+      login,
+      logout,
+      getAccessToken,
+    }),
+    [isAuthenticated, user, login, logout, getAccessToken],
+  )
+
   return (
     <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        user,
-        roles: isAuthenticated ? DEV_ROLES : [],
-        countries: isAuthenticated ? DEV_COUNTRIES : [],
-        loading: false,
-        login,
-        logout,
-        getAccessToken,
-      }}
+      value={contextValue}
     >
       {children}
     </AuthContext.Provider>

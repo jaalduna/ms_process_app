@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react"
 import type { ReactNode } from "react"
 import { getEvent } from "@/lib/api"
 
@@ -35,9 +35,16 @@ const CalibrationContext = createContext<CalibrationContextValue | null>(null)
 export function CalibrationProvider({ children }: { children: ReactNode }) {
   const [jobIds, setJobIds] = useState<Record<string, string | null>>(loadFromStorage)
 
+  // Keep a ref in sync with state so getJobId can read current values
+  // without capturing the jobIds closure (stable identity).
+  const jobIdsRef = useRef(jobIds)
+  useEffect(() => {
+    jobIdsRef.current = jobIds
+  }, [jobIds])
+
   const getJobId = useCallback(
-    (country: string) => jobIds[country] ?? null,
-    [jobIds],
+    (country: string) => jobIdsRef.current[country] ?? null,
+    [],
   )
 
   const setJobId = useCallback((country: string, jobId: string) => {
@@ -100,8 +107,13 @@ export function CalibrationProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const contextValue = useMemo(
+    () => ({ getJobId, setJobId, clearJobId }),
+    [getJobId, setJobId, clearJobId],
+  )
+
   return (
-    <CalibrationContext.Provider value={{ getJobId, setJobId, clearJobId }}>
+    <CalibrationContext.Provider value={contextValue}>
       {children}
     </CalibrationContext.Provider>
   )

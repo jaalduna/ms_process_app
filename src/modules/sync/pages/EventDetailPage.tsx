@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -86,6 +86,29 @@ function liveDuration(startedAt: string | null): string {
   return formatDuration(seconds)
 }
 
+/** Leaf component that ticks every second to show a live elapsed duration.
+ *  Only this component re-renders on each tick. */
+function LiveDuration({
+  startedAt,
+  className,
+}: {
+  startedAt: string | null
+  className?: string
+}) {
+  const [, setTick] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    if (!startedAt) return
+    intervalRef.current = setInterval(() => setTick((t) => t + 1), 1_000)
+    return () => {
+      if (intervalRef.current !== null) clearInterval(intervalRef.current)
+    }
+  }, [startedAt])
+
+  return <span className={className}>{liveDuration(startedAt)}</span>
+}
+
 const queryResultColumns: ColumnDef<QueryResult, unknown>[] = [
   {
     accessorKey: "query_name",
@@ -166,9 +189,10 @@ const queryResultColumns: ColumnDef<QueryResult, unknown>[] = [
       // Show live duration for running queries
       if (row.original.status === "running" && row.original.started_at) {
         return (
-          <span className="flex justify-end text-info font-mono text-sm">
-            {liveDuration(row.original.started_at)}
-          </span>
+          <LiveDuration
+            startedAt={row.original.started_at}
+            className="flex justify-end text-info font-mono text-sm"
+          />
         )
       }
       return (
@@ -282,7 +306,7 @@ function QueryDetailDialog({
             <div className="text-sm text-muted-foreground">
               Query is currently {query.status}.
               {query.started_at && (
-                <span className="ml-1">Running for {liveDuration(query.started_at)}.</span>
+                <span className="ml-1">Running for <LiveDuration startedAt={query.started_at} />.</span>
               )}
             </div>
             {query.estimated_rows > 0 && (
@@ -318,7 +342,6 @@ export default function EventDetailPage() {
   const [selectedQuery, setSelectedQuery] = useState<QueryResult | null>(null)
   const [retrying, setRetrying] = useState(false)
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
-  const [, setTick] = useState(0)
 
   const { data: event, isLoading, error } = useQuery({
     queryKey: ["event", jobId],
@@ -340,14 +363,6 @@ export default function EventDetailPage() {
       toast.error(err.message ?? "Failed to cancel job")
     },
   })
-
-  // Tick every second while running so durations update in real-time
-  const isRunning = event?.status === "running" || event?.status === "pending"
-  useEffect(() => {
-    if (!isRunning) return
-    const id = setInterval(() => setTick((t) => t + 1), 1_000)
-    return () => clearInterval(id)
-  }, [isRunning])
 
   // Build a combined results list: completed/failed results + running query placeholders
   const results = useMemo(() => {
@@ -423,6 +438,7 @@ export default function EventDetailPage() {
     )
   }
 
+  const isRunning = event.status === "running" || event.status === "pending"
   const queriesDone = event.queries_completed + (event.queries_failed ?? 0)
   const queriesRunning = event.queries_running ?? 0
   const queriesPending = Math.max(0, event.queries_total - queriesDone - queriesRunning)

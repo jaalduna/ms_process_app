@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { memo, useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -67,7 +67,7 @@ interface PricesCountryCardProps {
   lastValidationDate: string | null
 }
 
-export function PricesCountryCard({ country, period, lastValidationDate }: PricesCountryCardProps) {
+export const PricesCountryCard = memo(function PricesCountryCard({ country, period, lastValidationDate }: PricesCountryCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [selectedRun, setSelectedRun] = useState<PricesRun | null>(null)
@@ -299,4 +299,4 @@ export function PricesCountryCard({ country, period, lastValidationDate }: Price
       />
     </>
   )
-}
+})

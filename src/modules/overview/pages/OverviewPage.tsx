@@ -1,7 +1,7 @@
+import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   getCountries,
-  getLastSync,
   getLastCalibration,
   getLastElegibilidad,
   getLastPrices,
@@ -12,11 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 const STAGES = [
-  { key: "sync", label: "Sync" },
-  { key: "calibracion", label: "Calibración" },
-  { key: "elegibilidad", label: "Elegibilidad" },
   { key: "precios", label: "Precios" },
+  { key: "elegibilidad", label: "Elegibilidad" },
   { key: "pesaje", label: "Pesaje" },
+  { key: "calibracion", label: "Calibración" },
   { key: "mtr", label: "MTR" },
 ] as const
 
@@ -39,12 +38,6 @@ export default function OverviewPage() {
   const { data: countriesData, isLoading: countriesLoading } = useQuery({
     queryKey: ["countries"],
     queryFn: getCountries,
-    ...QUERY_CONFIG,
-  })
-
-  const { data: syncData, isLoading: syncLoading } = useQuery({
-    queryKey: ["last-sync"],
-    queryFn: () => getLastSync(),
     ...QUERY_CONFIG,
   })
 
@@ -79,19 +72,20 @@ export default function OverviewPage() {
   })
 
   const dataLoading =
-    syncLoading || calibLoading || elegLoading || preciosLoading || pesajeLoading || mtrLoading
+    calibLoading || elegLoading || preciosLoading || pesajeLoading || mtrLoading
 
   const countries = countriesData?.countries.filter((c) => c.type === "country") ?? []
 
+  const stageDataMap = useMemo(() => ({
+    precios: preciosData?.countries,
+    elegibilidad: elegData?.countries,
+    pesaje: pesajeData?.countries,
+    calibracion: calibData?.countries,
+    mtr: mtrData?.countries,
+  }), [preciosData, elegData, pesajeData, calibData, mtrData])
+
   function getEntry(stageKey: typeof STAGES[number]["key"], countryCode: string) {
-    switch (stageKey) {
-      case "sync": return syncData?.countries[countryCode]
-      case "calibracion": return calibData?.countries[countryCode]
-      case "elegibilidad": return elegData?.countries[countryCode]
-      case "precios": return preciosData?.countries[countryCode]
-      case "pesaje": return pesajeData?.countries[countryCode]
-      case "mtr": return mtrData?.countries[countryCode]
-    }
+    return stageDataMap[stageKey]?.[countryCode]
   }
 
   return (

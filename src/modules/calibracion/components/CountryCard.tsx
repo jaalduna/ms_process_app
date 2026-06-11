@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { memo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -72,7 +72,7 @@ interface CountryCardProps {
   lastCalibrationDate: string | null
 }
 
-export function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
+export const CountryCard = memo(function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion")
@@ -310,4 +310,4 @@ export function CountryCard({ country, period, availability, availabilityLoading
       />
     </>
   )
-}
+})

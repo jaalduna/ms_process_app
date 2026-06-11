@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { memo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -71,7 +71,7 @@ function periodStringToNumber(period: string): number {
   return parseInt(period, 10)
 }
 
-export function EligibilityCountryCard({ countryCode, period, eligibilityParams, lastFinalizedDate }: EligibilityCountryCardProps) {
+export const EligibilityCountryCard = memo(function EligibilityCountryCard({ countryCode, period, eligibilityParams, lastFinalizedDate }: EligibilityCountryCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
 
   const { dependencies, allMet } = usePipelineDeps("elegibilidad", countryCode)
@@ -291,4 +291,4 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
       />
     </>
   )
-}
+})

@@ -3,8 +3,10 @@
  * Uses /.auth/me to check session and /.auth/login/aad for Microsoft login.
  * See: https://learn.microsoft.com/en-us/azure/static-web-apps/authentication-authorization
  */
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { AuthContext } from "@/hooks/useAuth"
+
+const COUNTRIES = ["CL", "CO", "MX", "PE", "BR", "BO", "EC", "PY"]
 
 interface AzureClientPrincipal {
   identityProvider: string
@@ -30,12 +32,16 @@ export function AzureBuiltInAuthProvider({ children }: { children: React.ReactNo
   }, [])
 
   const isAuthenticated = !!principal
-  const user = principal
-    ? { email: principal.userDetails, name: principal.userDetails }
-    : null
 
-  const roles = principal?.userRoles?.filter((r) => r !== "anonymous" && r !== "authenticated") ?? []
-  const countries = ["CL", "CO", "MX", "PE", "BR", "BO", "EC", "PY"]
+  const user = useMemo(
+    () => (principal ? { email: principal.userDetails, name: principal.userDetails } : null),
+    [principal],
+  )
+
+  const roles = useMemo(
+    () => principal?.userRoles?.filter((r) => r !== "anonymous" && r !== "authenticated") ?? [],
+    [principal],
+  )
 
   const login = useCallback(async () => {
     const returnUrl = window.location.pathname + window.location.search
@@ -52,18 +58,23 @@ export function AzureBuiltInAuthProvider({ children }: { children: React.ReactNo
     return "azure-builtin-session"
   }, [])
 
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      user,
+      roles,
+      countries: COUNTRIES,
+      loading,
+      login,
+      logout,
+      getAccessToken,
+    }),
+    [isAuthenticated, user, roles, loading, login, logout, getAccessToken],
+  )
+
   return (
     <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        user,
-        roles,
-        countries,
-        loading,
-        login,
-        logout,
-        getAccessToken,
-      }}
+      value={contextValue}
     >
       {children}
     </AuthContext.Provider>
