@@ -243,7 +243,7 @@ export function PricesDetailModal({ run, open, onClose }: PricesDetailModalProps
                   </div>
                 ) : (
                   <div className="mt-2 flex items-center gap-2 rounded-lg border p-4 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <CheckCircle2 className="h-5 w-5 text-success" />
                     <span>No outliers detected. All prices are within expected ranges.</span>
                   </div>
                 )}

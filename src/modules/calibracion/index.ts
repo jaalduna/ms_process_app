@@ -5,6 +5,7 @@ export const calibracionModule: ModuleDefinition = {
   id: "calibration",
   label: "Calibración",
   group: "pipeline",
+  requiredRoles: ["calibration_specialist", "calibracion_specialist"],
   navItems: [{ path: "/calibration", label: "Calibración" }],
   routes: [{ path: "/calibration", component: lazy(() => import("./pages/CalibrationPage").then(m => ({ default: m.CalibrationPage }))) }],
 }

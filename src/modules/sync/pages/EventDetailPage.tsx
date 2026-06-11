@@ -94,7 +94,7 @@ const queryResultColumns: ColumnDef<QueryResult, unknown>[] = [
       const isRunning = row.original.status === "running"
       return (
         <span className="font-mono text-sm flex items-center gap-2">
-          {isRunning && <Loader2 className="h-3 w-3 animate-spin text-blue-500 shrink-0" />}
+          {isRunning && <Loader2 className="h-3 w-3 animate-spin text-info shrink-0" />}
           {getValue<string>()}
         </span>
       )
@@ -117,12 +117,12 @@ const queryResultColumns: ColumnDef<QueryResult, unknown>[] = [
         const pct = Math.min(100, Math.round((rows_downloaded / estimated_rows) * 100))
         return (
           <div className="flex flex-col items-end gap-0.5 min-w-[80px]">
-            <span className="font-mono text-xs text-blue-600 dark:text-blue-400">
+            <span className="font-mono text-xs text-info">
               {formatRows(rows_downloaded)}/{formatRows(estimated_rows)} ({pct}%)
             </span>
             <div className="w-full h-1.5 bg-primary/20 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 transition-all duration-300"
+                className="h-full bg-info transition-all duration-300"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -131,7 +131,7 @@ const queryResultColumns: ColumnDef<QueryResult, unknown>[] = [
       }
       if (status === "running" && rows_downloaded > 0) {
         return (
-          <span className="flex justify-end font-mono text-sm text-blue-600 dark:text-blue-400">
+          <span className="flex justify-end font-mono text-sm text-info">
             {formatRows(rows_downloaded)}...
           </span>
         )
@@ -166,7 +166,7 @@ const queryResultColumns: ColumnDef<QueryResult, unknown>[] = [
       // Show live duration for running queries
       if (row.original.status === "running" && row.original.started_at) {
         return (
-          <span className="flex justify-end text-blue-500 font-mono text-sm">
+          <span className="flex justify-end text-info font-mono text-sm">
             {liveDuration(row.original.started_at)}
           </span>
         )
@@ -202,7 +202,7 @@ function QueryDetailDialog({
             {isFailed ? (
               <XCircle className="h-5 w-5 text-destructive shrink-0" />
             ) : isCompleted ? (
-              <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+              <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
             ) : (
               <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
             )}
@@ -289,7 +289,7 @@ function QueryDetailDialog({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Download progress</span>
-                  <span className="font-mono text-blue-600 dark:text-blue-400">
+                  <span className="font-mono text-info">
                     {formatRows(query.rows_downloaded)}/{formatRows(query.estimated_rows)}{" "}
                     ({Math.min(100, Math.round((query.rows_downloaded / query.estimated_rows) * 100))}%)
                   </span>
@@ -479,13 +479,13 @@ export default function EventDetailPage() {
                   {queriesDone}/{event.queries_total} queries
                 </span>
                 {event.queries_completed > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
                     <CheckCircle2 className="h-3 w-3" />
                     {event.queries_completed} done
                   </span>
                 )}
                 {queriesRunning > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-info/15 px-2 py-0.5 text-xs font-medium text-info">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     {queriesRunning} running
                   </span>
@@ -517,7 +517,7 @@ export default function EventDetailPage() {
                   const dl = qResult?.rows_downloaded ?? 0
                   const pct = est > 0 ? Math.min(100, Math.round((dl / est) * 100)) : 0
                   return (
-                    <div key={qName} className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                    <div key={qName} className="flex items-center gap-2 text-sm text-info">
                       <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
                       <span className="font-mono">{qName}</span>
                       {est > 0 && (
@@ -566,7 +566,7 @@ export default function EventDetailPage() {
           </div>
 
           {(event.queries_failed ?? 0) > 0 && event.status !== "running" && (
-            <div className="flex items-center justify-between gap-3 rounded-md bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-700 dark:text-amber-400">
+            <div className="flex items-center justify-between gap-3 rounded-md bg-warning/15 border border-warning/30 p-3 text-sm text-warning">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                 <span>
@@ -577,7 +577,7 @@ export default function EventDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="shrink-0 border-amber-500/30 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+                className="shrink-0 border-warning/30 text-warning hover:bg-warning/15"
                 disabled={retrying || failedQueries.length === 0}
                 onClick={handleRetryFailed}
                 title={
@@ -616,7 +616,7 @@ export default function EventDetailPage() {
               result.status === "failed"
                 ? "bg-destructive/5"
                 : result.status === "running"
-                ? "bg-blue-500/5"
+                ? "bg-info/5"
                 : ""
             }
           />

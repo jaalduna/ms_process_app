@@ -92,9 +92,9 @@ function formatDuration(start?: string | null, end?: string | null): string {
 function StepIcon({ status }: { status: string }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+      return <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
     case "running":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+      return <Loader2 className="h-4 w-4 text-info animate-spin shrink-0" />
     case "failed":
       return <XCircle className="h-4 w-4 text-destructive shrink-0" />
     default:
@@ -131,13 +131,13 @@ function FileList({ files, runId }: { files: EligibilityFile[]; runId: string })
           key={f.file_id}
           className={`flex items-center justify-between rounded border px-2 py-1.5 text-xs ${
             f.direction === "upload"
-              ? "border-green-500/30 bg-green-500/5"
+              ? "border-success/30 bg-success/5"
               : "bg-muted/30"
           }`}
         >
           <div className="flex items-center gap-2 min-w-0">
             {f.direction === "upload" ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
             ) : (
               <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             )}
@@ -344,7 +344,7 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
                 <span className="text-muted-foreground flex items-center gap-1.5">
                   Parámetros
                   {canRerun && (
-                    <span className="text-[10px] text-amber-500 font-normal">(editables para re-ejecución)</span>
+                    <span className="text-[10px] text-warning font-normal">(editables para re-ejecución)</span>
                   )}
                 </span>
                 <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
@@ -527,7 +527,7 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
           {run.status === "results_ready" && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-600/90" disabled={approve.isPending}>
+                <Button className="bg-success hover:bg-success/90" disabled={approve.isPending}>
                   {approve.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Aprobar y Aplicar
                 </Button>
@@ -553,7 +553,7 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
           {run.status === "mordom_uploaded" && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-600/90" disabled={applyMordomMutation.isPending}>
+                <Button className="bg-success hover:bg-success/90" disabled={applyMordomMutation.isPending}>
                   {applyMordomMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Aplicar MorDom y Finalizar
                 </Button>
@@ -641,7 +641,7 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
           step.status === "failed"
             ? "bg-destructive/10"
             : step.status === "running"
-              ? "bg-blue-500/10"
+              ? "bg-info/10"
               : "bg-muted/50"
         }`}
       >

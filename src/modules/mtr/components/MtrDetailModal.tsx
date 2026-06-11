@@ -75,9 +75,9 @@ function formatDuration(start?: string | null, end?: string | null): string {
 function StepIcon({ status }: { status: string }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+      return <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
     case "running":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+      return <Loader2 className="h-4 w-4 text-info animate-spin shrink-0" />
     case "failed":
       return <XCircle className="h-4 w-4 text-destructive shrink-0" />
     default:
@@ -108,7 +108,7 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
           step.status === "failed"
             ? "bg-destructive/10"
             : step.status === "running"
-              ? "bg-blue-500/10"
+              ? "bg-info/10"
               : "bg-muted/50"
         }`}
       >
@@ -347,7 +347,7 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
                     </div>
                     <div className="rounded bg-muted/50 p-2">
                       <p className="text-xs text-muted-foreground">Targets Achieved</p>
-                      <p className="text-lg font-bold text-green-600">
+                      <p className="text-lg font-bold text-success">
                         {run.results_summary!.targets_achieved}
                         <span className="text-xs font-normal text-muted-foreground ml-1">
                           ({run.results_summary!.total_targets > 0

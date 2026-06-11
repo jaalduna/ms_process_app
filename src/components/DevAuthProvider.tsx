@@ -1,7 +1,12 @@
 import { useState, useCallback } from "react"
 import { AuthContext } from "@/hooks/useAuth"
 
-const DEV_ROLES = ["admin"]
+// Override with VITE_DEV_ROLES="prices_specialist,analyst" to preview
+// role-restricted navigation during development.
+const DEV_ROLES = (import.meta.env.VITE_DEV_ROLES ?? "admin")
+  .split(",")
+  .map((r: string) => r.trim())
+  .filter(Boolean)
 const DEV_COUNTRIES = ["CL", "CO", "MX", "PE", "BR", "BO", "EC", "PY"]
 
 export function DevAuthProvider({ children }: { children: React.ReactNode }) {

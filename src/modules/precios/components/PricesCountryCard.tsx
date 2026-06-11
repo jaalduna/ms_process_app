@@ -142,7 +142,7 @@ export function PricesCountryCard({ country, period, lastValidationDate }: Price
               variant="outline"
               className={cn(
                 "text-xs",
-                lastValidationDate ? "text-muted-foreground" : "text-amber-600 border-amber-300 bg-amber-50",
+                lastValidationDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
               )}
               title={lastValidationDate ? `Last: ${lastValidationDate.replace("T", " ").slice(0, 16)}` : undefined}
             >

@@ -6,6 +6,7 @@ import { pesajeModule } from "./pesaje"
 import { mtrModule } from "./mtr"
 import { trazabilidadModule } from "./trazabilidad"
 import { overviewModule } from "./overview"
+import { adminModule } from "./admin"
 import type { ModuleDefinition } from "./types"
 
 /**
@@ -22,4 +23,5 @@ export const allModules: ModuleDefinition[] = [
   calibracionModule,
   mtrModule,
   trazabilidadModule,
+  adminModule,
 ]

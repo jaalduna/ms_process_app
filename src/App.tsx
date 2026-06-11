@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { ThemeProvider } from "next-themes"
 import { Toaster } from "@/components/ui/sonner"
 import { MsalAuthProvider } from "@/components/MsalAuthProvider"
 import { GithubAuthProvider } from "@/components/GithubAuthProvider"
@@ -40,10 +41,12 @@ const AuthProvider = AUTH_BYPASS
 function AppRoutes() {
   const modules = useModuleConfig()
   const { roles } = useAuth()
+  // Mirrors backend AuthorizedUser.has_role: admin implies every role.
+  const isAdmin = roles.includes("admin")
   const enabledModules = allModules.filter((m) => {
     if (!modules[m.id]) return false
     if (m.requiredRoles && m.requiredRoles.length > 0) {
-      return m.requiredRoles.some((r) => roles.includes(r))
+      return isAdmin || m.requiredRoles.some((r) => roles.includes(r))
     }
     return true
   })
@@ -80,13 +83,15 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter basename={basename}>
-          <AppRoutes />
-          <Toaster />
-        </BrowserRouter>
-      </QueryClientProvider>
-    </AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter basename={basename}>
+            <AppRoutes />
+            <Toaster />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }

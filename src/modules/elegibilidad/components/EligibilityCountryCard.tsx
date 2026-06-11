@@ -251,7 +251,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
                   )}
                   Re-ejecutar
                 </Button>
-                <div className="flex items-center gap-1.5 text-amber-500 text-sm font-medium flex-1">
+                <div className="flex items-center gap-1.5 text-warning text-sm font-medium flex-1">
                   Revisar resultados
                 </div>
               </>
@@ -259,7 +259,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
 
             {/* Ready: green checkmark */}
             {isReady && (
-              <div className="flex items-center gap-1.5 text-green-600 text-sm font-medium flex-1">
+              <div className="flex items-center gap-1.5 text-success text-sm font-medium flex-1">
                 <CheckCircle2 className="h-4 w-4" />
                 Listo
               </div>
@@ -267,7 +267,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
 
             {/* Waiting for user action (mordom_ready, mordom_uploaded) */}
             {latestRun && ["mordom_ready", "mordom_uploaded"].includes(latestRun.status) && (
-              <div className="flex items-center gap-1.5 text-amber-500 text-sm font-medium flex-1">
+              <div className="flex items-center gap-1.5 text-warning text-sm font-medium flex-1">
                 Acción requerida
               </div>
             )}

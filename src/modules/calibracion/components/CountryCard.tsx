@@ -107,7 +107,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
                 variant="outline"
                 className={cn(
                   "text-xs",
-                  lastSyncDate ? "text-muted-foreground" : "text-amber-600 border-amber-300 bg-amber-50",
+                  lastSyncDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
                 )}
                 title={lastSyncDate ? `Sync: ${lastSyncDate.replace("T", " ").slice(0, 16)}` : undefined}
               >
@@ -117,7 +117,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
                 variant="outline"
                 className={cn(
                   "text-xs",
-                  lastCalibrationDate ? "text-muted-foreground" : "text-amber-600 border-amber-300 bg-amber-50",
+                  lastCalibrationDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
                 )}
                 title={lastCalibrationDate ? `Cal: ${lastCalibrationDate.replace("T", " ").slice(0, 16)}` : undefined}
               >
@@ -141,7 +141,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
 
           {/* Status badges */}
           {isCompleted && (
-            <Badge variant="default" className="bg-green-600">
+            <Badge variant="default" className="bg-success">
               Completed
             </Badge>
           )}
