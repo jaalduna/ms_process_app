@@ -19,6 +19,13 @@ import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
 import type { WeightingRun, WeightingRunCreate } from "@/modules/pesaje/types"
 import type { MtrRun, MtrRunCreate } from "@/modules/mtr/types"
 import type { TagListResponse, TagFilters } from "@/modules/trazabilidad/types"
+import type {
+  AdminStage,
+  AuthorizedUser,
+  JobsConfig,
+  StageItem,
+  UserBody,
+} from "@/modules/admin/types"
 
 function getBaseUrl(): string {
   return (
@@ -354,6 +361,69 @@ export async function downloadTagZip(tagId: string): Promise<void> {
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
+}
+
+// -- Admin (requires admin role) --
+
+export function getAdminUsers() {
+  return api.get<{ users: AuthorizedUser[] }>("/admin/users").then((r) => r.data.users)
+}
+
+export function putAdminUser(email: string, body: UserBody) {
+  return api.put<AuthorizedUser>(`/admin/users/${encodeURIComponent(email)}`, body).then((r) => r.data)
+}
+
+export function deleteAdminUser(email: string) {
+  return api
+    .delete<{ deleted: boolean; email: string }>(`/admin/users/${encodeURIComponent(email)}`)
+    .then((r) => r.data)
+}
+
+export function getAdminJobs() {
+  return api.get<JobsConfig>("/admin/jobs").then((r) => r.data)
+}
+
+export function putAdminJob(process: string, country: string, jobId: number) {
+  return api
+    .put<{ process: string; country: string; job_id: number }>(
+      `/admin/jobs/${encodeURIComponent(process)}/${encodeURIComponent(country)}`,
+      { job_id: jobId },
+    )
+    .then((r) => r.data)
+}
+
+export function deleteAdminJob(process: string, country: string) {
+  return api
+    .delete<{ deleted: boolean; process: string; country: string }>(
+      `/admin/jobs/${encodeURIComponent(process)}/${encodeURIComponent(country)}`,
+    )
+    .then((r) => r.data)
+}
+
+export function putAdminJobDefaults(defaults: { catalog?: string; results_volume_template?: string }) {
+  return api.put<Record<string, string>>("/admin/jobs/defaults", defaults).then((r) => r.data)
+}
+
+export function getAdminStages() {
+  return api.get<{ stages: AdminStage[] }>("/admin/stages").then((r) => r.data.stages)
+}
+
+export function putAdminStage(code: string, body: { name: string; position?: number }) {
+  return api.put<AdminStage>(`/admin/stages/${encodeURIComponent(code)}`, body).then((r) => r.data)
+}
+
+export function putAdminStages(stages: StageItem[]) {
+  return api.put<{ stages: AdminStage[] }>("/admin/stages", { stages }).then((r) => r.data.stages)
+}
+
+export function deleteAdminStage(code: string) {
+  return api
+    .delete<{ deleted: boolean; code: string }>(`/admin/stages/${encodeURIComponent(code)}`)
+    .then((r) => r.data)
+}
+
+export function adminReload() {
+  return api.post<{ reloaded: boolean }>("/admin/reload").then((r) => r.data)
 }
 
 // -- Downloads --

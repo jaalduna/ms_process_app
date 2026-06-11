@@ -1,7 +1,7 @@
+import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   getCountries,
-  getLastSync,
   getLastCalibration,
   getLastElegibilidad,
   getLastPrices,
@@ -12,23 +12,22 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 const STAGES = [
-  { key: "sync", label: "Sync" },
-  { key: "calibracion", label: "Calibración" },
-  { key: "elegibilidad", label: "Elegibilidad" },
   { key: "precios", label: "Precios" },
+  { key: "elegibilidad", label: "Elegibilidad" },
   { key: "pesaje", label: "Pesaje" },
+  { key: "calibracion", label: "Calibración" },
   { key: "mtr", label: "MTR" },
 ] as const
 
 const QUERY_CONFIG = { staleTime: 60_000 }
 
 function dateCellClass(completedAt: string | undefined): string {
-  if (!completedAt) return "bg-gray-50 text-gray-400"
+  if (!completedAt) return "bg-muted text-muted-foreground/60"
   const age = Date.now() - new Date(completedAt).getTime()
   const days = age / (1000 * 60 * 60 * 24)
-  if (days <= 30) return "bg-green-100 text-green-800"
-  if (days <= 90) return "bg-yellow-100 text-yellow-800"
-  return "bg-red-50 text-red-600"
+  if (days <= 30) return "bg-success/15 text-success"
+  if (days <= 90) return "bg-warning/15 text-warning"
+  return "bg-destructive/10 text-destructive"
 }
 
 function formatDate(completedAt: string): string {
@@ -39,12 +38,6 @@ export default function OverviewPage() {
   const { data: countriesData, isLoading: countriesLoading } = useQuery({
     queryKey: ["countries"],
     queryFn: getCountries,
-    ...QUERY_CONFIG,
-  })
-
-  const { data: syncData, isLoading: syncLoading } = useQuery({
-    queryKey: ["last-sync"],
-    queryFn: () => getLastSync(),
     ...QUERY_CONFIG,
   })
 
@@ -79,26 +72,27 @@ export default function OverviewPage() {
   })
 
   const dataLoading =
-    syncLoading || calibLoading || elegLoading || preciosLoading || pesajeLoading || mtrLoading
+    calibLoading || elegLoading || preciosLoading || pesajeLoading || mtrLoading
 
   const countries = countriesData?.countries.filter((c) => c.type === "country") ?? []
 
+  const stageDataMap = useMemo(() => ({
+    precios: preciosData?.countries,
+    elegibilidad: elegData?.countries,
+    pesaje: pesajeData?.countries,
+    calibracion: calibData?.countries,
+    mtr: mtrData?.countries,
+  }), [preciosData, elegData, pesajeData, calibData, mtrData])
+
   function getEntry(stageKey: typeof STAGES[number]["key"], countryCode: string) {
-    switch (stageKey) {
-      case "sync": return syncData?.countries[countryCode]
-      case "calibracion": return calibData?.countries[countryCode]
-      case "elegibilidad": return elegData?.countries[countryCode]
-      case "precios": return preciosData?.countries[countryCode]
-      case "pesaje": return pesajeData?.countries[countryCode]
-      case "mtr": return mtrData?.countries[countryCode]
-    }
+    return stageDataMap[stageKey]?.[countryCode]
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Country Pipeline Overview</h1>
-        <p className="text-sm text-muted-foreground">Last completed stage per country</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Country Pipeline Overview</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Last completed stage per country</p>
       </div>
 
       {countriesLoading ? (
@@ -108,15 +102,15 @@ export default function OverviewPage() {
           ))}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-24">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground w-24">
                   Country
                 </th>
                 {STAGES.map((s) => (
-                  <th key={s.key} className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  <th key={s.key} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {s.label}
                   </th>
                 ))}
@@ -126,9 +120,14 @@ export default function OverviewPage() {
               {countries.map((country, idx) => (
                 <tr
                   key={country.code}
-                  className={cn("border-b last:border-0", idx % 2 === 0 ? "bg-background" : "bg-muted/20")}
+                  className={cn(
+                    "border-b transition-colors last:border-0 hover:bg-accent/40",
+                    idx % 2 === 1 && "bg-muted/20",
+                  )}
                 >
-                  <td className="px-4 py-2 font-semibold">{country.code}</td>
+                  <td className="px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wide">
+                    {country.code}
+                  </td>
                   {STAGES.map((stage) => {
                     if (dataLoading) {
                       return (

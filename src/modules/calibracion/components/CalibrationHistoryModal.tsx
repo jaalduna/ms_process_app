@@ -73,17 +73,17 @@ interface StatusBadgeConfig {
 function getStatusConfig(status: JobStatus): StatusBadgeConfig {
   switch (status) {
     case "completed":
-      return { className: "bg-green-100 text-green-800 border-green-200", label: "Completed" }
+      return { className: "bg-success/15 text-success border-success/30", label: "Completed" }
     case "failed":
-      return { className: "bg-red-100 text-red-800 border-red-200", label: "Failed" }
+      return { className: "bg-destructive/10 text-destructive border-destructive/30", label: "Failed" }
     case "cancelled":
-      return { className: "bg-gray-100 text-gray-700 border-gray-200", label: "Cancelled" }
+      return { className: "bg-muted text-muted-foreground", label: "Cancelled" }
     case "running":
-      return { className: "bg-blue-100 text-blue-800 border-blue-200", label: "Running" }
+      return { className: "bg-info/15 text-info border-info/30", label: "Running" }
     case "pending":
-      return { className: "bg-yellow-100 text-yellow-800 border-yellow-200", label: "Pending" }
+      return { className: "bg-warning/15 text-warning border-warning/30", label: "Pending" }
     default:
-      return { className: "bg-gray-100 text-gray-700 border-gray-200", label: status }
+      return { className: "bg-muted text-muted-foreground", label: status }
   }
 }
 

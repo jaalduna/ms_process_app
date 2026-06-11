@@ -7,6 +7,7 @@ export interface ModuleConfig {
   weighting: boolean
   mtr: boolean
   traceability: boolean
+  admin: boolean
   [key: string]: boolean
 }
 
@@ -21,5 +22,7 @@ export function useModuleConfig(): ModuleConfig {
     weighting: config?.weighting ?? false,
     mtr: config?.mtr ?? false,
     traceability: config?.traceability ?? false,
+    // Enabled by default: the module is additionally gated by the admin role.
+    admin: config?.admin ?? true,
   }
 }

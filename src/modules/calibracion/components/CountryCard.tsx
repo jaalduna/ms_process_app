@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { memo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -72,7 +72,7 @@ interface CountryCardProps {
   lastCalibrationDate: string | null
 }
 
-export function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
+export const CountryCard = memo(function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion")
@@ -107,7 +107,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
                 variant="outline"
                 className={cn(
                   "text-xs",
-                  lastSyncDate ? "text-muted-foreground" : "text-amber-600 border-amber-300 bg-amber-50",
+                  lastSyncDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
                 )}
                 title={lastSyncDate ? `Sync: ${lastSyncDate.replace("T", " ").slice(0, 16)}` : undefined}
               >
@@ -117,7 +117,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
                 variant="outline"
                 className={cn(
                   "text-xs",
-                  lastCalibrationDate ? "text-muted-foreground" : "text-amber-600 border-amber-300 bg-amber-50",
+                  lastCalibrationDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
                 )}
                 title={lastCalibrationDate ? `Cal: ${lastCalibrationDate.replace("T", " ").slice(0, 16)}` : undefined}
               >
@@ -141,7 +141,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
 
           {/* Status badges */}
           {isCompleted && (
-            <Badge variant="default" className="bg-green-600">
+            <Badge variant="default" className="bg-success">
               Completed
             </Badge>
           )}
@@ -310,4 +310,4 @@ export function CountryCard({ country, period, availability, availabilityLoading
       />
     </>
   )
-}
+})

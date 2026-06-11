@@ -237,7 +237,7 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
 
             {/* Completed indicator */}
             {isCompleted && !isProcessing && (
-              <div className="flex items-center gap-1.5 text-green-600 text-sm font-medium">
+              <div className="flex items-center gap-1.5 text-success text-sm font-medium">
                 Completado
               </div>
             )}

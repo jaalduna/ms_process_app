@@ -57,10 +57,10 @@ function StepDot({ status, label }: { status: string; label: string }) {
   return (
     <div className="flex flex-col items-center flex-1 min-w-0" title={label}>
       {status === "completed" && (
-        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+        <CheckCircle2 className="h-3.5 w-3.5 text-success" />
       )}
       {status === "running" && (
-        <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin" />
+        <Loader2 className="h-3.5 w-3.5 text-info animate-spin" />
       )}
       {status === "failed" && (
         <XCircle className="h-3.5 w-3.5 text-destructive" />

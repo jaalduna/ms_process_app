@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { memo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -71,7 +71,7 @@ function periodStringToNumber(period: string): number {
   return parseInt(period, 10)
 }
 
-export function EligibilityCountryCard({ countryCode, period, eligibilityParams, lastFinalizedDate }: EligibilityCountryCardProps) {
+export const EligibilityCountryCard = memo(function EligibilityCountryCard({ countryCode, period, eligibilityParams, lastFinalizedDate }: EligibilityCountryCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
 
   const { dependencies, allMet } = usePipelineDeps("elegibilidad", countryCode)
@@ -251,7 +251,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
                   )}
                   Re-ejecutar
                 </Button>
-                <div className="flex items-center gap-1.5 text-amber-500 text-sm font-medium flex-1">
+                <div className="flex items-center gap-1.5 text-warning text-sm font-medium flex-1">
                   Revisar resultados
                 </div>
               </>
@@ -259,7 +259,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
 
             {/* Ready: green checkmark */}
             {isReady && (
-              <div className="flex items-center gap-1.5 text-green-600 text-sm font-medium flex-1">
+              <div className="flex items-center gap-1.5 text-success text-sm font-medium flex-1">
                 <CheckCircle2 className="h-4 w-4" />
                 Listo
               </div>
@@ -267,7 +267,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
 
             {/* Waiting for user action (mordom_ready, mordom_uploaded) */}
             {latestRun && ["mordom_ready", "mordom_uploaded"].includes(latestRun.status) && (
-              <div className="flex items-center gap-1.5 text-amber-500 text-sm font-medium flex-1">
+              <div className="flex items-center gap-1.5 text-warning text-sm font-medium flex-1">
                 Acción requerida
               </div>
             )}
@@ -291,4 +291,4 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
       />
     </>
   )
-}
+})

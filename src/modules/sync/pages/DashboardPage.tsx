@@ -116,11 +116,17 @@ export default function DashboardPage() {
   })
   const stages = stagesData?.stages ?? []
 
-  // Fetch recent jobs (refetch every 30s)
+  // Fetch recent jobs — poll every 10s while any job is running/pending, else 60s
   const { data: recentJobsData, isLoading: loadingJobs } = useQuery({
     queryKey: ["events", "recent"],
     queryFn: () => getEvents({ limit: 5 }),
-    refetchInterval: 30_000,
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? []
+      const hasActive = items.some(
+        (item) => item.status === "running" || item.status === "pending",
+      )
+      return hasActive ? 10_000 : 60_000
+    },
   })
   const recentJobs = useMemo(() => recentJobsData?.items ?? [], [recentJobsData])
 

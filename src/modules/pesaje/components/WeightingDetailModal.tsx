@@ -86,9 +86,9 @@ function formatDuration(start?: string | null, end?: string | null): string {
 function StepIcon({ status }: { status: string }) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+      return <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
     case "running":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+      return <Loader2 className="h-4 w-4 text-info animate-spin shrink-0" />
     case "failed":
       return <XCircle className="h-4 w-4 text-destructive shrink-0" />
     default:
@@ -119,7 +119,7 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
           step.status === "failed"
             ? "bg-destructive/10"
             : step.status === "running"
-              ? "bg-blue-500/10"
+              ? "bg-info/10"
               : "bg-muted/50"
         }`}
       >
@@ -266,7 +266,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
                 <span className="text-muted-foreground flex items-center gap-1.5">
                   Parametros
                   {canRerun && (
-                    <span className="text-[10px] text-amber-500 font-normal">(editables para re-ejecucion)</span>
+                    <span className="text-[10px] text-warning font-normal">(editables para re-ejecucion)</span>
                   )}
                 </span>
                 <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">

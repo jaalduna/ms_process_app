@@ -89,18 +89,23 @@ export function GithubAuthProvider({ children }: { children: React.ReactNode }) 
     return token
   }, [token])
 
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      user,
+      roles: userInfo?.roles ?? [],
+      countries: userInfo?.countries ?? [],
+      loading,
+      login,
+      logout,
+      getAccessToken,
+    }),
+    [isAuthenticated, user, userInfo, loading, login, logout, getAccessToken],
+  )
+
   return (
     <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        user,
-        roles: userInfo?.roles ?? [],
-        countries: userInfo?.countries ?? [],
-        loading,
-        login,
-        logout,
-        getAccessToken,
-      }}
+      value={contextValue}
     >
       <ApiTokenBinder />
       {children}
