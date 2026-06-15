@@ -1,6 +1,14 @@
 import { Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -9,31 +17,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DEFAULT_WEIGHTING_PARAMS,
+  WEIGHTING_PARAM_FIELDS,
+  type WeightingParams,
+} from "../weightingParams"
 
-export interface WeightingParams {
-  max_weight: number
-  min_weight: number
-  cv_threshold: number
-  max_iterations: number
-  trim_percentile: number
-}
-
-// eslint-disable-next-line react-refresh/only-export-components -- intentional shadcn/context pattern: co-exports constant with component
-export const DEFAULT_WEIGHTING_PARAMS: WeightingParams = {
-  max_weight: 500,
-  min_weight: 10,
-  cv_threshold: 0.05,
-  max_iterations: 50,
-  trim_percentile: 0.99,
-}
-
-const PARAM_META: Record<keyof WeightingParams, { label: string; unit: string; step?: string }> = {
-  max_weight: { label: "Peso maximo permitido", unit: "factor" },
-  min_weight: { label: "Peso minimo permitido", unit: "factor" },
-  cv_threshold: { label: "Umbral CV para convergencia", unit: "ratio", step: "0.01" },
-  max_iterations: { label: "Iteraciones maximas", unit: "iter" },
-  trim_percentile: { label: "Percentil de recorte outliers", unit: "%", step: "0.01" },
-}
+// Re-export so existing imports (`../components/WeightingConfigDialog`) keep working.
+export { DEFAULT_WEIGHTING_PARAMS }
+export type { WeightingParams }
 
 interface WeightingConfigDialogProps {
   params: WeightingParams
@@ -57,28 +49,66 @@ export function WeightingConfigDialog({ params, onChange }: WeightingConfigDialo
         </DialogHeader>
 
         <div className="space-y-3">
-          {(Object.keys(PARAM_META) as (keyof WeightingParams)[]).map((key) => {
-            const meta = PARAM_META[key]
+          {WEIGHTING_PARAM_FIELDS.map((field) => {
+            const value = params[field.key]
             return (
-              <label key={key} className="block space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{meta.label}</span>
-                  <span className="text-[10px] text-muted-foreground/60 font-mono">{meta.unit}</span>
+              <div key={field.key} className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">{field.label}</span>
+                  <span className="text-[10px] text-muted-foreground/60 font-mono">{field.key}</span>
                 </div>
-                <Input
-                  type="number"
-                  step={meta.step ?? "1"}
-                  min={0}
-                  value={params[key]}
-                  onChange={(e) =>
-                    onChange({
-                      ...params,
-                      [key]: e.target.value ? parseFloat(e.target.value) : 0,
-                    })
-                  }
-                  className="h-8 text-sm font-mono"
-                />
-              </label>
+
+                {field.control === "number" && (
+                  <Input
+                    type="number"
+                    aria-label={field.label}
+                    step={field.step ?? "1"}
+                    min={field.min}
+                    max={field.max}
+                    value={value === null || value === undefined ? "" : String(value)}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      const next = raw === "" ? (field.nullable ? null : 0) : parseFloat(raw)
+                      onChange({ ...params, [field.key]: next })
+                    }}
+                    className="h-8 text-sm font-mono"
+                  />
+                )}
+
+                {field.control === "switch" && (
+                  <div className="flex h-8 items-center">
+                    <Switch
+                      aria-label={field.label}
+                      checked={Boolean(value)}
+                      onCheckedChange={(checked) =>
+                        onChange({ ...params, [field.key]: checked })
+                      }
+                    />
+                  </div>
+                )}
+
+                {field.control === "select" && (
+                  <Select
+                    value={String(value)}
+                    onValueChange={(v) => onChange({ ...params, [field.key]: v })}
+                  >
+                    <SelectTrigger aria-label={field.label} className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {field.help && (
+                  <p className="text-[10px] text-muted-foreground/60">{field.help}</p>
+                )}
+              </div>
             )
           })}
         </div>

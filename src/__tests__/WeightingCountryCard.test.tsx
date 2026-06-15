@@ -47,14 +47,9 @@ vi.mock("@/lib/api", () => ({
 }))
 
 import { WeightingCountryCard } from "@/modules/pesaje/components/WeightingCountryCard"
+import { DEFAULT_WEIGHTING_PARAMS } from "@/modules/pesaje/weightingParams"
 
-const DEFAULT_PARAMS = {
-  max_weight: 500,
-  min_weight: 10,
-  cv_threshold: 0.05,
-  max_iterations: 50,
-  trim_percentile: 0.99,
-}
+const DEFAULT_PARAMS = DEFAULT_WEIGHTING_PARAMS
 
 function createTestQueryClient() {
   return new QueryClient({

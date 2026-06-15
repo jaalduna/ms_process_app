@@ -1,0 +1,37 @@
+{
+  "ticket": "JAA-343",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-343/agregar-parametros-adicionales-al-modulo-de-pesaje-weighting",
+  "branch": "feat/JAA-343-weighting-params",
+  "archetype": "webapp",
+  "goal": "Replace the 5 placeholder Pesaje params with the real weighting parameters from KWP-pesaje/modules/param_configs.py (global), propagated through WeightingRunCreate.parameters -> parameters_json on the (mock) backend.",
+  "scope_notes": "Frontend-only (ms_process_app), verified against the in-repo mock-server (already round-trips arbitrary `parameters` into parameters_json, so the contract is verifiable here). Backend ms-process-api (RunCreate.parameters -> Databricks job_parameters, openapi.yaml, mock spec) = separate sub-issue. Params are GLOBAL. MANUAL_COLLAPSES (list of int pairs) deferred to a follow-up ticket.",
+  "params_source": "KWP-pesaje/modules/param_configs.py (exact constant names used as keys for clean job_parameters mapping)",
+  "decision_replace_vs_add": "REPLACE the 5 placeholder params (max_weight,min_weight,cv_threshold,max_iterations,trim_percentile) — they do not exist in the real pipeline and would propagate meaningless job_parameters.",
+  "new_params": [
+    {"key": "N_PERIODOS_OUTLIERS", "type": "int", "default": 12, "min": 1, "control": "number", "label": "Periodos para outliers"},
+    {"key": "MAX_ROUNDS_COLAPSO", "type": "int", "default": 50, "min": 1, "control": "number", "label": "Maximo juntas marginales (colapso)"},
+    {"key": "JERARQUIA_MIN_COLAPSO", "type": "int|null", "default": 1, "min": 1, "control": "number-nullable", "label": "Jerarquia minima de colapso", "note": "vacio = null = solo GroupVars de jerarquia maxima"},
+    {"key": "CORRECAO_BOUNDS", "type": "bool", "default": true, "control": "switch", "label": "Correccion de limites post-colapso"},
+    {"key": "METODO_BOUNDS", "type": "enum", "default": "percentile", "options": ["percentile", "iqr", "log"], "control": "select", "label": "Metodo de limites"},
+    {"key": "P_BOUNDS", "type": "int", "default": 2, "min": 0, "max": 50, "control": "number", "label": "Percentil inferior de limites"},
+    {"key": "F_BOUNDS", "type": "number", "default": 1.1, "min": 0, "step": "0.01", "control": "number", "label": "Factor de margen de limites"},
+    {"key": "AGREGACAO_BOUNDS", "type": "enum", "default": "union", "options": ["union", "intersection"], "control": "select", "label": "Agregacion de limites entre GroupVars"},
+    {"key": "MAX_ERR_RATIO_BOUNDS", "type": "number", "default": 2.0, "min": 0, "step": "0.1", "control": "number", "label": "Ratio max error correccion/IPF"}
+  ],
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "WeightingParams + DEFAULT_WEIGHTING_PARAMS expose exactly the 9 param_configs.py keys with documented defaults; the 5 placeholder keys are gone.", "how_to_verify": "vitest deep-equals DEFAULT_WEIGHTING_PARAMS; grep confirms old keys absent; npx tsc -b clean."},
+    {"id": "ac2", "criterion": "WeightingConfigDialog renders each param with the correct control: number / nullable-number / switch (CORRECAO_BOUNDS) / select (METODO_BOUNDS, AGREGACAO_BOUNDS) with the right options & labels.", "how_to_verify": "vitest render test: query switch role, comboboxes with their options, number inputs by label."},
+    {"id": "ac3", "criterion": "Restaurar valores por defecto resets all 9 params to defaults.", "how_to_verify": "vitest: mutate values, click reset, assert onChange called with DEFAULT_WEIGHTING_PARAMS."},
+    {"id": "ac4", "criterion": "Executing a country run sends parameters_json containing all 9 keys with current dialog values; mock echoes them; detail modal shows them.", "how_to_verify": "Playwright: change METODO_BOUNDS + a number, run a country, assert POST /weighting/runs body.parameters has the 9 keys and the run detail parameters_json reflects them."},
+    {"id": "ac5", "criterion": "Repo green.", "how_to_verify": "npm test && npm run lint && npx tsc -b; playwright pesaje spec passes."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Rewrite WeightingParams / DEFAULT_WEIGHTING_PARAMS / PARAM_META in WeightingConfigDialog.tsx to the 9 param_configs.py params (types/defaults/options/labels). Remove the 5 placeholders.", "status": "complete"},
+    {"id": "t2", "desc": "Extend the dialog render to support switch + select controls (not just number); keep nullable handling for JERARQUIA_MIN_COLAPSO. Reuse src/components/ui Switch + Select.", "status": "complete"},
+    {"id": "t3", "desc": "Centralize param descriptors in src/modules/pesaje/weightingParams.ts (type + defaults + WEIGHTING_PARAM_FIELDS). Re-export from WeightingConfigDialog for import stability.", "status": "complete"},
+    {"id": "t3b", "desc": "Make WeightingDetailModal re-run editor type-aware (number/select/switch via descriptors; fall back for unknown keys) so enum/bool params don't corrupt on re-run. Fix any references to removed keys.", "status": "complete"},
+    {"id": "t4", "desc": "Unit tests (vitest): defaults shape, control rendering, reset behavior.", "status": "complete"},
+    {"id": "t5", "desc": "Playwright e2e: run a country and assert parameters_json carries the 9 keys.", "status": "complete"},
+    {"id": "t6", "desc": "Run VERIFY_CMD + Playwright against mock+dev until green.", "status": "complete"}
+  ]
+}

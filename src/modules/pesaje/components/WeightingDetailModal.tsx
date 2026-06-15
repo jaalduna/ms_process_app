@@ -22,6 +22,14 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import {
   CheckCircle2,
@@ -41,6 +49,7 @@ import {
 } from "../hooks/useWeighting"
 import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
 import type { WeightingRun, WeightingStep } from "../types"
+import { WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
 
 const COUNTRY_LABELS: Record<string, string> = {
   argentina: "Argentina",
@@ -270,27 +279,50 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
                   )}
                 </span>
                 <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
-                  {Object.entries(canRerun ? editableParams : run.parameters_json).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between text-xs gap-2">
-                      <span className="text-muted-foreground font-mono truncate">{key}</span>
-                      {canRerun ? (
-                        <Input
-                          type="number"
-                          step="any"
-                          className="h-6 w-20 text-xs font-mono text-right px-1.5"
-                          value={String(value ?? "")}
-                          onChange={(e) =>
-                            setEditableParams((prev) => ({
-                              ...prev,
-                              [key]: e.target.value ? parseFloat(e.target.value) : 0,
-                            }))
-                          }
-                        />
-                      ) : (
-                        <span className="font-medium font-mono">{String(value)}</span>
-                      )}
-                    </div>
-                  ))}
+                  {Object.entries(canRerun ? editableParams : run.parameters_json).map(([key, value]) => {
+                    const field = WEIGHTING_PARAM_FIELD_BY_KEY[key]
+                    const setParam = (next: unknown) =>
+                      setEditableParams((prev) => ({ ...prev, [key]: next }))
+                    return (
+                      <div key={key} className="flex items-center justify-between text-xs gap-2">
+                        <span className="text-muted-foreground font-mono truncate">{key}</span>
+                        {!canRerun ? (
+                          <span className="font-medium font-mono">{String(value)}</span>
+                        ) : field?.control === "switch" || typeof value === "boolean" ? (
+                          <Switch
+                            aria-label={key}
+                            checked={Boolean(value)}
+                            onCheckedChange={(checked) => setParam(checked)}
+                          />
+                        ) : field?.control === "select" ? (
+                          <Select value={String(value)} onValueChange={(v) => setParam(v)}>
+                            <SelectTrigger aria-label={key} className="h-6 w-28 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.options.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            type="number"
+                            step={field?.control === "number" ? (field.step ?? "any") : "any"}
+                            className="h-6 w-20 text-xs font-mono text-right px-1.5"
+                            value={value === null || value === undefined ? "" : String(value)}
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              const nullable = field?.control === "number" && field.nullable
+                              setParam(raw === "" ? (nullable ? null : 0) : parseFloat(raw))
+                            }}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </>
