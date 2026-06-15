@@ -1,4 +1,4 @@
-import { seedCompletedJob, seedFailedJob } from "../routes/sync.js"
+import { seedCompletedJob, seedFailedJob, defaultPeriod } from "../routes/sync.js"
 import { seedPrices } from "../routes/prices.js"
 import { seedWeighting } from "../routes/weighting.js"
 import { seedMtr } from "../routes/mtr.js"
@@ -30,6 +30,25 @@ export function seedSyncJobs() {
     seedCompletedJob(country, "pesaje", PREVIOUS_PERIOD, 28 + Math.floor(Math.random() * 5))
   }
   seedCompletedJob("bolivia", "elegibilidad", PREVIOUS_PERIOD, 32)
+
+  // Default landing period (previous month): seed Sync (inicio) + Calibración
+  // (calibracion) history so the Sync/Cal badges and the per-card history modal
+  // show real variety instead of "never"/empty on first load. Aligns with the
+  // availability spread in metadata.js.
+  const DEFAULT_PERIOD = defaultPeriod()
+  // Sync (inicio) — recent for every country that has data.
+  for (const country of ["argentina", "bolivia", "brasil", "chile", "colombia", "mexico", "peru"]) {
+    seedCompletedJob(country, "inicio", DEFAULT_PERIOD, Math.floor(Math.random() * 4) + 1)
+  }
+  // Calibración — completed (drives "Cal: Xd ago" + history).
+  for (const country of ["argentina", "chile", "mexico"]) {
+    seedCompletedJob(country, "calibracion", DEFAULT_PERIOD, Math.floor(Math.random() * 5) + 1)
+  }
+  // Brasil: a completed run plus an earlier failed run (mixed history).
+  seedCompletedJob("brasil", "calibracion", DEFAULT_PERIOD, 2)
+  seedFailedJob("brasil", "calibracion", DEFAULT_PERIOD, 4)
+  // Colombia: only a failed calibración → "Cal: never" badge but a failed run in history.
+  seedFailedJob("colombia", "calibracion", DEFAULT_PERIOD, 1)
 }
 
 /**

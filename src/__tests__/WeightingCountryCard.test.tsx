@@ -225,6 +225,30 @@ describe("WeightingCountryCard", () => {
     })
   })
 
+  it("action row wraps so Detener does not clip off the card while processing", async () => {
+    mockGetWeightingRuns.mockResolvedValue([
+      {
+        run_id: "run-1",
+        country: "chile",
+        period: 202602,
+        status: "running",
+        steps: [],
+        current_step: null,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ])
+
+    renderCard()
+
+    const detener = await screen.findByText("Detener")
+    // The action row is the flex container holding both the Procesando button
+    // and the Detener button. It must wrap instead of clipping overflow.
+    const actionRow = detener.closest("div.flex")
+    expect(actionRow).not.toBeNull()
+    expect(actionRow).toHaveClass("flex-wrap")
+  })
+
   it("shows error message when run has failed", async () => {
     mockGetWeightingRuns.mockResolvedValue([
       {
