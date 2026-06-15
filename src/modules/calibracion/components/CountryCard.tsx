@@ -150,7 +150,7 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
 
           {/* Actions */}
           <div onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-2 min-w-0">
+            <div className="flex flex-wrap gap-2 min-w-0">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
