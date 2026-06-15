@@ -1,6 +1,7 @@
 import { Router } from "express"
 import { TagStore } from "../stores/tag-store.js"
 import { COUNTRIES } from "./sync.js"
+import { buildMockZip } from "../lib/zip.js"
 
 const router = Router()
 
@@ -10,17 +11,20 @@ export const tagStore = new TagStore()
 // Routes
 // ---------------------------------------------------------------------------
 
-router.get("/traceability/tags", (req, res) => {
+// Canonical prefix is /tags* (NOT /traceability/tags*) — matches the real
+// Bridge API and the frontend (src/lib/api.ts getTags/getTagDetail/...).
+
+router.get("/tags", (req, res) => {
   res.json(tagStore.list(req.query))
 })
 
-router.get("/traceability/tags/:tagId", (req, res) => {
+router.get("/tags/:tagId", (req, res) => {
   const tag = tagStore.get(req.params.tagId)
   if (!tag) return res.status(404).json({ error: "not_found", message: `Tag ${req.params.tagId} not found` })
   res.json(tag)
 })
 
-router.get("/traceability/tags/:tagId/tables/:tableName/download", (req, res) => {
+router.get("/tags/:tagId/tables/:tableName/download", (req, res) => {
   const tag = tagStore.get(req.params.tagId)
   if (!tag) return res.status(404).json({ error: "not_found", message: `Tag ${req.params.tagId} not found` })
   const table = tag.tables.find(t => t.table_name === req.params.tableName)
@@ -37,6 +41,21 @@ router.get("/traceability/tags/:tagId/tables/:tableName/download", (req, res) =>
   res.setHeader("Content-Type", "text/csv")
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
   res.send(lines.join("\n"))
+})
+
+// GET /tags/:tagId/download → zip of all tables in the tag (mocked as binary blob)
+router.get("/tags/:tagId/download", (req, res) => {
+  const tag = tagStore.get(req.params.tagId)
+  if (!tag) return res.status(404).json({ error: "not_found", message: `Tag ${req.params.tagId} not found` })
+
+  const zip = buildMockZip(
+    (tag.tables ?? []).map(t => `${t.table_name}.csv`),
+    `tag ${tag.country}/${tag.stage}/${tag.period}`,
+  )
+  const filename = `${tag.country}_${tag.stage}_${tag.period}.zip`
+  res.setHeader("Content-Type", "application/zip")
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
+  res.send(zip)
 })
 
 // ---------------------------------------------------------------------------
