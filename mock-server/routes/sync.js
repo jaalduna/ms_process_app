@@ -1,5 +1,6 @@
 import { Router } from "express"
 import crypto from "crypto"
+import { Readable } from "node:stream"
 
 const router = Router()
 
@@ -258,16 +259,76 @@ router.post("/events/:jobId/cancel", (req, res) => {
   res.json({ ...enrichSummary(job), results: job.results })
 })
 
-router.get("/events/:jobId/download", (req, res) => {
-  const job = jobs.get(req.params.jobId)
-  if (!job) return res.status(404).json({ error: "not_found", message: `Job ${req.params.jobId} not found` })
-  if (job.status !== "completed" && job.status !== "failed") return res.status(409).json({ error: "job_not_finished", message: `Job is still ${job.status}` })
+// Build the small job-report CSV (used when no specific ?table is requested).
+function buildJobReport(job) {
   const lines = ["# Calibration Job Report", `job_id,${job.job_id}`, `country,${job.country}`, `stage,${job.stage}`, `period,${job.period || ""}`, `tag,${job.tag}`, `status,${job.status}`, `triggered_by,${job.triggered_by}`, `started_at,${job.started_at || ""}`, `completed_at,${job.completed_at || ""}`, `error,${job.error || ""}`, "", "# Pipeline Steps", "step_name,status,started_at,completed_at,duration_seconds,error"]
   if (job.steps) for (const s of job.steps) { let d = ""; if (s.started_at && s.completed_at) d = ((new Date(s.completed_at) - new Date(s.started_at)) / 1000).toFixed(2); lines.push(`${s.name},${s.status},${s.started_at || ""},${s.completed_at || ""},${d},${s.error || ""}`) }
   lines.push("", "# Query Results", "query_name,status,rows_extracted,table_name,duration_seconds,error")
   if (job.results) for (const r of job.results) lines.push(`${r.query_name},${r.status},${r.rows_extracted},${r.table_name || ""},${(r.duration_seconds || 0).toFixed(2)},${r.error || ""}`)
+  return lines.join("\n")
+}
+
+// Deterministic pseudo-random in [0,1) from an integer seed — keeps row data
+// stable across requests without Math.random (mirrors a real extract).
+function seeded(n) { const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x) }
+
+// A Readable that lazily emits a header + `rowCount` CSV data rows for a bridge
+// table, batching rows per read() so memory stays flat regardless of row count.
+// This mirrors the real API's StreamingResponse generator (constant-memory,
+// chunked transfer) instead of buffering the whole file in one res.send().
+function tableCsvStream(table, period, rowCount, batchSize = 2000) {
+  const channels = ["Hypermarket", "Supermarket", "Discounter", "Traditional", "Convenience", "Online"]
+  const header = "row_id,period,product_id,client_id,channel,units,value\n"
+  let emitted = 0
+  let sentHeader = false
+  return new Readable({
+    read() {
+      if (!sentHeader) { this.push(header); sentHeader = true; return }
+      if (emitted >= rowCount) { this.push(null); return }
+      const end = Math.min(emitted + batchSize, rowCount)
+      let buf = ""
+      for (let i = emitted; i < end; i++) {
+        const productId = 100000 + Math.floor(seeded(i + 1) * 900000)
+        const clientId = 1000 + Math.floor(seeded(i + 7) * 9000)
+        const channel = channels[Math.floor(seeded(i + 13) * channels.length)]
+        const units = 1 + Math.floor(seeded(i + 17) * 500)
+        const value = (seeded(i + 23) * 10000).toFixed(2)
+        buf += `${i + 1},${period},${productId},${clientId},${channel},${units},${value}\n`
+      }
+      emitted = end
+      this.push(buf)
+    },
+  })
+}
+
+router.get("/events/:jobId/download", (req, res) => {
+  const job = jobs.get(req.params.jobId)
+  if (!job) return res.status(404).json({ error: "not_found", message: `Job ${req.params.jobId} not found` })
+  if (job.status !== "completed" && job.status !== "failed") return res.status(409).json({ error: "job_not_finished", message: `Job is still ${job.status}` })
+
+  const { table } = req.query
+  if (table) {
+    // Stream the extracted rows for a single table. 404 if the job has no such
+    // completed table, so the contract matches the real backend.
+    const result = (job.results || []).find(r => r.table_name === table && r.status === "completed")
+    if (!result) return res.status(404).json({ error: "not_found", message: `Table ${table} not found for job ${req.params.jobId}` })
+    const rowCount = result.rows_extracted || 0
+    // table_name leaf already includes the country (e.g. "argentina_productos"),
+    // so use it as-is to avoid a doubled-country filename.
+    const tableLeaf = String(table).split(".").pop()
+    const filename = `${tableLeaf}_${job.period || "no-period"}.csv`
+    res.setHeader("Content-Type", "text/csv")
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
+    // No Content-Length → Express uses chunked transfer-encoding (true streaming).
+    const stream = tableCsvStream(table, job.period || "", rowCount)
+    stream.on("error", () => { if (!res.headersSent) res.status(500).end(); else res.destroy() })
+    res.on("close", () => stream.destroy()) // stop generating if client disconnects
+    return stream.pipe(res)
+  }
+
+  // No table specified → small job-report summary (unchanged behavior).
   const filename = `calibration_${job.country}_${job.period || "no-period"}_${job.job_id.slice(0, 8)}.csv`
-  res.setHeader("Content-Type", "text/csv"); res.setHeader("Content-Disposition", `attachment; filename="${filename}"`); res.send(lines.join("\n"))
+  res.setHeader("Content-Type", "text/csv"); res.setHeader("Content-Disposition", `attachment; filename="${filename}"`); res.send(buildJobReport(job))
 })
 
 export default router
