@@ -30,6 +30,15 @@ export function seedSyncJobs() {
     seedCompletedJob(country, "pesaje", PREVIOUS_PERIOD, 28 + Math.floor(Math.random() * 5))
   }
   seedCompletedJob("bolivia", "elegibilidad", PREVIOUS_PERIOD, 32)
+
+  // Calibración history — needed so the per-country Calibration History modal has
+  // completed runs to list and download (the CSV-download-with-streaming flow).
+  for (const country of ["argentina", "chile", "mexico", "brasil"]) {
+    seedCompletedJob(country, "calibracion", CURRENT_PERIOD, Math.floor(Math.random() * 5) + 1)
+  }
+  // Brasil also has an earlier failed calibración (mixed history); Colombia only failed.
+  seedFailedJob("brasil", "calibracion", PREVIOUS_PERIOD, 8)
+  seedFailedJob("colombia", "calibracion", CURRENT_PERIOD, 1)
 }
 
 /**

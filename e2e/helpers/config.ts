@@ -1,7 +1,7 @@
 import { Page } from "@playwright/test"
 
-/** The mock server port (must match mock-server/server.js). */
-const MOCK_SERVER_PORT = 5000
+/** The mock server port (must match mock-server/server.js; override for worktree isolation). */
+const MOCK_SERVER_PORT = Number(process.env.MOCK_SERVER_PORT) || 5000
 
 /**
  * Override the app's module config by intercepting `config.js` via route.

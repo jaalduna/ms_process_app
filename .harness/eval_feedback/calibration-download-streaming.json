@@ -1,0 +1,6 @@
+[
+  {"id":"ac1","verdict":"PASS","evidence":"node _verify_stream.mjs: download HTTP 200, content-type text/csv, transfer-encoding chunked, content-length null, streamed 847KB across 14 chunks (run-dependent, >100KB), filename argentina_j_atoscompra_new_202602.csv; unknown table -> 404; no ?table -> # Calibration Job Report fallback 200."},
+  {"id":"ac2","verdict":"PASS","evidence":"GET /events/:jobId/tables HTTP 200, count 6 for a completed argentina calibracion job."},
+  {"id":"ac3","verdict":"PASS","evidence":"Playwright calibration-download.spec.ts: '1 passed', PWEXIT=0. Opens AR calibration history, no 'Failed to load tables', picks a table, captures download, asserts file >100KB."},
+  {"id":"ac4","verdict":"PASS","evidence":"vitest PASS(74) FAIL(0); tsc -b 'No errors'; eslint 'No issues'."}
+]
