@@ -172,7 +172,7 @@ export const PricesCountryCard = memo(function PricesCountryCard({ country, peri
 
           {/* Actions */}
           <div onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {/* Trigger / Retry */}
               {displayRun?.status === "failed" ? (
                 <AlertDialog>
