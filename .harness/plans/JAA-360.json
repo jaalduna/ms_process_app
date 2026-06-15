@@ -1,0 +1,29 @@
+{
+  "ticket": "JAA-360",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-360/eligibility-card-action-row-overflowsclips-in-results-ready-state",
+  "branch": "fix/JAA-360-eligibility-action-row",
+  "worktree": "../ms_process_app-JAA-360",
+  "archetype": "webapp",
+  "goal": "In EligibilityCountryCard, the results_ready action row (Re-ejecutar + flex-1 note + Ver detalle in a non-wrapping flex gap-2) overflows and clips the 'Ver detalle' button; make the row not clip.",
+  "source_of_truth": "src/modules/elegibilidad/components/EligibilityCountryCard.tsx action row (line ~175) + live Playwright render in results_ready.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "In results_ready state, the 'Ver detalle' button's bounding box is fully within the card's content right edge (button.right <= card.right) and the button is clickable (not clipped/overlapped).",
+      "how_to_verify": "Playwright: drive a run to results_ready, getBoundingClientRect of the Ver detalle button and its card; assert button.right <= card.right + small tolerance; click it and assert the detail modal opens."
+    },
+    {
+      "id": "ac2",
+      "criterion": "No regression in other action-row states (processing, ready, mordom action-required, ejecutar): the 'Ver detalle' button (when present) remains within the card and reachable.",
+      "how_to_verify": "Playwright walkthrough across states; visual + boundingBox check that nothing clips."
+    },
+    {
+      "id": "ac3",
+      "criterion": "VERIFY_CMD green: npm test && npm run lint && npx tsc -b.",
+      "how_to_verify": "Run VERIFY_CMD in the worktree; all pass."
+    }
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Add flex-wrap to the action-row container so overflowing items wrap instead of clipping.", "status": "complete"}
+  ]
+}
