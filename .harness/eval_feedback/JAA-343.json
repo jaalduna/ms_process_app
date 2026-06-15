@@ -1,0 +1,9 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "weightingParams.ts defines exactly the 9 expected keys with correct defaults; tsc -b clean; old keys cv_threshold/max_iterations/trim_percentile gone; remaining min_weight/max_weight hits are summary_stats fields, not params."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "WeightingConfigDialog unit tests 6/6 pass: Switch (role=switch) for CORRECAO_BOUNDS, comboboxes for METODO_BOUNDS & AGREGACAO_BOUNDS, number inputs for the rest."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "'Restaurar valores por defecto' reset test passes (in the 6/6)."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "playwright weighting-params.spec.ts: 1 passed (7916ms). Asserts the 9 keys + edited values in POST /weighting/runs body AND in the 201 response parameters_json."},
+  {"id": "ac5", "verdict": "PASS", "evidence": "npm test 80/80 pass; npm run lint clean; npx tsc -b clean."},
+  {"id": "sanity-WeightingDetailModal", "verdict": "PASS", "evidence": "Re-run editor dispatches control by WEIGHTING_PARAM_FIELD_BY_KEY (number/select/switch), not hardcoded number inputs."},
+  {"id": "overall", "verdict": "PASS", "evidence": "All ACs pass. Evaluated in a separate ux-ui-reviewer context that ran the checks against the live mock (:5000) + dev (:5199)."}
+]
