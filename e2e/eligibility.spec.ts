@@ -105,10 +105,9 @@ test.describe("Eligibility Module E2E", () => {
     await expect(card.getByText(/Resultados listos/i)).toBeVisible({ timeout: 30_000 })
 
     // ── Approve (in detail modal) ──
-    // In results_ready the action row (Re-ejecutar + Revisar resultados +
-    // Ver detalle) overflows the card and clips the button (tracked: JAA-360),
-    // so dispatch the click directly rather than via hit-testing.
-    await card.getByRole("button", { name: /ver detalle/i }).dispatchEvent("click")
+    // In results_ready the action row wraps (JAA-360), so "Ver detalle" is
+    // never clipped and a normal hit-tested click works.
+    await card.getByRole("button", { name: /ver detalle/i }).click()
     const modal = page.getByRole("dialog")
     await expect(modal).toBeVisible({ timeout: 5_000 })
 
@@ -130,6 +129,33 @@ test.describe("Eligibility Module E2E", () => {
 
     // applying_mordom → ready. The status badge shows "Listo".
     await expect(modal.getByText(/Listo/i).first()).toBeVisible({ timeout: 30_000 })
+  })
+
+  test("results_ready action row does not clip 'Ver detalle' (JAA-360)", async ({ page }) => {
+    await navigateTo(page, "Elegibilidad", /elegibilidad/)
+
+    // Argentina has no seeded run → execute it to reach results_ready, where
+    // the action row holds three items (Re-ejecutar + note + Ver detalle).
+    const card = page.locator('[data-slot="card"]').filter({ hasText: "Argentina" })
+    await expect(card).toBeVisible({ timeout: 10_000 })
+    await startRun(page, card)
+    await expect(card.getByText(/Resultados listos/i)).toBeVisible({ timeout: 30_000 })
+
+    const detailBtn = card.getByRole("button", { name: /ver detalle/i })
+    await expect(detailBtn).toBeVisible({ timeout: 10_000 })
+
+    // The button must lie fully within the card's right edge — i.e. the action
+    // row wrapped instead of overflowing/clipping it. (1px rounding tolerance.)
+    const cardBox = await card.boundingBox()
+    const btnBox = await detailBtn.boundingBox()
+    expect(cardBox).not.toBeNull()
+    expect(btnBox).not.toBeNull()
+    expect(btnBox!.x + btnBox!.width).toBeLessThanOrEqual(cardBox!.x + cardBox!.width + 1)
+    expect(btnBox!.x).toBeGreaterThanOrEqual(cardBox!.x - 1)
+
+    // And it is hit-testable: a normal click (not dispatchEvent) opens the modal.
+    await detailBtn.click()
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5_000 })
   })
 
   test("cancel stops a running eligibility run", async ({ page }) => {
