@@ -1,0 +1,5 @@
+# Ephemeral working state — never track
+worktrees/
+
+# Durable state IS tracked: plans/, eval_feedback/, progress.md
+# (the repo is the source of truth — plans + verdicts survive context resets via git)
