@@ -2,6 +2,17 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-15 — precios action row clip (ad-hoc, from screenshot) — webapp
+
+**What:** Same family as JAA-360/pesaje/calibracion. In `PricesCountryCard.tsx` the running-state
+action row (`Ejecutando…` `flex-1` + red `Detener` + eye preview) used a non-wrapping `flex gap-2`,
+clipping the eye button in narrow cards. Fix: `flex gap-2` → `flex flex-wrap gap-2` (1 line).
+
+**Verify:** `npx eslint` clean on the file; `tsc -b` shows only pre-existing unrelated errors
+(ProcessStatusBadge / useProcessStatus — not this file). Playwright: logged in (Continue dev),
+triggered Argentina validation at 900px width → confirmed Ejecutando + Detener + eye all contained
+in the card, no clipping (screenshot). Committed on `fix/pesaje-action-row-wrap`.
+
 ## 2026-06-15 — JAA-343 (weighting params from param_configs.py) — webapp
 
 **What:** Replaced the 5 placeholder Pesaje params with the 9 real GLOBAL params from
@@ -33,6 +44,48 @@ AND in the 201 response `parameters_json`. Ran against `node mock-server/server.
     "Parametros" label, Ejecutar→Confirmar AlertDialog flow). NOT a JAA-343 regression.
 
 **Next:** evaluator (ux-ui-reviewer) → commit → push ado → PR to ado/develop → Linear In Review.
+
+## 2026-06-15 — contract audit (ad-hoc) — investigation only
+
+**What:** Triangulated mock-server ⇄ frontend (`src/lib/api.ts`, `src/types/api.ts`) ⇄ real
+backend (`../ms-process-api`, FastAPI). Finding: frontend + mock implement a full contract the
+backend has only ~1/3 built. **37 backend endpoints return 501** — entire Eligibility/Prices/
+Weighting/MTR/Traceability modules + `events/{id}/download|tables`. Metadata `last-*` cards
+(except last-calibration) are empty backend stubs. Admin is aligned at `/api/v1/admin/*` (early
+agent claim of a `/admin` split was wrong — verified mount at server.js:80). Subtle real
+divergences: mock `last-sync` ignores `stage` param (metadata.js:86 hardcodes "inicio"); mock is
+untyped so `period` int-vs-str boundary untested; mock `/trigger` drops 6 fields frontend sends.
+
+**Captured (no code written):** JAA-377 (parent, backend gaps) + sub-issues JAA-378 eligibility,
+JAA-379 prices, JAA-380 weighting, JAA-381 mtr, JAA-382 traceability (low-pri/deferred), JAA-383
+events download+tables. JAA-384 = mock-fidelity (C1 period types, C2 last-sync stage, C3 type
+lie, C4 trigger fields), related to JAA-377. Backend work belongs in the ms-process-api repo.
+
+**Next:** each sub-issue is its own /harness session. JAA-384 is a quick frontend-repo win.
+
+## 2026-06-15 — calibration-download-streaming (ad-hoc) — webapp
+
+**What:** Tested/fixed the Calibration History CSV "download with streaming" flow.
+Root cause of the screenshot's **"Failed to load tables"**: the real `ms_process_api`
+`/events/:jobId/tables` + `/download` are **501 TODO stubs** (`routes/events.py`); only
+`calibration/:tag/download` streams (StreamingResponse, 64KiB). Against the mock both work.
+Made the mock actually stream: `/events/:jobId/download?table=` now emits a chunked CSV of
+the table's rows via a constant-memory `Readable` (no Content-Length), 404 on unknown table,
+job-report fallback kept. Seeded `calibracion` jobs (develop seeded none → empty modal).
+Made mock `PORT` + e2e `MOCK_SERVER_PORT` env-configurable. New e2e
+`e2e/calibration-download.spec.ts` (history → picker → streamed download >100KB).
+
+**Verify:** in-process HTTP proof (chunked, ~2.2MB/50 chunks), `/tables` 200×6, Playwright
+`1 passed`, vitest 74/0 + tsc + eslint clean. Separate skeptical evaluator re-ran all → ac1–ac4 PASS.
+
+**Result:** worktree `../ms_process_app-download-streaming`, branch `fix/calibration-download-streaming`
+(off `ado/develop`), commit `026a16e`, pushed, **PR #515582 → develop**. Backend follow-up
+**JAA-376** (implement the two 501 stubs w/ StreamingResponse). `public/config.js` left untouched
+(the :5000 switch is local-only). Cleanup: `git worktree remove ../ms_process_app-download-streaming`
+after merge.
+
+**Gotchas learned:** `pkill -f vite`/`server.js` self-matches the running Bash command and kills
+its own shell → exit 144 (use `kill $PID`). Mock hard-coded port 5000 (now honors `PORT`).
 
 ## 2026-06-15 — JAA-360 (eligibility card action row clip) — webapp
 
