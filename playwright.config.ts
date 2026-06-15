@@ -5,10 +5,18 @@ export default defineConfig({
   timeout: 300_000, // 5 min per test (syncs are slow)
   expect: { timeout: 10_000 },
   fullyParallel: false,
-  retries: 0,
+  // The mock-server is a shared, stateful singleton and beforeEach hooks call
+  // POST /test/reset. Multiple workers would run spec FILES in parallel and reset
+  // each other's state mid-test, so e2e must run single-worker.
+  workers: 1,
+  // The dev server lazy-compiles routes on first navigation, so the first cold
+  // interaction can be slow/flaky; retry to absorb that environmental noise.
+  retries: 2,
   reporter: "list",
   use: {
-    baseURL: "http://[::1]:5173/ms-process-app/",
+    // Per-worktree port isolation: override with PLAYWRIGHT_BASE_URL when the
+    // default 5173 is taken by another worktree's dev server.
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://[::1]:5173/ms-process-app/",
     headless: true,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",

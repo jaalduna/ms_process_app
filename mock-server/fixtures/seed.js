@@ -2,6 +2,7 @@ import { seedCompletedJob, seedFailedJob } from "../routes/sync.js"
 import { seedPrices } from "../routes/prices.js"
 import { seedWeighting } from "../routes/weighting.js"
 import { seedMtr } from "../routes/mtr.js"
+import { seedEligibility } from "../routes/eligibility.js"
 import { seedTraceability } from "../routes/traceability.js"
 
 const CURRENT_PERIOD = "202602"
@@ -39,5 +40,6 @@ export function seedAll() {
   seedPrices()
   seedWeighting()
   seedMtr()
+  seedEligibility()
   seedTraceability()
 }

@@ -200,6 +200,23 @@ router.get("/events/:jobId", (req, res) => {
   res.json({ ...enrichSummary(job), results: job.results })
 })
 
+// GET /events/:jobId/tables → TablesResponse { job_id, country, tables: TableInfo[] }
+// Derived from the job's completed query results (table_name = catalog.schema.table).
+router.get("/events/:jobId/tables", (req, res) => {
+  const job = jobs.get(req.params.jobId)
+  if (!job) return res.status(404).json({ error: "not_found", message: `Job ${req.params.jobId} not found` })
+  const tables = (job.results || [])
+    .filter(r => r.status === "completed" && r.table_name)
+    .map(r => {
+      const parts = r.table_name.split(".")
+      const catalog = parts[0] ?? "kpi_prd_01"
+      const schema_name = parts[1] ?? "bridge"
+      const table_name = parts.slice(2).join(".") || r.table_name
+      return { full_name: r.table_name, catalog, schema_name, table_name }
+    })
+  res.json({ job_id: job.job_id, country: job.country, tables })
+})
+
 router.post("/events/:jobId/cancel", (req, res) => {
   const job = jobs.get(req.params.jobId)
   if (!job) return res.status(404).json({ error: "not_found", message: `Job ${req.params.jobId} not found` })
