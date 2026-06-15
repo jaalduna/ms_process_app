@@ -26,6 +26,20 @@ export const COUNTRIES = [
 
 const CALIBRATION_STEPS = ["sync_data", "copy_to_calibration", "merge_data", "simulate_kpis", "calculate_penetration", "download_csv"]
 
+/**
+ * Deterministic per-country outcome for live calibration triggers, so the demo
+ * reliably exercises both the happy path and the failure path on click.
+ *   "fail" → pipeline fails at the merge_data step
+ *   "pass" → never fails (overrides the default ~5% flakiness)
+ * Countries not listed keep the original random behavior.
+ */
+const DEMO_CALIBRATION_OUTCOMES = {
+  colombia: "fail",
+  argentina: "pass",
+  chile: "pass",
+  mexico: "pass",
+}
+
 const STEP_TASKS = {
   merge_data: [{ task_key: "Merge Data" }, { task_key: "Simulate KPIs" }, { task_key: "Calculate Penetration" }],
 }
@@ -64,6 +78,18 @@ function makeFailedSteps(baseTime, failAtIndex) {
 const uuid = () => crypto.randomUUID()
 const isoNow = () => new Date().toISOString()
 
+/**
+ * The period the Calibración page lands on by default = previous month
+ * (January is calibrated in February, etc. — mirrors `currentPeriod()` in
+ * CalibrationPage.tsx). Seeds and availability key off this so the page is
+ * never empty on first load.
+ */
+export function defaultPeriod() {
+  const now = new Date()
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  return `${prev.getFullYear()}${String(prev.getMonth() + 1).padStart(2, "0")}`
+}
+
 // ---------------------------------------------------------------------------
 // In-memory job store
 // ---------------------------------------------------------------------------
@@ -72,7 +98,7 @@ const isoNow = () => new Date().toISOString()
 export const jobs = new Map()
 
 function enrichSummary(job) {
-  const { results, _stepIndex, ...base } = job
+  const { results, _stepIndex, _forceOutcome, ...base } = job
   const running_queries = (results || []).filter(r => r.status === "running").map(r => r.query_name)
   const failed_queries = (results || []).filter(r => r.status === "failed").map(r => r.query_name)
   return { ...base, current_query: running_queries[0] || null, failed_queries, running_queries, queries_running: running_queries.length, total_rows_extracted: (results || []).reduce((s, r) => s + (r.rows_extracted || 0), 0) }
@@ -132,7 +158,8 @@ function advanceJob(jobId) {
     const pendingQ = job.results.filter(r => r.status === "pending")
     if (pendingQ.length > 0) {
       const next = pendingQ[0]; next.started_at = isoNow()
-      if (Math.random() < 0.1) { next.status = "failed"; next.rows_extracted = 0; next.duration_seconds = +(Math.random() * 3).toFixed(2); next.error = "Simulated query failure"; job.queries_failed++ } else { next.status = "completed"; next.rows_extracted = Math.floor(Math.random() * 40000) + 500; next.table_name = `kpi_prd_01.bridge.${job.country}_${next.query_name}`; next.duration_seconds = +(Math.random() * 15 + 1).toFixed(2) }
+      const failQuery = job._forceOutcome === "fail" ? true : job._forceOutcome === "pass" ? false : Math.random() < 0.1
+      if (failQuery) { next.status = "failed"; next.rows_extracted = 0; next.duration_seconds = +(Math.random() * 3).toFixed(2); next.error = "Simulated query failure"; job.queries_failed++ } else { next.status = "completed"; next.rows_extracted = Math.floor(Math.random() * 40000) + 500; next.table_name = `kpi_prd_01.bridge.${job.country}_${next.query_name}`; next.duration_seconds = +(Math.random() * 15 + 1).toFixed(2) }
       job.queries_completed++; return
     }
     if (job.queries_failed > 0) { step.status = "failed"; step.completed_at = isoNow(); step.error = `${job.queries_failed} query(ies) failed during sync`; job.status = "failed"; job.completed_at = isoNow(); job.current_step = null; job.error = `Pipeline failed at step: sync_data (${job.queries_failed} query failures)`; return }
@@ -143,7 +170,10 @@ function advanceJob(jobId) {
 
   if (step.status === "pending") { step.status = "running"; step.started_at = isoNow(); job.current_step = step.name; if (step.tasks?.length > 0) { step.tasks[0].status = "running"; step.tasks[0].started_at = isoNow() }; return }
   if (step.status === "running") {
-    if (Math.random() < 0.05) { step.status = "failed"; step.completed_at = isoNow(); step.error = `Step "${step.name}" failed: simulated error`; for (const t of step.tasks || []) { if (t.status === "running") { t.status = "failed"; t.completed_at = isoNow(); t.error = "Parent step failed" } }; job.current_step = null; job.status = "failed"; job.completed_at = isoNow(); job.error = `Pipeline failed at step: ${step.name}`; return }
+    // Force a deterministic failure on the merge step for demo "fail" jobs; never
+    // randomly fail "pass" jobs. Otherwise keep the original 5% flakiness.
+    const failStep = job._forceOutcome === "fail" ? step.name === "merge_data" : job._forceOutcome === "pass" ? false : Math.random() < 0.05
+    if (failStep) { step.status = "failed"; step.completed_at = isoNow(); step.error = `Step "${step.name}" failed: simulated error`; for (const t of step.tasks || []) { if (t.status === "running") { t.status = "failed"; t.completed_at = isoNow(); t.error = "Parent step failed" } }; job.current_step = null; job.status = "failed"; job.completed_at = isoNow(); job.error = `Pipeline failed at step: ${step.name}`; return }
     if (step.tasks?.length > 0) {
       const rt = step.tasks.find(t => t.status === "running")
       if (rt) {
@@ -175,6 +205,7 @@ router.post("/trigger", (req, res) => {
   const jobId = uuid(); const now = isoNow()
   const results = queryList.map(q => ({ query_name: q, status: "pending", rows_extracted: 0, table_name: null, duration_seconds: 0, error: null, started_at: null }))
   const job = { job_id: jobId, status: "pending", country, stage, period: period ?? null, tag: `${country}-${stage}-${Date.now()}`, queries_total: queryList.length, queries_completed: 0, queries_failed: 0, created_at: now, started_at: null, completed_at: null, triggered_by: "calibration-app", aggregations: aggregations ?? null, error: null, results, steps: makeSteps(), current_step: "sync_data", _stepIndex: 0 }
+  if (stage === "calibracion" && DEMO_CALIBRATION_OUTCOMES[country]) job._forceOutcome = DEMO_CALIBRATION_OUTCOMES[country]
   if (skip_sync) { job.steps[0].status = "completed"; job.steps[0].started_at = isoNow(); job.steps[0].completed_at = isoNow(); job._stepIndex = 1; for (const r of job.results) { r.status = "completed"; r.rows_extracted = Math.floor(Math.random() * 40000) + 500; r.table_name = `kpi_prd_01.bridge.${country}_${r.query_name}`; r.duration_seconds = 0; r.started_at = isoNow() }; job.queries_completed = queryList.length; job.current_step = "copy_to_calibration" }
   if (skip_copy) { job.steps[1].status = "completed"; job.steps[1].started_at = isoNow(); job.steps[1].completed_at = isoNow(); for (const t of job.steps[1].tasks || []) { t.status = "completed"; if (!t.started_at) t.started_at = isoNow(); t.completed_at = isoNow() }; job._stepIndex = 2; job.steps[2].status = "running"; job.steps[2].started_at = isoNow(); job.current_step = job.steps[2].name; if (job.steps[2].tasks?.length > 0) { job.steps[2].tasks[0].status = "running"; job.steps[2].tasks[0].started_at = isoNow() } }
   jobs.set(jobId, job)

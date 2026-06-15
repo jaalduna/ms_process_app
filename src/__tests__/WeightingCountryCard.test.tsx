@@ -47,14 +47,9 @@ vi.mock("@/lib/api", () => ({
 }))
 
 import { WeightingCountryCard } from "@/modules/pesaje/components/WeightingCountryCard"
+import { DEFAULT_WEIGHTING_PARAMS } from "@/modules/pesaje/weightingParams"
 
-const DEFAULT_PARAMS = {
-  max_weight: 500,
-  min_weight: 10,
-  cv_threshold: 0.05,
-  max_iterations: 50,
-  trim_percentile: 0.99,
-}
+const DEFAULT_PARAMS = DEFAULT_WEIGHTING_PARAMS
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -223,6 +218,30 @@ describe("WeightingCountryCard", () => {
     await waitFor(() => {
       expect(screen.getByText("Detener")).toBeInTheDocument()
     })
+  })
+
+  it("action row wraps so Detener does not clip off the card while processing", async () => {
+    mockGetWeightingRuns.mockResolvedValue([
+      {
+        run_id: "run-1",
+        country: "chile",
+        period: 202602,
+        status: "running",
+        steps: [],
+        current_step: null,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ])
+
+    renderCard()
+
+    const detener = await screen.findByText("Detener")
+    // The action row is the flex container holding both the Procesando button
+    // and the Detener button. It must wrap instead of clipping overflow.
+    const actionRow = detener.closest("div.flex")
+    expect(actionRow).not.toBeNull()
+    expect(actionRow).toHaveClass("flex-wrap")
   })
 
   it("shows error message when run has failed", async () => {

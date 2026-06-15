@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { COUNTRIES, jobs } from "./sync.js"
+import { COUNTRIES, jobs, defaultPeriod } from "./sync.js"
 
 const router = Router()
 
@@ -41,6 +41,21 @@ const MOCK_AVAILABILITY = {
     chile: { elegibilidad: true, pesaje: true }, colombia: { elegibilidad: true, pesaje: true },
     peru: { elegibilidad: true, pesaje: true },
   },
+}
+
+// Default landing period (previous month): a deliberate spread so each card
+// demonstrates a distinct path on first load — full availability (Calibrar
+// enabled), elegibilidad-only (partial), and no data (Calibrar disabled).
+MOCK_AVAILABILITY[defaultPeriod()] = {
+  argentina: { elegibilidad: true, pesaje: true },   // full → trigger + success
+  bolivia: { elegibilidad: true, pesaje: false },    // partial (pesaje missing)
+  brasil: { elegibilidad: true, pesaje: true },      // full
+  cam: { elegibilidad: false, pesaje: false },       // no data → Calibrar disabled
+  chile: { elegibilidad: true, pesaje: true },       // full → success
+  colombia: { elegibilidad: true, pesaje: true },    // full → trigger fails (demo failure path)
+  ecuador: { elegibilidad: false, pesaje: false },   // no data → Calibrar disabled
+  mexico: { elegibilidad: true, pesaje: true },      // full → success
+  peru: { elegibilidad: true, pesaje: false },       // partial (pesaje missing)
 }
 
 router.get("/metadata/data-availability", (req, res) => {
