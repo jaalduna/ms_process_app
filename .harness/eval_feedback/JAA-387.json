@@ -1,0 +1,6 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "types.ts STATUS_CONFIG: results_ready label 'Pendiente de revisión', mordom_ready 'Revisar MorDom' — no 'listos'; distinct from terminal 'Listo' (green). e2e asserts /Pendiente de revisión/ visible and /Resultados listos/ toHaveCount(0). Only remaining eligibility hit is the negative assertion; the precios module hit is out of scope."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "EligibilityCountryCard: 'Revisar y aprobar' Button (ClipboardCheck, amber) rendered only when isResultsReady, onClick opens detail modal; 'Ver detalle' suppressed via showDetailButton && !isResultsReady. e2e test #4 asserts button visible, within card bounds, opens dialog containing 'Aprobar y Aplicar'."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "e2e full-lifecycle (#3) passed: execute → 'Pendiente de revisión' → click 'Revisar y aprobar' → 'Aprobar y Aplicar' → mock auto-advances → 'Listo' (8/8)."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "tsc -b clean; eslint clean; vitest 81/81; eligibility e2e 5/5 (MOCK_SERVER_PORT=5050, dev :5273)."}
+]

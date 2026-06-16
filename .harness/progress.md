@@ -2,6 +2,38 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-16 — JAA-387 (eligibility results_ready reads as "done" at 2/8) — webapp
+
+**What:** Screenshot showed a country card with amber **"Resultados listos"** badge at 2/8
+(25%). Root cause: NOT a data desync — `results_ready` is a legit intermediate human-approval
+gate in the 8-step, user-gated state machine (mirrors the real Bridge API: run → results_ready
+→ approve → mordom_ready → upload → ready). Two real problems: (1) the badge "Resultados listos"
+reads as *finished*, same tone as the terminal `ready`="Listo"; (2) the approve action
+("Aprobar y Aplicar") was buried in the "Ver detalle" modal while the card showed only an inert
+"Revisar resultados" text → looked stuck at 25% with no path forward.
+
+**Fix:** `types.ts` STATUS_CONFIG: `results_ready` "Resultados listos" → **"Pendiente de revisión"**,
+`mordom_ready` "MorDom listo" → "Revisar MorDom" (same class of bug). `EligibilityCountryCard.tsx`:
+replaced the inert text with a clickable **"Revisar y aprobar"** CTA (ClipboardCheck, amber) that
+opens the detail modal; suppressed the now-redundant "Ver detalle" in results_ready only.
+Updated eligibility e2e (badge text + CTA path) incl. a negative assertion that "Resultados listos"
+no longer appears.
+
+**Verify:** `npx tsc -b` clean, `npm run lint` clean, vitest **81/81**, eligibility Playwright
+**5/5** (mock :5050, dev :5273, run via `rtk proxy` — rtk mangles playwright stdout otherwise).
+Separate skeptical evaluator (ux-ui-reviewer, fresh ctx) re-ran all → **ac1–ac4 PASS**.
+
+**Findings captured (capture-don't-chase):**
+- `src/modules/precios/types.ts` has the SAME `results_ready: "Resultados listos"` badge — likely
+  the same confusion in the prices module. Out of scope here; worth its own ticket.
+
+**Harness friction:** JAA-371 still unfixed — `jsonwebtoken` missing from package.json, mock crashes
+on clean worktree until `npm install --no-save jsonwebtoken`. Also: `rtk` proxy hook mangles
+`playwright --reporter=json/list` stdout (truncates to "PASS (n)") → use `rtk proxy npx playwright …`.
+
+**Result:** worktree `../ms_process_app-JAA-387`, branch `fix/JAA-387-elegibilidad-results-ready-clarity`
+(off `ado/develop`). Next: commit → push to ado → PR to develop → Linear In Review → auto-merge when green.
+
 ## 2026-06-15 — precios action row clip (ad-hoc, from screenshot) — webapp
 
 **What:** Same family as JAA-360/pesaje/calibracion. In `PricesCountryCard.tsx` the running-state
