@@ -78,6 +78,10 @@ test.describe("Eligibility Module E2E", () => {
 
     const card = page.locator('[data-slot="card"]').filter({ hasText: "Mexico" })
     await expect(card).toBeVisible({ timeout: 10_000 })
+    // The "last completed" badge must reflect the seeded ready run (2d ago), not
+    // "never" — last-elegibilidad now sources from the eligibility store (JAA-390).
+    await expect(card.getByText(/\d+d ago/)).toBeVisible({ timeout: 10_000 })
+    await expect(card.getByText("never")).toHaveCount(0)
     // Seeded run is "ready" → a detail button is available.
     const detailBtn = card.getByRole("button", { name: /ver detalle/i })
     await expect(detailBtn).toBeVisible({ timeout: 10_000 })

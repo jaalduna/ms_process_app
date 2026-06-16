@@ -1,5 +1,6 @@
 import { Router } from "express"
 import { COUNTRIES, jobs, defaultPeriod } from "./sync.js"
+import { eligibilityStore } from "./eligibility.js"
 
 const router = Router()
 
@@ -85,7 +86,11 @@ function lastCompletedByStage(stage) {
 
 router.get("/metadata/last-sync", (_req, res) => res.json({ countries: lastCompletedByStage("inicio") }))
 router.get("/metadata/last-calibration", (_req, res) => res.json({ countries: lastCompletedByStage("calibracion") }))
-router.get("/metadata/last-elegibilidad", (_req, res) => res.json({ countries: lastCompletedByStage("elegibilidad") }))
+// Eligibility runs live in their own store (a multi-phase, user-gated state
+// machine), NOT in the generic `jobs` store — so lastCompletedByStage("elegibilidad")
+// would always be empty and the card badge would read "never" forever (JAA-390).
+// Source the last completion from the eligibility store, which exposes the same shape.
+router.get("/metadata/last-elegibilidad", (_req, res) => res.json({ countries: eligibilityStore.lastCompleted() }))
 
 // last-prices, last-weighting, last-mtr are registered in server.js
 // with access to the actual stores (pricesStore, weightingStore, mtrStore)
