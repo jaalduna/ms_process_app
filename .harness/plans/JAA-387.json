@@ -1,0 +1,18 @@
+{
+  "ticket": "JAA-387",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-387/elegibilidad-el-badge-resultados-listos-se-lee-como-terminado-en-una",
+  "branch": "fix/JAA-387-elegibilidad-results-ready-clarity",
+  "archetype": "webapp",
+  "goal": "Make the eligibility results_ready gate read as a pending human-review step (not 'done') and give the card an obvious path forward to approve.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "The badge for a results_ready run does not contain the word 'listos' and is textually distinct from the terminal 'Listo' state", "how_to_verify": "Playwright: execute a country run, assert card badge text matches /Pendiente de revisión/i and NOT /Resultados listos/i"},
+    {"id": "ac2", "criterion": "The card shows a clickable 'Revisar y aprobar' button that opens the detail modal containing the 'Aprobar y Aplicar' action", "how_to_verify": "Playwright: in results_ready, click 'Revisar y aprobar' on the card, assert dialog opens and contains button /Aprobar y Aplicar/i"},
+    {"id": "ac3", "criterion": "Approving from that path advances the run past 2/8 to completion (mock auto-advances)", "how_to_verify": "Playwright: full lifecycle execute -> Revisar y aprobar -> Aprobar -> upload -> finalize -> badge 'Listo'"},
+    {"id": "ac4", "criterion": "Unit + lint + typecheck pass and eligibility e2e is green", "how_to_verify": "npm test && npm run lint && npx tsc -b && playwright test e2e/eligibility.spec.ts"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Reword results_ready badge label in types.ts STATUS_CONFIG to 'Pendiente de revisión' (also mordom_ready -> 'Revisar MorDom')", "status": "complete"},
+    {"id": "t2", "desc": "Replace inert 'Revisar resultados' text in EligibilityCountryCard with a clickable 'Revisar y aprobar' button that opens the detail modal; suppress redundant 'Ver detalle' in results_ready", "status": "complete"},
+    {"id": "t3", "desc": "Update existing eligibility e2e (badge text) and add coverage for the new button + clarity", "status": "complete"}
+  ]
+}

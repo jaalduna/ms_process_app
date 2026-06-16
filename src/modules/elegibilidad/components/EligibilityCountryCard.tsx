@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { CheckCircle2, Eye, Loader2, RefreshCcw, Square } from "lucide-react"
+import { CheckCircle2, ClipboardCheck, Eye, Loader2, RefreshCcw, Square } from "lucide-react"
 import { toast } from "sonner"
 import { DependencyIndicator } from "@/components/DependencyIndicator"
 import { usePipelineDeps } from "@/hooks/usePipelineDeps"
@@ -235,7 +235,9 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
               </AlertDialog>
             )}
 
-            {/* Results ready: re-run button + note */}
+            {/* Results ready: phase-1 results need human review/approval before the
+                remaining steps run. Surface an explicit call-to-action so the card
+                doesn't read as "finished" with no path forward (JAA-387). */}
             {isResultsReady && (
               <>
                 <Button
@@ -251,9 +253,14 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
                   )}
                   Re-ejecutar
                 </Button>
-                <div className="flex items-center gap-1.5 text-warning text-sm font-medium flex-1">
-                  Revisar resultados
-                </div>
+                <Button
+                  size="sm"
+                  className="flex-1 bg-amber-500 text-white hover:bg-amber-500/80"
+                  onClick={() => setModalOpen(true)}
+                >
+                  <ClipboardCheck className="mr-2 h-3.5 w-3.5" />
+                  Revisar y aprobar
+                </Button>
               </>
             )}
 
@@ -272,8 +279,9 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
               </div>
             )}
 
-            {/* Ver detalle button */}
-            {showDetailButton && (
+            {/* Ver detalle button. In results_ready the "Revisar y aprobar" CTA
+                above already opens this same modal, so don't duplicate it. */}
+            {showDetailButton && !isResultsReady && (
               <Button size="sm" variant="outline" onClick={() => setModalOpen(true)}>
                 <Eye className="mr-2 h-3.5 w-3.5" />
                 Ver detalle
