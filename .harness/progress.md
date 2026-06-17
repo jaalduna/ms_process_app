@@ -2,6 +2,35 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-17 — JAA-397 (e2e suite red: stale selectors) — webapp — EXECUTED, evaluator PASS
+
+**Scope (user-approved):** *minimal unblock + defer*. The ticket framed it as "stale card
+selectors", but RCA showed the suite was broadly red for THREE reasons: (1) **e2e couldn't log in** —
+post-rebrand the app uses GitHub OAuth (`public/config.js` authProvider:"github"), which redirects to
+real github.com; e2e needs `VITE_AUTH_BYPASS=true` (DevAuthProvider "Continue (dev)", which the
+`login()` helper already targets) but the gitignored `.env.local` was missing in fresh worktrees;
+(2) `smoke.spec`/`performance.spec` assert the OLD sync-centric "Trigger Data Sync" dashboard / brand
+"SQL-Databricks Bridge"; (3) card DOM `.country-card`/`article` → `[data-slot="card"]`.
+
+**What:**
+- **t1** added `dev:e2e` npm script (`VITE_AUTH_BYPASS=true vite`) + documented the full e2e recipe in
+  AGENTS.md (mock:fast on :8000, dev:e2e, `MOCK_SERVER_PORT=8000`, smoke vs flow projects).
+- **t2** fixed the 3 card-load @smoke tests (prices:14, weighting:13, mtr:13) → `[data-slot="card"]`
+  count 9 (verified live: Precios/Pesaje/MTR each render exactly 9).
+- **t3** quarantined the remaining 20 red @smoke tests with `test.fixme()` + a `// JAA-411` comment
+  each (smoke ×5, navigation ×3, pipeline-deps ×3, calibration ×2, performance ×2, prices ×2,
+  eligibility ×1, mtr ×1, weighting ×1). Bodies intact, nothing deleted.
+- **t5** created follow-up **JAA-411** (port @smoke assertions to vitest; repair/rewrite @flow).
+
+**Verify:** vitest 91/91, eslint clean, tsc -b clean. **smoke project: 16 passed / 22 skipped / 0
+failed in 53s** (was 22 failed / ~20min). Separate evaluator (ux-ui-reviewer, fresh ctx) ran the
+checks → **ac1–ac6 all PASS**. Did NOT touch the heavy `@flow` project (deferred to JAA-411).
+
+**Gotcha:** fresh worktrees need `.env.local` with `VITE_AUTH_BYPASS=true` (or use `npm run dev:e2e`)
+or every e2e login hangs on the unautomatable GitHub OAuth redirect. Now baked into `dev:e2e`.
+
+**Next:** commit → push `ado` → PR to `develop` → Linear In Review → auto-merge when policies green.
+
 ## 2026-06-17 — JAA-391 (Abrir/Cerrar proceso por país/etapa) — webapp — EXECUTED, evaluator PASS
 
 **What:** Per-stage, per-country open/close ("abrir/cerrar") with attribution. Adopted the prior

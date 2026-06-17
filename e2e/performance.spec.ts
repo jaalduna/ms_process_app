@@ -100,7 +100,8 @@ test.describe("Performance Validation", () => {
     expect(elapsed).toBeLessThan(3000)
   })
 
-  test("Frontend history page loads data and API responds fast", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("Frontend history page loads data and API responds fast", { tag: "@smoke" }, async ({ page }) => {
     // Sign in and let the dashboard's API calls warm up the connection
     await signInAndWarmUp(page)
 
@@ -132,7 +133,8 @@ test.describe("Performance Validation", () => {
     expect(renderElapsed).toBeLessThan(5000)
   })
 
-  test("Frontend history page refresh - API responds under 3 seconds", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined — signInAndWarmUp waits for the old "Trigger Data Sync" dashboard. Repair or port to vitest.
+  test.fixme("Frontend history page refresh - API responds under 3 seconds", { tag: "@smoke" }, async ({ page }) => {
     // Sign in and let the dashboard's API calls warm up the connection
     await signInAndWarmUp(page)
 
