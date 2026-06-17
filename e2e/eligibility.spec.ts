@@ -66,14 +66,14 @@ test.describe("Eligibility Module E2E", () => {
     await login(page)
   })
 
-  test("page loads with 9 country cards", async ({ page }) => {
+  test("page loads with 9 country cards", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Elegibilidad", /elegibilidad/)
     const cards = page.locator('[data-slot="card"]')
     await expect(cards.first()).toBeVisible({ timeout: 10_000 })
     expect(await cards.count()).toBe(9)
   })
 
-  test("seeded ready country shows completed detail with steps and files", async ({ page }) => {
+  test("seeded ready country shows completed detail with steps and files", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Elegibilidad", /elegibilidad/)
 
     const card = page.locator('[data-slot="card"]').filter({ hasText: "Mexico" })
@@ -146,7 +146,7 @@ test.describe("Eligibility Module E2E", () => {
     await expect(card.getByText("never")).toHaveCount(0)
   })
 
-  test("results_ready card shows an actionable 'Revisar y aprobar' CTA, not clipped (JAA-360 / JAA-387)", async ({ page }) => {
+  test("results_ready card shows an actionable 'Revisar y aprobar' CTA, not clipped (JAA-360 / JAA-387)", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Elegibilidad", /elegibilidad/)
 
     // Argentina has no seeded run → execute it to reach results_ready, where

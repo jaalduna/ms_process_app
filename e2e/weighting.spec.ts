@@ -10,7 +10,7 @@ test.describe("Weighting Module E2E", () => {
     await login(page)
   })
 
-  test("page loads with country cards", async ({ page }) => {
+  test("page loads with country cards", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
     const cards = page.locator("[data-testid='country-card'], .country-card").or(
@@ -21,7 +21,7 @@ test.describe("Weighting Module E2E", () => {
     expect(count).toBe(9)
   })
 
-  test("config dialog opens and accepts parameter changes", async ({ page }) => {
+  test("config dialog opens and accepts parameter changes", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
     // Click a country card

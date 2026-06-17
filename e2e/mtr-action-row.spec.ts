@@ -8,7 +8,7 @@ import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
  * buttons are never clipped in a narrow card (regression family: JAA-360,
  * pesaje, precios, calibracion).
  */
-test("MTR running-state action row wraps and never clips its buttons", async ({ page }) => {
+test("MTR running-state action row wraps and never clips its buttons", { tag: "@smoke" }, async ({ page }) => {
   await setModuleConfig(page, {})
   await page.request.post(`${MOCK_API_BASE}/test/reset`)
   await login(page)

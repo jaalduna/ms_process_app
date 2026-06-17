@@ -17,7 +17,10 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "mock": "node mock-server/server.js",
-    "mock:hybrid": "node mock-server/hybrid-proxy.js"
+    "mock:fast": "MOCK_STEP_INTERVAL_MS=150 node mock-server/server.js",
+    "mock:hybrid": "node mock-server/hybrid-proxy.js",
+    "test:e2e:fast": "playwright test --project=smoke",
+    "test:e2e:full": "playwright test"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.1.0",

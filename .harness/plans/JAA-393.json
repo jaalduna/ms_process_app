@@ -1,0 +1,41 @@
+{
+  "ticket": "JAA-393",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-393/e2e-suite-is-wall-clock-bound-8-12-min-add-fast-mode-interval-split",
+  "branch": "feat/JAA-393-e2e-fast-mode",
+  "archetype": "webapp",
+  "goal": "Cut the wall-clock-bound e2e suite (~8-12 min) by making the mock step interval env-configurable and splitting Playwright into fast @smoke / full @flow projects with retries:0 for the fast set (test-infra only; no product behavior change).",
+  "scope_note": "User chose fixes 1+2+4. Fix #3 (per-worker mock instance/port parallelization) is DEFERRED to a follow-up ticket — it rewrites the /test/reset shared-singleton model and is the riskiest change.",
+  "ports": { "mock": 5193, "dev": 5393 },
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "Both run-store.js (prices/weighting/mtr) and eligibility-store.js read MOCK_STEP_INTERVAL_MS from the environment and use it as the per-step setInterval cadence (falling back to current defaults 2000ms / 1500ms when unset).",
+      "how_to_verify": "Both files reference process.env.MOCK_STEP_INTERVAL_MS; a vitest fake-timer unit test asserts a RunStore run advances one step per configured interval (e.g. 100ms) instead of the 2000ms default. `npm test` includes and passes it."
+    },
+    {
+      "id": "ac2",
+      "criterion": "playwright.config.ts defines two projects: 'smoke' (grep /@smoke/) and 'flow' (grepInvert /@smoke/). npm scripts test:e2e:fast (--project=smoke), test:e2e:full (all), and mock:fast (mock with a fast MOCK_STEP_INTERVAL_MS) exist.",
+      "how_to_verify": "`npx playwright test --project=smoke --list` lists only @smoke-tagged tests (count > 0 and < total). `grep -E 'test:e2e:fast|test:e2e:full|mock:fast' package.json` matches all three."
+    },
+    {
+      "id": "ac3",
+      "criterion": "MOCK_STEP_INTERVAL_MS materially shortens automated multi-step pipeline waits (prices/weighting/mtr), and the 'smoke' project sets retries:0.",
+      "how_to_verify": "Primary (deterministic): the vitest fake-timer test asserts a step advances every 100ms when MOCK_STEP_INTERVAL_MS=100 and every 2000ms when unset — so an N-step run's wait scales linearly with the interval (e.g. a 4-step prices run ≈ 4×interval: ~8s at 2000ms vs ~0.6s at 150ms, ≈13x). `grep -n 'retries: 0' playwright.config.ts` matches the smoke project. (Human-gated eligibility is interval-insensitive by design — verified: its lifecycle e2e took ~28s at BOTH 150ms and 2000ms — so the win is on the automated prices/weighting/mtr runs.)"
+    },
+    {
+      "id": "ac4",
+      "criterion": "The change is test-infra only and introduces NO NEW e2e failures. The pre-existing e2e suite is independently red from stale selectors (NOT caused by this change) — captured as a separate Linear ticket; it is out of scope here.",
+      "how_to_verify": "`npm test && npm run lint && npx tsc -b` all green. The set of failing e2e tests is identical at MOCK_STEP_INTERVAL_MS=150 and =2000 (selector-based, not timing-based) — evidenced by the Precios page rendering all 9 cards as `<button aria-label=\"View price validation history…\">` while specs query `.country-card`/article. New ticket filed for the stale-selector cleanup, related to JAA-393."
+    }
+  ],
+  "rescope_note": "Original ac3/ac4 required the smoke/full e2e suite GREEN. RCA found the suite is pre-existingly ~60% red from stale selectors (app renders correctly; specs use outdated locators), failing identically at all intervals — orthogonal to this test-speed infra change. User approved (2026-06-17) shipping the infra and capturing the stale-selector debt as a separate ticket; ac3/ac4 re-scoped to mechanically prove the speedup + no-new-failures.",
+  "tasks": [
+    { "id": "t1", "desc": "run-store.js + eligibility-store.js: read MOCK_STEP_INTERVAL_MS (fallback 2000/1500). Add vitest fake-timer test for the cadence.", "status": "complete" },
+    { "id": "t2", "desc": "Add npm scripts: mock:fast, test:e2e:fast, test:e2e:full.", "status": "complete" },
+    { "id": "t3", "desc": "playwright.config.ts: add smoke (grep @smoke, retries 0) + flow (grepInvert @smoke, retries 2) projects.", "status": "complete" },
+    { "id": "t4", "desc": "Tag @smoke on all fast tests per the classification table (test option object, not title munging).", "status": "complete" },
+    { "id": "t5", "desc": "Run VERIFY_CMD (test+lint+tsc green). RCA of e2e reds → pre-existing stale selectors (JAA-397), not this change; failing set identical at 150ms vs 2000ms; eligibility lifecycle passes at both. ac3/ac4 re-scoped accordingly.", "status": "complete" },
+    { "id": "t6", "desc": "Separate evaluator (ux-ui-reviewer) grades re-scoped ac1-ac4; commit, push, PR to develop.", "status": "incomplete" }
+  ],
+  "captured_tickets": ["JAA-397 (stale-selector e2e cleanup — related to JAA-393)"]
+}

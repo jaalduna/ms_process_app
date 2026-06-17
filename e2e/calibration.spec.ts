@@ -46,7 +46,7 @@ test.describe("Calibración Module E2E", () => {
     await expect(page.locator('[data-slot="card"]').first()).toBeVisible({ timeout: 10_000 })
   })
 
-  test("renders 9 country cards with a varied availability spread", async ({ page }) => {
+  test("renders 9 country cards with a varied availability spread", { tag: "@smoke" }, async ({ page }) => {
     const cards = page.locator('[data-slot="card"]')
     expect(await cards.count()).toBe(9)
 
@@ -56,7 +56,7 @@ test.describe("Calibración Module E2E", () => {
     await expect(countryCard(page, "Ecuador").getByRole("button", { name: /^Calibrar$/ })).toBeDisabled()
   })
 
-  test("running action row does not clip 'Ver detalle' (eye button)", async ({ page }) => {
+  test("running action row does not clip 'Ver detalle' (eye button)", { tag: "@smoke" }, async ({ page }) => {
     // Mexico: full availability + deterministic "pass" → a long-enough running
     // window to observe the three-control action row (Running + Stop + eye).
     const card = countryCard(page, "Mexico")

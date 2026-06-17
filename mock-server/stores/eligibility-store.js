@@ -51,7 +51,8 @@ export class EligibilityStore {
     this.timers = new Map()
     /** When true, transient phases advance instantly on first tick (faster e2e). */
     this.deterministic = false
-    this.intervalMs = 1500
+    // Per-step delay; override via MOCK_STEP_INTERVAL_MS (e.g. fast e2e) — falls back to 1500ms.
+    this.intervalMs = Number(process.env.MOCK_STEP_INTERVAL_MS) || 1500
   }
 
   setDeterministic(flag) {

@@ -10,7 +10,7 @@ test.describe("MTR Module E2E", () => {
     await login(page)
   })
 
-  test("page loads with 9 country cards", async ({ page }) => {
+  test("page loads with 9 country cards", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "MTR", /mtr/)
 
     const cards = page.locator("[data-testid='country-card'], .country-card").or(
@@ -21,7 +21,7 @@ test.describe("MTR Module E2E", () => {
     expect(count).toBe(9)
   })
 
-  test("trigger creates run and shows step-based progress", async ({ page }) => {
+  test("trigger creates run and shows step-based progress", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "MTR", /mtr/)
 
     // Click a country card

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "Both stores read process.env.MOCK_STEP_INTERVAL_MS with numeric fallback (run-store.js:88 → ||2000; eligibility-store.js:55 → ||1500). vitest fake-timer test (mock-server/__tests__/run-store-interval.test.js) asserts step 0 still running at 99ms, completes at 100ms when env=100; and the 2000ms default when unset. 2/2 passed."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "`--project=smoke --list` = 38 tests (all @smoke, 12 files); `--project=flow --list` = 15 tests (no @smoke, 8 files); 38<53 strict subset. package.json has mock:fast, test:e2e:fast (--project=smoke), test:e2e:full."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "playwright.config.ts smoke project sets retries:0 (global retries:2 applies to flow). Unit test proves cadence scales with the interval (≈20x at 100 vs 2000). Human-gated eligibility is interval-insensitive by design (lifecycle e2e ~28s at both 150 and 2000ms)."
+  },
+  {
+    "id": "ac4",
+    "verdict": "PASS",
+    "evidence": "vitest 83/83, eslint clean, tsc -b clean. prices.spec.ts:14 fails with element-not-found on `.country-card`/article while the error-context DOM snapshot shows all 9 cards rendered as <button aria-label='View price validation history for ...'> — proving stale selector, not a regression. git diff = 16 files: 12 e2e specs (only `{ tag: \"@smoke\" }` insertions), 2 stores, package.json, playwright.config.ts + new unit test; no src/ product changes. Pre-existing reds captured in JAA-397."
+  },
+  {
+    "id": "overall",
+    "verdict": "PASS",
+    "evidence": "Test-infra-only change; all re-scoped criteria pass. Pre-existing e2e reds are demonstrably stale selectors unrelated to this diff (JAA-397)."
+  }
+]
