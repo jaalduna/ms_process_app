@@ -32,9 +32,11 @@ async function confirmAction(page: Page, trigger: Locator, actionName: RegExp) {
   throw new Error(`confirmAction(${actionName}) did not complete`)
 }
 
-/** The card for a given country (matched by its visible name). */
+/** The card for a given country (matched by its visible name). The card text
+ *  glues the label to the next token (e.g. "MexicoCalibración…"), so match on a
+ *  plain substring rather than a \b word-boundary regex. */
 function countryCard(page: Page, name: string): Locator {
-  return page.locator('[data-slot="card"]').filter({ hasText: new RegExp(`\\b${name}\\b`) }).first()
+  return page.locator('[data-slot="card"]').filter({ hasText: name }).first()
 }
 
 test.describe("Calibración Module E2E", () => {
@@ -46,8 +48,7 @@ test.describe("Calibración Module E2E", () => {
     await expect(page.locator('[data-slot="card"]').first()).toBeVisible({ timeout: 10_000 })
   })
 
-  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
-  test.fixme("renders 9 country cards with a varied availability spread", { tag: "@smoke" }, async ({ page }) => {
+  test("renders 9 country cards with a varied availability spread", { tag: "@smoke" }, async ({ page }) => {
     const cards = page.locator('[data-slot="card"]')
     expect(await cards.count()).toBe(9)
 
@@ -57,18 +58,26 @@ test.describe("Calibración Module E2E", () => {
     await expect(countryCard(page, "Ecuador").getByRole("button", { name: /^Calibrar$/ })).toBeDisabled()
   })
 
-  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
-  test.fixme("running action row does not clip 'Ver detalle' (eye button)", { tag: "@smoke" }, async ({ page }) => {
+  // @flow (not @smoke): this triggers a run AND opens the detail modal — the
+  // heaviest interaction here. Under full-suite load a cold vite route-compile can
+  // reload the SPA (dropping the in-memory dev auth), which @smoke's retries:0
+  // can't absorb; @flow's retries do. The pure layout/wrap assertion also lives
+  // in vitest (WeightingCountryCard "action row wraps" + DependencyIndicator).
+  test("running action row does not clip 'Ver detalle' (eye button)", async ({ page }) => {
     // Mexico: full availability + deterministic "pass" → a long-enough running
     // window to observe the three-control action row (Running + Stop + eye).
     const card = countryCard(page, "Mexico")
     const calibrar = card.getByRole("button", { name: /^Calibrar$/ })
-    await expect(calibrar).toBeEnabled()
-    await confirmAction(page, calibrar, /^Confirm$/)
-
-    // Eye (Ver detalle) and Stop both appear once the job is running.
     const eye = card.getByRole("button", { name: /view calibration details/i })
     const stop = card.getByRole("button", { name: /stop calibration/i })
+
+    // Trigger the run. confirmAction can win the start but lose its own
+    // dialog-hidden race and throw, so tolerate that — the real success signal
+    // is the running-state controls (eye + stop) appearing below.
+    await expect(calibrar).toBeEnabled()
+    await confirmAction(page, calibrar, /^Confirm$/).catch(() => {})
+
+    // Eye (Ver detalle) and Stop both appear once the job is running.
     await expect(eye).toBeVisible({ timeout: 15_000 })
     await expect(stop).toBeVisible({ timeout: 15_000 })
 

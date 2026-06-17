@@ -4,7 +4,7 @@ import { navigateTo } from "./helpers/navigation"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
 
 /**
- * MTR country-card action row must wrap (flex-wrap) so the Running / Stop / eye
+ * MTR country card action row must wrap (flex-wrap) so the Running / Stop / eye
  * buttons are never clipped in a narrow card (regression family: JAA-360,
  * pesaje, precios, calibracion).
  */

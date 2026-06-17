@@ -1,0 +1,9 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "grep -rn 'test.fixme' e2e/ | wc -l → 0"},
+  {"id": "ac2", "verdict": "PASS", "evidence": "ls chile-sync.spec.ts bolivia-parallel.spec.ts peru-top100.spec.ts → all 'No such file or directory'"},
+  {"id": "ac3", "verdict": "PASS", "evidence": "grep -rnE stale-patterns e2e/ | wc -l → 0"},
+  {"id": "ac4", "verdict": "PASS", "evidence": "vitest: 13 files, 92 tests, all passed; eslint: No issues; tsc: No errors"},
+  {"id": "ac5", "verdict": "PASS", "evidence": "MOCK_SERVER_PORT=8000 npx playwright test → PASS (42) FAIL (0), 2 skipped (JAA-359), ~4min"},
+  {"id": "ac6", "verdict": "PASS", "evidence": "WeightingCountryCard.test.tsx contains 'confirming Detener cancels the running run (JAA-411: cancel ported from e2e)' + Detener visibility/dialog/cancelWeighting assertions"},
+  {"overall": "PASS"}
+]
