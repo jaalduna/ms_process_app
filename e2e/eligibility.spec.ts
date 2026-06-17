@@ -135,6 +135,15 @@ test.describe("Eligibility Module E2E", () => {
 
     // applying_mordom → ready. The status badge shows "Listo".
     await expect(modal.getByText(/Listo/i).first()).toBeVisible({ timeout: 30_000 })
+
+    // ── Live badge update (JAA-392) ──
+    // Close the modal and confirm the card's "last completed" badge flips from
+    // "never" to a relative time WITHOUT a page reload — the runs poll observes
+    // the → ready transition and invalidates the last-elegibilidad query.
+    await page.keyboard.press("Escape")
+    await expect(modal).toBeHidden({ timeout: 5_000 })
+    await expect(card.getByText("just now")).toBeVisible({ timeout: 15_000 })
+    await expect(card.getByText("never")).toHaveCount(0)
   })
 
   test("results_ready card shows an actionable 'Revisar y aprobar' CTA, not clipped (JAA-360 / JAA-387)", async ({ page }) => {
