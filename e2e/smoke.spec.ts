@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test"
 
 test.describe("Smoke Tests", () => {
-  test("frontend loads and shows login page", async ({ page }) => {
+  test("frontend loads and shows login page", { tag: "@smoke" }, async ({ page }) => {
     await page.goto("/")
     await expect(page.getByText("SQL-Databricks Bridge")).toBeVisible({ timeout: 10_000 })
   })
 
-  test("can sign in with dev auth and see dashboard", async ({ page }) => {
+  test("can sign in with dev auth and see dashboard", { tag: "@smoke" }, async ({ page }) => {
     await page.goto("/")
     await expect(page.getByText("SQL-Databricks Bridge")).toBeVisible({ timeout: 10_000 })
 
@@ -17,7 +17,7 @@ test.describe("Smoke Tests", () => {
     await expect(page.getByText("Trigger Data Sync")).toBeVisible({ timeout: 10_000 })
   })
 
-  test("dashboard shows country and stage selectors", async ({ page }) => {
+  test("dashboard shows country and stage selectors", { tag: "@smoke" }, async ({ page }) => {
     await page.goto("/")
     await page.getByRole("button", { name: /sign in/i }).click()
     await expect(page.getByText("Trigger Data Sync")).toBeVisible({ timeout: 10_000 })
@@ -28,7 +28,7 @@ test.describe("Smoke Tests", () => {
     await expect(page.getByRole("button", { name: /trigger sync/i })).toBeVisible()
   })
 
-  test("event history page loads", async ({ page }) => {
+  test("event history page loads", { tag: "@smoke" }, async ({ page }) => {
     await page.goto("/")
     await page.getByRole("button", { name: /sign in/i }).click()
     await expect(page.getByText("Trigger Data Sync")).toBeVisible({ timeout: 10_000 })
@@ -40,7 +40,7 @@ test.describe("Smoke Tests", () => {
     await expect(page).toHaveURL(/history/, { timeout: 10_000 })
   })
 
-  test("backend API is reachable from frontend", async ({ page }) => {
+  test("backend API is reachable from frontend", { tag: "@smoke" }, async ({ page }) => {
     // Directly check the API health endpoint
     const response = await page.request.get("http://127.0.0.1:8000/api/v1/health/live")
     expect(response.ok()).toBeTruthy()

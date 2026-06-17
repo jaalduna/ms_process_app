@@ -11,7 +11,7 @@ test.describe("Prices Module E2E", () => {
     await login(page)
   })
 
-  test("page loads with 9 country cards", async ({ page }) => {
+  test("page loads with 9 country cards", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Precios", /precios/)
 
     // Each country card should be visible — 9 countries total
@@ -23,7 +23,7 @@ test.describe("Prices Module E2E", () => {
     expect(count).toBe(9)
   })
 
-  test("trigger validation shows progress indicators", async ({ page }) => {
+  test("trigger validation shows progress indicators", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Precios", /precios/)
 
     // Click a country card (e.g., Chile)
@@ -153,7 +153,7 @@ test.describe("Prices Module E2E", () => {
     ).toBeVisible({ timeout: 5_000 })
   })
 
-  test("history shows past runs for a country", async ({ page }) => {
+  test("history shows past runs for a country", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Precios", /precios/)
 
     // The mock server seeds one completed/approved run per country.

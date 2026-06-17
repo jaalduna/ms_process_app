@@ -24,7 +24,7 @@ test.describe("Weighting params (JAA-343)", () => {
     await login(page)
   })
 
-  test("edited params are sent as parameters_json on run create", async ({ page }) => {
+  test("edited params are sent as parameters_json on run create", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
     // Open the config dialog (header settings button).

@@ -10,7 +10,7 @@ test.describe("Traceability Module E2E", () => {
     await login(page)
   })
 
-  test("page loads with tag list", async ({ page }) => {
+  test("page loads with tag list", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Trazabilidad", /trazabilidad/)
 
     // Should see a table or list of tags
@@ -23,7 +23,7 @@ test.describe("Traceability Module E2E", () => {
     expect(count).toBeGreaterThan(0)
   })
 
-  test("filter by country shows only matching tags", async ({ page }) => {
+  test("filter by country shows only matching tags", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Trazabilidad", /trazabilidad/)
 
     // Wait for tag list to load
@@ -49,7 +49,7 @@ test.describe("Traceability Module E2E", () => {
     await expect(page.getByText("chile").first()).toBeVisible({ timeout: 5_000 })
   })
 
-  test("filter by stage shows only matching tags", async ({ page }) => {
+  test("filter by stage shows only matching tags", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Trazabilidad", /trazabilidad/)
 
     const table = page.locator("table").or(page.locator("[role='grid']"))
@@ -68,7 +68,7 @@ test.describe("Traceability Module E2E", () => {
     await expect(page.getByText(/calibration/i).first()).toBeVisible({ timeout: 5_000 })
   })
 
-  test("combined filters show intersection of results", async ({ page }) => {
+  test("combined filters show intersection of results", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Trazabilidad", /trazabilidad/)
 
     const table = page.locator("table").or(page.locator("[role='grid']"))
@@ -92,7 +92,7 @@ test.describe("Traceability Module E2E", () => {
     await expect(page.getByText("chile").first()).toBeVisible({ timeout: 5_000 })
   })
 
-  test("pagination shows different tags on next page", async ({ page }) => {
+  test("pagination shows different tags on next page", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Trazabilidad", /trazabilidad/)
 
     const table = page.locator("table").or(page.locator("[role='grid']"))
@@ -130,7 +130,7 @@ test.describe("Traceability Module E2E", () => {
   // SKIPPED: TagDetailModal is a frontend stub (returns null) and tag rows are
   // not clickable yet. Tracked in JAA-359 (wire detail modal + downloads). The
   // mock endpoints (GET /tags/:id, .../download) already exist; this is UI work.
-  test.skip("clicking a tag row opens detail modal", async ({ page }) => {
+  test.skip("clicking a tag row opens detail modal", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Trazabilidad", /trazabilidad/)
 
     const table = page.locator("table").or(page.locator("[role='grid']"))
@@ -150,7 +150,7 @@ test.describe("Traceability Module E2E", () => {
   })
 
   // SKIPPED: depends on the stubbed TagDetailModal (see JAA-359).
-  test.skip("CSV download initiates for a tagged table", async ({ page }) => {
+  test.skip("CSV download initiates for a tagged table", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Trazabilidad", /trazabilidad/)
 
     const table = page.locator("table").or(page.locator("[role='grid']"))

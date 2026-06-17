@@ -41,7 +41,7 @@ async function signInAndWarmUp(page: Page): Promise<void> {
 test.describe("Performance Validation", () => {
   test.describe.configure({ mode: "serial" })
 
-  test("API /events responds under 5 seconds (cold start target)", async ({ page }) => {
+  test("API /events responds under 5 seconds (cold start target)", { tag: "@smoke" }, async ({ page }) => {
     await warmUpForApi(page)
 
     const start = Date.now()
@@ -57,7 +57,7 @@ test.describe("Performance Validation", () => {
     expect(elapsed).toBeLessThan(5000)
   })
 
-  test("API /events responds under 3 seconds on subsequent calls", async ({ page }) => {
+  test("API /events responds under 3 seconds on subsequent calls", { tag: "@smoke" }, async ({ page }) => {
     await warmUpForApi(page)
     // Prime page.request path
     await page.request.get(`${API_BASE}/events`)
@@ -80,7 +80,7 @@ test.describe("Performance Validation", () => {
     }
   })
 
-  test("API /events/{id} detail responds under 3 seconds", async ({ page }) => {
+  test("API /events/{id} detail responds under 3 seconds", { tag: "@smoke" }, async ({ page }) => {
     await warmUpForApi(page)
 
     const listResp = await page.request.get(`${API_BASE}/events`)
@@ -100,7 +100,7 @@ test.describe("Performance Validation", () => {
     expect(elapsed).toBeLessThan(3000)
   })
 
-  test("Frontend history page loads data and API responds fast", async ({ page }) => {
+  test("Frontend history page loads data and API responds fast", { tag: "@smoke" }, async ({ page }) => {
     // Sign in and let the dashboard's API calls warm up the connection
     await signInAndWarmUp(page)
 
@@ -132,7 +132,7 @@ test.describe("Performance Validation", () => {
     expect(renderElapsed).toBeLessThan(5000)
   })
 
-  test("Frontend history page refresh - API responds under 3 seconds", async ({ page }) => {
+  test("Frontend history page refresh - API responds under 3 seconds", { tag: "@smoke" }, async ({ page }) => {
     // Sign in and let the dashboard's API calls warm up the connection
     await signInAndWarmUp(page)
 

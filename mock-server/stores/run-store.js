@@ -83,9 +83,9 @@ export class RunStore {
    * Start step progression for a run.
    * @param {string} runId
    * @param {function} [onComplete] - callback(run) when all steps complete
-   * @param {number} [intervalMs=2000]
+   * @param {number} [intervalMs] - per-step delay; defaults to MOCK_STEP_INTERVAL_MS env or 2000ms
    */
-  execute(runId, onComplete, intervalMs = 2000) {
+  execute(runId, onComplete, intervalMs = Number(process.env.MOCK_STEP_INTERVAL_MS) || 2000) {
     const run = this.runs.get(runId)
     if (!run) return null
     if (run.status !== "pending") return run
