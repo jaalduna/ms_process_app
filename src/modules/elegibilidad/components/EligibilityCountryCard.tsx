@@ -1,4 +1,5 @@
-import { memo, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -79,6 +80,7 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
   const createRun = useCreateEligibilityRun()
   const executeRun = useExecuteEligibility()
   const cancelRun = useCancelEligibility()
+  const queryClient = useQueryClient()
 
   const latestRun = runs?.[0] ?? null
   const countryLabel = COUNTRY_LABELS[countryCode] ?? countryCode
@@ -86,6 +88,19 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
 
   const isProcessing = latestRun ? ACTIVE_STATUSES.includes(latestRun.status) : false
   const isReady = latestRun?.status === "ready"
+
+  // The final "→ ready" transition lands via the runs poll (a backend timer),
+  // not via a mutation — so refresh the "last completed" badge the moment a run
+  // becomes ready, instead of waiting for staleTime/reload (JAA-392). Fires only
+  // on the transition into ready, never on every poll.
+  const prevStatusRef = useRef(latestRun?.status)
+  useEffect(() => {
+    const status = latestRun?.status
+    if (status === "ready" && prevStatusRef.current !== "ready") {
+      queryClient.invalidateQueries({ queryKey: ["last-elegibilidad"] })
+    }
+    prevStatusRef.current = status
+  }, [latestRun?.status, queryClient])
   const isResultsReady = latestRun?.status === "results_ready"
   const hasActiveProcess = latestRun != null && !["failed", "cancelled", "ready"].includes(latestRun.status) && latestRun.status !== "pending"
   const canExecute = !isProcessing && !createRun.isPending && !executeRun.isPending
