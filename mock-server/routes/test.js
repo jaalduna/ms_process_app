@@ -4,6 +4,7 @@ import { pricesStore, seedPrices } from "./prices.js"
 import { weightingStore, seedWeighting } from "./weighting.js"
 import { mtrStore, seedMtr } from "./mtr.js"
 import { eligibilityStore, seedEligibility } from "./eligibility.js"
+import { processStore, seedProcesses } from "./processes.js"
 import { tagStore, seedTraceability } from "./traceability.js"
 import { seedSyncJobs } from "../fixtures/seed.js"
 
@@ -22,6 +23,7 @@ router.post("/test/reset", (_req, res) => {
   weightingStore.reset()
   mtrStore.reset()
   eligibilityStore.reset()
+  processStore.reset()
   tagStore.reset()
 
   // Enable deterministic mode on all run stores so E2E happy-path tests
@@ -36,6 +38,7 @@ router.post("/test/reset", (_req, res) => {
   seedWeighting()
   seedMtr()
   seedEligibility()
+  seedProcesses()
   seedTraceability()
 
   res.json({ status: "ok", message: "All stores reset, re-seeded, and deterministic mode enabled" })

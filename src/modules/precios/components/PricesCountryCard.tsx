@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, Eye, Square, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { PricesProgress } from "./PricesProgress"
 import { PricesDetailModal } from "./PricesDetailModal"
 import { PricesHistoryModal } from "./PricesHistoryModal"
@@ -85,7 +87,8 @@ export const PricesCountryCard = memo(function PricesCountryCard({ country, peri
   const isRunning = activeRun?.status === "running" || activeRun?.status === "pending"
   const isPending = createRun.isPending || executeRun.isPending
   const isCancelling = cancelRun.isPending
-  const canTrigger = !isRunning && !isPending
+  const { isClosed } = useProcessEntry("precios", country.code)
+  const canTrigger = !isRunning && !isPending && !isClosed
 
   const countryLabel = COUNTRY_LABELS[country.code] ?? country.code
   const flag = COUNTRY_FLAGS[country.code] ?? ""
@@ -148,6 +151,7 @@ export const PricesCountryCard = memo(function PricesCountryCard({ country, peri
             >
               Precios: {lastValidationDate ? formatRelativeTime(lastValidationDate) : "never"}
             </Badge>
+            <ProcessStatusBadge stage="precios" country={country.code} countryLabel={countryLabel} />
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -177,7 +181,7 @@ export const PricesCountryCard = memo(function PricesCountryCard({ country, peri
               {displayRun?.status === "failed" ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" disabled={isClosed} title={isClosed ? "Proceso cerrado" : undefined}>
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Reintentar
                     </Button>
@@ -203,6 +207,7 @@ export const PricesCountryCard = memo(function PricesCountryCard({ country, peri
                       size="sm"
                       disabled={!canTrigger}
                       className="flex-1"
+                      title={isClosed ? "Proceso cerrado" : undefined}
                     >
                       {isPending || isRunning ? (
                         <>

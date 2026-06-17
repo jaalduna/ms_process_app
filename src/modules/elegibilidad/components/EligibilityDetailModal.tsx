@@ -37,6 +37,8 @@ import {
   XCircle,
 } from "lucide-react"
 import { EligibilityProgress } from "./EligibilityProgress"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { downloadEligibilityFile } from "@/lib/api"
 import {
   useEligibilityRun,
@@ -230,6 +232,7 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
 
   const { data: liveRun } = useEligibilityRun(open && initialRun ? initialRun.run_id : null)
   const run = liveRun ?? initialRun
+  const { isClosed } = useProcessEntry("elegibilidad", run?.country ?? "")
 
   const approve = useApproveEligibility()
   const applyMordomMutation = useApplyMordom()
@@ -303,6 +306,9 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
           <DialogDescription>
             Detalle del proceso de elegibilidad, archivos y progreso.
           </DialogDescription>
+          <div className="pt-1">
+            <ProcessStatusBadge stage="elegibilidad" country={run.country} countryLabel={countryLabel} />
+          </div>
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
@@ -523,11 +529,16 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
             </AlertDialog>
           )}
 
-          {/* Approve: when results are ready */}
+          {/* Approve: when results are ready. Disabled while the process is
+              closed — a closed (finalized) process can't be approved (JAA-391). */}
           {run.status === "results_ready" && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button className="bg-success hover:bg-success/90" disabled={approve.isPending}>
+                <Button
+                  className="bg-success hover:bg-success/90"
+                  disabled={approve.isPending || isClosed}
+                  title={isClosed ? "Proceso cerrado" : undefined}
+                >
                   {approve.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Aprobar y Aplicar
                 </Button>

@@ -2,6 +2,44 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-17 — JAA-391 (Abrir/Cerrar proceso por país/etapa) — webapp — EXECUTED, evaluator PASS
+
+**What:** Per-stage, per-country open/close ("abrir/cerrar") with attribution. Adopted the prior
+session's untracked scaffold (`ProcessStatusBadge.tsx`, `useProcessStatus.ts`, mock
+`process-store.js`/`processes.js`, 2 tests) and wired it up end to end:
+- **t1** types (`ProcessStage/State/Entry/StatusResponse` in `types/api.ts`) + api
+  (`getProcessStatus/openProcess/closeProcess` in `lib/api.ts`).
+- **t2** mounted `processesRouter` in `server.js`; `seedProcesses` in `fixtures/seed.js` + `/test/reset`;
+  added `processStore.reset()`. **Changed store default `closed`→`open`** (a fresh, un-acted process
+  is editable, not finalized) and rewrote `seedProcesses` to demo closed/attribution under that default
+  (colombia precios + brasil elegibilidad closed; argentina precios open-by-Maria).
+- **t3** `ProcessStatusBadge` on all 5 stage cards (Elegibilidad/Precios/Pesaje/Calibración/MTR).
+- **t4** added `useProcessEntry(stage,country)` helper; `canTrigger/canExecute &&= !isClosed` + tooltip
+  "Proceso cerrado" on every card's start/retry button (Weighting restructured so the button shows
+  disabled, not hidden, when closed).
+- **t5** `EligibilityDetailModal`: badge in header + "Aprobar y Aplicar" disabled when closed.
+- **t6** `OverviewPage` compact read-only Lock/LockOpen indicator (`aria-label` "Proceso abierto|
+  cerrado [por {user}]").
+- Fixed 2 pre-existing card tests whose `@/lib/api` mock lacked the new exports
+  (`WeightingCountryCard.test`, `PesajePage.test`).
+
+**Verify:** `tsc -b` clean, `eslint` clean, **vitest 89/0** (incl. ProcessStatusBadge 4 + OverviewPage 4).
+New `e2e/process-open-close.spec.ts` — open→close→reopen, live badge+attribution+trigger-gate — **3/3
+pass with `--retries=0 --repeat-each=3`** (mock :5191, dev :5391, via `rtk proxy`). `eligibility.spec`
+re-run clean (full lifecycle pass). Separate evaluator (ux-ui-reviewer, fresh ctx) → **ac1–ac9 PASS**
+(initially flagged ac9 as spec-flaky; hardened `toggleProcess` helper → now deterministic).
+
+**Captured (capture-don't-chase):**
+- **JAA-393** — e2e suite is wall-clock-bound (~8-12 min): mock advances 1 step/2s via setInterval,
+  serial workers, retries:2. Proposed env-configurable `MOCK_STEP_INTERVAL_MS` + fast/true-e2e split.
+- **JAA-394** — legacy e2e specs (smoke/prices/weighting/mtr) fail on BASE from stale post-rebrand
+  selectors. NOT this change — confirmed my diff touches none of those files.
+
+**Gotcha:** a stale mock process (started before the store-default edit) served everything as "closed"
+and made the first e2e run misleading — always restart the mock after editing mock-server code.
+
+**Next:** commit → push `ado` → PR to `develop` → Linear In Review → auto-merge when policies green.
+
 ## 2026-06-16 — JAA-387 (eligibility results_ready reads as "done" at 2/8) — webapp
 
 **What:** Screenshot showed a country card with amber **"Resultados listos"** badge at 2/8

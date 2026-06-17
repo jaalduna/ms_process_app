@@ -8,8 +8,11 @@ import {
   getLastWeighting,
   getLastMtr,
 } from "@/lib/api"
+import { Lock, LockOpen } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useProcessStatus } from "@/hooks/useProcessStatus"
 import { cn } from "@/lib/utils"
+import type { ProcessStage } from "@/types/api"
 
 const STAGES = [
   { key: "precios", label: "Precios" },
@@ -71,6 +74,8 @@ export default function OverviewPage() {
     ...QUERY_CONFIG,
   })
 
+  const { data: processData } = useProcessStatus()
+
   const dataLoading =
     calibLoading || elegLoading || preciosLoading || pesajeLoading || mtrLoading
 
@@ -86,6 +91,10 @@ export default function OverviewPage() {
 
   function getEntry(stageKey: typeof STAGES[number]["key"], countryCode: string) {
     return stageDataMap[stageKey]?.[countryCode]
+  }
+
+  function getProcessEntry(stageKey: ProcessStage, countryCode: string) {
+    return processData?.countries[countryCode]?.[stageKey]
   }
 
   return (
@@ -139,26 +148,39 @@ export default function OverviewPage() {
                     const entry = getEntry(stage.key, country.code)
                     const completedAt = entry?.completed_at
                     const period = (entry as { period?: number | string } | undefined)?.period
+                    const proc = getProcessEntry(stage.key, country.code)
+                    const procLabel = proc
+                      ? `Proceso ${proc.status === "open" ? "abierto" : "cerrado"}${proc.changed_by ? ` por ${proc.changed_by}` : ""}`
+                      : null
                     return (
                       <td key={stage.key} className="px-4 py-2">
-                        <span
-                          title={completedAt ? new Date(completedAt).toLocaleString() : undefined}
-                          className={cn(
-                            "inline-flex flex-col rounded px-2 py-1 text-xs leading-tight",
-                            dateCellClass(completedAt),
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            title={completedAt ? new Date(completedAt).toLocaleString() : undefined}
+                            className={cn(
+                              "inline-flex flex-col rounded px-2 py-1 text-xs leading-tight",
+                              dateCellClass(completedAt),
+                            )}
+                          >
+                            {completedAt ? (
+                              <>
+                                <span>{formatDate(completedAt)}</span>
+                                {period != null && (
+                                  <span className="opacity-70">{String(period)}</span>
+                                )}
+                              </>
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </span>
+                          {proc && procLabel && (
+                            proc.status === "open" ? (
+                              <LockOpen role="img" aria-label={procLabel} className="h-3.5 w-3.5 shrink-0 text-success/70" />
+                            ) : (
+                              <Lock role="img" aria-label={procLabel} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            )
                           )}
-                        >
-                          {completedAt ? (
-                            <>
-                              <span>{formatDate(completedAt)}</span>
-                              {period != null && (
-                                <span className="opacity-70">{String(period)}</span>
-                              )}
-                            </>
-                          ) : (
-                            <span>—</span>
-                          )}
-                        </span>
+                        </div>
                       </td>
                     )
                   })}

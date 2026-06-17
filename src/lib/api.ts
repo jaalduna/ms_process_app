@@ -8,6 +8,9 @@ import type {
   LastElegibilidadResponse,
   LastStageCompletionResponse,
   LastSyncResponse,
+  ProcessEntry,
+  ProcessStage,
+  ProcessStatusResponse,
   StagesResponse,
   TablesResponse,
   TriggerRequest,
@@ -152,6 +155,24 @@ export function getLastWeighting() {
 
 export function getLastMtr() {
   return api.get<LastStageCompletionResponse>("/metadata/last-mtr").then((r) => r.data)
+}
+
+// -- Process open/close (per stage, per country) --
+
+export function getProcessStatus() {
+  return api.get<ProcessStatusResponse>("/processes/status").then((r) => r.data)
+}
+
+export function openProcess(stage: ProcessStage, country: string) {
+  return api
+    .post<ProcessEntry>(`/processes/${stage}/${country}/open`)
+    .then((r) => r.data)
+}
+
+export function closeProcess(stage: ProcessStage, country: string) {
+  return api
+    .post<ProcessEntry>(`/processes/${stage}/${country}/close`)
+    .then((r) => r.data)
 }
 
 // -- Eligibility --

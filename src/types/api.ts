@@ -228,3 +228,35 @@ export interface TablesResponse {
   country: string
   tables: TableInfo[]
 }
+
+// -- Process open/close (per stage, per country) --
+
+/** Pipeline stages that can be opened/closed independently per country. */
+export type ProcessStage = "precios" | "elegibilidad" | "pesaje" | "calibracion" | "mtr"
+
+/** Whether a stage+country process is open (editable) or closed (locked). */
+export type ProcessState = "open" | "closed"
+
+/** A single open/close transition recorded for a stage+country process. */
+export interface ProcessHistoryEntry {
+  action: ProcessState
+  user_name: string
+  user_email: string
+  at: string
+}
+
+/** Current open/close state of one stage for one country, with attribution. */
+export interface ProcessEntry {
+  country: string
+  stage: ProcessStage
+  status: ProcessState
+  changed_by: string | null
+  changed_by_email: string | null
+  changed_at: string | null
+  history: ProcessHistoryEntry[]
+}
+
+/** Response from GET /processes/status: nested by country, then stage. */
+export interface ProcessStatusResponse {
+  countries: Record<string, Partial<Record<ProcessStage, ProcessEntry>>>
+}

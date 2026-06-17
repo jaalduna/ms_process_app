@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, Eye, Square } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
 import { CalibrationProgress } from "./CalibrationProgress"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
@@ -81,7 +83,8 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
   const isCompleted = job?.status === "completed"
   const isFailed = job?.status === "failed"
   const isCancelled = job?.status === "cancelled"
-  const canTrigger = availability.elegibilidad && !isRunning && !isPending
+  const { isClosed } = useProcessEntry("calibracion", country.code)
+  const canTrigger = availability.elegibilidad && !isRunning && !isPending && !isClosed
 
   const countryLabel = COUNTRY_LABELS[country.code] ?? country.code
   const flag = COUNTRY_FLAGS[country.code] ?? ""
@@ -124,6 +127,7 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                 Cal: {lastCalibrationDate ? formatRelativeTime(lastCalibrationDate) : "never"}
               </Badge>
             </div>
+            <ProcessStatusBadge stage="calibracion" country={country.code} countryLabel={countryLabel} />
             {/* DependencyIndicator removed — sync is skipped, data already in Databricks */}
           </div>
         </CardHeader>
@@ -157,7 +161,7 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                     size="sm"
                     disabled={!canTrigger}
                     className="flex-1"
-                    title={!canTrigger ? "Data not available or calibration already running" : undefined}
+                    title={isClosed ? "Proceso cerrado" : !canTrigger ? "Data not available or calibration already running" : undefined}
                   >
                     {isPending || isRunning ? (
                       <>
