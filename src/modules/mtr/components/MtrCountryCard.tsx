@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Eye, Loader2, Square } from "lucide-react"
 import { toast } from "sonner"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { MtrProgress } from "./MtrProgress"
 import { MtrDetailModal } from "./MtrDetailModal"
 import { MtrHistoryModal } from "./MtrHistoryModal"
@@ -93,7 +95,8 @@ export function MtrCountryCard({
   const isPending = latestRun?.status === "pending"
   const isCompleted = latestRun?.status === "completed"
   const isFailed = latestRun?.status === "failed"
-  const canExecute = !isProcessing && !isPending && !createRun.isPending && !executeRun.isPending
+  const { isClosed } = useProcessEntry("mtr", countryCode)
+  const canExecute = !isProcessing && !isPending && !createRun.isPending && !executeRun.isPending && !isClosed
 
   const statusConfig = latestRun ? MTR_STATUS_CONFIG[latestRun.status] : null
 
@@ -146,6 +149,9 @@ export function MtrCountryCard({
           >
             {lastMtrDate ? formatRelativeTime(lastMtrDate) : "never"}
           </Badge>
+        </div>
+        <div className="mt-2">
+          <ProcessStatusBadge stage="mtr" country={countryCode} countryLabel={countryLabel} />
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -213,7 +219,7 @@ export function MtrCountryCard({
             {!isProcessing && !isPending && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" disabled={!canExecute} className="flex-1">
+                  <Button size="sm" disabled={!canExecute} className="flex-1" title={isClosed ? "Proceso cerrado" : undefined}>
                     {(createRun.isPending || executeRun.isPending) ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

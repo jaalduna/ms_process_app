@@ -1,0 +1,18 @@
+{
+  "ticket": "JAA-391",
+  "evaluator": "ux-ui-reviewer (separate context)",
+  "date": "2026-06-17",
+  "overall": "PASS (9/9 after hardening the open/close e2e helper)",
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "src/types/api.ts: ProcessStage/ProcessState/ProcessEntry/ProcessStatusResponse present; tsc -b clean."},
+    {"id": "ac2", "verdict": "PASS", "evidence": "src/lib/api.ts: getProcessStatus/openProcess/closeProcess hitting /processes endpoints."},
+    {"id": "ac3", "verdict": "PASS", "evidence": "processesRouter mounted in server.js; seedProcesses in seed + /test/reset. curl: status returns countries, close flips to closed w/ attribution, reset re-opens argentina precios."},
+    {"id": "ac4", "verdict": "PASS", "evidence": "ProcessStatusBadge rendered on all 5 stage cards (calibracion/elegibilidad/mtr/pesaje/precios) + eligibility modal header; Playwright snapshot shows Abierto/Cerrado per country."},
+    {"id": "ac5", "verdict": "PASS", "evidence": "canTrigger/canExecute &&= !isClosed across all 5 cards; title='Proceso cerrado'; snapshot shows Colombia Validar [disabled] when closed."},
+    {"id": "ac6", "verdict": "PASS", "evidence": "EligibilityDetailModal: useProcessEntry('elegibilidad', country); badge in header; 'Aprobar y Aplicar' disabled={approve.isPending || isClosed}."},
+    {"id": "ac7", "verdict": "PASS", "evidence": "OverviewPage compact Lock/LockOpen indicator with aria-label 'Proceso abierto|cerrado [por {user}]'; OverviewPage.test 4/4 pass; live page shows 45 role=img indicators."},
+    {"id": "ac8", "verdict": "PASS", "evidence": "tsc -b clean; npm test 89/89 (12 files); eslint clean."},
+    {"id": "ac9", "verdict": "PASS", "evidence": "Evaluator initially FAILed ac9 as spec-flaky (Radix dialog timing race, not a product defect). Hardened toggleProcess (wait-for-enabled + assert-each-step + Escape-reset); now 3/3 pass with --retries=0 --repeat-each=3 (24.2s)."}
+  ],
+  "notes": "Legacy e2e specs (smoke/prices/weighting/mtr) fail on base from stale post-rebrand selectors -> filed JAA-394 (not attributable to this change). e2e suite slowness -> filed JAA-393."
+}

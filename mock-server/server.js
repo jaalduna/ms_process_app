@@ -7,6 +7,7 @@ import pricesRouter, { pricesStore } from "./routes/prices.js"
 import weightingRouter, { weightingStore } from "./routes/weighting.js"
 import mtrRouter, { mtrStore } from "./routes/mtr.js"
 import eligibilityRouter, { eligibilityStore } from "./routes/eligibility.js"
+import processesRouter from "./routes/processes.js"
 import traceabilityRouter from "./routes/traceability.js"
 import calibrationRouter from "./routes/calibration.js"
 import testRouter from "./routes/test.js"
@@ -74,6 +75,7 @@ app.use("/api/v1", pricesRouter)
 app.use("/api/v1", weightingRouter)
 app.use("/api/v1", mtrRouter)
 app.use("/api/v1", eligibilityRouter)
+app.use("/api/v1", processesRouter)
 app.use("/api/v1", traceabilityRouter)
 app.use("/api/v1", calibrationRouter)
 app.use("/api/v1", testRouter)

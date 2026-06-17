@@ -1,0 +1,34 @@
+{
+  "ticket": "JAA-391",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-391/abrircerrar-proceso-por-pais-en-cada-etapa-del-pipeline-elegibilidad",
+  "branch": "feat/JAA-391-process-open-close",
+  "archetype": "webapp",
+  "goal": "Abrir/Cerrar (lock/unlock con atribución) un proceso por país en cada etapa del pipeline; 'cerrado' bloquea iniciar runs nuevos y aprobar resultados, y se refleja en Overview y en la vista review.",
+  "decisions": {
+    "closed_semantics": "Cerrado bloquea iniciar/ejecutar runs nuevos en la tarjeta (trigger disabled + tooltip). Ver detalle/resultados existentes siguen disponibles (solo lectura).",
+    "review_view": "El modal de review muestra el badge Abierto/Cerrado con atribución en el header y deshabilita la acción de aprobar cuando está cerrado.",
+    "overview_indicator": "Indicador compacto de solo lectura (icono lock/unlock + aria-label 'Proceso abierto|cerrado [por {user}]') por celda; el toggle interactivo vive en las tarjetas de cada etapa."
+  },
+  "ports": { "mock": 5191, "dev": 5391 },
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "Tipos ProcessState ('open'|'closed') y ProcessStage en src/types/api.ts; tipo de entry/respuesta del status", "how_to_verify": "grep en src/types/api.ts + npx tsc -b limpio"},
+    {"id": "ac2", "criterion": "getProcessStatus(), openProcess(stage,country), closeProcess(stage,country) exportadas desde src/lib/api.ts apuntando a /processes endpoints", "how_to_verify": "grep en src/lib/api.ts + ProcessStatusBadge.test pasa"},
+    {"id": "ac3", "criterion": "Router processes.js montado en mock-server/server.js y seedProcesses incluido en seed + reset (/test)", "how_to_verify": "curl GET /api/v1/processes/status devuelve {countries}; POST /processes/precios/argentina/close cambia estado"},
+    {"id": "ac4", "criterion": "ProcessStatusBadge (toggle abrir/cerrar) renderizado por país en las 5 tarjetas de etapa: Elegibilidad, Precios, Pesaje, Calibración, MTR", "how_to_verify": "Playwright: el badge Abierto/Cerrado aparece en cada página de módulo por país"},
+    {"id": "ac5", "criterion": "Cerrado deshabilita el botón de iniciar/ejecutar run nuevo en la tarjeta (canTrigger/canExecute &&= isOpen) con tooltip 'proceso cerrado'", "how_to_verify": "Playwright: cerrar un país y verificar que el botón de trigger queda disabled; abrir y vuelve habilitado"},
+    {"id": "ac6", "criterion": "El modal review (EligibilityDetailModal) muestra el badge/atribución del proceso y deshabilita 'Aprobar' cuando está cerrado", "how_to_verify": "Playwright/unit: con proceso cerrado, el botón Aprobar del modal de review está disabled y se ve el estado"},
+    {"id": "ac7", "criterion": "OverviewPage muestra un indicador compacto de solo lectura por celda con aria-label 'Proceso abierto|cerrado [por {user}]'; sin indicador si no hay estado", "how_to_verify": "vitest src/__tests__/OverviewPage.test.tsx pasa (4 casos)"},
+    {"id": "ac8", "criterion": "VERIFY_CMD verde", "how_to_verify": "npm test && npm run lint && npx tsc -b (incluye ProcessStatusBadge.test + OverviewPage.test)"},
+    {"id": "ac9", "criterion": "Walkthrough Playwright: abrir y cerrar el proceso de un país, ver el badge y la atribución actualizarse sin recargar", "how_to_verify": "e2e/process-open-close.spec.ts: open→badge 'Abierto'+atribución; close→'Cerrado'"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "AC1+AC2: añadir tipos ProcessStage/ProcessState/ProcessEntry/ProcessStatusResponse en types/api.ts y getProcessStatus/openProcess/closeProcess en lib/api.ts", "status": "complete"},
+    {"id": "t2", "desc": "AC3: montar processes router + seedProcesses en mock-server/server.js y en el reset de routes/test.js", "status": "complete"},
+    {"id": "t3", "desc": "AC4: renderizar ProcessStatusBadge por país en las 5 tarjetas de etapa", "status": "complete"},
+    {"id": "t4", "desc": "AC5: gate de cerrado → deshabilitar trigger de run nuevo en las 5 tarjetas (tooltip)", "status": "complete"},
+    {"id": "t5", "desc": "AC6: badge + bloqueo de aprobar en EligibilityDetailModal cuando cerrado", "status": "complete"},
+    {"id": "t6", "desc": "AC7: indicador compacto de proceso en OverviewPage (aria-label) — hace pasar OverviewPage.test", "status": "complete"},
+    {"id": "t7", "desc": "AC8: VERIFY_CMD verde (test+lint+tsc)", "status": "complete"},
+    {"id": "t8", "desc": "AC9: e2e Playwright open/close walkthrough + evaluador separado", "status": "complete"}
+  ]
+}

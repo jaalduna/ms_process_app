@@ -17,7 +17,9 @@ import {
 import { CheckCircle2, ClipboardCheck, Eye, Loader2, RefreshCcw, Square } from "lucide-react"
 import { toast } from "sonner"
 import { DependencyIndicator } from "@/components/DependencyIndicator"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { usePipelineDeps } from "@/hooks/usePipelineDeps"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { useEligibilityRuns, useCreateEligibilityRun, useExecuteEligibility, useCancelEligibility } from "../hooks/useEligibility"
 import { EligibilityProgress } from "./EligibilityProgress"
 import { EligibilityDetailModal } from "./EligibilityDetailModal"
@@ -76,6 +78,7 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
   const [modalOpen, setModalOpen] = useState(false)
 
   const { dependencies, allMet } = usePipelineDeps("elegibilidad", countryCode)
+  const { isClosed } = useProcessEntry("elegibilidad", countryCode)
   const { data: runs, isLoading } = useEligibilityRuns(countryCode, periodStringToNumber(period))
   const createRun = useCreateEligibilityRun()
   const executeRun = useExecuteEligibility()
@@ -162,6 +165,7 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
             </Badge>
           </div>
           <DependencyIndicator dependencies={dependencies} />
+          <ProcessStatusBadge stage="elegibilidad" country={countryCode} countryLabel={countryLabel} />
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Latest run status */}
@@ -224,7 +228,7 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
             {!isProcessing && !hasActiveProcess && !isReady && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" disabled={!canExecute} className="flex-1" title={!allMet ? "Upstream dependencies not met" : undefined}>
+                  <Button size="sm" disabled={!canExecute || isClosed} className="flex-1" title={isClosed ? "Proceso cerrado" : !allMet ? "Upstream dependencies not met" : undefined}>
                     {(createRun.isPending || executeRun.isPending) ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -258,7 +262,8 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={createRun.isPending || executeRun.isPending}
+                  disabled={createRun.isPending || executeRun.isPending || isClosed}
+                  title={isClosed ? "Proceso cerrado" : undefined}
                   onClick={() => handleRerun({ ...eligibilityParams } as Record<string, unknown>)}
                 >
                   {(createRun.isPending || executeRun.isPending) ? (

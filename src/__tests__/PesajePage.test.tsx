@@ -37,6 +37,9 @@ vi.mock("@/lib/api", () => ({
   executeWeighting: vi.fn(),
   cancelWeighting: vi.fn(),
   downloadWeightingCSV: vi.fn(),
+  getProcessStatus: vi.fn().mockResolvedValue({ countries: {} }),
+  openProcess: vi.fn(),
+  closeProcess: vi.fn(),
   setTokenProvider: vi.fn(),
   api: { interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } } },
 }))

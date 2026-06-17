@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Eye, History, Loader2, Square } from "lucide-react"
 import { toast } from "sonner"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { useWeightingRuns, useCreateWeightingRun, useExecuteWeighting, useCancelWeighting } from "../hooks/useWeighting"
 import { WeightingProgress } from "./WeightingProgress"
 import { WeightingDetailModal } from "./WeightingDetailModal"
@@ -84,11 +86,13 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
   const countryLabel = COUNTRY_LABELS[countryCode] ?? countryCode
   const flag = COUNTRY_FLAGS[countryCode] ?? ""
 
+  const { isClosed } = useProcessEntry("pesaje", countryCode)
   const isProcessing = latestRun ? WEIGHTING_ACTIVE_STATUSES.includes(latestRun.status) : false
   const isCompleted = latestRun?.status === "completed"
   const isFailed = latestRun?.status === "failed"
-  const canExecute = !isProcessing && !createRun.isPending && !executeRun.isPending
+  const runStateAllowsExecute = !isProcessing && !createRun.isPending && !executeRun.isPending
     && (!latestRun || ["completed", "failed", "cancelled"].includes(latestRun.status))
+  const canExecute = runStateAllowsExecute && !isClosed
   const showDetailButton = latestRun != null && latestRun.status !== "pending"
   const hasAnyRuns = runs && runs.length > 0
 
@@ -146,6 +150,9 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
                 ? formatRelativeTime(lastFinalizedDate)
                 : "never"}
             </Badge>
+          </div>
+          <div className="mt-2">
+            <ProcessStatusBadge stage="pesaje" country={countryCode} countryLabel={countryLabel} />
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -205,11 +212,11 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
               </>
             )}
 
-            {/* Ejecutar: when can execute */}
-            {!isProcessing && canExecute && (
+            {/* Ejecutar: when run state allows (disabled if process closed) */}
+            {!isProcessing && runStateAllowsExecute && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" disabled={!canExecute} className="flex-1">
+                  <Button size="sm" disabled={!canExecute} className="flex-1" title={isClosed ? "Proceso cerrado" : undefined}>
                     {(createRun.isPending || executeRun.isPending) ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
