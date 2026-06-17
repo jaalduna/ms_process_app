@@ -40,6 +40,30 @@ and made the first e2e run misleading — always restart the mock after editing 
 
 **Next:** commit → push `ado` → PR to `develop` → Linear In Review → auto-merge when policies green.
 
+## 2026-06-17 — JAA-393 (e2e fast-mode: configurable interval + smoke/flow split) — webapp
+
+**What:** Test-infra only. `MOCK_STEP_INTERVAL_MS` env wired into `run-store.js` (fallback
+2000ms) + `eligibility-store.js` (fallback 1500ms) so e2e can shrink pipeline waits; vitest
+fake-timer test asserts the cadence. Playwright split into `smoke` (`grep /@smoke/`,
+`retries:0`, 38 specs) + `flow` (`grepInvert`, `retries:2`, 15 specs). npm scripts `mock:fast`,
+`test:e2e:fast`, `test:e2e:full`. Scope = fixes 1+2+4 (user); #3 parallelization deferred.
+
+**Verify recipe (important):** mock must run on **:8000** to match committed `public/config.js`
+(`window.__BRIDGE_CONFIG__.API_URL` overrides `VITE_BRIDGE_API_URL`), dev on :5393,
+`MOCK_SERVER_PORT=8000`. Worktree needs `.env.local` with `VITE_AUTH_BYPASS=true` (gitignored).
+Run ONE server set at a time (ports 8000/5393) — overlapping mock instances clobber each other.
+
+**RCA / re-scope:** original ACs wanted the e2e suite green, but the suite is **pre-existingly
+~60% red from stale selectors** (app renders fine; specs use outdated locators — e.g. Precios
+renders 9 cards as `<button aria-label="View price validation history…">` while the spec waits
+for `.country-card`/`article`). Fails **identically at 150ms and 2000ms** → orthogonal to this
+change. Filed **JAA-397** (related). ac3/ac4 re-scoped to prove the speedup mechanism + no-new-
+failures. Separate evaluator (ux-ui-reviewer): ac1–ac4 **all PASS**. vitest 83/83, lint, tsc green.
+
+**Result:** worktree `../ms_process_app-JAA-393`, branch `feat/JAA-393-e2e-fast-mode` (off
+`ado/develop`). Commit `ed5f684`. **PR 516252 → develop** (In Review). **Next:** check ADO branch
+policies; auto-merge when green (re-run `/harness JAA-393` → step 7).
+
 ## 2026-06-16 — JAA-387 (eligibility results_ready reads as "done" at 2/8) — webapp
 
 **What:** Screenshot showed a country card with amber **"Resultados listos"** badge at 2/8
