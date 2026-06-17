@@ -14,16 +14,14 @@ test.describe("Prices Module E2E", () => {
   test("page loads with 9 country cards", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Precios", /precios/)
 
-    // Each country card should be visible — 9 countries total
-    const cards = page.locator("[data-testid='country-card'], .country-card").or(
-      page.getByRole("article"),
-    )
+    // Country cards render as shadcn <Card> roots (data-slot="card"); 9 countries.
+    const cards = page.locator('[data-slot="card"]')
     await expect(cards.first()).toBeVisible({ timeout: 10_000 })
-    const count = await cards.count()
-    expect(count).toBe(9)
+    expect(await cards.count()).toBe(9)
   })
 
-  test("trigger validation shows progress indicators", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("trigger validation shows progress indicators", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Precios", /precios/)
 
     // Click a country card (e.g., Chile)
@@ -153,7 +151,8 @@ test.describe("Prices Module E2E", () => {
     ).toBeVisible({ timeout: 5_000 })
   })
 
-  test("history shows past runs for a country", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("history shows past runs for a country", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Precios", /precios/)
 
     // The mock server seeds one completed/approved run per country.

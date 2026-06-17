@@ -3,7 +3,8 @@ import { login } from "./helpers/auth"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
 
 test.describe("Navigation and Module Toggle E2E", () => {
-  test("all module nav items visible when all modules enabled", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("all module nav items visible when all modules enabled", { tag: "@smoke" }, async ({ page }) => {
     // Enable all modules
     await setModuleConfig(page, {
       sync: true,
@@ -58,7 +59,8 @@ test.describe("Navigation and Module Toggle E2E", () => {
     }
   })
 
-  test("disabled module is hidden from navigation", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("disabled module is hidden from navigation", { tag: "@smoke" }, async ({ page }) => {
     // Disable prices module
     await setModuleConfig(page, { prices: false })
     await page.request.post(`${MOCK_API_BASE}/test/reset`)
@@ -93,7 +95,8 @@ test.describe("Navigation and Module Toggle E2E", () => {
     await expect(page).not.toHaveURL(/precios/, { timeout: 10_000 })
   })
 
-  test("unknown path redirects to first enabled module", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("unknown path redirects to first enabled module", { tag: "@smoke" }, async ({ page }) => {
     await setModuleConfig(page, {})
     await page.request.post(`${MOCK_API_BASE}/test/reset`)
     await login(page)

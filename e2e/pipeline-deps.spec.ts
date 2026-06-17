@@ -10,7 +10,8 @@ test.describe("Pipeline Dependency Indicators E2E", () => {
     await login(page)
   })
 
-  test("dependency indicators render on country cards when upstream completed", { tag: "@smoke" }, async ({
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("dependency indicators render on country cards when upstream completed", { tag: "@smoke" }, async ({
     page,
   }) => {
     // Navigate to a pipeline module that has upstream dependencies
@@ -40,7 +41,8 @@ test.describe("Pipeline Dependency Indicators E2E", () => {
     }
   })
 
-  test("triggering with unmet dependencies shows a warning", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("triggering with unmet dependencies shows a warning", { tag: "@smoke" }, async ({ page }) => {
     // Navigate to a pipeline module
     await navigateTo(page, "Pesaje", /pesaje/)
 
@@ -74,7 +76,8 @@ test.describe("Pipeline Dependency Indicators E2E", () => {
     }
   })
 
-  test("can trigger despite unmet dependency warning", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("can trigger despite unmet dependency warning", { tag: "@smoke" }, async ({ page }) => {
     // Navigate to a pipeline module with an unmet dependency country
     await navigateTo(page, "Pesaje", /pesaje/)
 

@@ -13,15 +13,14 @@ test.describe("Weighting Module E2E", () => {
   test("page loads with country cards", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
-    const cards = page.locator("[data-testid='country-card'], .country-card").or(
-      page.getByRole("article"),
-    )
+    // Country cards render as shadcn <Card> roots (data-slot="card"); 9 countries.
+    const cards = page.locator('[data-slot="card"]')
     await expect(cards.first()).toBeVisible({ timeout: 10_000 })
-    const count = await cards.count()
-    expect(count).toBe(9)
+    expect(await cards.count()).toBe(9)
   })
 
-  test("config dialog opens and accepts parameter changes", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("config dialog opens and accepts parameter changes", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
     // Click a country card

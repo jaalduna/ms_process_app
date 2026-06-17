@@ -48,16 +48,23 @@ npm test && npm run lint && npx tsc -b
 (`npm test` = vitest run; `npm run lint` = eslint; `npx tsc -b` = typecheck via project refs.)
 THEN the decisive UI gate — Playwright e2e:
 ```
-# terminal A: npm run mock        (mock backend)
-# terminal B: npm run dev         (vite on 5173, base /ms-process-app/)
-npx playwright test               # testDir e2e/, baseURL http://[::1]:5173/ms-process-app/
+# terminal A: npm run mock:fast                 (mock backend on :8000, fast step interval)
+# terminal B: npm run dev:e2e                    (vite + VITE_AUTH_BYPASS=true → "Continue (dev)" login)
+MOCK_SERVER_PORT=8000 npm run test:e2e:fast      # smoke project (curated, fast, retries:0)
+# full suite (both projects, heavy @flow): MOCK_SERVER_PORT=8000 npm run test:e2e:full
 ```
-Playwright e2e is the gate the evaluator (`ux-ui-reviewer`) runs — agents mark UI done without
-testing it, so this is mandatory, not optional. Note: e2e timeouts are 5 min (syncs are slow);
-servers are started manually (config `webServer: undefined`).
+**e2e REQUIRES `dev:e2e` (auth bypass), not `dev`.** The app's configured auth provider is GitHub
+OAuth (`public/config.js` authProvider:"github"), which redirects to real github.com — unautomatable.
+`dev:e2e` sets `VITE_AUTH_BYPASS=true` so the `login()` helper's "Continue (dev)" path works. The
+mock runs on **:8000** to match `public/config.js` `API_URL`; pass `MOCK_SERVER_PORT=8000` so the
+`setModuleConfig` helper's config.js interception targets the same port.
+Projects (JAA-393): `smoke` (page loads/render/nav, retries:0) vs `flow` (full lifecycles, retries:2).
+As of JAA-397 the **smoke** project is green; many `flow`/stale tests are quarantined with
+`test.fixme()` (grep `JAA-411`) pending repair/port-to-vitest. vitest is the everyday fast gate.
+Note: e2e timeouts are 5 min (syncs are slow); servers are started manually (`webServer: undefined`).
 
 ## Run / init
-- Dev server: `npm run dev` → http://[::1]:5173/ms-process-app/
+- Dev server: `npm run dev` → http://[::1]:5173/ms-process-app/ (for e2e use `npm run dev:e2e` = auth bypass)
 - Mock backend: `npm run mock` (fixtures in `mock-server/fixtures/`, routes in `mock-server/routes/`)
 - Tauri desktop: `npm run tauri:dev` (rarely needed for feature work)
 - Env: copy `.env.example` → `.env.local`; mock-server may need its own `.env` (GitHub OAuth, JWT).

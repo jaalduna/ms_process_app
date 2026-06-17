@@ -1,0 +1,23 @@
+{
+  "ticket": "JAA-397",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-397",
+  "branch": "fix/JAA-397-e2e-stale-selectors",
+  "archetype": "webapp",
+  "goal": "Make the Playwright @smoke project green and re-runnable (auth-bypass baked in), fixing the 3 stale card-load selectors and quarantining the rest of the stale e2e tests; defer the full rewrite/vitest port to a follow-up.",
+  "scope_note": "Test-infra only, no product behavior change. User chose 'minimal unblock + defer': vitest stays the everyday fast gate; heavy @flow e2e is deferred on-demand. Root cause is broader than the ticket framed: rebrand (SQL-Databricks Bridge -> MS Process App) + auth switch to GitHub OAuth meant e2e could not even log in without VITE_AUTH_BYPASS=true; plus card DOM changed (.country-card/article -> [data-slot=card]).",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "An npm script runs the dev server with auth bypass so e2e can log in, and AGENTS.md documents the e2e run recipe.", "how_to_verify": "grep 'dev:e2e' package.json shows VITE_AUTH_BYPASS=true; AGENTS.md VERIFY_CMD section mentions dev:e2e."},
+    {"id": "ac2", "criterion": "Card-load @smoke tests for Precios, Pesaje, MTR use [data-slot=\"card\"] and assert count 9, and pass.", "how_to_verify": "npx playwright test --project=smoke prices.spec.ts:14 weighting.spec.ts:13 mtr.spec.ts:13 -> 3 passed."},
+    {"id": "ac3", "criterion": "All remaining stale @smoke tests are quarantined with test.fixme() and a comment referencing the follow-up ticket (no silent deletion).", "how_to_verify": "grep -rn 'test.fixme' e2e/ shows the 19 quarantined tests each with a JAA-### reference comment."},
+    {"id": "ac4", "criterion": "The full smoke project is GREEN: 0 failed (passed + fixme-skipped only).", "how_to_verify": "npm run test:e2e:fast (smoke) against npm run mock:fast -> 0 failed."},
+    {"id": "ac5", "criterion": "vitest + lint + typecheck remain green (no regression from spec edits / script add).", "how_to_verify": "npm test && npm run lint && npx tsc -b -> all pass."},
+    {"id": "ac6", "criterion": "A follow-up Linear ticket exists for the deferred work (port @smoke assertions to vitest; rewrite/repair @flow e2e).", "how_to_verify": "Linear issue created, related-to JAA-397, URL recorded in progress.md."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Add `dev:e2e` (VITE_AUTH_BYPASS=true vite) npm script; document the e2e run recipe (mock:fast + dev:e2e + test:e2e:fast) in AGENTS.md.", "status": "incomplete"},
+    {"id": "t2", "desc": "Fix card-load @smoke selectors in prices.spec.ts:14, weighting.spec.ts:13, mtr.spec.ts:13 to [data-slot=\"card\"] count 9.", "status": "incomplete"},
+    {"id": "t3", "desc": "test.fixme() the 19 remaining red @smoke tests (smoke.spec x5, navigation x3, pipeline-deps x3, calibration x2, eligibility x1, prices x2, weighting x1, mtr x1, performance x1) with a follow-up-ticket comment.", "status": "incomplete"},
+    {"id": "t4", "desc": "Run VERIFY_CMD (vitest+lint+tsc) and the smoke project; confirm 0 failed.", "status": "incomplete"},
+    {"id": "t5", "desc": "Create follow-up Linear ticket (vitest port + @flow rewrite), record in progress.md, commit, push, PR to develop.", "status": "incomplete"}
+  ]
+}

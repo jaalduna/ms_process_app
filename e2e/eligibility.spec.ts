@@ -146,7 +146,8 @@ test.describe("Eligibility Module E2E", () => {
     await expect(card.getByText("never")).toHaveCount(0)
   })
 
-  test("results_ready card shows an actionable 'Revisar y aprobar' CTA, not clipped (JAA-360 / JAA-387)", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
+  test.fixme("results_ready card shows an actionable 'Revisar y aprobar' CTA, not clipped (JAA-360 / JAA-387)", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Elegibilidad", /elegibilidad/)
 
     // Argentina has no seeded run → execute it to reach results_ready, where
