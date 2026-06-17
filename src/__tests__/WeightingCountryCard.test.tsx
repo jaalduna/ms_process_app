@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -220,6 +220,39 @@ describe("WeightingCountryCard", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Detener")).toBeInTheDocument()
+    })
+  })
+
+  it("confirming Detener cancels the running run (JAA-411: cancel ported from e2e)", async () => {
+    // Ported from the Playwright cancel test: under the fast mock a real run
+    // completes before a UI click can land, so the cancel-from-running path is
+    // exercised deterministically here with a pinned "running" run.
+    const user = userEvent.setup()
+    mockGetWeightingRuns.mockResolvedValue([
+      {
+        run_id: "run-1",
+        country: "chile",
+        period: 202602,
+        status: "running",
+        steps: [],
+        current_step: null,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ])
+    mockCancelWeighting.mockResolvedValue({ run_id: "run-1", status: "cancelled" })
+
+    renderCard()
+
+    // Open the stop confirmation dialog from the running-state "Detener" button.
+    await user.click(await screen.findByText("Detener"))
+    const dialog = await screen.findByRole("alertdialog")
+    expect(within(dialog).getByText("Detener ejecucion")).toBeInTheDocument()
+
+    // Confirm → cancelWeighting is invoked with the running run id.
+    await user.click(within(dialog).getByRole("button", { name: "Detener" }))
+    await waitFor(() => {
+      expect(mockCancelWeighting).toHaveBeenCalledWith("run-1")
     })
   })
 

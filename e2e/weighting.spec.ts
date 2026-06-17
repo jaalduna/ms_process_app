@@ -1,7 +1,59 @@
 import { test, expect } from "@playwright/test"
+import type { Page, Locator } from "@playwright/test"
 import { login } from "./helpers/auth"
 import { navigateTo } from "./helpers/navigation"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
+
+/**
+ * Pesaje (weighting) module E2E. Mirrors the real WeightingCountryCard DOM:
+ * trigger = "Ejecutar"/"Re-ejecutar" → AlertDialog "Confirmar ejecucion" →
+ * "Confirmar"; processing shows "Procesando..." + "Detener"; completed runs
+ * surface "Ver detalle" → the detail modal with the "Estadisticas de Pesos"
+ * summary. The config dialog opens from the header "Parametros de pesaje" button.
+ *
+ * Cancel-from-running is covered by a vitest component test
+ * (src/__tests__/WeightingCountryCard.test.tsx): the "Detener" control only
+ * renders while a run is "running", and under the fast mock a run completes
+ * before a UI click can land, so it can't be exercised deterministically here.
+ */
+
+/** The country card by its visible label. The card text glues the label to the
+ *  next token (e.g. "Chilenever…"), so match on a plain substring, not a \b regex. */
+function card(page: Page, label: string): Locator {
+  return page.locator('[data-slot="card"]').filter({ hasText: label }).first()
+}
+
+/** Confirm a radix AlertDialog action robustly (radix animates on open). */
+async function confirmAction(page: Page, trigger: Locator, actionName: RegExp) {
+  const dialog = page.getByRole("alertdialog")
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (!(await dialog.isVisible().catch(() => false))) {
+      await trigger.click({ timeout: 8_000 }).catch(() => {})
+      if (!(await dialog.isVisible({ timeout: 3_000 }).catch(() => false))) continue
+    }
+    await page.waitForTimeout(300)
+    await dialog.getByRole("button", { name: actionName }).click({ timeout: 8_000 }).catch(() => {})
+    if (await dialog.isHidden({ timeout: 5_000 }).catch(() => false)) return
+  }
+  throw new Error(`confirmAction(${actionName}) did not complete`)
+}
+
+/**
+ * Trigger a weighting run and confirm it started. Success signal = the
+ * "Ver detalle" button, which renders once a run leaves "pending" and survives
+ * running→completed.
+ */
+async function startWeighting(page: Page, c: Locator) {
+  const verDetalle = c.getByRole("button", { name: /ver detalle/i })
+  const ejecutar = c.getByRole("button", { name: /^(Ejecutar|Re-ejecutar)$/ })
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await verDetalle.isVisible().catch(() => false)) return
+    if (!(await ejecutar.isEnabled({ timeout: 10_000 }).catch(() => false))) continue
+    await confirmAction(page, ejecutar, /^Confirmar$/).catch(() => {})
+    if (await verDetalle.isVisible({ timeout: 8_000 }).catch(() => false)) return
+  }
+  throw new Error("weighting run did not start")
+}
 
 test.describe("Weighting Module E2E", () => {
   test.beforeEach(async ({ page }) => {
@@ -12,98 +64,45 @@ test.describe("Weighting Module E2E", () => {
 
   test("page loads with country cards", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
-
-    // Country cards render as shadcn <Card> roots (data-slot="card"); 9 countries.
     const cards = page.locator('[data-slot="card"]')
     await expect(cards.first()).toBeVisible({ timeout: 10_000 })
     expect(await cards.count()).toBe(9)
   })
 
-  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
-  test.fixme("config dialog opens and accepts parameter changes", { tag: "@smoke" }, async ({ page }) => {
+  test("config dialog opens and accepts parameter changes", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
-    // Click a country card
-    const card = page.getByText("chile", { exact: false }).first()
-    await expect(card).toBeVisible()
-    await card.click()
+    // The header settings button opens the global weighting-params dialog.
+    await page.getByRole("button", { name: "Parametros de pesaje" }).click()
+    const dialog = page.getByRole("dialog")
+    await expect(dialog).toBeVisible({ timeout: 5_000 })
+    await expect(dialog.getByText(/Parametros de Pesaje/i)).toBeVisible()
 
-    // Open configuration dialog
-    const configBtn = page.getByRole("button", { name: /config|settings|parameters/i })
-    await expect(configBtn).toBeVisible({ timeout: 10_000 })
-    await configBtn.click()
+    // It exposes editable param fields; change a numeric one.
+    const maxRounds = dialog.getByLabel("Maximo juntas marginales")
+    await expect(maxRounds).toBeVisible()
+    await maxRounds.fill("80")
+    await expect(maxRounds).toHaveValue("80")
 
-    // Dialog should be visible
-    await expect(page.getByRole("dialog").or(page.locator("[role='dialog']"))).toBeVisible({
-      timeout: 5_000,
-    })
-
-    // Look for input fields and modify a parameter
-    const inputs = page.getByRole("dialog").locator("input, select")
-    const inputCount = await inputs.count()
-    expect(inputCount).toBeGreaterThan(0)
-
-    // Save/close the dialog
-    const saveBtn = page.getByRole("button", { name: /save|apply|confirm|close/i })
-    await expect(saveBtn).toBeVisible()
-    await saveBtn.click()
-
-    // Dialog should close
-    await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 5_000 })
+    // Closing the dialog dismisses it.
+    await page.keyboard.press("Escape")
+    await expect(dialog).not.toBeVisible({ timeout: 5_000 })
   })
 
-  test("trigger shows progress and completed run shows weight stats", async ({ page }) => {
+  test("trigger runs to completion and shows weight stats", async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
+    const chile = card(page, "Chile")
+    await startWeighting(page, chile)
 
-    // Click a country card
-    const card = page.getByText("chile", { exact: false }).first()
-    await expect(card).toBeVisible()
-    await card.click()
+    // Deterministic mock → terminal "Completado" status badge.
+    await expect(chile.getByText(/Completado/i).first()).toBeVisible({ timeout: 30_000 })
 
-    // Trigger a run
-    const triggerBtn = page.getByRole("button", { name: /trigger|run|start/i })
-    await expect(triggerBtn).toBeVisible({ timeout: 10_000 })
-    await triggerBtn.click()
-
-    // Should see running state
-    await expect(
-      page.getByText(/running|in progress|step/i).first(),
-    ).toBeVisible({ timeout: 15_000 })
-
-    // Wait for completion and verify summary stats
-    await expect(
-      page.getByText(/completed|summary|weight|min|max|mean|median/i).first(),
-    ).toBeVisible({ timeout: 30_000 })
-  })
-
-  test("cancel stops running weighting and shows cancelled status", async ({ page }) => {
-    await navigateTo(page, "Pesaje", /pesaje/)
-
-    // Click a country card
-    const card = page.getByText("chile", { exact: false }).first()
-    await expect(card).toBeVisible()
-    await card.click()
-
-    // Trigger a run
-    const triggerBtn = page.getByRole("button", { name: /trigger|run|start/i })
-    await expect(triggerBtn).toBeVisible({ timeout: 10_000 })
-    await triggerBtn.click()
-
-    // Wait for running state
-    await expect(page.getByText(/running|in progress/i).first()).toBeVisible({ timeout: 15_000 })
-
-    // Cancel
-    const cancelBtn = page.getByRole("button", { name: /cancel/i })
-    await expect(cancelBtn).toBeVisible()
-    await cancelBtn.click()
-
-    // Confirm if dialog appears
-    const confirmBtn = page.getByRole("button", { name: /confirm|yes/i })
-    if (await confirmBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await confirmBtn.click()
-    }
-
-    // Verify cancelled status
-    await expect(page.getByText(/cancelled|canceled/i).first()).toBeVisible({ timeout: 10_000 })
+    // The detail modal shows the weight summary statistics.
+    await chile.getByRole("button", { name: /ver detalle/i }).click()
+    const modal = page.getByRole("dialog")
+    await expect(modal).toBeVisible({ timeout: 5_000 })
+    await expect(modal.getByText(/Estadisticas de Pesos/i)).toBeVisible({ timeout: 10_000 })
+    await expect(modal.getByText("Peso medio")).toBeVisible()
+    await expect(modal.getByText("Peso mediana")).toBeVisible()
   })
 })

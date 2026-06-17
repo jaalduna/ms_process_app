@@ -21,7 +21,12 @@ export async function setModuleConfig(
   modules: Partial<Record<string, boolean>>,
 ) {
   const allModules = {
-    sync: true,
+    // Mirror production public/config.js: sync is disabled by default, so the
+    // post-login redirect (LoginPage → /dashboard → defaultRoute) lands on the
+    // Overview page instead of the retired sync dashboard. Specs that need the
+    // sync module pass `{ sync: true }` explicitly.
+    overview: true,
+    sync: false,
     calibration: true,
     elegibilidad: true,
     prices: true,
@@ -44,3 +49,6 @@ export async function setModuleConfig(
 
 /** The base URL for the mock server API (for direct HTTP calls in tests). */
 export const MOCK_API_BASE = `http://127.0.0.1:${MOCK_SERVER_PORT}/api/v1`
+
+/** The mock server origin (no /api/v1) — health endpoints are mounted at root. */
+export const MOCK_ORIGIN = `http://127.0.0.1:${MOCK_SERVER_PORT}`

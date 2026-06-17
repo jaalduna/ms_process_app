@@ -53,7 +53,9 @@ async function startRun(
   const ejecutar = card.getByRole("button", { name: /^Ejecutar$/ })
   for (let attempt = 0; attempt < 3; attempt++) {
     if (!(await ejecutar.isVisible().catch(() => false))) return // already started
-    await confirmAction(page, ejecutar, /^Confirmar$/)
+    // confirmAction can win the start but lose its own dialog-hidden race and
+    // throw; the real success signal is the Ejecutar button disappearing.
+    await confirmAction(page, ejecutar, /^Confirmar$/).catch(() => {})
     if (await ejecutar.isHidden({ timeout: 8_000 }).catch(() => false)) return
   }
   throw new Error("eligibility run did not start after 3 attempts")
@@ -146,8 +148,7 @@ test.describe("Eligibility Module E2E", () => {
     await expect(card.getByText("never")).toHaveCount(0)
   })
 
-  // JAA-411: quarantined (stale/aspirational selector vs current DOM) — repair or port to vitest.
-  test.fixme("results_ready card shows an actionable 'Revisar y aprobar' CTA, not clipped (JAA-360 / JAA-387)", { tag: "@smoke" }, async ({ page }) => {
+  test("results_ready card shows an actionable 'Revisar y aprobar' CTA, not clipped (JAA-360 / JAA-387)", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Elegibilidad", /elegibilidad/)
 
     // Argentina has no seeded run → execute it to reach results_ready, where
