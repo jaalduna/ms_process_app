@@ -1,0 +1,8 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "PesajePage header has only PeriodSelector — global gear removed. Live: 9 cards each with a 'Configurar parametros' button (all inside cards), 0 gear/settings buttons in header."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "paramsFromRun() returns DEFAULT when parameters_json empty, else merges over defaults. Argentina (no runs) shows defaults; Chile (seeded run) shows its run params. vitest seeding tests + e2e PASS."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "Set Argentina N_PERIODOS_OUTLIERS=99 → POST body {country:argentina, parameters:{N_PERIODOS_OUTLIERS:99,...}}; Bolivia independently stayed at 12. e2e PASS."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "After completed run, 'Ver detalle' modal shows editable params + enabled 'Re-ejecutar' (status completed). e2e iterate spec PASS."},
+  {"id": "ac5", "verdict": "PASS", "evidence": "Marcar como listo → confirm → badge 'Cerrado por Dev User', Re-ejecutar disabled, Configurar parametros hidden; reopen via badge → 'Abierto', Re-ejecutar enabled, Configurar re-appears. POST /processes/pesaje/argentina/close + /open."},
+  {"id": "ac6", "verdict": "PASS", "evidence": "vitest PASS (99) FAIL (0); eslint 'No issues found'; tsc -b 'No errors found'. Playwright weighting specs 5 passed; process-open-close 1 passed (no regression)."}
+]

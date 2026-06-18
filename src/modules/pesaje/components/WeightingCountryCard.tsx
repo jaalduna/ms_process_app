@@ -13,14 +13,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Eye, History, Loader2, Square } from "lucide-react"
+import { CheckCircle2, Eye, History, Loader2, Square } from "lucide-react"
 import { toast } from "sonner"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
-import { useProcessEntry } from "@/hooks/useProcessStatus"
+import { useProcessEntry, useSetProcessStatus } from "@/hooks/useProcessStatus"
 import { useWeightingRuns, useCreateWeightingRun, useExecuteWeighting, useCancelWeighting } from "../hooks/useWeighting"
 import { WeightingProgress } from "./WeightingProgress"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WeightingHistoryModal } from "./WeightingHistoryModal"
+import { WeightingConfigDialog, DEFAULT_WEIGHTING_PARAMS } from "./WeightingConfigDialog"
 import { WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
 import type { WeightingParams } from "./WeightingConfigDialog"
 
@@ -65,7 +66,6 @@ export const COUNTRY_LABELS: Record<string, string> = {
 interface WeightingCountryCardProps {
   countryCode: string
   period: string
-  weightingParams: WeightingParams
   lastFinalizedDate: string | null
 }
 
@@ -73,18 +73,36 @@ function periodStringToNumber(period: string): number {
   return parseInt(period, 10)
 }
 
-export function WeightingCountryCard({ countryCode, period, weightingParams, lastFinalizedDate }: WeightingCountryCardProps) {
+/** Merge a run's stored params over the defaults so the editor always has every field. */
+function paramsFromRun(parameters_json: Record<string, unknown> | null | undefined): WeightingParams {
+  if (!parameters_json || Object.keys(parameters_json).length === 0) {
+    return { ...DEFAULT_WEIGHTING_PARAMS }
+  }
+  return { ...DEFAULT_WEIGHTING_PARAMS, ...parameters_json } as WeightingParams
+}
+
+export function WeightingCountryCard({ countryCode, period, lastFinalizedDate }: WeightingCountryCardProps) {
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
-
   const { data: runs, isLoading } = useWeightingRuns(countryCode, periodStringToNumber(period))
   const createRun = useCreateWeightingRun()
   const executeRun = useExecuteWeighting()
   const cancelRun = useCancelWeighting()
+  const setProcessStatus = useSetProcessStatus()
 
   const latestRun = runs?.[0] ?? null
   const countryLabel = COUNTRY_LABELS[countryCode] ?? countryCode
   const flag = COUNTRY_FLAGS[countryCode] ?? ""
+
+  // Per-country params: seeded from this country's last run (or defaults), editable before each run.
+  // Re-seed when the latest run changes (run completes / period switches) using React's
+  // adjust-state-during-render pattern, keyed on run_id so edits within a run aren't clobbered.
+  const [params, setParams] = useState<WeightingParams>(() => paramsFromRun(latestRun?.parameters_json))
+  const [seededRunId, setSeededRunId] = useState<string | null>(latestRun?.run_id ?? null)
+  if ((latestRun?.run_id ?? null) !== seededRunId) {
+    setSeededRunId(latestRun?.run_id ?? null)
+    setParams(paramsFromRun(latestRun?.parameters_json))
+  }
 
   const { isClosed } = useProcessEntry("pesaje", countryCode)
   const isProcessing = latestRun ? WEIGHTING_ACTIVE_STATUSES.includes(latestRun.status) : false
@@ -100,7 +118,7 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
 
   const handleExecutar = () => {
     createRun.mutate(
-      { country: countryCode, period: periodStringToNumber(period), parameters: { ...weightingParams } as Record<string, unknown> },
+      { country: countryCode, period: periodStringToNumber(period), parameters: { ...params } as Record<string, unknown> },
       {
         onSuccess: (run) => {
           executeRun.mutate(run.run_id, {
@@ -135,6 +153,20 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
       onError: () => toast.error(`Error al detener ejecucion para ${countryLabel}`),
     })
   }
+
+  // "Marcar como listo" closes the pesaje process for this country (reuses the JAA-391
+  // open/close mechanism); closing blocks new runs until someone reopens via the badge.
+  const handleMarkReady = () => {
+    setProcessStatus.mutate(
+      { stage: "pesaje", country: countryCode, status: "closed" },
+      {
+        onSuccess: () => toast.success(`Pesaje marcado como listo para ${countryLabel}`),
+        onError: () => toast.error(`Error al marcar como listo para ${countryLabel}`),
+      },
+    )
+  }
+
+  const canMarkReady = isCompleted && !isProcessing && !isClosed
 
   return (
     <>
@@ -212,6 +244,11 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
               </>
             )}
 
+            {/* Configurar parametros: per-country, before running (hidden once marked listo) */}
+            {!isProcessing && !isClosed && (
+              <WeightingConfigDialog params={params} onChange={setParams} triggerLabel="Configurar parametros" />
+            )}
+
             {/* Ejecutar: when run state allows (disabled if process closed) */}
             {!isProcessing && runStateAllowsExecute && (
               <AlertDialog>
@@ -242,6 +279,36 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
               </AlertDialog>
             )}
 
+            {/* Marcar como listo: finish iterating (closes the process, reuses JAA-391) */}
+            {canMarkReady && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="border-success/40 text-success hover:bg-success/10" disabled={setProcessStatus.isPending}>
+                    {setProcessStatus.isPending ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+                    )}
+                    Marcar como listo
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Marcar pesaje como listo</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Finalizar la iteracion de pesaje para <strong>{countryLabel}</strong> periodo{" "}
+                      <strong>{period}</strong>? Esto cierra el proceso y bloquea nuevas ejecuciones hasta
+                      reabrirlo. El cambio queda registrado a tu nombre.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Volver</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleMarkReady}>Marcar como listo</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
             {/* Ver detalle button */}
             {showDetailButton && (
               <Button size="sm" variant="outline" onClick={() => setDetailModalOpen(true)}>
@@ -264,7 +331,7 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
         run={latestRun}
         open={detailModalOpen}
         onOpenChange={setDetailModalOpen}
-        onRerun={handleRerun}
+        onRerun={isClosed ? undefined : handleRerun}
       />
 
       <WeightingHistoryModal

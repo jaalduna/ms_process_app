@@ -136,6 +136,18 @@ describe("PesajePage", () => {
     expect(screen.getByText(/Ejecuta y monitorea procesos de pesaje/)).toBeInTheDocument()
   })
 
+  it("no longer renders the global 'Parametros de pesaje' gear (params are per-country now) (ac1)", async () => {
+    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
+
+    const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
+    renderWithProviders(<PesajePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Argentina")).toBeInTheDocument()
+    })
+    expect(screen.queryByRole("button", { name: "Parametros de pesaje" })).not.toBeInTheDocument()
+  })
+
   it('shows "never" for countries with no last weighting date', async () => {
     mockGetCountries.mockResolvedValue({
       countries: [{ code: "chile", queries: [], queries_count: 0, type: "country" }],

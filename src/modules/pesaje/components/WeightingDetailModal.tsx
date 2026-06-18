@@ -190,7 +190,9 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
 
   if (!run) return null
 
-  const canRerun = run.status === "failed" && !!onRerun
+  // Editing params + re-running is the "ajustar y volver a correr" iterate step: available
+  // after a failure OR a completed run. The card withholds onRerun when the process is closed.
+  const canRerun = (run.status === "failed" || run.status === "completed") && !!onRerun
 
   const steps = run.steps ?? []
   const statusConfig = WEIGHTING_STATUS_CONFIG[run.status]
@@ -310,6 +312,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
                         ) : (
                           <Input
                             type="number"
+                            aria-label={key}
                             step={field?.control === "number" ? (field.step ?? "any") : "any"}
                             className="h-6 w-20 text-xs font-mono text-right px-1.5"
                             value={value === null || value === undefined ? "" : String(value)}

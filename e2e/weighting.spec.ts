@@ -9,7 +9,8 @@ import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
  * trigger = "Ejecutar"/"Re-ejecutar" → AlertDialog "Confirmar ejecucion" →
  * "Confirmar"; processing shows "Procesando..." + "Detener"; completed runs
  * surface "Ver detalle" → the detail modal with the "Estadisticas de Pesos"
- * summary. The config dialog opens from the header "Parametros de pesaje" button.
+ * summary. Params are per-country (JAA-423): each card opens its own
+ * "Configurar parametros" dialog (the global header gear was removed).
  *
  * Cancel-from-running is covered by a vitest component test
  * (src/__tests__/WeightingCountryCard.test.tsx): the "Detener" control only
@@ -72,8 +73,9 @@ test.describe("Weighting Module E2E", () => {
   test("config dialog opens and accepts parameter changes", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
-    // The header settings button opens the global weighting-params dialog.
-    await page.getByRole("button", { name: "Parametros de pesaje" }).click()
+    // Each country card opens its own per-country weighting-params dialog (JAA-423).
+    const chile = card(page, "Chile")
+    await chile.getByRole("button", { name: "Configurar parametros" }).click()
     const dialog = page.getByRole("dialog")
     await expect(dialog).toBeVisible({ timeout: 5_000 })
     await expect(dialog.getByText(/Parametros de Pesaje/i)).toBeVisible()
