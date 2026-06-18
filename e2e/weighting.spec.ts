@@ -1,16 +1,17 @@
 import { test, expect } from "@playwright/test"
-import type { Page, Locator } from "@playwright/test"
+import type { Locator } from "@playwright/test"
 import { login } from "./helpers/auth"
 import { navigateTo } from "./helpers/navigation"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
+import { card, openCardModal, confirmRun } from "./helpers/weighting"
 
 /**
- * Pesaje (weighting) module E2E. Mirrors the real WeightingCountryCard DOM:
- * trigger = "Ejecutar"/"Re-ejecutar" → AlertDialog "Confirmar ejecucion" →
- * "Confirmar"; processing shows "Procesando..." + "Detener"; completed runs
- * surface "Ver detalle" → the detail modal with the "Estadisticas de Pesos"
- * summary. Params are per-country (JAA-423): each card opens its own
- * "Configurar parametros" dialog (the global header gear was removed).
+ * Pesaje (weighting) module E2E, post-JAA-425. The whole country card is the
+ * trigger: clicking it opens the detail/config modal, which hosts the editable
+ * params, the run button ("Ejecutar"/"Re-ejecutar" → confirm AlertDialog), and —
+ * once a run is completed — the "Estadisticas de Pesos" summary + "Descargar CSV".
+ * Process close/open lives on the status badge. The mock seeds one completed run
+ * per country, so cards land on "Completado" with editable params (process open).
  *
  * Cancel-from-running is covered by a vitest component test
  * (src/__tests__/WeightingCountryCard.test.tsx): the "Detener" control only
@@ -18,42 +19,11 @@ import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
  * before a UI click can land, so it can't be exercised deterministically here.
  */
 
-/** The country card by its visible label. The card text glues the label to the
- *  next token (e.g. "Chilenever…"), so match on a plain substring, not a \b regex. */
-function card(page: Page, label: string): Locator {
-  return page.locator('[data-slot="card"]').filter({ hasText: label }).first()
-}
-
-/** Confirm a radix AlertDialog action robustly (radix animates on open). */
-async function confirmAction(page: Page, trigger: Locator, actionName: RegExp) {
-  const dialog = page.getByRole("alertdialog")
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (!(await dialog.isVisible().catch(() => false))) {
-      await trigger.click({ timeout: 8_000 }).catch(() => {})
-      if (!(await dialog.isVisible({ timeout: 3_000 }).catch(() => false))) continue
-    }
-    await page.waitForTimeout(300)
-    await dialog.getByRole("button", { name: actionName }).click({ timeout: 8_000 }).catch(() => {})
-    if (await dialog.isHidden({ timeout: 5_000 }).catch(() => false)) return
-  }
-  throw new Error(`confirmAction(${actionName}) did not complete`)
-}
-
-/**
- * Trigger a weighting run and confirm it started. Success signal = the
- * "Ver detalle" button, which renders once a run leaves "pending" and survives
- * running→completed.
- */
-async function startWeighting(page: Page, c: Locator) {
-  const verDetalle = c.getByRole("button", { name: /ver detalle/i })
-  const ejecutar = c.getByRole("button", { name: /^(Ejecutar|Re-ejecutar)$/ })
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (await verDetalle.isVisible().catch(() => false)) return
-    if (!(await ejecutar.isEnabled({ timeout: 10_000 }).catch(() => false))) continue
-    await confirmAction(page, ejecutar, /^Confirmar$/).catch(() => {})
-    if (await verDetalle.isVisible({ timeout: 8_000 }).catch(() => false)) return
-  }
-  throw new Error("weighting run did not start")
+/** Run a country from its modal and wait until the card lands on completed. */
+async function runToCompletion(page: import("@playwright/test").Page, label: string) {
+  const modal = await openCardModal(page, label)
+  await confirmRun(page, modal)
+  await expect(card(page, label).getByText(/Completado/i).first()).toBeVisible({ timeout: 30_000 })
 }
 
 test.describe("Weighting Module E2E", () => {
@@ -70,39 +40,28 @@ test.describe("Weighting Module E2E", () => {
     expect(await cards.count()).toBe(9)
   })
 
-  test("config dialog opens and accepts parameter changes", { tag: "@smoke" }, async ({ page }) => {
+  test("card opens the detail modal with editable params (JAA-425)", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
-    // Each country card opens its own per-country weighting-params dialog (JAA-423).
-    const chile = card(page, "Chile")
-    await chile.getByRole("button", { name: "Configurar parametros" }).click()
-    const dialog = page.getByRole("dialog")
-    await expect(dialog).toBeVisible({ timeout: 5_000 })
-    await expect(dialog.getByText(/Parametros de Pesaje/i)).toBeVisible()
-
-    // It exposes editable param fields; change a numeric one.
-    const maxRounds = dialog.getByLabel("Maximo juntas marginales")
+    // JAA-425: clicking the card (no per-card buttons anymore) opens the modal,
+    // which exposes editable param fields (labelled by key); change a numeric one.
+    const modal = await openCardModal(page, "Chile")
+    const maxRounds = modal.getByLabel("MAX_ROUNDS_COLAPSO")
     await expect(maxRounds).toBeVisible()
     await maxRounds.fill("80")
     await expect(maxRounds).toHaveValue("80")
 
     // Closing the dialog dismisses it.
     await page.keyboard.press("Escape")
-    await expect(dialog).not.toBeVisible({ timeout: 5_000 })
+    await expect(modal).not.toBeVisible({ timeout: 5_000 })
   })
 
-  test("trigger runs to completion and shows weight stats", async ({ page }) => {
+  test("run from the modal completes and shows weight stats", async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
-    const chile = card(page, "Chile")
-    await startWeighting(page, chile)
+    await runToCompletion(page, "Chile")
 
-    // Deterministic mock → terminal "Completado" status badge.
-    await expect(chile.getByText(/Completado/i).first()).toBeVisible({ timeout: 30_000 })
-
-    // The detail modal shows the weight summary statistics.
-    await chile.getByRole("button", { name: /ver detalle/i }).click()
-    const modal = page.getByRole("dialog")
-    await expect(modal).toBeVisible({ timeout: 5_000 })
+    // Reopen the modal → the completed run surfaces the weight summary statistics.
+    const modal = await openCardModal(page, "Chile")
     await expect(modal.getByText(/Estadisticas de Pesos/i)).toBeVisible({ timeout: 10_000 })
     await expect(modal.getByText("Peso medio")).toBeVisible()
     await expect(modal.getByText("Peso mediana")).toBeVisible()
@@ -111,9 +70,11 @@ test.describe("Weighting Module E2E", () => {
   test("history modal table fits without horizontal scroll", async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
     const chile = card(page, "Chile")
-    // Need at least one run so the card exposes the "Historial" button.
-    await startWeighting(page, chile)
-    await expect(chile.getByText(/Completado/i).first()).toBeVisible({ timeout: 30_000 })
+    await expect(chile).toBeVisible({ timeout: 15_000 })
+
+    // Need at least one run in the displayed period so the card exposes the
+    // "Historial" button and the history list is non-empty.
+    await runToCompletion(page, "Chile")
 
     await chile.getByRole("button", { name: "Historial" }).click()
     const modal = page.getByRole("dialog").filter({ hasText: /Historial de Pesaje/i })
@@ -128,7 +89,7 @@ test.describe("Weighting Module E2E", () => {
     // ac2: every action button stays within the dialog's right edge (nothing clipped).
     const dialogBox = await modal.boundingBox()
     expect(dialogBox).not.toBeNull()
-    const actionButtons = modal.getByRole("button", { name: "Ver detalle" })
+    const actionButtons: Locator = modal.getByRole("button", { name: "Ver detalle" })
     const n = await actionButtons.count()
     expect(n).toBeGreaterThan(0)
     for (let i = 0; i < n; i++) {

@@ -1,41 +1,22 @@
 import { test, expect } from "@playwright/test"
-import type { Page, Locator } from "@playwright/test"
+import type { Locator } from "@playwright/test"
 import { login } from "./helpers/auth"
 import { navigateTo } from "./helpers/navigation"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
+import { card, openCardModal, confirmRun, confirmDialog, runButton } from "./helpers/weighting"
 
 /**
- * Pesaje iterate loop E2E (JAA-423). Params are per-country/run and the card
- * drives the loop: configure → correr → revisar stats → ajustar → re-ejecutar →
- * marcar como listo (= cerrar proceso, reusing JAA-391). Reopening re-enables
- * iteration. The global header gear no longer exists.
+ * Pesaje iterate loop E2E (JAA-423, updated for JAA-425). The card opens a
+ * detail/config modal that drives the loop: open → ajustar params → ejecutar →
+ * revisar stats → ajustar → re-ejecutar → cerrar proceso (status badge) →
+ * reabrir. Params are per-country/run (edited in the modal, applied on confirm);
+ * closing the process disables further runs. The global header gear and the old
+ * card-level config / mark-as-ready buttons no longer exist.
  */
 
-function card(page: Page, label: string): Locator {
-  return page.locator('[data-slot="card"]').filter({ hasText: label }).first()
-}
-
-/** Confirm a radix AlertDialog action robustly (radix animates on open). */
-async function confirmAction(page: Page, trigger: Locator, actionName: RegExp) {
-  const dialog = page.getByRole("alertdialog")
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (!(await dialog.isVisible().catch(() => false))) {
-      await trigger.click({ timeout: 8_000 }).catch(() => {})
-      if (!(await dialog.isVisible({ timeout: 3_000 }).catch(() => false))) continue
-    }
-    await page.waitForTimeout(300)
-    await dialog.getByRole("button", { name: actionName }).click({ timeout: 8_000 }).catch(() => {})
-    if (await dialog.isHidden({ timeout: 5_000 }).catch(() => false)) return
-  }
-  throw new Error(`confirmAction(${actionName}) did not complete`)
-}
-
-/** Trigger a run from the card and wait until it completes. */
-async function runToCompletion(page: Page, c: Locator) {
-  const ejecutar = c.getByRole("button", { name: /^(Ejecutar|Re-ejecutar)$/ })
-  await expect(ejecutar).toBeEnabled({ timeout: 10_000 })
-  await confirmAction(page, ejecutar, /^Confirmar$/)
-  await expect(c.getByText(/Completado/i).first()).toBeVisible({ timeout: 30_000 })
+/** The process status badge button on a card ("Abierto" / "Cerrado"). */
+function statusBadge(c: Locator, label: RegExp): Locator {
+  return c.getByRole("button", { name: label })
 }
 
 test.describe("Pesaje iterate loop (JAA-423)", () => {
@@ -45,56 +26,54 @@ test.describe("Pesaje iterate loop (JAA-423)", () => {
     await login(page)
   })
 
-  test("configure → run → review → adjust → re-run → mark listo → reopen", async ({ page }) => {
+  test("configure → run → review → adjust → re-run → cerrar → reabrir", async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
     const chile = card(page, "Chile")
     await expect(chile).toBeVisible({ timeout: 15_000 })
 
-    // ac1: per-country config control (no global gear). Configure Chile's params.
-    await chile.getByRole("button", { name: "Configurar parametros" }).click()
-    let dialog = page.getByRole("dialog")
-    await expect(dialog).toBeVisible({ timeout: 5_000 })
-    await dialog.getByLabel("Maximo juntas marginales").fill("64")
+    // ac3: params are per-country — Argentina's modal shows the default (50),
+    // independent of whatever Chile uses.
+    const argModal = await openCardModal(page, "Argentina")
+    await expect(argModal.getByLabel("MAX_ROUNDS_COLAPSO")).toHaveValue("50")
     await page.keyboard.press("Escape")
-    await expect(dialog).not.toBeVisible()
+    await expect(argModal).not.toBeVisible()
 
-    // ac3: params are independent per country — Argentina still shows the default (50).
-    const argentina = card(page, "Argentina")
-    await argentina.getByRole("button", { name: "Configurar parametros" }).click()
-    dialog = page.getByRole("dialog")
-    await expect(dialog).toBeVisible({ timeout: 5_000 })
-    await expect(dialog.getByLabel("Maximo juntas marginales")).toHaveValue("50")
-    await page.keyboard.press("Escape")
-    await expect(dialog).not.toBeVisible()
+    // ac1: configure Chile's params in its own modal and run with them — the
+    // edited value reaches the create body (no global gear, no pre-save step).
+    let modal = await openCardModal(page, "Chile")
+    await modal.getByLabel("MAX_ROUNDS_COLAPSO").fill("64")
+    const [firstRun] = await Promise.all([
+      page.waitForRequest(
+        (req) => req.method() === "POST" && /\/weighting\/runs(\?|$)/.test(req.url()),
+      ),
+      confirmRun(page, modal),
+    ])
+    expect((firstRun.postDataJSON() as { parameters?: Record<string, unknown> }).parameters)
+      .toMatchObject({ MAX_ROUNDS_COLAPSO: 64 })
+    await expect(chile.getByText(/Completado/i).first()).toBeVisible({ timeout: 30_000 })
 
-    // Run Chile to completion and review the stats.
-    await runToCompletion(page, chile)
-    await chile.getByRole("button", { name: /ver detalle/i }).click()
-    const modal = page.getByRole("dialog")
-    await expect(modal).toBeVisible({ timeout: 5_000 })
+    // ac4: after a COMPLETED run the modal shows stats + editable params and
+    // "Re-ejecutar" launches a fresh run with the adjusted value.
+    modal = await openCardModal(page, "Chile")
     await expect(modal.getByText(/Estadisticas de Pesos/i)).toBeVisible({ timeout: 10_000 })
+    await expect(runButton(modal)).toHaveText(/Re-ejecutar/)
+    await modal.getByLabel("MAX_ROUNDS_COLAPSO").fill("70")
+    await confirmRun(page, modal)
+    await expect(chile.getByText(/Completado/i).first()).toBeVisible({ timeout: 30_000 })
 
-    // ac4: after a COMPLETED run the modal params are editable and "Re-ejecutar" works.
-    const reExecBtn = modal.getByRole("button", { name: /^Re-ejecutar$/ })
-    await expect(reExecBtn).toBeVisible()
-    const pInput = modal.getByLabel("MAX_ROUNDS_COLAPSO")
-    await expect(pInput).toBeVisible()
-    await pInput.fill("70")
-    // Confirm the re-run AlertDialog → it creates a new run and closes the modal.
-    await confirmAction(page, reExecBtn, /^Re-ejecutar$/)
-    await expect(modal).not.toBeVisible({ timeout: 8_000 })
-    await runToCompletion(page, chile)
+    // ac5: cerrar el proceso desde el badge → quedan deshabilitadas las corridas.
+    await confirmDialog(page, statusBadge(chile, /^Abierto$/), /^Cerrar proceso$/)
+    await expect(statusBadge(chile, /^Cerrado$/)).toBeVisible({ timeout: 10_000 })
+    // The modal of a closed process offers no run button.
+    const closedModal = await openCardModal(page, "Chile")
+    await expect(runButton(closedModal)).toHaveCount(0)
+    await page.keyboard.press("Escape")
+    await expect(closedModal).not.toBeVisible()
 
-    // ac5: mark as listo closes the process and disables further runs.
-    await confirmAction(page, chile.getByRole("button", { name: /^Marcar como listo$/ }), /^Marcar como listo$/)
-    await expect(chile.getByRole("button", { name: /^Cerrado$/ })).toBeVisible({ timeout: 10_000 })
-    await expect(chile.getByRole("button", { name: /^Re-ejecutar$/ })).toBeDisabled()
-    await expect(chile.getByRole("button", { name: "Configurar parametros" })).toHaveCount(0)
-
-    // Reopen via the badge → iteration is re-enabled.
-    await confirmAction(page, chile.getByRole("button", { name: /^Cerrado$/ }), /^Abrir proceso$/)
-    await expect(chile.getByRole("button", { name: /^Abierto$/ })).toBeVisible({ timeout: 10_000 })
-    await expect(chile.getByRole("button", { name: /^Re-ejecutar$/ })).toBeEnabled()
-    await expect(chile.getByRole("button", { name: "Configurar parametros" })).toBeVisible()
+    // Reabrir desde el badge → la iteración vuelve a habilitarse.
+    await confirmDialog(page, statusBadge(chile, /^Cerrado$/), /^Abrir proceso$/)
+    await expect(statusBadge(chile, /^Abierto$/)).toBeVisible({ timeout: 10_000 })
+    const reopened = await openCardModal(page, "Chile")
+    await expect(runButton(reopened)).toBeVisible()
   })
 })

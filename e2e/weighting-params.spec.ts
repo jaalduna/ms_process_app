@@ -2,9 +2,12 @@ import { test, expect } from "@playwright/test"
 import { login } from "./helpers/auth"
 import { navigateTo } from "./helpers/navigation"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
+import { card, openCardModal, runButton } from "./helpers/weighting"
 
 // JAA-343 — the Pesaje config form exposes the param_configs.py weighting params
 // and propagates them as `parameters` on run create -> parameters_json.
+// JAA-425: params are edited inside the card's detail/config modal (controls are
+// labelled by raw key) and applied when the run is confirmed.
 const EXPECTED_KEYS = [
   "N_PERIODOS_OUTLIERS",
   "MAX_ROUNDS_COLAPSO",
@@ -27,36 +30,32 @@ test.describe("Weighting params (JAA-343)", () => {
   test("edited params are sent as parameters_json on run create", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
-    // Params are per-country now (JAA-423): open Chile's own config dialog.
-    const chile = page.locator('[data-slot="card"]').filter({ hasText: "Chile" }).first()
-    await chile.getByRole("button", { name: "Configurar parametros" }).click()
-    const dialog = page.getByRole("dialog")
-    await expect(dialog).toBeVisible()
+    // JAA-425: open Chile's detail/config modal — params + run button live here.
+    const chile = card(page, "Chile")
+    await expect(chile).toBeVisible({ timeout: 15_000 })
+    const modal = await openCardModal(page, "Chile")
 
-    // Change an enum param: METODO_BOUNDS -> IQR.
-    await dialog.getByRole("combobox", { name: "Metodo de limites" }).click()
+    // Change an enum param: METODO_BOUNDS -> IQR (value "iqr").
+    await modal.getByRole("combobox", { name: "METODO_BOUNDS" }).click()
     await page.getByRole("option", { name: "IQR" }).click()
 
     // Change a number param: MAX_ROUNDS_COLAPSO -> 80.
-    const maxRounds = dialog.getByLabel("Maximo juntas marginales")
-    await maxRounds.fill("80")
+    await modal.getByLabel("MAX_ROUNDS_COLAPSO").fill("80")
 
-    // Toggle a bool param off: CORRECAO_BOUNDS.
-    await dialog.getByRole("switch", { name: "Correccion de limites" }).click()
+    // Toggle a bool param off: CORRECAO_BOUNDS (default true).
+    await modal.getByRole("switch", { name: "CORRECAO_BOUNDS" }).click()
 
-    // Close the dialog.
-    await page.keyboard.press("Escape")
-    await expect(dialog).not.toBeVisible()
-
-    // Trigger Chile's run: "Ejecutar" opens a confirm AlertDialog; the
-    // POST /weighting/runs only fires after clicking "Confirmar".
-    await chile.getByRole("button", { name: /^(re-?ejecutar|ejecutar)$/i }).click()
-
+    // The run button ("Ejecutar" for a fresh period, "Re-ejecutar" after a run)
+    // opens a confirm AlertDialog whose action carries the same label; the POST
+    // /weighting/runs fires on confirm and the modal closes.
+    await runButton(modal).click()
+    const confirm = page.getByRole("alertdialog")
+    await expect(confirm).toBeVisible()
     const [request] = await Promise.all([
       page.waitForRequest(
         (req) => req.method() === "POST" && /\/weighting\/runs(\?|$)/.test(req.url()),
       ),
-      page.getByRole("button", { name: "Confirmar" }).click(),
+      confirm.getByRole("button", { name: /^(Ejecutar|Re-ejecutar)$/ }).click(),
     ])
 
     // Acceptance: the create body carries the edited params...

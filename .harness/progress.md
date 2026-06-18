@@ -2,6 +2,35 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-18 — JAA-431 (rewrite stale weighting e2e to post-JAA-425 flow) — webapp — EXECUTED, evaluator PASS
+
+**What:** JAA-425 collapsed the Pesaje card actions: the whole card is now a button that opens
+`WeightingDetailModal`, which hosts the editable params (controls labelled by raw key, e.g.
+`MAX_ROUNDS_COLAPSO`) + the run button (`Ejecutar`/`Re-ejecutar` → confirm AlertDialog whose action
+carries the SAME label, not "Confirmar"); process close/open moved to the status badge. The old
+card-level `Configurar parametros`/`Ejecutar`/`Ver detalle`/`Marcar como listo` buttons + the
+`WeightingConfigDialog` are gone — leaving 3 e2e specs clicking dead selectors (2 `@smoke` tests
+hung to the 300s timeout = the reds). Rewrote all three to the new flow + extracted a shared
+`e2e/helpers/weighting.ts` (`card`, `openCardModal`, `runButton`, `confirmRun`, `confirmDialog`).
+
+**Key facts that shaped the rewrite:** `test/reset` re-seeds but the seeded runs are for a period
+the cards don't display → cards start with NO run, so the first action is `Ejecutar` (not
+`Re-ejecutar`); the history test must create a run first. Param edits are modal-local (re-seeded on
+open from `run.parameters_json` merged over `DEFAULT_WEIGHTING_PARAMS`). The `confirmRun` must use
+explicit click→expect(alertdialog)→click-action steps — the old retry-loop `confirmAction` races
+with the modal closing on confirm and falsely throws "did not complete".
+
+**Verify (run via `./node_modules/.bin/playwright`, NOT npx — rtk hook hangs it):** grep clean;
+weighting smoke 3/3; full weighting suite (smoke+flow) **6/6**; `tsc -b` ✓; eslint e2e ✓; vitest
+**129/129**. Separate skeptical evaluator (ux-ui-reviewer, fresh ctx) **ALL PASS** + anti-hollow
+sanity (asserts POST params; badge-close hides run button).
+
+**Worktree setup friction:** fresh worktree had no node_modules; symlink to main repo broke vite's
+temp-config resolution → had to `npm install` in-worktree. `jsonwebtoken` (JAA-371) is in
+mock-server/package.json but not root → installed `--no-save` to boot the mock.
+
+**Next:** commit → push ado → PR to develop → Linear In Review → auto-merge when policies green.
+
 ## 2026-06-18 — JAA-427 (UI: in-app feedback section) — webapp — EXECUTED, evaluator PASS
 
 **What:** In-app feedback. "Enviar feedback" trigger in the `AuthenticatedLayout` sidebar footer
