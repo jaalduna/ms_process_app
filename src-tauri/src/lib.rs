@@ -144,6 +144,16 @@ pub fn run() {
 
     let app = builder
         .invoke_handler(tauri::generate_handler![read_config])
+        // Kill the mock sidecar as soon as a window is destroyed (app close), not only
+        // on the final RunEvent::Exit — so closing the app reliably stops mock-server.exe
+        // and never leaves it holding a lock during a later update/reinstall.
+        .on_window_event(|_window, _event| {
+            #[cfg(feature = "mock-sidecar")]
+            if let tauri::WindowEvent::Destroyed = _event {
+                use tauri::Manager;
+                kill_mock_sidecar(_window.app_handle());
+            }
+        })
         .setup(|app| {
             #[cfg(desktop)]
             app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
