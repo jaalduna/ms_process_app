@@ -65,9 +65,9 @@ app.get("/api/v1/auth/me", (req, res) => {
 // ---------------------------------------------------------------------------
 
 // Last-completion metadata (registered before metadataRouter so they take precedence)
-app.get("/api/v1/metadata/last-prices", (_req, res) => res.json({ countries: pricesStore.lastCompleted() }))
-app.get("/api/v1/metadata/last-weighting", (_req, res) => res.json({ countries: weightingStore.lastCompleted() }))
-app.get("/api/v1/metadata/last-mtr", (_req, res) => res.json({ countries: mtrStore.lastCompleted() }))
+app.get("/api/v1/metadata/last-prices", (req, res) => res.json({ countries: pricesStore.lastCompleted(req.query.period) }))
+app.get("/api/v1/metadata/last-weighting", (req, res) => res.json({ countries: weightingStore.lastCompleted(req.query.period) }))
+app.get("/api/v1/metadata/last-mtr", (req, res) => res.json({ countries: mtrStore.lastCompleted(req.query.period) }))
 
 app.use("/api/v1", syncRouter)
 app.use("/api/v1", metadataRouter)
