@@ -98,7 +98,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
       <Suspense fallback={null}>
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
