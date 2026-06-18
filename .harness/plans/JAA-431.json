@@ -1,0 +1,67 @@
+{
+  "ticket": "JAA-431",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-431/e2e-stale-configurar-parametros-smoke-tests-red-after-jaa-425-button",
+  "related": [
+    "JAA-425",
+    "JAA-427"
+  ],
+  "branch": "fix/JAA-431-stale-config-e2e",
+  "archetype": "webapp",
+  "goal": "Rewrite the three weighting e2e specs to the post-JAA-425 flow (card click opens the detail/config modal; params + run button live in the modal; process close/open is on the status badge), so the smoke gate is green and no stale 'Configurar parametros' selectors remain.",
+  "new_flow_notes": {
+    "card_open": "Card is role=button (aria-label 'Abrir detalle de Pesaje para <label>'); clicking it opens WeightingDetailModal. No Ejecutar/Configurar/Ver detalle/Marcar buttons on the card.",
+    "params": "Editable in the modal when process open + idle; controls labelled by raw key: combobox 'METODO_BOUNDS' (opt 'IQR'->iqr), number getByLabel('MAX_ROUNDS_COLAPSO'), switch 'CORRECAO_BOUNDS'. editableParams seeds from run.parameters_json merged over DEFAULT_WEIGHTING_PARAMS (so all 9 keys present); edits are modal-local (not persisted across close).",
+    "run": "Modal run button 'Ejecutar' (no/failed run) / 'Re-ejecutar' (completed); opens an AlertDialog whose ACTION is labelled the same ('Ejecutar'/'Re-ejecutar', NOT 'Confirmar'); clicking it POSTs /weighting/runs(parameters=editableParams) and closes the modal.",
+    "process": "Close/open via the ProcessStatusBadge button ('Abierto'/'Cerrado') -> AlertDialog action 'Cerrar proceso'/'Abrir proceso'. Default = open. When closed, the modal shows no run button.",
+    "history": "Card 'Historial' icon button (title) still opens WeightingHistoryModal with per-row 'Ver detalle' (title) buttons."
+  },
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "No stale 'Configurar parametros' selectors remain in e2e",
+      "how_to_verify": "grep -rn 'Configurar parametros' e2e/ returns nothing"
+    },
+    {
+      "id": "ac2",
+      "criterion": "Smoke project is green (incl. the 2 previously-red weighting @smoke tests)",
+      "how_to_verify": "MOCK_SERVER_PORT=<p> PLAYWRIGHT_BASE_URL=<u> npx playwright test --project=smoke weighting.spec.ts weighting-params.spec.ts -> all pass"
+    },
+    {
+      "id": "ac3",
+      "criterion": "Full weighting suite (smoke + flow) passes against the new flow",
+      "how_to_verify": "npx playwright test weighting.spec.ts weighting-params.spec.ts weighting-iterate.spec.ts (both projects) -> all pass"
+    },
+    {
+      "id": "ac4",
+      "criterion": "No vitest/lint/typecheck regression",
+      "how_to_verify": "npx tsc -b && npm run lint && rtk proxy npx vitest run"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Add e2e/helpers/weighting.ts with new-flow helpers (card, openCardModal, confirmAction)",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Rewrite weighting-params.spec.ts (@smoke) to edit params in the modal and Re-ejecutar -> assert POST parameters",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Rewrite weighting.spec.ts (config @smoke + run/stats + history @flow) to the modal flow",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Rewrite weighting-iterate.spec.ts (@flow) to the modal run/iterate loop + badge close/reopen",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Run VERIFY_CMD + the weighting e2e (both projects) to green; fix selectors as needed",
+      "status": "complete"
+    }
+  ]
+}
