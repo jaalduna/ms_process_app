@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip"
 import { ModeToggle } from "@/components/ModeToggle"
 import { BrandMark } from "@/components/BrandMark"
+import { FeedbackDialog } from "@/components/FeedbackDialog"
 import { cn } from "@/lib/utils"
 import { CalibrationProvider } from "@/modules/calibracion/contexts/CalibrationContext"
 import type { ModuleDefinition } from "@/modules/types"
@@ -244,6 +245,9 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
                     </p>
                   </div>
                 )}
+                <div className={cn("mb-1", collapsed && "flex justify-center")}>
+                  <FeedbackDialog appVersion={appVersion} collapsed={collapsed} />
+                </div>
                 <div
                   className={cn(
                     "flex items-center gap-1",

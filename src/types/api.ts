@@ -214,6 +214,31 @@ export interface ApiError {
   message: string
 }
 
+/** In-app feedback (JAA-427 / parent JAA-426) */
+export type FeedbackCategory = "bug" | "idea" | "otro"
+
+/** Context auto-attached to feedback so reports are actionable. */
+export interface FeedbackContext {
+  module: string
+  path: string
+  appVersion: string
+  user?: string
+}
+
+/** Body of POST /feedback. */
+export interface FeedbackPayload {
+  message: string
+  category: FeedbackCategory
+  contact?: string
+  context: FeedbackContext
+}
+
+/** Response from POST /feedback (201). */
+export interface FeedbackResponse {
+  id: string
+  createdAt: string
+}
+
 /** Info about a Delta table available for download */
 export interface TableInfo {
   full_name: string
