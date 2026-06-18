@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { CheckCircle2, ClipboardCheck, Eye, Loader2, RefreshCcw, Square } from "lucide-react"
+import { CheckCircle2, ClipboardCheck, Eye, History, Loader2, RefreshCcw, Square } from "lucide-react"
 import { toast } from "sonner"
 import { DependencyIndicator } from "@/components/DependencyIndicator"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
@@ -23,6 +23,7 @@ import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { useEligibilityRuns, useCreateEligibilityRun, useExecuteEligibility, useCancelEligibility } from "../hooks/useEligibility"
 import { EligibilityProgress } from "./EligibilityProgress"
 import { EligibilityDetailModal } from "./EligibilityDetailModal"
+import { EligibilityHistoryModal } from "./EligibilityHistoryModal"
 import { ACTIVE_STATUSES, STATUS_CONFIG } from "../types"
 import type { EligibilityParams } from "./EligibilityConfigDialog"
 
@@ -76,6 +77,7 @@ function periodStringToNumber(period: string): number {
 
 export const EligibilityCountryCard = memo(function EligibilityCountryCard({ countryCode, period, eligibilityParams, lastFinalizedDate }: EligibilityCountryCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const { dependencies, allMet } = usePipelineDeps("elegibilidad", countryCode)
   const { isClosed } = useProcessEntry("elegibilidad", countryCode)
@@ -158,11 +160,23 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
               {flag && <span className="mr-1.5">{flag}</span>}
               {countryLabel}
             </CardTitle>
-            <Badge variant="outline" className="text-xs" title={lastFinalizedDate ? `Last: ${lastFinalizedDate.replace("T", " ").slice(0, 16)}` : undefined}>
-              {lastFinalizedDate
-                ? formatRelativeTime(lastFinalizedDate)
-                : "never"}
-            </Badge>
+            <div className="flex items-center gap-1.5">
+              <Badge variant="outline" className="text-xs" title={lastFinalizedDate ? `Last: ${lastFinalizedDate.replace("T", " ").slice(0, 16)}` : undefined}>
+                {lastFinalizedDate
+                  ? formatRelativeTime(lastFinalizedDate)
+                  : "never"}
+              </Badge>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0"
+                onClick={() => setHistoryOpen(true)}
+                title="Historial"
+                aria-label="Ver historial de elegibilidad"
+              >
+                <History className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
           <DependencyIndicator dependencies={dependencies} />
           <ProcessStatusBadge stage="elegibilidad" country={countryCode} countryLabel={countryLabel} />
@@ -316,6 +330,13 @@ export const EligibilityCountryCard = memo(function EligibilityCountryCard({ cou
         open={modalOpen}
         onOpenChange={setModalOpen}
         onRerun={handleRerun}
+      />
+      <EligibilityHistoryModal
+        countryCode={countryCode}
+        countryLabel={countryLabel}
+        countryFlag={flag}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
       />
     </>
   )

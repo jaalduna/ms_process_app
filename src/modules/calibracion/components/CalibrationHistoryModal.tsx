@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -16,13 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Download, Loader2, FileText, Clock, Calendar } from "lucide-react"
-import { downloadCSV } from "@/lib/api"
+import { Download, Eye, Loader2, FileText } from "lucide-react"
+import { downloadCSV, getEvent } from "@/lib/api"
 import { useCalibrationHistory } from "../hooks/useCalibrationHistory"
 import { useJobTables } from "../hooks/useJobTables"
-import type { EventSummary, JobStatus, TableInfo } from "@/types/api"
+import { CalibrationDetailModal } from "./CalibrationDetailModal"
+import type { JobStatus, TableInfo } from "@/types/api"
 
 interface CalibrationHistoryModalProps {
   country: string
@@ -87,87 +87,7 @@ function getStatusConfig(status: JobStatus): StatusBadgeConfig {
   }
 }
 
-function HistoryEntrySkeleton() {
-  return (
-    <div className="flex items-center justify-between py-3 px-1">
-      <div className="space-y-2 flex-1 min-w-0">
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-3 w-24" />
-      </div>
-      <div className="flex items-center gap-3 shrink-0 ml-4">
-        <Skeleton className="h-5 w-20 rounded-full" />
-        <Skeleton className="h-3 w-14" />
-        <Skeleton className="h-8 w-8 rounded" />
-      </div>
-    </div>
-  )
-}
-
-interface HistoryEntryProps {
-  event: EventSummary
-  isDownloading: boolean
-  onDownload: (jobId: string) => void
-}
-
-function HistoryEntry({ event, isDownloading, onDownload }: HistoryEntryProps) {
-  const statusConfig = getStatusConfig(event.status)
-  const isCompleted = event.status === "completed"
-  const dateStr = formatDate(event.created_at)
-  const duration = formatDuration(event.started_at, event.completed_at)
-
-  return (
-    <div className="flex items-center justify-between py-3 px-1 group">
-      {/* Left: date, period, rows */}
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-          <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span>{dateStr}</span>
-        </div>
-        {event.period && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <FileText className="h-3 w-3 shrink-0" />
-            <span>Period: <span className="font-mono font-medium text-foreground">{event.period}</span></span>
-          </div>
-        )}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span>{event.total_rows_extracted.toLocaleString()} rows extracted</span>
-        </div>
-      </div>
-
-      {/* Right: status badge, duration, download */}
-      <div className="flex items-center gap-3 shrink-0 ml-4">
-        <Badge
-          variant="outline"
-          className={`text-xs px-2 py-0.5 ${statusConfig.className}`}
-        >
-          {statusConfig.label}
-        </Badge>
-
-        <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-[50px] justify-end">
-          <Clock className="h-3 w-3 shrink-0" />
-          <span>{duration}</span>
-        </div>
-
-        <Button
-          size="sm"
-          variant={isCompleted ? "default" : "ghost"}
-          className={`h-8 w-8 p-0 ${!isCompleted ? "opacity-30 cursor-not-allowed" : ""}`}
-          disabled={!isCompleted || isDownloading}
-          aria-label={`Download CSV for ${dateStr}`}
-          onClick={() => onDownload(event.job_id)}
-          title={isCompleted ? "Download CSV" : "Download only available for completed calibrations"}
-        >
-          {isDownloading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Download className="h-3.5 w-3.5" />
-          )}
-        </Button>
-      </div>
-    </div>
-  )
-}
+const GRID = "grid grid-cols-[80px_100px_140px_80px_1fr_auto] gap-2"
 
 interface TablePickerProps {
   jobId: string
@@ -278,7 +198,22 @@ export function CalibrationHistoryModal({
 }: CalibrationHistoryModalProps) {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set())
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null)
+  const [detailJobId, setDetailJobId] = useState<string | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
   const { data, isLoading, isError } = useCalibrationHistory(country, open)
+
+  // The history list returns EventSummary; the detail modal needs the full
+  // EventDetail, so fetch it on demand when a row's eye is clicked.
+  const { data: detailJob } = useQuery({
+    queryKey: ["event", detailJobId],
+    queryFn: () => getEvent(detailJobId!),
+    enabled: !!detailJobId && detailOpen,
+  })
+
+  function handleViewDetail(jobId: string) {
+    setDetailJobId(jobId)
+    setDetailOpen(true)
+  }
 
   function handleDownload(jobId: string) {
     // Toggle: second click on same row collapses the picker
@@ -304,62 +239,100 @@ export function CalibrationHistoryModal({
   const items = data?.items ?? []
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            {countryFlag && <span>{countryFlag}</span>}
-            <span>{countryLabel}</span>
-            <span className="text-muted-foreground font-normal">— Calibration History</span>
-          </DialogTitle>
-          <DialogDescription>
-            Past calibration runs for {countryLabel}. Download CSV files for completed calibrations.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {countryFlag && <span>{countryFlag}</span>}
+              <span>Historial de Calibracion - {countryLabel}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Todas las calibraciones para {countryLabel}. Descarga CSV de las completadas.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="mt-2">
           {isLoading && (
-            <div className="divide-y divide-border">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <HistoryEntrySkeleton key={i} />
-              ))}
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
 
           {!isLoading && isError && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FileText className="h-10 w-10 text-destructive/40 mb-3" />
-              <p className="text-sm font-medium text-destructive">Failed to load calibration history</p>
+              <p className="text-sm font-medium text-destructive">Error al cargar el historial</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Please try again later or check your connection.
+                Intenta de nuevo mas tarde o revisa tu conexion.
               </p>
             </div>
           )}
 
           {!isLoading && !isError && items.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">No calibrations found for this country</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                Calibration history will appear here once runs have been triggered.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground py-4">No hay calibraciones registradas.</p>
           )}
 
           {!isLoading && !isError && items.length > 0 && (
-            <>
-              <div className="text-xs text-muted-foreground mb-3">
-                Showing {items.length} most recent calibration{items.length !== 1 ? "s" : ""}
+            <div className="space-y-1">
+              {/* Table header */}
+              <div className={`${GRID} px-2 py-1.5 text-xs font-medium text-muted-foreground border-b`}>
+                <span>Periodo</span>
+                <span>Estado</span>
+                <span>Fecha</span>
+                <span>Duracion</span>
+                <span>Resumen</span>
+                <span>Acciones</span>
               </div>
-              <div className="divide-y divide-border rounded-lg border">
-                {items.map((event, idx) => (
-                  <div key={event.job_id} className={idx % 2 === 0 ? "bg-background" : "bg-muted/40"}>
-                    <div className="px-3">
-                      <HistoryEntry
-                        event={event}
-                        isDownloading={downloadingIds.has(event.job_id)}
-                        onDownload={handleDownload}
-                      />
+
+              {items.map((event) => {
+                const statusConfig = getStatusConfig(event.status)
+                const isCompleted = event.status === "completed"
+                const isDownloading = downloadingIds.has(event.job_id)
+
+                return (
+                  <div key={event.job_id} className="rounded">
+                    <div className={`${GRID} items-center px-2 py-1.5 text-xs hover:bg-muted/50`}>
+                      <span className="font-mono">{event.period ?? "-"}</span>
+                      <Badge variant="outline" className={`${statusConfig.className} text-[10px] px-1.5 py-0 w-fit`}>
+                        {statusConfig.label}
+                      </Badge>
+                      <span className="text-muted-foreground">{formatDate(event.created_at)}</span>
+                      <span className="text-muted-foreground">
+                        {formatDuration(event.started_at, event.completed_at)}
+                      </span>
+                      <span className="text-muted-foreground truncate">
+                        {event.error
+                          ? `Error: ${event.error}`
+                          : `${event.total_rows_extracted.toLocaleString()} filas`}
+                      </span>
+                      <div className="flex gap-1">
+                        {isCompleted && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            disabled={isDownloading}
+                            onClick={() => handleDownload(event.job_id)}
+                            aria-label={`Descargar CSV de ${formatDate(event.created_at)}`}
+                            title="Descargar CSV"
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Download className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => handleViewDetail(event.job_id)}
+                          title="Ver detalle"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                     {expandedJobId === event.job_id && (
                       <TablePicker
@@ -369,21 +342,24 @@ export function CalibrationHistoryModal({
                       />
                     )}
                   </div>
-                ))}
-              </div>
+                )
+              })}
 
               {data && data.total > items.length && (
-                <>
-                  <Separator className="mt-4" />
-                  <p className="text-xs text-muted-foreground text-center mt-3">
-                    Showing {items.length} of {data.total} total calibrations
-                  </p>
-                </>
+                <p className="text-xs text-muted-foreground text-center pt-3">
+                  Mostrando {items.length} de {data.total} calibraciones
+                </p>
               )}
-            </>
+            </div>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <CalibrationDetailModal
+        job={detailJob}
+        open={detailOpen && !!detailJob}
+        onClose={() => setDetailOpen(false)}
+      />
+    </>
   )
 }

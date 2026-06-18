@@ -29,6 +29,16 @@ export function useEligibilityRuns(country?: string, period?: number) {
   })
 }
 
+/** All runs for a country across periods — backs the history modal (JAA-424). */
+export function useEligibilityHistory(country: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["eligibility-history", country],
+    queryFn: () => getEligibilityRuns({ country, limit: 20 }),
+    enabled,
+    staleTime: 30_000,
+  })
+}
+
 export function useEligibilityRun(runId: string | null) {
   return useQuery({
     queryKey: ["eligibility-run", runId],

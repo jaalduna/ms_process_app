@@ -1,0 +1,35 @@
+{
+  "ticket": "JAA-424",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-424/unificar-vista-de-historial-pesaje-en-precios-elegibilidad-y",
+  "branch": "feat/JAA-424-unify-history-view",
+  "archetype": "webapp",
+  "goal": "Llevar la visión de historial de Pesaje (grid con descargar-resultados + ver-detalle por fila) a precios, elegibilidad y calibración, respetando el mecanismo de descarga de cada módulo.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "Precios: PricesHistoryModal usa el grid tipo pesaje (Periodo|Estado|Fecha|Duracion|Resumen|Acciones). Cada fila tiene boton ojo que abre PricesDetailModal anidado; runs completados tienen boton de descarga (CSV de outliers).",
+      "how_to_verify": "Playwright: abrir historial de precios, ver fila con ojo+descarga, click ojo abre detalle, click descarga produce CSV. vitest sobre PricesHistoryModal."
+    },
+    {
+      "id": "ac2",
+      "criterion": "Calibracion: CalibrationHistoryModal alineado al grid de pesaje, con boton ojo por fila que abre CalibrationDetailModal; el table-picker de descarga existente sigue funcionando.",
+      "how_to_verify": "Playwright: abrir historial calibracion, click ojo abre detalle, click descarga expande/usa table-picker y descarga. vitest sobre CalibrationHistoryModal."
+    },
+    {
+      "id": "ac3",
+      "criterion": "Elegibilidad: existe EligibilityHistoryModal (grid tipo pesaje), accesible desde un boton de historial en EligibilityCountryCard; por fila boton ojo abre EligibilityDetailModal y hay descarga de archivos de resultados (Phase A).",
+      "how_to_verify": "Playwright: en card de elegibilidad abrir historial, ver runs, click ojo abre detalle, descargar resultado. vitest sobre EligibilityHistoryModal."
+    },
+    {
+      "id": "ac4",
+      "criterion": "Repo verde: npx tsc -b sin errores, npm run lint sin issues, vitest todo verde, y un e2e Playwright recorre el historial de los 3 modulos.",
+      "how_to_verify": "npx tsc -b; npm run lint; npx vitest run; rtk proxy npx playwright test e2e/history-unify.spec.ts"
+    }
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Precios: reestructurar PricesHistoryModal al grid de pesaje + ojo (PricesDetailModal) + descarga outliers por fila", "status": "complete"},
+    {"id": "t2", "desc": "Calibracion: alinear CalibrationHistoryModal al grid de pesaje + ojo (CalibrationDetailModal) por fila, manteniendo table-picker", "status": "complete"},
+    {"id": "t3", "desc": "Elegibilidad: crear EligibilityHistoryModal (grid pesaje) + ojo (EligibilityDetailModal) + descarga resultados; cablear boton historial en EligibilityCountryCard", "status": "complete"},
+    {"id": "t4", "desc": "Tests: vitest unit para los modales nuevos/cambiados + e2e Playwright history-unify recorriendo los 3 modulos", "status": "complete"}
+  ]
+}

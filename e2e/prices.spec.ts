@@ -179,7 +179,9 @@ test.describe("Prices Module E2E", () => {
     await chile.locator('[data-slot="card-title"]').click()
     const modal = page.getByRole("dialog")
     await expect(modal).toBeVisible({ timeout: 5_000 })
-    await expect(modal.getByText(/Price Validation History/i)).toBeVisible()
-    await expect(modal.getByText(/Showing \d+ most recent/i)).toBeVisible({ timeout: 5_000 })
+    await expect(modal.getByText(/Historial de Precios/i)).toBeVisible()
+    // Unified pesaje-style grid (JAA-424): header columns + at least one row action.
+    await expect(modal.getByText("Periodo")).toBeVisible({ timeout: 5_000 })
+    await expect(modal.getByTitle("Ver detalle").first()).toBeVisible()
   })
 })

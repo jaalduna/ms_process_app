@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "PricesHistoryModal restructured to the pesaje grid (grid-cols-[80px_100px_140px_80px_1fr_auto], cols Periodo|Estado|Fecha|Duracion|Resumen|Acciones). Per-row eye -> PricesDetailModal; per-row download (rows with outliers) -> downloadOutliersCSV (shared helper, real client-side CSV blob). Unit: PricesHistoryModal.test.tsx 5/5. e2e 'precios history' PASS."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "CalibrationHistoryModal aligned to the same grid; per-row eye fetches full EventDetail via getEvent(jobId) and opens CalibrationDetailModal; existing multi-table TablePicker download preserved (downloadCSV). Unit: CalibrationHistoryModal.test.tsx 4/4. e2e 'calibracion history' + existing calibration-download.spec.ts PASS."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "New EligibilityHistoryModal (pesaje grid) wired to a new History button on EligibilityCountryCard (aria-label 'Ver historial de elegibilidad'). Per-row eye -> EligibilityDetailModal; per-row download = stage-1/direction-download (Phase A) file via downloadEligibilityFile. New useEligibilityHistory hook. Unit: EligibilityHistoryModal.test.tsx 6/6. e2e 'elegibilidad history' PASS."
+  },
+  {
+    "id": "ac4",
+    "verdict": "PASS",
+    "evidence": "npx tsc -b: No errors. npm run lint: No issues. npx vitest run: 109/109. Playwright history-unify.spec.ts 3/3 + edited calibration-download/prices history 2/2, against mock + dev (IPv6 [::1]) servers, --retries=0. Evaluated in a separate skeptical ux-ui-reviewer context."
+  }
+]
