@@ -79,22 +79,12 @@ export interface AggregationOptions {
 /** Global calibration configuration applied to all countries */
 export interface CalibrationConfig {
   aggregations: AggregationOptions
-  row_limit: number | null
-  lookback_months: number | null
-  group_by: string
-  start_period: string
-  skip_merge: boolean
-  skip_simulation: boolean
+  lookback_months: number
 }
 
 export const DEFAULT_CALIBRATION_CONFIG: CalibrationConfig = {
-  aggregations: { region: false, nivel_2: false },
-  row_limit: null,
-  lookback_months: null,
-  group_by: "",
-  start_period: "202102",
-  skip_merge: false,
-  skip_simulation: false,
+  aggregations: { region: true, nivel_2: true },
+  lookback_months: 36,
 }
 
 /** Default group_by per country (semicolon-separated dimension combos). */
