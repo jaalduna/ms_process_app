@@ -1,0 +1,10 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "npm test: 135 passed (18 files), 0 failures. npm run lint: 'ESLint: No issues found'. npx tsc -b: 'No errors found'."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "captureError (telemetry.ts) builds a real report with all 8 fields (message, stack, kind, path, appVersion, userAgent, occurredAt, sessionId, user); telemetry.test.ts asserts full shape + /telemetry/errors URL."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "trackPageView emits page_view (dwellMs on 2nd); onDocumentClick emits interaction on [data-telemetry]; endSession sets durationMs. Tests pass; TelemetryRouteListener wired in App.tsx."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "post() try/catch swallows; flush() never throws and re-queues on failure. Test mocks fetch reject → flush() resolves, batch re-queued."},
+  {"id": "ac5", "verdict": "PASS", "evidence": "ErrorBoundary.componentDidCatch → captureError(kind:'react'); render shows role=alert 'Algo salió mal'. ErrorBoundary.test.tsx asserts fallback + report."},
+  {"id": "ac6", "verdict": "PASS", "evidence": "curl POST /telemetry/events → 202; curl POST /telemetry/errors → 202 against running mock."},
+  {"id": "ac7", "verdict": "PASS", "evidence": "playwright telemetry.spec.ts --project=smoke → PASS (2) FAIL (0): nav→events 202 + forced error→errors 202."},
+  {"id": "wiring-sanity", "verdict": "PASS", "evidence": "initTelemetry() in main.tsx before render; ErrorBoundary wraps app tree; TelemetryRouteListener mounted inside BrowserRouter. Client fully wired."}
+]

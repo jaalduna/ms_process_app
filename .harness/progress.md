@@ -403,3 +403,24 @@ three dialogs offsetWidth=768, overflow=0. Evaluator (separate ctx) ALL PASS.
   Separate skeptical evaluator: all 7 ACs PASS.
 - NEXT: push branch feat/pesaje-card-dialog-ux + open PR to ado/develop (awaiting user go-ahead;
   ad-hoc slug, no Linear ticket).
+
+## JAA-429 (2026-06-18) — Telemetry: errors/crashes + usage analytics
+
+**What:** New frontend telemetry. `src/lib/telemetry.ts` (standalone fetch + sendBeacon): queued,
+debounced, capped batch flush that NEVER throws/blocks; carries sessionId + appVersion + user email.
+Events: session_start, session_end(durationMs, beaconed on pagehide), page_view(path+dwellMs),
+interaction (declarative `data-telemetry` OR auto-captured from any button/a/[role=button]).
+Errors: window.onerror + unhandledrejection + React `ErrorBoundary` → captureError payload
+{message,stack,kind,path,appVersion,userAgent,occurredAt,sessionId,user}. Flush to
+POST /telemetry/{events,errors}. Mock `routes/telemetry.js` → 202 {accepted,count}. Wired in
+main.tsx (initTelemetry) + App.tsx (ErrorBoundary wrap + TelemetryRouteListener) + nav data-telemetry
+tags. Privacy doc: specs/SPEC-telemetry.md.
+
+**Verify:** vitest 135✓ (added telemetry.test.ts 9 + ErrorBoundary.test.tsx 2), lint ✓, tsc ✓.
+Playwright telemetry.spec.ts (smoke) 2/2 PASS (nav→events 202, forced error→errors 202). curl both
+endpoints → 202. Separate skeptical evaluator (ux-ui-reviewer, fresh ctx): ALL 7 ACs + wiring PASS.
+
+**Harness friction:** dev vite binds IPv6 `[::1]` only — curl/PLAYWRIGHT_BASE_URL must use [::1],
+not 127.0.0.1 (already in memory). Used dev:5273 + mock:8000 to avoid sibling-worktree collisions.
+
+**Next:** commit → push ado → PR to develop → auto-merge when policies green.

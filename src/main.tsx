@@ -2,6 +2,7 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import "./index.css"
 import App from "./App.tsx"
+import { initTelemetry } from "./lib/telemetry"
 
 async function installMocks() {
   if (import.meta.env.VITE_MOCK_API === "true") {
@@ -63,6 +64,8 @@ async function loadConfig() {
 }
 
 installMocks().then(() => loadConfig()).then(() => {
+  // Install global error/usage telemetry before first render (JAA-429).
+  initTelemetry()
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <App />

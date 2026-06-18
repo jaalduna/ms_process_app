@@ -183,6 +183,7 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
                           <TooltipTrigger asChild>
                             <NavLink
                               to={item.path}
+                              data-telemetry={`nav:${item.label}`}
                               className={cn(
                                 "flex items-center justify-center rounded-md p-2 transition-colors",
                                 active
@@ -205,6 +206,7 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
                       <NavLink
                         key={item.path}
                         to={item.path}
+                        data-telemetry={`nav:${item.label}`}
                         className={cn(
                           "group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                           active
@@ -260,6 +262,7 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
                       <TooltipTrigger asChild>
                         <button
                           onClick={logout}
+                          data-telemetry="logout"
                           className="inline-flex items-center justify-center rounded-md p-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           aria-label="Cerrar sesión"
                         >
@@ -271,6 +274,7 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
                   ) : (
                     <button
                       onClick={logout}
+                      data-telemetry="logout"
                       className="inline-flex flex-1 items-center gap-2 rounded-md px-2 py-2 text-xs font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     >
                       <LogOut className="h-4 w-4" />
