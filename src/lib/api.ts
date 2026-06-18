@@ -137,24 +137,30 @@ export function getLastSync(stage?: string, minQueries?: number) {
   return api.get<LastSyncResponse>("/metadata/last-sync", { params }).then((r) => r.data)
 }
 
-export function getLastCalibration() {
-  return api.get<LastSyncResponse>("/metadata/last-calibration").then((r) => r.data)
+// `period` (YYYYMM) restricts each last-completion lookup to runs of that
+// period; omit it for the latest run overall (backward compatible). See JAA-421.
+function periodParams(period?: number) {
+  return period != null ? { params: { period: String(period) } } : undefined
 }
 
-export function getLastElegibilidad() {
-  return api.get<LastElegibilidadResponse>("/metadata/last-elegibilidad").then((r) => r.data)
+export function getLastCalibration(period?: number) {
+  return api.get<LastSyncResponse>("/metadata/last-calibration", periodParams(period)).then((r) => r.data)
 }
 
-export function getLastPrices() {
-  return api.get<LastStageCompletionResponse>("/metadata/last-prices").then((r) => r.data)
+export function getLastElegibilidad(period?: number) {
+  return api.get<LastElegibilidadResponse>("/metadata/last-elegibilidad", periodParams(period)).then((r) => r.data)
 }
 
-export function getLastWeighting() {
-  return api.get<LastStageCompletionResponse>("/metadata/last-weighting").then((r) => r.data)
+export function getLastPrices(period?: number) {
+  return api.get<LastStageCompletionResponse>("/metadata/last-prices", periodParams(period)).then((r) => r.data)
 }
 
-export function getLastMtr() {
-  return api.get<LastStageCompletionResponse>("/metadata/last-mtr").then((r) => r.data)
+export function getLastWeighting(period?: number) {
+  return api.get<LastStageCompletionResponse>("/metadata/last-weighting", periodParams(period)).then((r) => r.data)
+}
+
+export function getLastMtr(period?: number) {
+  return api.get<LastStageCompletionResponse>("/metadata/last-mtr", periodParams(period)).then((r) => r.data)
 }
 
 // -- Process open/close (per stage, per country) --

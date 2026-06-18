@@ -347,11 +347,16 @@ export class EligibilityStore {
     return run
   }
 
-  /** Last ready run per country (for /metadata-style lookups). */
-  lastCompleted() {
+  /**
+   * Last ready run per country (for /metadata-style lookups).
+   * @param {number|string} [period] optional YYYYMM — restrict to runs of this period.
+   *   Omitted ⇒ latest overall (backward compatible).
+   */
+  lastCompleted(period) {
     const result = {}
     for (const run of this.runs.values()) {
       if (run.status !== "ready") continue
+      if (period != null && String(run.period) !== String(period)) continue
       const prev = result[run.country]
       if (!prev || new Date(run.completed_at) > new Date(prev.completed_at)) {
         result[run.country] = {

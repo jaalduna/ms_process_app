@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   getCountries,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/api"
 import { Lock, LockOpen } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PeriodSelector } from "@/components/PeriodSelector"
 import { useProcessStatus } from "@/hooks/useProcessStatus"
 import { cn } from "@/lib/utils"
 import type { ProcessStage } from "@/types/api"
@@ -21,6 +22,10 @@ const STAGES = [
   { key: "calibracion", label: "Calibración" },
   { key: "mtr", label: "MTR" },
 ] as const
+
+type StageKey = (typeof STAGES)[number]["key"]
+type StageEntry = { completed_at?: string; period?: number | string } | undefined
+type StageCountries = Record<string, StageEntry> | undefined
 
 const QUERY_CONFIG = { staleTime: 60_000 }
 
@@ -37,6 +42,23 @@ function formatDate(completedAt: string): string {
   return new Date(completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
+function formatPeriodLabel(period: string): string {
+  const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+  const m = parseInt(period.slice(4), 10) - 1
+  return `${months[m] ?? period.slice(4)} ${period.slice(0, 4)}`
+}
+
+/** Distinct periods present across the latest run of every stage × country, newest first. */
+function discoverPeriods(...countryMaps: StageCountries[]): string[] {
+  const set = new Set<string>()
+  for (const map of countryMaps) {
+    for (const entry of Object.values(map ?? {})) {
+      if (entry?.period != null) set.add(String(entry.period))
+    }
+  }
+  return Array.from(set).sort((a, b) => b.localeCompare(a))
+}
+
 export default function OverviewPage() {
   const { data: countriesData, isLoading: countriesLoading } = useQuery({
     queryKey: ["countries"],
@@ -44,52 +66,57 @@ export default function OverviewPage() {
     ...QUERY_CONFIG,
   })
 
-  const { data: calibData, isLoading: calibLoading } = useQuery({
-    queryKey: ["last-calibration"],
-    queryFn: getLastCalibration,
-    ...QUERY_CONFIG,
-  })
+  // --- Discovery: unfiltered last-* (latest run per stage×country) → available periods.
+  // Shares the cache key the stage cards already use, so it is effectively free.
+  const discPrecios = useQuery({ queryKey: ["last-prices"], queryFn: () => getLastPrices(), ...QUERY_CONFIG })
+  const discEleg = useQuery({ queryKey: ["last-elegibilidad"], queryFn: () => getLastElegibilidad(), ...QUERY_CONFIG })
+  const discPesaje = useQuery({ queryKey: ["last-weighting"], queryFn: () => getLastWeighting(), ...QUERY_CONFIG })
+  const discCalib = useQuery({ queryKey: ["last-calibration"], queryFn: () => getLastCalibration(), ...QUERY_CONFIG })
+  const discMtr = useQuery({ queryKey: ["last-mtr"], queryFn: () => getLastMtr(), ...QUERY_CONFIG })
 
-  const { data: elegData, isLoading: elegLoading } = useQuery({
-    queryKey: ["last-elegibilidad"],
-    queryFn: getLastElegibilidad,
-    ...QUERY_CONFIG,
-  })
+  const availablePeriods = useMemo(
+    () => discoverPeriods(
+      discPrecios.data?.countries,
+      discEleg.data?.countries,
+      discPesaje.data?.countries,
+      discCalib.data?.countries,
+      discMtr.data?.countries,
+    ),
+    [discPrecios.data, discEleg.data, discPesaje.data, discCalib.data, discMtr.data],
+  )
 
-  const { data: preciosData, isLoading: preciosLoading } = useQuery({
-    queryKey: ["last-prices"],
-    queryFn: getLastPrices,
-    ...QUERY_CONFIG,
-  })
+  // Default to the most recent period that has data: hold only the explicit user
+  // pick in state and derive the effective period, so no effect-driven setState.
+  const [pickedPeriod, setPickedPeriod] = useState<string | null>(null)
+  const selectedPeriod = pickedPeriod ?? availablePeriods[0] ?? null
+  const setSelectedPeriod = setPickedPeriod
 
-  const { data: pesajeData, isLoading: pesajeLoading } = useQuery({
-    queryKey: ["last-weighting"],
-    queryFn: getLastWeighting,
-    ...QUERY_CONFIG,
-  })
-
-  const { data: mtrData, isLoading: mtrLoading } = useQuery({
-    queryKey: ["last-mtr"],
-    queryFn: getLastMtr,
-    ...QUERY_CONFIG,
-  })
+  // --- Display: period-keyed last-* (latest run per country within the period) ---
+  const period = selectedPeriod != null ? Number(selectedPeriod) : undefined
+  const enabled = selectedPeriod != null
+  const preciosQ = useQuery({ queryKey: ["last-prices", selectedPeriod], queryFn: () => getLastPrices(period), enabled, ...QUERY_CONFIG })
+  const elegQ = useQuery({ queryKey: ["last-elegibilidad", selectedPeriod], queryFn: () => getLastElegibilidad(period), enabled, ...QUERY_CONFIG })
+  const pesajeQ = useQuery({ queryKey: ["last-weighting", selectedPeriod], queryFn: () => getLastWeighting(period), enabled, ...QUERY_CONFIG })
+  const calibQ = useQuery({ queryKey: ["last-calibration", selectedPeriod], queryFn: () => getLastCalibration(period), enabled, ...QUERY_CONFIG })
+  const mtrQ = useQuery({ queryKey: ["last-mtr", selectedPeriod], queryFn: () => getLastMtr(period), enabled, ...QUERY_CONFIG })
 
   const { data: processData } = useProcessStatus()
 
   const dataLoading =
-    calibLoading || elegLoading || preciosLoading || pesajeLoading || mtrLoading
+    selectedPeriod == null ||
+    preciosQ.isLoading || elegQ.isLoading || pesajeQ.isLoading || calibQ.isLoading || mtrQ.isLoading
 
   const countries = countriesData?.countries.filter((c) => c.type === "country") ?? []
 
-  const stageDataMap = useMemo(() => ({
-    precios: preciosData?.countries,
-    elegibilidad: elegData?.countries,
-    pesaje: pesajeData?.countries,
-    calibracion: calibData?.countries,
-    mtr: mtrData?.countries,
-  }), [preciosData, elegData, pesajeData, calibData, mtrData])
+  const stageDataMap = useMemo<Record<StageKey, StageCountries>>(() => ({
+    precios: preciosQ.data?.countries,
+    elegibilidad: elegQ.data?.countries,
+    pesaje: pesajeQ.data?.countries,
+    calibracion: calibQ.data?.countries,
+    mtr: mtrQ.data?.countries,
+  }), [preciosQ.data, elegQ.data, pesajeQ.data, calibQ.data, mtrQ.data])
 
-  function getEntry(stageKey: typeof STAGES[number]["key"], countryCode: string) {
+  function getEntry(stageKey: StageKey, countryCode: string): StageEntry {
     return stageDataMap[stageKey]?.[countryCode]
   }
 
@@ -97,11 +124,25 @@ export default function OverviewPage() {
     return processData?.countries[countryCode]?.[stageKey]
   }
 
+  // Keep the active selection in the dropdown even if discovery didn't surface it.
+  const periodOptions = selectedPeriod && !availablePeriods.includes(selectedPeriod)
+    ? [selectedPeriod, ...availablePeriods]
+    : availablePeriods
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Country Pipeline Overview</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Last completed stage per country</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Country Pipeline Overview</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {selectedPeriod
+              ? `Estado por etapa — periodo ${formatPeriodLabel(selectedPeriod)}`
+              : "Estado por etapa y país"}
+          </p>
+        </div>
+        {periodOptions.length > 0 && selectedPeriod && (
+          <PeriodSelector value={selectedPeriod} onChange={setSelectedPeriod} periods={periodOptions} />
+        )}
       </div>
 
       {countriesLoading ? (
@@ -147,7 +188,6 @@ export default function OverviewPage() {
                     }
                     const entry = getEntry(stage.key, country.code)
                     const completedAt = entry?.completed_at
-                    const period = (entry as { period?: number | string } | undefined)?.period
                     const proc = getProcessEntry(stage.key, country.code)
                     const procLabel = proc
                       ? `Proceso ${proc.status === "open" ? "abierto" : "cerrado"}${proc.changed_by ? ` por ${proc.changed_by}` : ""}`
@@ -162,16 +202,7 @@ export default function OverviewPage() {
                               dateCellClass(completedAt),
                             )}
                           >
-                            {completedAt ? (
-                              <>
-                                <span>{formatDate(completedAt)}</span>
-                                {period != null && (
-                                  <span className="opacity-70">{String(period)}</span>
-                                )}
-                              </>
-                            ) : (
-                              <span>—</span>
-                            )}
+                            {completedAt ? <span>{formatDate(completedAt)}</span> : <span>—</span>}
                           </span>
                           {proc && procLabel && (
                             proc.status === "open" ? (
