@@ -1,15 +1,17 @@
-import { Suspense, lazy } from "react"
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { Suspense, lazy, useEffect } from "react"
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ThemeProvider } from "next-themes"
 import { Toaster } from "@/components/ui/sonner"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { useModuleConfig } from "@/hooks/useModuleConfig"
 import { useAuth } from "@/hooks/useAuth"
 import { allModules } from "@/modules/registry"
 import { Skeleton } from "@/components/ui/skeleton"
 import { authBypassed } from "@/lib/runtime-mode"
+import { setTelemetryUser, trackPageView } from "@/lib/telemetry"
 
 const LoginPage = lazy(() => import("@/pages/LoginPage"))
 
@@ -45,6 +47,25 @@ function loadAuthProvider() {
   return import("@/components/MsalAuthProvider").then((m) => ({ default: m.MsalAuthProvider }))
 }
 const AuthProvider = lazy(loadAuthProvider)
+
+/**
+ * Feeds telemetry from inside the router + auth context: keeps the identified
+ * user in sync and emits a page_view on every route change (JAA-429).
+ */
+function TelemetryRouteListener() {
+  const location = useLocation()
+  const { user } = useAuth()
+
+  useEffect(() => {
+    setTelemetryUser(user)
+  }, [user])
+
+  useEffect(() => {
+    trackPageView(location.pathname + location.search)
+  }, [location.pathname, location.search])
+
+  return null
+}
 
 function AppRoutes() {
   const modules = useModuleConfig()
@@ -98,17 +119,20 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-      <Suspense fallback={null}>
-        <AuthProvider>
-          <QueryClientProvider client={queryClient}>
-            <BrowserRouter basename={basename}>
-              <AppRoutes />
-              <Toaster />
-            </BrowserRouter>
-          </QueryClientProvider>
-        </AuthProvider>
-      </Suspense>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <Suspense fallback={null}>
+          <AuthProvider>
+            <QueryClientProvider client={queryClient}>
+              <BrowserRouter basename={basename}>
+                <TelemetryRouteListener />
+                <AppRoutes />
+                <Toaster />
+              </BrowserRouter>
+            </QueryClientProvider>
+          </AuthProvider>
+        </Suspense>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }

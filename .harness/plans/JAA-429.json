@@ -1,0 +1,25 @@
+{
+  "ticket": "JAA-429",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-429/ui-telemetria-errorescrashes-analitica-de-uso-ms-process-app",
+  "branch": "feat/JAA-429-telemetry",
+  "archetype": "webapp",
+  "goal": "Add a frontend telemetry client that captures errors/crashes (window.onerror, unhandledrejection, React ErrorBoundary) and usage analytics (session_start/end with duration, page_view per route, interaction on data-telemetry clicks), batched + resilient, flushing to POST /telemetry/errors and /telemetry/events (mock-server).",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "npm test + npm run lint + tsc -b all green", "how_to_verify": "npm test && npm run lint && npx tsc -b"},
+    {"id": "ac2", "criterion": "A captured error produces the correct payload {message, stack, kind, path, appVersion, userAgent, occurredAt}", "how_to_verify": "vitest: telemetry.test.ts asserts payload shape for window.onerror / unhandledrejection"},
+    {"id": "ac3", "criterion": "A route change emits a page_view event; a click on a [data-telemetry] element emits an interaction event; session_start/session_end carry durationMs", "how_to_verify": "vitest: telemetry.test.ts drives trackPageView, dispatches click on data-telemetry node, and session lifecycle"},
+    {"id": "ac4", "criterion": "Events are sent in a batch and a network failure does not propagate an exception", "how_to_verify": "vitest: mock fetch rejecting → flush() resolves without throwing; mock resolving → one batched POST with N events"},
+    {"id": "ac5", "criterion": "React ErrorBoundary: a render error shows the fallback UI and reports the error", "how_to_verify": "vitest: ErrorBoundary.test.tsx renders a throwing child → fallback visible + captureError called"},
+    {"id": "ac6", "criterion": "mock-server responds 202 {accepted:true} on POST /telemetry/errors and POST /telemetry/events", "how_to_verify": "curl/supertest both endpoints OR Playwright network assertion sees 202"},
+    {"id": "ac7", "criterion": "Playwright: navigating between pages + clicking emits POST /telemetry/events; forcing an error emits POST /telemetry/errors", "how_to_verify": "e2e/telemetry.spec.ts asserts the POST requests + response 202"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "mock-server: routes/telemetry.js with POST /telemetry/errors and /telemetry/events → 202 {accepted:true}; register in server.js", "status": "complete"},
+    {"id": "t2", "desc": "src/lib/telemetry.ts: queue+batch flush, debounce, queue cap, resilient send (no throw); sessionId, appVersion, user identity setter; events session_start/session_end(durationMs)/page_view/interaction; captureError payload; global window.onerror + unhandledrejection + data-telemetry delegated click listeners; initTelemetry()", "status": "complete"},
+    {"id": "t3", "desc": "src/components/ErrorBoundary.tsx: app-level class boundary, fallback UI + captureError(kind:'react')", "status": "complete"},
+    {"id": "t4", "desc": "Wire into app: initTelemetry() in main.tsx; ErrorBoundary wrap + TelemetryRouteListener (useLocation page_view + useAuth user) in App.tsx; add data-telemetry to a few key nav/action elements", "status": "complete"},
+    {"id": "t5", "desc": "vitest: telemetry.test.ts (error payload, page_view, interaction, session duration, batch send, network-failure no-throw) + ErrorBoundary.test.tsx (fallback + report)", "status": "complete"},
+    {"id": "t6", "desc": "e2e/telemetry.spec.ts (smoke): navigate+click → POST /telemetry/events 202; force error → POST /telemetry/errors 202", "status": "complete"},
+    {"id": "t7", "desc": "docs: short note in specs/ or telemetry.ts header documenting what is captured (privacy)", "status": "complete"}
+  ]
+}
