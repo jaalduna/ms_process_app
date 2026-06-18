@@ -25,6 +25,7 @@ import { CheckCircle2, Download, Loader2, ArrowUpDown } from "lucide-react"
 import { PricesProgress } from "./PricesProgress"
 import { useApprovePrices } from "../hooks/usePrices"
 import { PRICES_STATUS_CONFIG } from "../types"
+import { downloadOutliersCSV } from "../outliersCsv"
 import type { PricesRun, PricesOutlier } from "../types"
 
 const COUNTRY_LABELS: Record<string, string> = {
@@ -99,27 +100,8 @@ export function PricesDetailModal({ run, open, onClose }: PricesDetailModalProps
   }, [approve, run])
 
   const handleDownloadCSV = useCallback(() => {
-    if (!run?.outliers || run.outliers.length === 0) return
-    const headers = ["Product", "Declared Price", "Historical Avg", "Deviation %", "Reason", "Household ID"]
-    const rows = run.outliers.map((o) => [
-      `"${o.product}"`,
-      o.declared_price,
-      o.historical_avg,
-      o.deviation_pct,
-      `"${o.reason}"`,
-      o.household_id,
-    ])
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `prices_outliers_${run.country}_${run.period}.csv`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-    toast.success("CSV downloaded")
+    if (!run) return
+    if (downloadOutliersCSV(run)) toast.success("CSV downloaded")
   }, [run])
 
   if (!run) return null

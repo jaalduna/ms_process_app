@@ -24,10 +24,10 @@ test("downloads a streamed CSV from Argentina calibration history", async ({ pag
   await page.getByLabel(/view calibration history for argentina/i).click()
 
   const dialog = page.getByRole("dialog")
-  await expect(dialog.getByText(/Calibration History/i)).toBeVisible({ timeout: 10_000 })
+  await expect(dialog.getByText(/Historial de Calibracion/i)).toBeVisible({ timeout: 10_000 })
 
-  // At least one completed run with an enabled download button.
-  const downloadBtn = dialog.getByRole("button", { name: /download csv for/i }).first()
+  // At least one completed run with an enabled download button (unified grid, JAA-424).
+  const downloadBtn = dialog.getByRole("button", { name: /descargar csv de/i }).first()
   await expect(downloadBtn).toBeEnabled({ timeout: 10_000 })
   await downloadBtn.click()
 
