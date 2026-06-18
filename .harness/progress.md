@@ -331,3 +331,25 @@ BTN_RIGHT=412px (81px inside, not clipped).
 app loads MSAL and role-gated nav (Elegibilidad) never renders → e2e fail at navigateTo.
 
 **Next:** commit → push to ado (needs AZURE_DEVOPS_EXT_PAT) → PR to develop → Linear In Review.
+
+## weighting-history-modal-width (2026-06-18) — ad-hoc UI bug
+
+**What:** "Historial de Pesaje" dialog table was too narrow → annoying horizontal scroll.
+Root cause: shadcn `DialogContent` base ends with `sm:max-w-lg` (512px); the modal passed bare
+`max-w-2xl`, which tailwind-merge does NOT treat as conflicting with the `sm:`-prefixed base, so
+`sm:max-w-lg` won and capped the dialog at 512px while the fixed-px grid (80/100/140/80) overflowed.
+
+**Fix (`WeightingHistoryModal.tsx`):** dialog → `sm:max-w-3xl` (tailwind-merge DOES strip the
+conflicting `sm:max-w-lg` → 768px); grid columns → `minmax()` with Resumen `minmax(0,1fr)` +
+truncate so it's fluid. Live dialog now offsetWidth=768, overflow=0, cols `64 80 110 52 303 53`.
+
+**Verify:** npm test 92✓, npm run lint ✓, npx tsc -b ✓. Playwright weighting.spec.ts **4/4 PASS**
+(added regression test "history modal table fits without horizontal scroll"). Evaluator confirmed
+code + generated CSS + ac3.
+
+**Harness friction:** evaluator false-FAILed twice — mock runs on **port 5000** (not the
+public/config.js 8000), and **`rtk proxy` drops env vars** so PLAYWRIGHT_BASE_URL was lost →
+browser hit stale sibling worktree on :5173 (OLD code). Use plain `npx playwright` when the env var
+matters. Updated memory `reference-rtk-playwright-mangles-output`.
+
+**Next:** commit → push ado → PR to develop.

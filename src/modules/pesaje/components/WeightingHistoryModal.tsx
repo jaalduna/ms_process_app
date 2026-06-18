@@ -71,7 +71,7 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Historial de Pesaje - {countryLabel}</DialogTitle>
             <DialogDescription>
@@ -92,7 +92,7 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
           {!isLoading && runs && runs.length > 0 && (
             <div className="space-y-1">
               {/* Table header */}
-              <div className="grid grid-cols-[80px_100px_140px_80px_1fr_auto] gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
+              <div className="grid grid-cols-[minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_auto] gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
                 <span>Periodo</span>
                 <span>Estado</span>
                 <span>Fecha</span>
@@ -110,7 +110,7 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
                 return (
                   <div
                     key={run.run_id}
-                    className="grid grid-cols-[80px_100px_140px_80px_1fr_auto] gap-2 items-center px-2 py-1.5 text-xs rounded hover:bg-muted/50"
+                    className="grid grid-cols-[minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_auto] gap-2 items-center px-2 py-1.5 text-xs rounded hover:bg-muted/50"
                   >
                     <span className="font-mono">{run.period}</span>
                     <Badge variant={statusConfig.variant} className={`${statusConfig.className} text-[10px] px-1.5 py-0 w-fit`}>

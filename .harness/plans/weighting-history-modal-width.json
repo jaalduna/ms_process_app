@@ -1,0 +1,17 @@
+{
+  "ticket": "weighting-history-modal-width",
+  "linear_url": null,
+  "branch": "fix/weighting-history-modal-width",
+  "archetype": "webapp",
+  "goal": "The Historial de Pesaje dialog table fits inside the dialog with no annoying horizontal scroll.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "Opening the Historial de Pesaje dialog shows the table with no horizontal overflow: the grid container scrollWidth <= clientWidth at default desktop viewport.", "how_to_verify": "Playwright: open dialog, evaluate scrollWidth/clientWidth on the grid container; assert no overflow."},
+    {"id": "ac2", "criterion": "All columns (Periodo, Estado, Fecha, Duracion, Resumen, Acciones) and the action buttons are visible/within the dialog bounds; dialog is widened so sm:max-w-lg no longer caps it.", "how_to_verify": "Playwright: assert action buttons' right edge is within the dialog content right edge."},
+    {"id": "ac3", "criterion": "npm test + npm run lint + npx tsc -b all pass.", "how_to_verify": "Run VERIFY_CMD in the worktree."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Widen WeightingHistoryModal dialog (sm:max-w-3xl) so it overrides the dead sm:max-w-lg cap.", "status": "complete"},
+    {"id": "t2", "desc": "Make table columns fluid/robust: relax fixed widths, min-w-0 + truncate on text cells so it adapts on narrower viewports.", "status": "complete"},
+    {"id": "t3", "desc": "Add e2e regression test asserting the history table grid has no horizontal overflow.", "status": "complete"}
+  ]
+}
