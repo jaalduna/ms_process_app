@@ -41,10 +41,15 @@ stages:
               osImage: "ubuntu-latest"
               bundles: "appimage"
               artifactName: "linux"
+              # Triple the compiled mock sidecar must carry for Tauri to resolve it.
+              mockTarget: "bun-linux-x64"
+              mockOut: "src-tauri/binaries/mock-server-x86_64-unknown-linux-gnu"
             windows:
               osImage: "windows-latest"
               bundles: "nsis"
               artifactName: "windows"
+              mockTarget: "bun-windows-x64"
+              mockOut: "src-tauri/binaries/mock-server-x86_64-pc-windows-msvc.exe"
         pool:
           vmImage: $(osImage)
         steps:
@@ -86,12 +91,29 @@ stages:
             displayName: "Install deps"
             condition: ne(variables.NODE_MODULES_RESTORED, 'true')
 
-          - bash: npx tauri build --bundles $(bundles)
-            displayName: "tauri build (signed)"
+          # The shipped exe bundles the mock backend so it runs offline out of the
+          # box; if an external config.json supplies an API_URL the app uses the
+          # real backend instead and never starts the mock. Bun compiles the ESM
+          # mock-server into one self-contained sidecar binary.
+          # To DROP the embedded mock later: remove this step + the Bun install,
+          # and revert the tauri build line to `npx tauri build --bundles $(bundles)`.
+          - script: npm install -g bun
+            displayName: "Install Bun"
+
+          - bash: |
+              set -euo pipefail
+              mkdir -p src-tauri/binaries
+              bun build mock-server/server.js --compile --target=$(mockTarget) --outfile "$(mockOut)"
+              ls -lh src-tauri/binaries/
+            displayName: "Compile mock backend -> single-file sidecar"
+
+          - bash: npx tauri build --config src-tauri/tauri.bundled-mock.conf.json --bundles $(bundles) -- --features mock-sidecar
+            displayName: "tauri build (signed, mock bundled)"
             env:
               TAURI_SIGNING_PRIVATE_KEY: $(TAURI_SIGNING_PRIVATE_KEY)
               TAURI_SIGNING_PRIVATE_KEY_PASSWORD: $(TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
-              # Bake the prod API base into the SPA shipped inside the desktop app.
+              # Bake the prod API base into the SPA (used in REAL mode, i.e. when a
+              # config.json provides an API_URL). MOCK mode overrides this at runtime.
               VITE_AUTH_BYPASS: "false"
               VITE_AUTH_PROVIDER: "github"
               VITE_BRIDGE_API_URL: "$(API_BASE_URL)"

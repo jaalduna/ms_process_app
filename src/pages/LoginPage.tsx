@@ -2,12 +2,13 @@ import { Navigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { BrandMark } from "@/components/BrandMark"
+import { authBypassed } from "@/lib/runtime-mode"
 
 // Mirror App.tsx provider selection so the button reflects the ACTIVE provider.
 // Read env at call time (not module scope) so it stays testable via stubbed env.
 function signInLabel(loading: boolean): string {
   if (loading) return "Signing in..."
-  if (import.meta.env.VITE_AUTH_BYPASS === "true") return "Continue (dev)"
+  if (authBypassed()) return "Continue (dev)"
   const provider =
     import.meta.env.VITE_AUTH_PROVIDER ??
     (window as never as { __APP_CONFIG__?: { authProvider?: string } }).__APP_CONFIG__?.authProvider

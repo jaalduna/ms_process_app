@@ -30,6 +30,8 @@ dist-ssr
 # Tauri
 src-tauri/target/
 src-tauri/gen/
+# Sidecar binaries are compiled in CI (Bun --compile), never committed.
+src-tauri/binaries/
 
 # Test results
 test-results/
