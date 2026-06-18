@@ -2,6 +2,33 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-18 — JAA-427 (UI: in-app feedback section) — webapp — EXECUTED, evaluator PASS
+
+**What:** In-app feedback. "Enviar feedback" trigger in the `AuthenticatedLayout` sidebar footer
+(full button expanded / icon+tooltip collapsed) opens a shadcn `Dialog` with a required `message`
+textarea, a `category` select (bug/idea/otro), and an optional `contact`. On submit it POSTs to
+`/feedback` via new `submitFeedback()` in `src/lib/api.ts`, auto-attaching context
+`{module, path, appVersion, user}` (module/path from `useLocation`, appVersion from the layout's
+resolved version, user from `useAuth`). Success → sonner toast + close + reset; empty message →
+inline error, no POST; API error → inline message, text preserved. Mock seam:
+`mock-server/routes/feedback.js` (`POST /feedback` → 201 `{id,createdAt}`, 400 empty message),
+mounted in `server.js`. Added `ui/textarea.tsx` (shadcn) + `Feedback*` types in `types/api.ts`.
+
+**Verify:** `npx tsc -b` ✓, `npm run lint` ✓, vitest **129✓ (18 files)** incl. new
+`mock-server/__tests__/feedback.test.js` (3) + `src/__tests__/api-feedback.test.ts` (2). Playwright
+`feedback.spec.ts` **3/3 PASS** (smoke): trigger reachable across routes, empty-message validation
+blocks submit (no POST), success shows toast + closes + POST body carries module/path/appVersion.
+Separate skeptical evaluator (ux-ui-reviewer, fresh ctx) **ALL 6 ACs PASS** (incl. live curl 201/400).
+
+**Findings captured (capture-don't-chase):**
+- JAA-431 — 3 e2e specs (`weighting-params`, `weighting`, `weighting-iterate`) still click the
+  `"Configurar parametros"` button that JAA-425 removed → 2 `@smoke` tests hang to the 300s timeout.
+  Pre-existing red on `develop`, unrelated to JAA-427. Related to JAA-425/JAA-427.
+
+**Harness friction logged:** full `@smoke` run wasted ~10min on the 2 stale-selector timeouts above.
+
+**Next:** commit → push ado → PR to develop → Linear In Review → auto-merge when policies green.
+
 ## 2026-06-18 — JAA-423 (Pesaje params per-country + iterate loop) — webapp — EXECUTED, evaluator PASS
 
 **What:** Turned Pesaje from one global param gear (JAA-343) into a per-country iterate loop:

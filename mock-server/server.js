@@ -14,6 +14,7 @@ import testRouter from "./routes/test.js"
 import authRouter, { verifyAppToken } from "./routes/auth.js"
 import adminRouter from "./routes/admin.js"
 import telemetryRouter from "./routes/telemetry.js"
+import feedbackRouter from "./routes/feedback.js"
 import { seedAll } from "./fixtures/seed.js"
 
 const app = express()
@@ -82,6 +83,7 @@ app.use("/api/v1", calibrationRouter)
 app.use("/api/v1", testRouter)
 app.use("/api/v1", adminRouter)
 app.use("/api/v1", telemetryRouter)
+app.use("/api/v1", feedbackRouter)
 
 // ---------------------------------------------------------------------------
 // Seed and start

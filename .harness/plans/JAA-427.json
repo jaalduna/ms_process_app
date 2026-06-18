@@ -1,0 +1,90 @@
+{
+  "ticket": "JAA-427",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-427/ui-seccion-de-feedback-in-app-ms-process-app",
+  "parent": "JAA-426",
+  "branch": "feat/JAA-427-feedback-ui",
+  "archetype": "webapp",
+  "goal": "Add an in-app feedback dialog reachable from the layout that POSTs message+category+context to /api/v1/feedback, verified against the mock-server.",
+  "contract": {
+    "endpoint": "POST /api/v1/feedback",
+    "request": {
+      "message": "string (required, 1..5000)",
+      "category": "bug | idea | otro",
+      "contact": "string (optional)",
+      "context": {
+        "module": "string",
+        "path": "string",
+        "appVersion": "string",
+        "user": "string?"
+      }
+    },
+    "responses": {
+      "201": "{ id, createdAt }",
+      "400": "message vac\u00edo"
+    }
+  },
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "Mock-server exposes POST /feedback: 201 {id,createdAt} for valid body, 400 for empty message",
+      "how_to_verify": "curl/supertest against npm run mock; node test or assert in e2e network log"
+    },
+    {
+      "id": "ac2",
+      "criterion": "api.ts submitFeedback() builds the contract payload and surfaces 201 vs 400; unit-tested",
+      "how_to_verify": "vitest src/__tests__ for submitFeedback (mocked axios): 201 resolves, 400 rejects with ApiError"
+    },
+    {
+      "id": "ac3",
+      "criterion": "Feedback button is reachable from AuthenticatedLayout on every page (no orphan route)",
+      "how_to_verify": "Playwright: button visible in layout on at least two routes"
+    },
+    {
+      "id": "ac4",
+      "criterion": "Dialog validates empty message (cannot submit) and shows inline error",
+      "how_to_verify": "Playwright: open dialog, submit empty -> blocked + validation message"
+    },
+    {
+      "id": "ac5",
+      "criterion": "Successful submit shows confirmation (sonner toast) and closes dialog; POST body carries auto context (module/path/appVersion)",
+      "how_to_verify": "Playwright: fill+submit -> toast + closed; assert intercepted POST /feedback body has context fields"
+    },
+    {
+      "id": "ac6",
+      "criterion": "VERIFY_CMD green",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Add mock-server/routes/feedback.js (POST /feedback: validate message, 201 {id,createdAt}, 400 empty) and mount it in the mock app",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Add submitFeedback(payload) to src/lib/api.ts with Feedback types in src/types; unit test in src/__tests__ (201 + 400)",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Build FeedbackDialog component (shadcn Dialog + textarea + category select + optional contact), with sending/success/error states and sonner toast",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Add a 'Enviar feedback' trigger in AuthenticatedLayout (sidebar/footer); auto-collect module/path (router) + appVersion + user (auth)",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Write Playwright e2e feedback.spec.ts (smoke): visible trigger, empty validation, successful submit asserts intercepted POST body context",
+      "status": "complete"
+    },
+    {
+      "id": "t6",
+      "desc": "Run VERIFY_CMD + e2e; fix to green",
+      "status": "complete"
+    }
+  ]
+}

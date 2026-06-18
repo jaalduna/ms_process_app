@@ -5,6 +5,8 @@ import type {
   DataAvailabilityResponse,
   EventDetail,
   EventListResponse,
+  FeedbackPayload,
+  FeedbackResponse,
   LastElegibilidadResponse,
   LastStageCompletionResponse,
   LastSyncResponse,
@@ -82,6 +84,14 @@ api.interceptors.response.use(
 
 export function getMe() {
   return api.get<UserInfo>("/auth/me").then((r) => r.data)
+}
+
+// -- Feedback (JAA-427) --
+
+/** Submit in-app user feedback. Resolves with { id, createdAt } on 201;
+ * rejects with ApiError (e.g. 400 for an empty message). */
+export function submitFeedback(payload: FeedbackPayload) {
+  return api.post<FeedbackResponse>("/feedback", payload).then((r) => r.data)
 }
 
 // -- Trigger --
