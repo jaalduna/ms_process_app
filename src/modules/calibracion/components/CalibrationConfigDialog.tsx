@@ -59,7 +59,7 @@ export function CalibrationConfigDialog({ config, onChange }: CalibrationConfigD
                   })
                 }
               />
-              Nivel 2
+              Canal
             </label>
           </fieldset>
 
@@ -67,74 +67,20 @@ export function CalibrationConfigDialog({ config, onChange }: CalibrationConfigD
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium">Overrides</legend>
             <label className="space-y-1">
-              <span className="text-xs text-muted-foreground">Top limit</span>
-              <Input
-                type="number"
-                min={0}
-                placeholder="All rows"
-                value={config.row_limit ?? ""}
-                onChange={(e) =>
-                  onChange({
-                    ...config,
-                    row_limit: e.target.value ? parseInt(e.target.value, 10) : null,
-                  })
-                }
-                className="h-8 text-sm"
-              />
-            </label>
-            <label className="space-y-1">
               <span className="text-xs text-muted-foreground">Lookback months</span>
               <Input
                 type="number"
                 min={1}
                 max={120}
-                placeholder="Default (13)"
-                value={config.lookback_months ?? ""}
+                value={config.lookback_months}
                 onChange={(e) =>
                   onChange({
                     ...config,
-                    lookback_months: e.target.value ? parseInt(e.target.value, 10) : null,
+                    lookback_months: e.target.value ? parseInt(e.target.value, 10) : 36,
                   })
                 }
                 className="h-8 text-sm"
               />
-            </label>
-          </fieldset>
-
-          {/* Calibration pipeline */}
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Pipeline</legend>
-            <label className="space-y-1">
-              <span className="text-xs text-muted-foreground">Group by (semicolon-separated)</span>
-              <Input
-                placeholder="e.g. IdProduto_Calib;IdProduto_Calib,Region"
-                value={config.group_by}
-                onChange={(e) => onChange({ ...config, group_by: e.target.value })}
-                className="h-8 text-sm"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs text-muted-foreground">Start period</span>
-              <Input
-                placeholder="202102"
-                value={config.start_period}
-                onChange={(e) => onChange({ ...config, start_period: e.target.value })}
-                className="h-8 text-sm"
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={config.skip_merge}
-                onCheckedChange={(v) => onChange({ ...config, skip_merge: v === true })}
-              />
-              Skip merge
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={config.skip_simulation}
-                onCheckedChange={(v) => onChange({ ...config, skip_simulation: v === true })}
-              />
-              Skip simulation
             </label>
           </fieldset>
         </div>

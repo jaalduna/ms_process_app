@@ -186,7 +186,7 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                         {(calibrationConfig.aggregations.region || calibrationConfig.aggregations.nivel_2) && (
                           <p className="mt-2">
                             Aggregations:{" "}
-                            {[calibrationConfig.aggregations.region && "Region", calibrationConfig.aggregations.nivel_2 && "Nivel 2"]
+                            {[calibrationConfig.aggregations.region && "Region", calibrationConfig.aggregations.nivel_2 && "Canal"]
                               .filter(Boolean)
                               .join(", ")}
                           </p>
@@ -194,28 +194,12 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                         <p className="mt-2">
                           Group by:{" "}
                           <code className="text-xs bg-muted px-1 rounded">
-                            {calibrationConfig.group_by || DEFAULT_GROUP_BY[country.code] || "default"}
+                            {DEFAULT_GROUP_BY[country.code] || "default"}
                           </code>
                         </p>
-                        {(calibrationConfig.skip_merge || calibrationConfig.skip_simulation) && (
-                          <p className="mt-1">
-                            Skipping:{" "}
-                            {[calibrationConfig.skip_merge && "merge", calibrationConfig.skip_simulation && "simulation"]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        )}
-                        {(calibrationConfig.row_limit != null || calibrationConfig.lookback_months != null) && (
-                          <p className="mt-2">
-                            Overrides:{" "}
-                            {[
-                              calibrationConfig.row_limit != null && `Top ${calibrationConfig.row_limit} rows`,
-                              calibrationConfig.lookback_months != null && `${calibrationConfig.lookback_months} months lookback`,
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        )}
+                        <p className="mt-2">
+                          Overrides: {calibrationConfig.lookback_months} months lookback
+                        </p>
                       </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -225,14 +209,10 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                       startCalibration({
                         period,
                         aggregations: calibrationConfig.aggregations,
-                        row_limit: calibrationConfig.row_limit,
                         lookback_months: calibrationConfig.lookback_months,
                         skip_sync: true,
                         table_suffix: "_full",
-                        group_by: calibrationConfig.group_by || DEFAULT_GROUP_BY[country.code] || null,
-                        start_period: calibrationConfig.start_period || null,
-                        skip_merge: calibrationConfig.skip_merge,
-                        skip_simulation: calibrationConfig.skip_simulation,
+                        group_by: DEFAULT_GROUP_BY[country.code] || null,
                       }).then(() => {
                         toast.success(`Calibration started for ${countryLabel}`);
                       }).catch((err: unknown) => {
