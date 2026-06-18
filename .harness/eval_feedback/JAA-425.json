@@ -1,0 +1,10 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "Card renders no 'Marcar como listo'/'Configurar parametros' buttons; vitest assertion + live walk PASS."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "Card role=button onClick=openDetail; badge wrapper + Detener trigger/content + History button stopPropagation. Tests + live walk confirm badge/history do not open the detail dialog."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "runLabel = (completed||failed) ? 'Re-ejecutar' : 'Ejecutar'; editable params when canRun, seeded from parameters_json or defaults. Tests + live walk confirm."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "Dialog forwards editableParams to onRun -> createRun then executeRun. Test edits MAX_ROUNDS_COLAPSO=77 and asserts create called with that edited value."},
+  {"id": "ac5", "verdict": "PASS", "evidence": "Card passes onRun=isClosed?undefined:handleRun; closed => no run button + read-only params. History modal passes no onRun (read-only unchanged)."},
+  {"id": "ac6", "verdict": "PASS", "evidence": "WeightingConfigDialog.tsx + test deleted; grep finds no refs; params imported from weightingParams.ts; tsc -b exit 0."},
+  {"id": "ac7", "verdict": "PASS", "evidence": "vitest 124/124, eslint clean, tsc -b clean; headless Playwright walkthrough of /pesaje RESULT: ALL PASS."},
+  {"id": "overall", "verdict": "PASS", "evidence": "Independent skeptical evaluator (separate context) confirmed all 7 ACs; no stubs/placeholders/swallowed errors."}
+]

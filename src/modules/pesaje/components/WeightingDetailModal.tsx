@@ -38,6 +38,7 @@ import {
   Circle,
   Download,
   Loader2,
+  Play,
   RefreshCcw,
   XCircle,
 } from "lucide-react"
@@ -49,7 +50,7 @@ import {
 } from "../hooks/useWeighting"
 import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
 import type { WeightingRun, WeightingStep } from "../types"
-import { WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
+import { DEFAULT_WEIGHTING_PARAMS, WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
 
 const COUNTRY_LABELS: Record<string, string> = {
   argentina: "Argentina",
@@ -68,7 +69,16 @@ interface WeightingDetailModalProps {
   run: WeightingRun | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onRerun?: (params: Record<string, unknown>) => void
+  /**
+   * Launch/relaunch the pipeline with the params shown in the editor. When provided,
+   * the dialog renders an editable params section + a run button ("Ejecutar" the first
+   * time, "Re-ejecutar" after a completed/failed run). When omitted (process closed, or
+   * the read-only history view) params are display-only and no run button is shown.
+   */
+  onRun?: (params: Record<string, unknown>) => void
+  /** Country/period for the first-run (no prior run) header; falls back to the run's own values. */
+  countryCode?: string
+  period?: string | number
 }
 
 function parseUTC(ts: string): number {
@@ -170,9 +180,9 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
   )
 }
 
-export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRerun }: WeightingDetailModalProps) {
+export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRun, countryCode, period }: WeightingDetailModalProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
-  const [editableParams, setEditableParams] = useState<Record<string, unknown>>({})
+  const [editableParams, setEditableParams] = useState<Record<string, unknown>>({ ...DEFAULT_WEIGHTING_PARAMS })
   const [isDownloading, setIsDownloading] = useState(false)
 
   const { data: liveRun } = useWeightingRun(open && initialRun ? initialRun.run_id : null)
@@ -180,26 +190,38 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
 
   const cancel = useCancelWeighting()
 
-  // Initialize editable params from run's parameters when modal opens or run changes
+  // Seed the editable params when the modal opens or the run changes: from the run's
+  // stored params (merged over defaults so every field is present), or from defaults
+  // for a first run with no prior execution.
   useEffect(() => {
     if (run?.parameters_json && Object.keys(run.parameters_json).length > 0) {
-      setEditableParams({ ...run.parameters_json })
+      setEditableParams({ ...DEFAULT_WEIGHTING_PARAMS, ...run.parameters_json })
+    } else {
+      setEditableParams({ ...DEFAULT_WEIGHTING_PARAMS })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing, preserving behavior
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed only on run/open change
   }, [run?.run_id, open])
 
-  if (!run) return null
+  const isProcessing = run ? WEIGHTING_ACTIVE_STATUSES.includes(run.status) : false
+  const isPending = run?.status === "pending"
+  const isCompleted = run?.status === "completed"
+  const isFailed = run?.status === "failed"
 
-  // Editing params + re-running is the "ajustar y volver a correr" iterate step: available
-  // after a failure OR a completed run. The card withholds onRerun when the process is closed.
-  const canRerun = (run.status === "failed" || run.status === "completed") && !!onRerun
+  // The "ajustar y volver a correr" iterate step: launch/relaunch with edited params.
+  // Available whenever the parent passes onRun (process open) and nothing is in flight.
+  const canRun = !!onRun && !isProcessing && !isPending
+  // First execution reads "Ejecutar"; after a completed/failed run it's "Re-ejecutar".
+  const runLabel = isCompleted || isFailed ? "Re-ejecutar" : "Ejecutar"
+  const canCancel = isProcessing || isPending
 
-  const steps = run.steps ?? []
-  const statusConfig = WEIGHTING_STATUS_CONFIG[run.status]
-  const countryLabel = COUNTRY_LABELS[run.country] ?? run.country
+  const countryLabel = COUNTRY_LABELS[run?.country ?? countryCode ?? ""] ?? run?.country ?? countryCode ?? ""
+  const periodDisplay = run?.period ?? period ?? ""
 
-  const isProcessing = WEIGHTING_ACTIVE_STATUSES.includes(run.status)
-  const canCancel = isProcessing || run.status === "pending"
+  const statusConfig = run ? WEIGHTING_STATUS_CONFIG[run.status] : null
+  const steps = run?.steps ?? []
+
+  const hasStoredParams = !!run?.parameters_json && Object.keys(run.parameters_json).length > 0
+  const showParams = canRun || hasStoredParams
 
   function toggleStep(stepName: string) {
     setExpandedSteps((prev) => {
@@ -211,6 +233,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
   }
 
   const handleCancel = () => {
+    if (!run) return
     cancel.mutate(run.run_id, {
       onSuccess: () => toast.info("Ejecucion cancelada"),
       onError: () => toast.error("Error al cancelar"),
@@ -218,6 +241,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
   }
 
   const handleDownload = async () => {
+    if (!run) return
     setIsDownloading(true)
     try {
       await downloadWeightingCSV(run.run_id)
@@ -234,13 +258,17 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Detalle Pesaje
-            <Badge variant={statusConfig.variant} className={statusConfig.className}>
-              {statusConfig.label}
-            </Badge>
+            {run ? "Detalle Pesaje" : "Configurar Pesaje"}
+            {statusConfig && (
+              <Badge variant={statusConfig.variant} className={statusConfig.className}>
+                {statusConfig.label}
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
-            Detalle del proceso de pesaje, progreso y resultados.
+            {run
+              ? "Detalle del proceso de pesaje, progreso y resultados."
+              : "Configura los parametros y ejecuta el pipeline de pesaje."}
           </DialogDescription>
         </DialogHeader>
 
@@ -253,42 +281,46 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
             </div>
             <div>
               <span className="text-muted-foreground">Periodo</span>
-              <p className="font-medium font-mono text-xs">{run.period}</p>
+              <p className="font-medium font-mono text-xs">{periodDisplay}</p>
             </div>
-            <div>
-              <span className="text-muted-foreground">Inicio</span>
-              <p className="font-medium">
-                {run.started_at ? new Date(parseUTC(run.started_at)).toLocaleString() : "-"}
-              </p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Duracion</span>
-              <p className="font-medium">
-                {formatDuration(run.started_at, run.completed_at)}
-              </p>
-            </div>
+            {run && (
+              <>
+                <div>
+                  <span className="text-muted-foreground">Inicio</span>
+                  <p className="font-medium">
+                    {run.started_at ? new Date(parseUTC(run.started_at)).toLocaleString() : "-"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Duracion</span>
+                  <p className="font-medium">
+                    {formatDuration(run.started_at, run.completed_at)}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Parameters */}
-          {run.parameters_json && Object.keys(run.parameters_json).length > 0 && (
+          {showParams && (
             <>
               <Separator />
               <div>
                 <span className="text-muted-foreground flex items-center gap-1.5">
                   Parametros
-                  {canRerun && (
-                    <span className="text-[10px] text-warning font-normal">(editables para re-ejecucion)</span>
+                  {canRun && (
+                    <span className="text-[10px] text-warning font-normal">(editables)</span>
                   )}
                 </span>
                 <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
-                  {Object.entries(canRerun ? editableParams : run.parameters_json).map(([key, value]) => {
+                  {Object.entries(canRun ? editableParams : run!.parameters_json!).map(([key, value]) => {
                     const field = WEIGHTING_PARAM_FIELD_BY_KEY[key]
                     const setParam = (next: unknown) =>
                       setEditableParams((prev) => ({ ...prev, [key]: next }))
                     return (
                       <div key={key} className="flex items-center justify-between text-xs gap-2">
                         <span className="text-muted-foreground font-mono truncate">{key}</span>
-                        {!canRerun ? (
+                        {!canRun ? (
                           <span className="font-medium font-mono">{String(value)}</span>
                         ) : field?.control === "switch" || typeof value === "boolean" ? (
                           <Switch
@@ -338,7 +370,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
               <div>
                 <span className="text-muted-foreground">Pipeline</span>
                 <div className="mt-2">
-                  <WeightingProgress steps={steps} currentStep={run.current_step} />
+                  <WeightingProgress steps={steps} currentStep={run!.current_step} />
                 </div>
                 <div className="mt-3 space-y-1">
                   {WEIGHTING_STEP_ORDER.map((stepName) => {
@@ -376,7 +408,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
           )}
 
           {/* Summary statistics */}
-          {run.status === "completed" && run.summary_stats && (
+          {isCompleted && run!.summary_stats && (
             <>
               <Separator />
               <div>
@@ -384,31 +416,31 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
                 <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Total hogares</span>
-                    <span className="font-medium font-mono">{run.summary_stats.total_households.toLocaleString()}</span>
+                    <span className="font-medium font-mono">{run!.summary_stats.total_households.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Hogares pesados</span>
-                    <span className="font-medium font-mono">{run.summary_stats.weighted_households.toLocaleString()}</span>
+                    <span className="font-medium font-mono">{run!.summary_stats.weighted_households.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso min</span>
-                    <span className="font-medium font-mono">{run.summary_stats.min_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{run!.summary_stats.min_weight.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso max</span>
-                    <span className="font-medium font-mono">{run.summary_stats.max_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{run!.summary_stats.max_weight.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso medio</span>
-                    <span className="font-medium font-mono">{run.summary_stats.mean_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{run!.summary_stats.mean_weight.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso mediana</span>
-                    <span className="font-medium font-mono">{run.summary_stats.median_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{run!.summary_stats.median_weight.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Std dev</span>
-                    <span className="font-medium font-mono">{run.summary_stats.std_dev.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{run!.summary_stats.std_dev.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -416,7 +448,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
           )}
 
           {/* No stats available */}
-          {run.status === "completed" && !run.summary_stats && (
+          {isCompleted && !run!.summary_stats && (
             <>
               <Separator />
               <div>
@@ -427,7 +459,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
           )}
 
           {/* Error */}
-          {run.error_message && (
+          {run?.error_message && (
             <>
               <Separator />
               <div>
@@ -438,36 +470,48 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
               </div>
             </>
           )}
+
+          {/* Closed process, no runs: nothing to configure */}
+          {!run && !canRun && (
+            <p className="text-xs text-muted-foreground italic">
+              Proceso cerrado. Reabralo desde la tarjeta para configurar y ejecutar.
+            </p>
+          )}
         </div>
 
         {/* Action buttons */}
         <DialogFooter className="gap-2 sm:gap-0">
-          {/* Re-run: when failed and user wants different params */}
-          {canRerun && (
+          {/* Ejecutar / Re-ejecutar: when the process is open and nothing is in flight */}
+          {canRun && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline">
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Re-ejecutar
+                  {runLabel === "Re-ejecutar" ? (
+                    <RefreshCcw className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Play className="mr-2 h-4 w-4" />
+                  )}
+                  {runLabel}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Re-ejecutar pipeline</AlertDialogTitle>
+                  <AlertDialogTitle>{runLabel} pipeline</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Crear una nueva ejecucion para{" "}
-                    <strong>{countryLabel}</strong> periodo <strong>{run.period}</strong> con los parametros modificados?
+                    {runLabel === "Re-ejecutar"
+                      ? <>Crear una nueva ejecucion para <strong>{countryLabel}</strong> periodo <strong>{periodDisplay}</strong> con los parametros modificados?</>
+                      : <>Iniciar pipeline de pesaje para <strong>{countryLabel}</strong> periodo <strong>{periodDisplay}</strong>?</>}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={() => {
-                      onRerun!(editableParams)
+                      onRun!(editableParams)
                       onOpenChange(false)
                     }}
                   >
-                    Re-ejecutar
+                    {runLabel}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -475,7 +519,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
           )}
 
           {/* Download CSV: when completed */}
-          {run.status === "completed" && (
+          {isCompleted && (
             <Button variant="outline" disabled={isDownloading} onClick={handleDownload}>
               {isDownloading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -508,7 +552,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRe
                   <AlertDialogTitle>Cancelar proceso</AlertDialogTitle>
                   <AlertDialogDescription>
                     Cancelar el proceso de pesaje para{" "}
-                    <strong>{countryLabel}</strong> periodo <strong>{run.period}</strong>?
+                    <strong>{countryLabel}</strong> periodo <strong>{periodDisplay}</strong>?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

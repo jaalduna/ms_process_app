@@ -364,3 +364,15 @@ Extended e2e `history-unify.spec.ts` assertGrid to assert `scrollWidth-clientWid
 
 **Verify:** npm test 131✓, lint ✓, tsc ✓. Playwright history-unify.spec.ts 3/3 PASS. Probe: all
 three dialogs offsetWidth=768, overflow=0. Evaluator (separate ctx) ALL PASS.
+
+## pesaje-card-dialog-ux (2026-06-18)
+- WHAT: Pesaje card UX. Whole card is now clickable → opens the detail dialog, which is the
+  single place to configure params + run/iterate ("Ejecutar" first run / "Re-ejecutar" after).
+  Removed the redundant "Marcar como listo" button (close stays on the status badge) and the
+  oversized "Configurar parametros" button. Deleted the now-dead WeightingConfigDialog + test.
+- WHY: User feedback — mark-as-ready duplicated the badge close; the config button was too big
+  and the flow unintuitive. Iterate-from-the-dialog matches the mental model.
+- VERIFY: vitest 124/124, eslint + tsc -b clean; headless Playwright walkthrough of /pesaje PASS.
+  Separate skeptical evaluator: all 7 ACs PASS.
+- NEXT: push branch feat/pesaje-card-dialog-ux + open PR to ado/develop (awaiting user go-ahead;
+  ad-hoc slug, no Linear ticket).

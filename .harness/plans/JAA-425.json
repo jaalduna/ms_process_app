@@ -1,0 +1,22 @@
+{
+  "ticket": "JAA-425",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-425",
+  "branch": "feat/JAA-425-pesaje-card-dialog-ux",
+  "archetype": "webapp",
+  "goal": "Simplify the Pesaje card UX: clicking the card opens the detail dialog (which becomes the single place to configure params + run/re-run/iterate); remove the redundant 'Marcar como listo' button (close via the status badge) and the oversized 'Configurar parametros' button.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "WeightingCountryCard renders neither a 'Marcar como listo' button nor a 'Configurar parametros' button.", "how_to_verify": "vitest: render the card in completed/open state; assert queryByText(/Marcar como listo/i) and /Configurar par/i are both null."},
+    {"id": "ac2", "criterion": "Clicking the card body opens the WeightingDetailModal; clicking the status badge or History icon does NOT open it (stopPropagation).", "how_to_verify": "vitest: click the card container -> dialog role visible; click the badge -> dialog still closed. Playwright: click a country card on /pesaje -> 'Detalle Pesaje' dialog appears."},
+    {"id": "ac3", "criterion": "The detail dialog shows editable parameters and a run button labeled 'Ejecutar' when there is no prior run, and 'Re-ejecutar' when the latest run is completed or failed.", "how_to_verify": "vitest: open modal with run=null -> button text 'Ejecutar' + editable inputs present; open with a completed run -> button text 'Re-ejecutar'."},
+    {"id": "ac4", "criterion": "Launching from the dialog (Ejecutar/Re-ejecutar, after the confirm) calls createRun then executeRun with the params currently shown in the editor.", "how_to_verify": "vitest: edit a numeric param, click run, confirm; assert the create mutation was called with the edited parameters."},
+    {"id": "ac5", "criterion": "When the process is closed (isClosed), the dialog params are read-only and no run button is shown; the WeightingHistoryModal's read-only detail view is unchanged.", "how_to_verify": "vitest: render card with process closed -> open modal -> inputs absent/read-only, no 'Ejecutar' button. History modal still renders detail without a run button."},
+    {"id": "ac6", "criterion": "WeightingConfigDialog component and its test are removed with no dangling imports; DEFAULT_WEIGHTING_PARAMS/WeightingParams imported from weightingParams.ts.", "how_to_verify": "grep: no references to WeightingConfigDialog remain; npx tsc -b passes."},
+    {"id": "ac7", "criterion": "VERIFY_CMD is green and a Playwright smoke walkthrough of /pesaje (open card -> dialog -> close) passes.", "how_to_verify": "npm test && npm run lint && npx tsc -b; then Playwright MCP click-through on running dev:e2e + mock."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Update WeightingDetailModal: render even when run is null (first-run config state); add optional countryCode/period props; generalize editable params to a single canRun gate seeded from run.parameters_json or DEFAULT_WEIGHTING_PARAMS; unify footer run button as onRun(params) with dynamic 'Ejecutar'/'Re-ejecutar' label + confirm. Keep read-only when onRun is undefined.", "status": "complete"},
+    {"id": "t2", "desc": "Update WeightingCountryCard: make the Card clickable to open the modal (role/tabIndex/keyboard, stopPropagation on badge + history); remove 'Configurar parametros', 'Marcar como listo' (and handleMarkReady/canMarkReady), on-card 'Ejecutar' and 'Ver detalle'; unify handleExecutar/handleRerun into onRun; pass countryCode/period + onRun (undefined when closed) to the modal; import params from weightingParams.ts.", "status": "complete"},
+    {"id": "t3", "desc": "Delete WeightingConfigDialog.tsx and its test file; update WeightingCountryCard.test.tsx to the new behavior (no config/mark-ready/ejecutar-on-card; card click opens modal; run from modal).", "status": "complete"},
+    {"id": "t4", "desc": "Run VERIFY_CMD (npm test && npm run lint && npx tsc -b) and a Playwright smoke walkthrough of /pesaje.", "status": "complete"}
+  ]
+}
