@@ -37,17 +37,16 @@ stages:
         timeoutInMinutes: 90
         strategy:
           matrix:
-            linux:
-              osImage: "ubuntu-latest"
-              bundles: "appimage"
-              artifactName: "linux"
-              # Triple the compiled mock sidecar must carry for Tauri to resolve it.
-              mockTarget: "bun-linux-x64"
-              mockOut: "src-tauri/binaries/mock-server-x86_64-unknown-linux-gnu"
+            # Windows-only: the embedded mock (Bun-compiled) breaks the Linux
+            # AppImage build — linuxdeploy runs `ldd` on the sidecar and aborts
+            # ("Failed to run ldd"). Distribution target is the Windows .exe, so
+            # Linux is dropped while the mock is bundled. To restore Linux later,
+            # ship it WITHOUT the mock (separate matrix leg, no overlay/feature).
             windows:
               osImage: "windows-latest"
               bundles: "nsis"
               artifactName: "windows"
+              # Triple the compiled mock sidecar must carry for Tauri to resolve it.
               mockTarget: "bun-windows-x64"
               mockOut: "src-tauri/binaries/mock-server-x86_64-pc-windows-msvc.exe"
         pool:
@@ -79,13 +78,6 @@ stages:
 
           - script: rustup toolchain install stable --profile minimal && rustup default stable
             displayName: "Rust toolchain"
-
-          # Linux needs the WebKitGTK + build deps for Tauri.
-          - bash: |
-              sudo apt-get update
-              sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libfuse2
-            displayName: "Linux system deps"
-            condition: eq(variables['artifactName'], 'linux')
 
           - script: npm ci
             displayName: "Install deps"
@@ -173,12 +165,11 @@ stages:
                   "$target" "$sigcontent" "$BASE" "$fname"
               }
 
-              LINUX=$(entry "linux-x86_64" "$WORK/linux/*.AppImage" "$WORK/linux/*.AppImage.sig")
-              # NSIS updater artifact IS the -setup.exe (+ .sig); this also doubles as the manual installer.
+              # Windows-only release. NSIS updater artifact IS the -setup.exe (+ .sig);
+              # this also doubles as the manual installer to download/share.
               WIN=$(entry "windows-x86_64" "$WORK/windows/*-setup.exe" "$WORK/windows/*-setup.exe.sig")
 
-              PLATFORMS=$(printf '%s' "$LINUX")
-              [ -n "$WIN" ] && PLATFORMS=$(printf '%s,%s' "$PLATFORMS" "$WIN")
+              PLATFORMS="$WIN"
 
               cat > "$OUT/latest.json" <<JSON
               {
