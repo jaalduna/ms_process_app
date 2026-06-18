@@ -2,6 +2,33 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-18 — JAA-421 (Overview period filter — UI + mock-server) — webapp — EXECUTED, evaluator PASS
+
+**What:** Frontend+mock half (contract seam) of JAA-420. The Overview built each cell as the
+latest-overall run per stage/country → rows mixed periods (prices@202602 vs elegibilidad/calibración
+@202605, per seeds). Added a period selector so every cell reflects the selected period.
+- **t1** mock-server: optional `period` arg on `RunStore.lastCompleted(period)`, `eligibilityStore.lastCompleted(period)`,
+  and `lastCompletedByStage(stage, period)` (reuse `String(run.period)===String(period)`); wired all 5
+  handlers (server.js prices/weighting/mtr + metadata.js elegibilidad/calibration) to pass `req.query.period`.
+  No param ⇒ latest overall (backward compatible).
+- **t2** `src/lib/api.ts`: `getLast{Prices,Weighting,Mtr,Elegibilidad,Calibration}` accept `period?: number`,
+  forwarded via a small `periodParams()` helper as a string query param; omitted ⇒ no params.
+- **t3** `OverviewPage`: 5 unfiltered "discovery" queries → `availablePeriods` (desc); default selection
+  **derived** (`pickedPeriod ?? availablePeriods[0]`, no effect-setState — react-hooks/set-state-in-effect);
+  5 period-keyed display queries; cells show date only (per-cell period line removed) + "—" when empty;
+  subtitle reflects period. `PeriodSelector` extended with optional `periods?: string[]` (backward compat).
+- **t4** tests: api-last-period.test.ts (5 endpoints × forwarded/omitted), OverviewPage period describe
+  (selector renders, default=most-recent-with-data, same period across stages, "—", no period digits),
+  new e2e/overview-period.spec.ts (@smoke): selector + subtitle + refetch-on-change (subtitle change +
+  dash-count change) + no raw YYYYMM digits.
+
+**Verify:** vitest **107/0**, eslint clean, `tsc -b` clean. Mock curl: `?period=202602`→prices,
+`?period=202605`→`{}`, no-param→latest (backward compat). Playwright overview-period **1/1** + navigation+smoke
+**7/7** (no regression; mock :5421, dev :5521, `rtk proxy`). Separate evaluator (ux-ui-reviewer, fresh ctx)
+re-ran all → **ac1–ac8 PASS**.
+
+**Next:** commit → push `ado` → PR to `develop` → Linear In Review → auto-merge when policies green.
+
 ## 2026-06-17 — JAA-411 (e2e port/repair: un-fixme + flow re-audit) — webapp
 
 **What:** Followed JAA-397. Repaired/rewrote every quarantined `test.fixme()` (21) + the

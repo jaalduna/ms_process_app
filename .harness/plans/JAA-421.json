@@ -1,0 +1,23 @@
+{
+  "ticket": "JAA-421",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-421/overview-period-filter-ui-mock-server",
+  "branch": "feat/JAA-421-overview-period-filter",
+  "archetype": "webapp",
+  "goal": "Add a period selector to the Overview so every stage x country cell reflects the selected period (latest completed run within it, or '-'), driven by ?period=YYYYMM on the /metadata/last-* mock endpoints.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "last-* endpoints accept ?period=YYYYMM and filter to that period; no param = latest-overall (backward compatible)", "how_to_verify": "mock-server integration test: seed two periods, assert filtered response only contains that period and unfiltered is unchanged"},
+    {"id": "ac2", "criterion": "api client getLastPrices/Weighting/Mtr/Elegibilidad/Calibration accept period?: number and send it as a query param", "how_to_verify": "vitest with mocked axios asserts params.period is forwarded"},
+    {"id": "ac3", "criterion": "Overview renders a period selector; changing it refetches and updates the table", "how_to_verify": "Playwright: change selector -> cells refetch/change"},
+    {"id": "ac4", "criterion": "For a selected period, every populated cell's run belongs to that period (no mixed periods in a row)", "how_to_verify": "unit/Playwright: assert no mixed periods given period-keyed queries"},
+    {"id": "ac5", "criterion": "Stage with no run for the selected period shows '-'", "how_to_verify": "unit + Playwright assertion on empty cell"},
+    {"id": "ac6", "criterion": "Per-cell period number is gone; date remains", "how_to_verify": "unit: cell renders date, not the period digits"},
+    {"id": "ac7", "criterion": "Default selection = most recent period that has data", "how_to_verify": "unit: with seeded periods, default selected = max available"},
+    {"id": "ac8", "criterion": "npm test && npm run lint && npx tsc -b green; e2e walkthrough passes", "how_to_verify": "run VERIFY_CMD + Playwright overview-period spec"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "mock-server: optional period filter on RunStore.lastCompleted(period), eligibilityStore.lastCompleted(period), lastCompletedByStage(stage, period); wire all 5 handlers to pass req.query.period. No param -> unchanged.", "status": "complete"},
+    {"id": "t2", "desc": "src/lib/api.ts: getLast{Prices,Weighting,Mtr,Elegibilidad,Calibration} accept period?: number and pass as query param.", "status": "complete"},
+    {"id": "t3", "desc": "OverviewPage: discover available periods from unfiltered last-* calls -> default to max; PeriodSelector (extended optional periods prop) drives period-keyed useQuerys; cells show date only + '-' when empty; subtitle reflects selected period.", "status": "complete"},
+    {"id": "t4", "desc": "tests: extend OverviewPage.test.tsx (default period, '-', no period digit, selector refetch) + mock-server filter test; new e2e/overview-period.spec.ts walkthrough.", "status": "complete"}
+  ]
+}

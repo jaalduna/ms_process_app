@@ -1,0 +1,10 @@
+[
+  {"id":"ac1","verdict":"PASS","evidence":"curl ?period=202602 → 9 countries all period:202602; ?period=202605 → {} for prices (seeded only at 202602); no param → latest overall. run-store.js + eligibility-store.js + metadata.js filter with String(run.period)===String(period)."},
+  {"id":"ac2","verdict":"PASS","evidence":"api.ts periodParams(period?: number) helper builds {params:{period:String(period)}} only when period!=null; all 5 getLast* accept period?: number. Unit test api-last-period.test.ts asserts both forwarded and omitted cases."},
+  {"id":"ac3","verdict":"PASS","evidence":"OverviewPage renders <PeriodSelector>; onChange=setSelectedPeriod re-queries all 5 last-* hooks. Playwright: selector visible, subtitle updates, dash count changes after switching period."},
+  {"id":"ac4","verdict":"PASS","evidence":"All 5 display queries use the same period variable; mock filters strictly by period — no cross-period contamination possible."},
+  {"id":"ac5","verdict":"PASS","evidence":"Cell renders '—' when completedAt undefined. Playwright asserts table dash visible; unit test asserts getAllByText('—').length>0 at selected period."},
+  {"id":"ac6","verdict":"PASS","evidence":"Cell renders only formatDate(completedAt); per-cell period line removed. Playwright asserts getByText(/^20\\d{4}$/) count 0 before and after switch; unit test asserts queryByText('202605'/'202602') absent."},
+  {"id":"ac7","verdict":"PASS","evidence":"selectedPeriod = pickedPeriod ?? availablePeriods[0] ?? null; discoverPeriods sorts descending so [0] is newest. Pure derivation, no effect-setState. Unit test asserts default = 202605 (newer than 202602)."},
+  {"id":"ac8","verdict":"PASS","evidence":"vitest 107 pass / 0 fail; eslint clean; tsc -b 'No errors found'; Playwright overview-period.spec.ts 1 passed + navigation/smoke 7 passed (no regression)."}
+]
