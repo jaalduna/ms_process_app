@@ -9,10 +9,9 @@ import { useModuleConfig } from "@/hooks/useModuleConfig"
 import { useAuth } from "@/hooks/useAuth"
 import { allModules } from "@/modules/registry"
 import { Skeleton } from "@/components/ui/skeleton"
+import { authBypassed } from "@/lib/runtime-mode"
 
 const LoginPage = lazy(() => import("@/pages/LoginPage"))
-
-const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === "true"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,19 +25,26 @@ const queryClient = new QueryClient({
 const isTauri = '__TAURI_INTERNALS__' in window
 const basename = isTauri ? "/" : import.meta.env.BASE_URL
 
-const authProviderConfig = import.meta.env.VITE_AUTH_PROVIDER ?? (window as unknown as { __APP_CONFIG__?: { authProvider?: string } }).__APP_CONFIG__?.authProvider
-
-// Only the configured provider's chunk is fetched (keeps MSAL ~220KB out of the
-// bundle for the other providers). The import starts eagerly so it downloads in
-// parallel with the initial render instead of waterfalling behind it.
-const authProviderImport = AUTH_BYPASS
-  ? import("@/components/DevAuthProvider").then((m) => ({ default: m.DevAuthProvider }))
-  : authProviderConfig === "azure-builtin"
-    ? import("@/components/AzureBuiltInAuthProvider").then((m) => ({ default: m.AzureBuiltInAuthProvider }))
-    : authProviderConfig === "github"
-      ? import("@/components/GithubAuthProvider").then((m) => ({ default: m.GithubAuthProvider }))
-      : import("@/components/MsalAuthProvider").then((m) => ({ default: m.MsalAuthProvider }))
-const AuthProvider = lazy(() => authProviderImport)
+// Resolve the auth provider at render time (NOT module scope): in the bundled
+// single-exe build, mock mode is only known after config.json is read in main.tsx,
+// so authBypassed()/authProvider must be evaluated after that runs.
+// Only the selected provider's chunk is fetched (keeps MSAL ~220KB out of the bundle).
+function loadAuthProvider() {
+  if (authBypassed()) {
+    return import("@/components/DevAuthProvider").then((m) => ({ default: m.DevAuthProvider }))
+  }
+  const provider =
+    import.meta.env.VITE_AUTH_PROVIDER ??
+    (window as unknown as { __APP_CONFIG__?: { authProvider?: string } }).__APP_CONFIG__?.authProvider
+  if (provider === "azure-builtin") {
+    return import("@/components/AzureBuiltInAuthProvider").then((m) => ({ default: m.AzureBuiltInAuthProvider }))
+  }
+  if (provider === "github") {
+    return import("@/components/GithubAuthProvider").then((m) => ({ default: m.GithubAuthProvider }))
+  }
+  return import("@/components/MsalAuthProvider").then((m) => ({ default: m.MsalAuthProvider }))
+}
+const AuthProvider = lazy(loadAuthProvider)
 
 function AppRoutes() {
   const modules = useModuleConfig()
@@ -92,7 +98,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
       <Suspense fallback={null}>
         <AuthProvider>
           <QueryClientProvider client={queryClient}>

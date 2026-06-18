@@ -1,7 +1,7 @@
 {
   "name": "ms-process-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.1",
   "type": "module",
   "workspaces": [
     "mock-server"
@@ -20,6 +20,9 @@
     "mock": "node mock-server/server.js",
     "mock:fast": "MOCK_STEP_INTERVAL_MS=150 node mock-server/server.js",
     "mock:hybrid": "node mock-server/hybrid-proxy.js",
+    "mock:compile": "bun build mock-server/server.js --compile --target=bun-linux-x64 --outfile src-tauri/binaries/mock-server-x86_64-unknown-linux-gnu",
+    "mock:compile:win": "bun build mock-server/server.js --compile --target=bun-windows-x64 --outfile src-tauri/binaries/mock-server-x86_64-pc-windows-msvc.exe",
+    "tauri:build:mock": "npm run mock:compile && tauri build --config src-tauri/tauri.bundled-mock.conf.json -- --features mock-sidecar",
     "test:e2e:fast": "playwright test --project=smoke",
     "test:e2e:full": "playwright test"
   },
