@@ -1,6 +1,6 @@
 {
   "productName": "MS Process App",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "com.kantar.msprocessapp",
   "build": {
     "beforeBuildCommand": "npm run build",

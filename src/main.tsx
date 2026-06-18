@@ -19,14 +19,30 @@ async function loadConfig() {
 
       type BridgeConfig = { API_URL?: string }
       type AppConfig = { modules?: Record<string, boolean>; authProvider?: string }
-      type WindowGlobals = { __BRIDGE_CONFIG__?: BridgeConfig; __APP_CONFIG__?: AppConfig }
+      type WindowGlobals = {
+        __BRIDGE_CONFIG__?: BridgeConfig
+        __APP_CONFIG__?: AppConfig
+        __MOCK_MODE__?: boolean
+      }
       const win = window as unknown as WindowGlobals
+
+      // No external API_URL => MOCK mode: the bundled mock sidecar (on :5000) serves
+      // the app and auth is bypassed. Any API_URL => REAL mode (real backend + auth).
+      win.__MOCK_MODE__ = !config.API_URL
 
       // Apply API_URL to __BRIDGE_CONFIG__
       if (config.API_URL) {
         win.__BRIDGE_CONFIG__ = {
           ...win.__BRIDGE_CONFIG__,
           API_URL: config.API_URL,
+        }
+      }
+
+      // Apply auth provider override (lets operators pick github/azure-builtin via config.json)
+      if (config.authProvider) {
+        win.__APP_CONFIG__ = {
+          ...win.__APP_CONFIG__,
+          authProvider: config.authProvider,
         }
       }
 
