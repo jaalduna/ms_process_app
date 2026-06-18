@@ -242,13 +242,6 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
               </AlertDialog>
             )}
 
-            {/* Completed indicator */}
-            {isCompleted && !isProcessing && (
-              <div className="flex items-center gap-1.5 text-success text-sm font-medium">
-                Completado
-              </div>
-            )}
-
             {/* Ver detalle button */}
             {showDetailButton && (
               <Button size="sm" variant="outline" onClick={() => setDetailModalOpen(true)}>
