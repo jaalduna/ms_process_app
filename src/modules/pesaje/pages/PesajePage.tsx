@@ -1,7 +1,5 @@
 import { useState } from "react"
 import { PeriodSelector } from "@/components/PeriodSelector"
-import { WeightingConfigDialog, DEFAULT_WEIGHTING_PARAMS } from "../components/WeightingConfigDialog"
-import type { WeightingParams } from "../components/WeightingConfigDialog"
 import { WeightingCountryCard } from "../components/WeightingCountryCard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCountries } from "@/hooks/useCountries"
@@ -17,7 +15,6 @@ function currentPeriod(): string {
 
 export function PesajePage() {
   const [period, setPeriod] = useState(currentPeriod)
-  const [weightingParams, setWeightingParams] = useState<WeightingParams>(DEFAULT_WEIGHTING_PARAMS)
   const { data, isLoading, error } = useCountries()
   const { data: lastWeighting } = useLastWeighting()
 
@@ -33,7 +30,6 @@ export function PesajePage() {
         </div>
         <div className="flex items-center gap-2">
           <PeriodSelector value={period} onChange={setPeriod} />
-          <WeightingConfigDialog params={weightingParams} onChange={setWeightingParams} />
         </div>
       </div>
 
@@ -59,7 +55,6 @@ export function PesajePage() {
               key={c.code}
               countryCode={c.code}
               period={period}
-              weightingParams={weightingParams}
               lastFinalizedDate={lastWeighting?.[c.code]?.completed_at ?? null}
             />
           ))}

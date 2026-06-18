@@ -27,8 +27,9 @@ test.describe("Weighting params (JAA-343)", () => {
   test("edited params are sent as parameters_json on run create", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
-    // Open the config dialog (header settings button).
-    await page.getByRole("button", { name: "Parametros de pesaje" }).click()
+    // Params are per-country now (JAA-423): open Chile's own config dialog.
+    const chile = page.locator('[data-slot="card"]').filter({ hasText: "Chile" }).first()
+    await chile.getByRole("button", { name: "Configurar parametros" }).click()
     const dialog = page.getByRole("dialog")
     await expect(dialog).toBeVisible()
 
@@ -47,10 +48,9 @@ test.describe("Weighting params (JAA-343)", () => {
     await page.keyboard.press("Escape")
     await expect(dialog).not.toBeVisible()
 
-    // Trigger a run: the "Ejecutar" button opens a confirm AlertDialog; the
-    // POST /weighting/runs only fires after clicking "Confirmar". Any country
-    // carries the same global params, so use the first available run button.
-    await page.getByRole("button", { name: /^(re-?ejecutar|ejecutar)$/i }).first().click()
+    // Trigger Chile's run: "Ejecutar" opens a confirm AlertDialog; the
+    // POST /weighting/runs only fires after clicking "Confirmar".
+    await chile.getByRole("button", { name: /^(re-?ejecutar|ejecutar)$/i }).click()
 
     const [request] = await Promise.all([
       page.waitForRequest(
@@ -60,7 +60,8 @@ test.describe("Weighting params (JAA-343)", () => {
     ])
 
     // Acceptance: the create body carries the edited params...
-    const body = request.postDataJSON() as { parameters?: Record<string, unknown> }
+    const body = request.postDataJSON() as { country?: string; parameters?: Record<string, unknown> }
+    expect(body.country).toBe("chile")
     expect(body.parameters).toBeTruthy()
     const params = body.parameters as Record<string, unknown>
     for (const key of EXPECTED_KEYS) {

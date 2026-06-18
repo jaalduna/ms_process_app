@@ -30,15 +30,24 @@ export type { WeightingParams }
 interface WeightingConfigDialogProps {
   params: WeightingParams
   onChange: (params: WeightingParams) => void
+  /** When set, render a labeled button instead of the icon-only trigger. */
+  triggerLabel?: string
 }
 
-export function WeightingConfigDialog({ params, onChange }: WeightingConfigDialogProps) {
+export function WeightingConfigDialog({ params, onChange, triggerLabel }: WeightingConfigDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Parametros de pesaje">
-          <Settings className="h-4 w-4" />
-        </Button>
+        {triggerLabel ? (
+          <Button variant="outline" size="sm" className="flex-1" aria-label={triggerLabel}>
+            <Settings className="mr-2 h-3.5 w-3.5" />
+            {triggerLabel}
+          </Button>
+        ) : (
+          <Button variant="outline" size="icon" aria-label="Parametros de pesaje">
+            <Settings className="h-4 w-4" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>

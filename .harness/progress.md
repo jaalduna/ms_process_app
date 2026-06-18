@@ -2,6 +2,37 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-18 — JAA-423 (Pesaje params per-country + iterate loop) — webapp — EXECUTED, evaluator PASS
+
+**What:** Turned Pesaje from one global param gear (JAA-343) into a per-country iterate loop:
+configurar → correr → revisar stats → ajustar → re-ejecutar → marcar como listo.
+- **t1** `WeightingConfigDialog`: optional `triggerLabel` → renders a labeled "Configurar parametros"
+  button (icon-only trigger kept for back-compat); controlled params/onChange API unchanged.
+- **t2** `WeightingCountryCard`: per-country `params` state seeded from the country's last run
+  `parameters_json` (merged over DEFAULT) via React's adjust-state-during-render pattern keyed on
+  `run_id` (avoids the new `react-hooks/set-state-in-effect` lint). Renders its own config dialog;
+  `handleExecutar` posts local `params`. Dropped the `weightingParams` prop.
+- **t3** `PesajePage`: removed the global gear + shared `weightingParams` state.
+- **t4** `WeightingDetailModal`: `canRerun` now `(failed || completed) && onRerun` so the
+  "ajustar y volver a correr" step works after success; added `aria-label={key}` to the editable
+  number inputs (a11y + testable). Card passes `onRerun` only when the process is **not closed**.
+- **t5** "Marcar como listo" CTA (visible when completed && open) → confirm → `useSetProcessStatus`
+  **close('pesaje', country)** — reuses JAA-391; closed already disables Ejecutar + hides config.
+  The `ProcessStatusBadge` stays as the live status + reopen path.
+- **t6** Migrated `weighting.spec.ts` + `weighting-params.spec.ts` off the removed global gear to the
+  per-card "Configurar parametros" flow; new `e2e/weighting-iterate.spec.ts` covers the full loop.
+
+**Verify:** `npx tsc -b` clean, `eslint` clean, **vitest 99/0** (+7 new). Playwright (mock :5423
+MOCK_STEP_INTERVAL_MS=300, dev :5523, via `rtk proxy`): weighting-iterate + weighting-params +
+weighting = **5/5**; process-open-close **1/1** (no regression). Separate evaluator (ux-ui-reviewer,
+fresh ctx) drove the live app → **ac1–ac6 PASS** (captured Argentina POST N_PERIODOS_OUTLIERS=99
+while Bolivia stayed 12; close/open round-trip live).
+
+**Decisions (user-confirmed):** listo = cerrar proceso (no new state); config per-card pre-filled
+from last run; re-run allowed after completed.
+
+**Next:** commit → push `ado` → PR to `develop` → Linear In Review → auto-merge when policies green.
+
 ## 2026-06-17 — JAA-411 (e2e port/repair: un-fixme + flow re-audit) — webapp
 
 **What:** Followed JAA-397. Repaired/rewrote every quarantined `test.fixme()` (21) + the

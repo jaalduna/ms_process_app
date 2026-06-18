@@ -33,6 +33,8 @@ const mockCreateWeightingRun = vi.fn()
 const mockExecuteWeighting = vi.fn()
 const mockCancelWeighting = vi.fn()
 const mockGetWeightingRun = vi.fn()
+const mockGetProcessStatus = vi.fn()
+const mockCloseProcess = vi.fn()
 
 vi.mock("@/lib/api", () => ({
   getWeightingRuns: (...args: unknown[]) => mockGetWeightingRuns(...args),
@@ -42,9 +44,9 @@ vi.mock("@/lib/api", () => ({
   cancelWeighting: (...args: unknown[]) => mockCancelWeighting(...args),
   getLastWeighting: vi.fn().mockResolvedValue({ countries: {} }),
   downloadWeightingCSV: vi.fn(),
-  getProcessStatus: vi.fn().mockResolvedValue({ countries: {} }),
+  getProcessStatus: (...args: unknown[]) => mockGetProcessStatus(...args),
   openProcess: vi.fn(),
-  closeProcess: vi.fn(),
+  closeProcess: (...args: unknown[]) => mockCloseProcess(...args),
   setTokenProvider: vi.fn(),
   api: { interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } } },
 }))
@@ -73,7 +75,6 @@ function renderCard(overrides?: {
   const props = {
     countryCode: overrides?.countryCode ?? "chile",
     period: overrides?.period ?? "202602",
-    weightingParams: DEFAULT_PARAMS,
     lastFinalizedDate: overrides?.lastFinalizedDate ?? null,
   }
 
@@ -90,6 +91,21 @@ describe("WeightingCountryCard", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetWeightingRuns.mockResolvedValue([])
+    mockGetProcessStatus.mockResolvedValue({ countries: {} })
+    mockCloseProcess.mockResolvedValue({})
+  })
+
+  const completedRun = (parameters_json: Record<string, unknown> = {}) => ({
+    run_id: "run-done-1",
+    country: "chile",
+    period: 202602,
+    status: "completed",
+    steps: [],
+    current_step: null,
+    parameters_json,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:05:00Z",
+    completed_at: "2026-01-01T00:05:00Z",
   })
 
   it("renders country name and flag", async () => {
@@ -323,5 +339,96 @@ describe("WeightingCountryCard", () => {
     await waitFor(() => {
       expect(screen.getByText("Re-ejecutar")).toBeInTheDocument()
     })
+  })
+
+  // JAA-423 — per-country config + iterate loop
+
+  it("exposes a per-country 'Configurar parametros' control (no global gear) (ac1)", async () => {
+    renderCard()
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Configurar parametros" })).toBeInTheDocument()
+    })
+  })
+
+  it("seeds the config dialog from this country's last run parameters_json (ac2)", async () => {
+    const user = userEvent.setup()
+    mockGetWeightingRuns.mockResolvedValue([completedRun({ MAX_ROUNDS_COLAPSO: 99, METODO_BOUNDS: "iqr" })])
+
+    renderCard()
+
+    await user.click(await screen.findByRole("button", { name: "Configurar parametros" }))
+    // The numeric field reflects the last run's stored value, not the default (50).
+    const field = await screen.findByLabelText("Maximo juntas marginales")
+    expect(field).toHaveValue(99)
+  })
+
+  it("falls back to defaults in the config dialog when the country has no runs (ac2)", async () => {
+    const user = userEvent.setup()
+    mockGetWeightingRuns.mockResolvedValue([])
+
+    renderCard()
+
+    await user.click(await screen.findByRole("button", { name: "Configurar parametros" }))
+    const field = await screen.findByLabelText("Maximo juntas marginales")
+    expect(field).toHaveValue(DEFAULT_PARAMS.MAX_ROUNDS_COLAPSO)
+  })
+
+  it("posts the per-country edited params when running (ac3)", async () => {
+    const user = userEvent.setup()
+    mockGetWeightingRuns.mockResolvedValue([])
+    mockCreateWeightingRun.mockResolvedValue({ run_id: "r1", country: "chile", status: "pending" })
+    mockExecuteWeighting.mockResolvedValue({ run_id: "r1", status: "running" })
+
+    renderCard()
+
+    await user.click(await screen.findByRole("button", { name: "Configurar parametros" }))
+    const field = await screen.findByLabelText("Maximo juntas marginales")
+    await user.clear(field)
+    await user.type(field, "77")
+    // Close the dialog (Escape) and run.
+    await user.keyboard("{Escape}")
+    await user.click(await screen.findByText("Ejecutar"))
+    await user.click(await screen.findByText("Confirmar"))
+
+    await waitFor(() => {
+      expect(mockCreateWeightingRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          country: "chile",
+          period: 202602,
+          parameters: expect.objectContaining({ MAX_ROUNDS_COLAPSO: 77 }),
+        }),
+      )
+    })
+  })
+
+  it("'Marcar como listo' closes the pesaje process for the country (ac5)", async () => {
+    const user = userEvent.setup()
+    mockGetWeightingRuns.mockResolvedValue([completedRun()])
+
+    renderCard()
+
+    await user.click(await screen.findByRole("button", { name: /Marcar como listo/ }))
+    const dialog = await screen.findByRole("alertdialog")
+    await user.click(within(dialog).getByRole("button", { name: "Marcar como listo" }))
+
+    await waitFor(() => {
+      expect(mockCloseProcess).toHaveBeenCalledWith("pesaje", "chile")
+    })
+  })
+
+  it("hides config + run actions and 'Marcar como listo' once the process is closed (ac5)", async () => {
+    mockGetWeightingRuns.mockResolvedValue([completedRun()])
+    mockGetProcessStatus.mockResolvedValue({
+      countries: { chile: { pesaje: { status: "closed", changed_by: "Ana", changed_at: "2026-01-02T00:00:00Z" } } },
+    })
+
+    renderCard()
+
+    // Detail button proves the card rendered the completed run.
+    await screen.findByText("Ver detalle")
+    expect(screen.queryByRole("button", { name: "Configurar parametros" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Marcar como listo/ })).not.toBeInTheDocument()
+    // The run button still renders but is disabled (proceso cerrado bloquea nuevas corridas).
+    expect(screen.getByRole("button", { name: "Re-ejecutar" })).toBeDisabled()
   })
 })
