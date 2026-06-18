@@ -1,0 +1,12 @@
+{
+  "ticket": "qmstr-rename-macrocac",
+  "overall": "PASS",
+  "evaluator": "ux-ui-reviewer (separate context, Playwright + build/lint/test)",
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "/qms-tr renders heading 'QMS-TR' with the MTR country grid (cards + 'Ejecutar'). QmsTrPage chunk emitted in build."},
+    {"id": "ac2", "verdict": "PASS", "evidence": "/mtr still renders heading 'MTR'; sidebar label 'MTR' unchanged."},
+    {"id": "ac3", "verdict": "PASS", "evidence": "/macrocac renders heading 'Macrocac' + placeholder copy ('Próximamente', 'tablas productivas', SQL servers)."},
+    {"id": "ac4", "verdict": "PASS", "evidence": "Sidebar shows QMS-TR and Macrocac links; navigation works, no orphan routes."},
+    {"id": "ac5", "verdict": "PASS", "evidence": "lint clean; build OK; 92/92 unit tests pass; 4/4 dedicated e2e smoke tests pass."}
+  ]
+}

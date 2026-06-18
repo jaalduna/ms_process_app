@@ -20,6 +20,8 @@ window.__APP_CONFIG__ = {
     prices: true,
     weighting: true,
     mtr: true,
+    qmstr: true,
+    macrocac: true,
     traceability: true,
   },
 };

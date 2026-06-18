@@ -1,0 +1,20 @@
+{
+  "ticket": "qmstr-rename-macrocac",
+  "linear_url": null,
+  "branch": "feat/qmstr-rename-macrocac",
+  "archetype": "webapp",
+  "goal": "Add a QMS-TR page (route /qms-tr, copy of the existing MTR module), keep the existing MTR page (route /mtr) as the equivalent duplicate, and add a Macrocac placeholder page for the on-demand publish-to-productive-SQL-tables process.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "A new 'qmstr' module exists at route /qms-tr labeled 'QMS-TR', registered in registry.ts, with page heading 'QMS-TR' and the same country-grid content as MTR.", "how_to_verify": "Navigate to /ms-process-app/qms-tr in Playwright; assert h1 text 'QMS-TR' and the country cards render."},
+    {"id": "ac2", "criterion": "The existing MTR page is still reachable at /mtr labeled 'MTR' with heading 'MTR' (unchanged), serving as the duplicate equal to QMS-TR.", "how_to_verify": "Navigate to /ms-process-app/mtr; assert h1 text 'MTR' and the same country-grid renders."},
+    {"id": "ac3", "criterion": "A new 'macrocac' placeholder module exists at route /macrocac labeled 'Macrocac' in the Pipeline group, rendering a complete 'coming soon' page describing the on-demand upload of results to productive SQL Server tables.", "how_to_verify": "Navigate to /ms-process-app/macrocac; assert h1 text 'Macrocac' and the descriptive placeholder copy is present."},
+    {"id": "ac4", "criterion": "Both new nav items appear in the sidebar and are clickable; no orphan routes.", "how_to_verify": "In Playwright, assert sidebar links 'QMS-TR' and 'Macrocac' exist and navigation works."},
+    {"id": "ac5", "criterion": "Build is green: lint, typecheck and unit tests pass.", "how_to_verify": "npm run lint && npm run build (tsc) && npm test."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Copy src/modules/mtr -> src/modules/qmstr; rename index.ts (id qmstr, label QMS-TR, route /qms-tr) and page to QmsTrPage with heading 'QMS-TR'.", "status": "incomplete"},
+    {"id": "t2", "desc": "Create src/modules/macrocac placeholder module (id macrocac, route /macrocac, Pipeline group) with a complete coming-soon page.", "status": "incomplete"},
+    {"id": "t3", "desc": "Register qmstrModule and macrocacModule in registry.ts; add config keys to useModuleConfig and public/config.js; add PATH_ICONS entries.", "status": "incomplete"},
+    {"id": "t4", "desc": "Verify: lint + typecheck + tests + Playwright walkthrough.", "status": "incomplete"}
+  ]
+}

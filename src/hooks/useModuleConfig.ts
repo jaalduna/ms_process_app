@@ -6,6 +6,8 @@ export interface ModuleConfig {
   prices: boolean
   weighting: boolean
   mtr: boolean
+  qmstr: boolean
+  macrocac: boolean
   traceability: boolean
   admin: boolean
   [key: string]: boolean
@@ -21,6 +23,8 @@ export function useModuleConfig(): ModuleConfig {
     prices: config?.prices ?? false,
     weighting: config?.weighting ?? false,
     mtr: config?.mtr ?? false,
+    qmstr: config?.qmstr ?? false,
+    macrocac: config?.macrocac ?? false,
     traceability: config?.traceability ?? false,
     // Enabled by default: the module is additionally gated by the admin role.
     admin: config?.admin ?? true,
