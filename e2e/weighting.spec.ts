@@ -105,4 +105,34 @@ test.describe("Weighting Module E2E", () => {
     await expect(modal.getByText("Peso medio")).toBeVisible()
     await expect(modal.getByText("Peso mediana")).toBeVisible()
   })
+
+  test("history modal table fits without horizontal scroll", async ({ page }) => {
+    await navigateTo(page, "Pesaje", /pesaje/)
+    const chile = card(page, "Chile")
+    // Need at least one run so the card exposes the "Historial" button.
+    await startWeighting(page, chile)
+    await expect(chile.getByText(/Completado/i).first()).toBeVisible({ timeout: 30_000 })
+
+    await chile.getByRole("button", { name: "Historial" }).click()
+    const modal = page.getByRole("dialog").filter({ hasText: /Historial de Pesaje/i })
+    await expect(modal).toBeVisible({ timeout: 5_000 })
+    // The table header confirms the run list rendered (not the empty state).
+    await expect(modal.getByText("Periodo")).toBeVisible({ timeout: 10_000 })
+
+    // ac1: the dialog content does not overflow horizontally (no annoying scroll).
+    const overflow = await modal.evaluate((el) => el.scrollWidth - el.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+
+    // ac2: every action button stays within the dialog's right edge (nothing clipped).
+    const dialogBox = await modal.boundingBox()
+    expect(dialogBox).not.toBeNull()
+    const actionButtons = modal.getByRole("button", { name: "Ver detalle" })
+    const n = await actionButtons.count()
+    expect(n).toBeGreaterThan(0)
+    for (let i = 0; i < n; i++) {
+      const box = await actionButtons.nth(i).boundingBox()
+      expect(box).not.toBeNull()
+      expect(box!.x + box!.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1)
+    }
+  })
 })
