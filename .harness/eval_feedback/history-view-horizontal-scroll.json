@@ -1,0 +1,5 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "history-unify.spec.ts (3 tests) exit 0; assertGrid asserts dialog scrollWidth-clientWidth <= 1 for Precios, Calibración, Elegibilidad. Standalone probe: all three dialogs overflow=0."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "All three DialogContent use sm:max-w-3xl (768px, overrides shadcn sm:max-w-lg via tailwind-merge); GRID uses minmax() fluid columns. Probe measured offsetWidth=768/maxW=768px for all three; screenshot (Precios) shows all columns + download/eye buttons visible, no scrollbar."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "npm test 17 files/131 tests pass; npm run lint 'No issues found'; npx tsc -b 'No errors found'. All exit 0. Independently confirmed by separate evaluator."}
+]

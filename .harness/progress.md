@@ -353,3 +353,14 @@ browser hit stale sibling worktree on :5173 (OLD code). Use plain `npx playwrigh
 matters. Updated memory `reference-rtk-playwright-mangles-output`.
 
 **Next:** commit → push ado → PR to develop.
+
+## history-view-horizontal-scroll (2026-06-18) — extend pesaje fix to JAA-424 views
+
+**What:** JAA-424 unified the history grid into Precios/Calibración/Elegibilidad but copied the OLD
+layout (dialog `max-w-2xl` → capped at 512px by shadcn `sm:max-w-lg`; fixed-px grid), so all three
+got the horizontal-scroll bug. Applied the same fix as pesaje: each `GRID` const → `minmax()` fluid
+columns (Resumen `minmax(0,1fr)`, already truncates); `DialogContent` `max-w-2xl` → `sm:max-w-3xl`.
+Extended e2e `history-unify.spec.ts` assertGrid to assert `scrollWidth-clientWidth <= 1`.
+
+**Verify:** npm test 131✓, lint ✓, tsc ✓. Playwright history-unify.spec.ts 3/3 PASS. Probe: all
+three dialogs offsetWidth=768, overflow=0. Evaluator (separate ctx) ALL PASS.
