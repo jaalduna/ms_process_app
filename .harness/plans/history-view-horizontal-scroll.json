@@ -1,0 +1,18 @@
+{
+  "ticket": "history-view-horizontal-scroll",
+  "linear_url": null,
+  "branch": "fix/history-view-horizontal-scroll",
+  "archetype": "webapp",
+  "goal": "Extend the pesaje history-table horizontal-scroll fix to the JAA-424 unified history views (Precios, Calibración, Elegibilidad).",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "Precios, Calibración and Elegibilidad history dialogs show their table with no horizontal overflow (dialog scrollWidth <= clientWidth).", "how_to_verify": "Playwright history-unify.spec.ts assertGrid now asserts overflow <= 1 for each modal."},
+    {"id": "ac2", "criterion": "Dialogs widened (sm:max-w-3xl) and grid columns fluid (minmax) — all columns + action buttons visible.", "how_to_verify": "Playwright + visual screenshot."},
+    {"id": "ac3", "criterion": "npm test + npm run lint + npx tsc -b all pass.", "how_to_verify": "VERIFY_CMD in worktree."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "PricesHistoryModal: GRID -> minmax columns, dialog -> sm:max-w-3xl.", "status": "complete"},
+    {"id": "t2", "desc": "CalibrationHistoryModal: GRID -> minmax columns, dialog -> sm:max-w-3xl.", "status": "complete"},
+    {"id": "t3", "desc": "EligibilityHistoryModal: GRID -> minmax columns, dialog -> sm:max-w-3xl.", "status": "complete"},
+    {"id": "t4", "desc": "Extend history-unify.spec.ts assertGrid with no-overflow assertion.", "status": "complete"}
+  ]
+}

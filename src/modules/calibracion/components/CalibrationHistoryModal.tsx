@@ -87,7 +87,7 @@ function getStatusConfig(status: JobStatus): StatusBadgeConfig {
   }
 }
 
-const GRID = "grid grid-cols-[80px_100px_140px_80px_1fr_auto] gap-2"
+const GRID = "grid grid-cols-[minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_auto] gap-2"
 
 interface TablePickerProps {
   jobId: string
@@ -241,7 +241,7 @@ export function CalibrationHistoryModal({
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {countryFlag && <span>{countryFlag}</span>}

@@ -25,6 +25,10 @@ async function assertGrid(dialog: ReturnType<Page["getByRole"]>) {
   for (const h of GRID_HEADERS) {
     await expect(dialog.getByText(h, { exact: true }).first()).toBeVisible()
   }
+  // The grid must fit the dialog: no annoying horizontal scroll (mirrors the
+  // pesaje fix — dialog widened to sm:max-w-3xl + fluid minmax() columns).
+  const overflow = await dialog.evaluate((el) => el.scrollWidth - el.clientWidth)
+  expect(overflow).toBeLessThanOrEqual(1)
 }
 
 test("precios history: grid + eye→detail + download outliers CSV", async ({ page }) => {
