@@ -4,6 +4,10 @@ import { Readable } from "node:stream"
 
 const router = Router()
 
+// Per-step delay for sync/calibration job progression; override via
+// MOCK_STEP_INTERVAL_MS (e.g. fast e2e) — falls back to 2000ms.
+const STEP_INTERVAL_MS = Number(process.env.MOCK_STEP_INTERVAL_MS) || 2000
+
 // ---------------------------------------------------------------------------
 // Country metadata (shared)
 // ---------------------------------------------------------------------------
@@ -210,7 +214,7 @@ router.post("/trigger", (req, res) => {
   if (skip_copy) { job.steps[1].status = "completed"; job.steps[1].started_at = isoNow(); job.steps[1].completed_at = isoNow(); for (const t of job.steps[1].tasks || []) { t.status = "completed"; if (!t.started_at) t.started_at = isoNow(); t.completed_at = isoNow() }; job._stepIndex = 2; job.steps[2].status = "running"; job.steps[2].started_at = isoNow(); job.current_step = job.steps[2].name; if (job.steps[2].tasks?.length > 0) { job.steps[2].tasks[0].status = "running"; job.steps[2].tasks[0].started_at = isoNow() } }
   jobs.set(jobId, job)
   let tick = 0; const maxTicks = queryList.length + 1 + 2 + 4 + 2 + 5
-  const interval = setInterval(() => { advanceJob(jobId); tick++; const c = jobs.get(jobId); if (!c || c.status === "completed" || c.status === "failed" || c.status === "cancelled" || tick >= maxTicks) clearInterval(interval) }, 2000)
+  const interval = setInterval(() => { advanceJob(jobId); tick++; const c = jobs.get(jobId); if (!c || c.status === "completed" || c.status === "failed" || c.status === "cancelled" || tick >= maxTicks) clearInterval(interval) }, STEP_INTERVAL_MS)
   res.status(201).json({ job_id: jobId, status: "pending", country, stage, period: period ?? null, tag: job.tag, queries: queryList, queries_count: queryList.length, created_at: now, triggered_by: "calibration-app" })
 })
 
