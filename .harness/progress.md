@@ -2,6 +2,46 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-19 — JAA-384 (mock-server fidelity: C1-C4) — webapp — EXECUTED, evaluator PASS
+
+**What:** Closed 4 mock-server contract divergences so the in-repo mock faithfully mirrors the
+real ms-process-api (the front↔backend contract seam). Sub-issue of the JAA-377 contract audit.
+- **t1 (C1)** `period` int-strictness: added `export const isIntegerPeriod` to `routes/sync.js`;
+  the 4 POST `/runs` handlers (eligibility/prices/weighting/mtr) now 422 `validation_error` on a
+  non-integer **body** period. Scoped to the POST body only — HTTP query params are always strings,
+  so `GET /runs?period=` filtering stays string-loose (already `String()`-compares). Safe because
+  the frontend always sends `period` as a number to these POSTs (`periodStringToNumber`/`Number()`).
+- **t2 (C2)** `routes/metadata.js` `/metadata/last-sync` now honors `req.query.stage` (default
+  "inicio" when absent) + the `min_queries` filter (`queries_total`) instead of hardcoding
+  `lastCompletedByStage("inicio")`. Frontend calls `useLastSync("pesaje")`, so the Calibración
+  card "Sync:" date now reflects the pesaje stage (its intent), not inicio. Seeds carry both
+  inicio + pesaje jobs in the `jobs` store, so the date stays populated (no regression to "never").
+- **t3 (C3)** `src/types/api.ts` `LastSyncEntry` realigned `{job_id, stage}` (a lie — never sent)
+  → `{country, completed_at, run_id, period?, tag?, triggered_by?, started_at?}` matching what the
+  mock + backend actually return. Also fixed the in-app demo mock `src/lib/mock-api.ts`
+  `makeLastSync()` to emit `{run_id, period}`. No consumer read the removed fields.
+- **t4 (C4)** `routes/sync.js` `/trigger` now destructures + stores the 6 fields the frontend's
+  TriggerRequest sends but the mock dropped (`table_suffix, group_by, start_period, final_period,
+  skip_merge, skip_simulation`) — reflected on the job and observable via GET `/events/{id}`.
+  (Also persisted the previously-dropped `row_limit`/`lookback_months`.)
+
+**Verify:** vitest **160/160** (+20 new across 3 mock-server test files following the
+feedback.test.js express+ephemeral-port+fetch pattern), eslint clean, `tsc -b` clean. Live curl
+proved C1 (422 on string period / 201 on int / query filter still 200), C2 (stage=pesaje vs inicio
+differ), C4 (6 fields reflected). Playwright smoke 39 expected + 2 skipped + 1 **flaky** (traceability
+country-filter — module NOT touched by this diff; **5/5 PASS in isolation**; known suite flakiness
+JAA-393/JAA-411). Separate evaluator (ux-ui-reviewer, fresh ctx, ran everything itself incl. live
+curl + Calibración Playwright walkthrough showing per-country Sync dates, zero console errors) →
+**ac1-ac5 all PASS**.
+
+**Decisions baked in:** C1 strictness = POST body only (query stays loose); C2 honors stage + min_queries.
+
+**Result:** worktree `../ms_process_app-JAA-384`, branch `fix/JAA-384-mock-fidelity` (off `ado/develop`
+@11acafe). All changes are frontend-repo only (`mock-server/` + `src/types`,`src/lib`); no backend
+touched — the 5 backend modules remain JAA-378..383 (Databricks-orchestration approach, user-chosen).
+
+**Next:** commit → push `ado` → PR to `develop` → Linear In Review → auto-merge when policies green.
+
 ## 2026-06-18 — JAA-431 (rewrite stale weighting e2e to post-JAA-425 flow) — webapp — EXECUTED, evaluator PASS
 
 **What:** JAA-425 collapsed the Pesaje card actions: the whole card is now a button that opens

@@ -34,8 +34,8 @@ function makeLastSync() {
     countries[c.code] = {
       country: c.code,
       completed_at: new Date(Date.now() - Math.random() * 7 * 86400000).toISOString(),
-      job_id: crypto.randomUUID(),
-      stage: "calibration",
+      run_id: crypto.randomUUID(),
+      period: Number(new Date().toISOString().slice(0, 7).replace("-", "")),
     }
   }
   return { countries }

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "Vitest 16/16 (run-period-validation). Live curl: POST /prices/runs period:'202602' -> 422; period:202602 -> 201. GET /eligibility/runs?period=202605 -> 200, 2 items (query filtering stays string-loose)."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "Vitest 3/3 (metadata-last-sync). Live curl: last-sync?stage=pesaje vs no-stage return different run_id/period per country (pesaje period 202602 vs inicio period 202605) -> stage honored; min_queries filter covered by unit test."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "tsc -b clean. LastSyncEntry = {country, completed_at, run_id, period?, tag?, triggered_by?, started_at?}, no job_id/stage. All .job_id/.stage grep hits are on event/job/file objects, none on a LastSyncEntry value."
+  },
+  {
+    "id": "ac4",
+    "verdict": "PASS",
+    "evidence": "Vitest 1/1 (trigger-fields). Live curl: POST /trigger with the 6 fields, GET /events/{id} reflects table_suffix, group_by, start_period, final_period, skip_merge, skip_simulation."
+  },
+  {
+    "id": "ac5",
+    "verdict": "PASS",
+    "evidence": "Full vitest 160/160, lint clean, tsc clean. git diff touches 0 traceability files. Playwright: Calibración cards render per-country 'Sync:' dates (e.g. '1d ago', '5m ago', 'never') with zero console errors."
+  }
+]

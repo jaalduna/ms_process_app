@@ -74,11 +74,14 @@ router.get("/metadata/data-availability", (req, res) => {
 
 // @param {number|string} [period] optional YYYYMM — restrict to jobs of this
 //   period. Omitted ⇒ latest overall (backward compatible). See JAA-421.
-function lastCompletedByStage(stage, period) {
+// @param {number} [minQueries] optional — exclude jobs whose queries_total is
+//   below the threshold (frontend's min_queries). See JAA-384 C2.
+function lastCompletedByStage(stage, period, minQueries) {
   const result = {}
   for (const job of jobs.values()) {
     if (job.status !== "completed" || job.stage !== stage) continue
     if (period != null && String(job.period) !== String(period)) continue
+    if (minQueries != null && (job.queries_total ?? 0) < minQueries) continue
     const prev = result[job.country]
     if (!prev || new Date(job.completed_at) > new Date(prev.completed_at)) {
       result[job.country] = { country: job.country, completed_at: job.completed_at, run_id: job.job_id, period: job.period }
@@ -87,7 +90,13 @@ function lastCompletedByStage(stage, period) {
   return result
 }
 
-router.get("/metadata/last-sync", (_req, res) => res.json({ countries: lastCompletedByStage("inicio") }))
+// JAA-384 C2: honor the stage query param (frontend sends stage=pesaje) instead
+// of hardcoding "inicio", plus the optional min_queries filter.
+router.get("/metadata/last-sync", (req, res) => {
+  const stage = req.query.stage || "inicio"
+  const minQueries = req.query.min_queries != null ? Number(req.query.min_queries) : undefined
+  res.json({ countries: lastCompletedByStage(stage, req.query.period, minQueries) })
+})
 router.get("/metadata/last-calibration", (req, res) => res.json({ countries: lastCompletedByStage("calibracion", req.query.period) }))
 // Eligibility runs live in their own store (a multi-phase, user-gated state
 // machine), NOT in the generic `jobs` store — so lastCompletedByStage("elegibilidad")

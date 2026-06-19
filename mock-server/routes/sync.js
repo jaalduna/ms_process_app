@@ -82,6 +82,12 @@ function makeFailedSteps(baseTime, failAtIndex) {
 const uuid = () => crypto.randomUUID()
 const isoNow = () => new Date().toISOString()
 
+// JAA-384 C1: the real backend types `period` as an int on the /runs create
+// bodies. Mirror that in the mock so an accidental string-period is rejected
+// here (422) instead of only against the live API. Applies to the JSON body
+// only — HTTP query params are always strings, so GET /runs filtering stays loose.
+export const isIntegerPeriod = (period) => typeof period === "number" && Number.isInteger(period)
+
 /**
  * The period the Calibración page lands on by default = previous month
  * (January is calibrated in February, etc. — mirrors `currentPeriod()` in
@@ -201,14 +207,17 @@ function advanceJob(jobId) {
 // ---------------------------------------------------------------------------
 
 router.post("/trigger", (req, res) => {
-  const { country, stage, period, queries: requestedQueries, aggregations, row_limit, lookback_months, skip_sync, skip_copy } = req.body
+  const { country, stage, period, queries: requestedQueries, aggregations, row_limit, lookback_months, skip_sync, skip_copy,
+    // JAA-384 C4: extra fields the frontend's TriggerRequest sends — the backend
+    // supports them, so reflect them in job state instead of silently dropping.
+    table_suffix, group_by, start_period, final_period, skip_merge, skip_simulation } = req.body
   if (!country || !stage) return res.status(400).json({ error: "bad_request", message: "country and stage are required" })
   const countryMeta = COUNTRIES.find(c => c.code === country)
   if (!countryMeta) return res.status(404).json({ error: "not_found", message: `Unknown country: ${country}` })
   const queryList = requestedQueries ?? countryMeta.queries
   const jobId = uuid(); const now = isoNow()
   const results = queryList.map(q => ({ query_name: q, status: "pending", rows_extracted: 0, table_name: null, duration_seconds: 0, error: null, started_at: null }))
-  const job = { job_id: jobId, status: "pending", country, stage, period: period ?? null, tag: `${country}-${stage}-${Date.now()}`, queries_total: queryList.length, queries_completed: 0, queries_failed: 0, created_at: now, started_at: null, completed_at: null, triggered_by: "calibration-app", aggregations: aggregations ?? null, error: null, results, steps: makeSteps(), current_step: "sync_data", _stepIndex: 0 }
+  const job = { job_id: jobId, status: "pending", country, stage, period: period ?? null, tag: `${country}-${stage}-${Date.now()}`, queries_total: queryList.length, queries_completed: 0, queries_failed: 0, created_at: now, started_at: null, completed_at: null, triggered_by: "calibration-app", aggregations: aggregations ?? null, row_limit: row_limit ?? null, lookback_months: lookback_months ?? null, table_suffix: table_suffix ?? null, group_by: group_by ?? null, start_period: start_period ?? null, final_period: final_period ?? null, skip_merge: skip_merge ?? false, skip_simulation: skip_simulation ?? false, error: null, results, steps: makeSteps(), current_step: "sync_data", _stepIndex: 0 }
   if (stage === "calibracion" && DEMO_CALIBRATION_OUTCOMES[country]) job._forceOutcome = DEMO_CALIBRATION_OUTCOMES[country]
   if (skip_sync) { job.steps[0].status = "completed"; job.steps[0].started_at = isoNow(); job.steps[0].completed_at = isoNow(); job._stepIndex = 1; for (const r of job.results) { r.status = "completed"; r.rows_extracted = Math.floor(Math.random() * 40000) + 500; r.table_name = `kpi_prd_01.bridge.${country}_${r.query_name}`; r.duration_seconds = 0; r.started_at = isoNow() }; job.queries_completed = queryList.length; job.current_step = "copy_to_calibration" }
   if (skip_copy) { job.steps[1].status = "completed"; job.steps[1].started_at = isoNow(); job.steps[1].completed_at = isoNow(); for (const t of job.steps[1].tasks || []) { t.status = "completed"; if (!t.started_at) t.started_at = isoNow(); t.completed_at = isoNow() }; job._stepIndex = 2; job.steps[2].status = "running"; job.steps[2].started_at = isoNow(); job.current_step = job.steps[2].name; if (job.steps[2].tasks?.length > 0) { job.steps[2].tasks[0].status = "running"; job.steps[2].tasks[0].started_at = isoNow() } }
