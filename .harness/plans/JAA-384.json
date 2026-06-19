@@ -1,0 +1,41 @@
+{
+  "ticket": "JAA-384",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-384/mock-server-fidelity-period-type-strictness-last-sync-stage-param",
+  "branch": "fix/JAA-384-mock-fidelity",
+  "archetype": "webapp",
+  "goal": "Close 4 mock-server contract divergences (C1-C4) so the mock faithfully mirrors the real ms-process-api and e2e catches mismatches the loose mock currently hides.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "C1 - POST /{eligibility,prices,weighting,mtr}/runs reject a non-integer body period with HTTP 422; an integer period still creates the run (200/201). GET /runs ?period= query filtering stays string-loose (unchanged).",
+      "how_to_verify": "new vitest mock-server/__tests__/run-period-validation.test.js: POST each of the 4 endpoints with period:'abc' and period:1.5 -> 422 error 'validation_error'; period:202602 (number) -> created. Plus GET /runs?period=202602 still returns filtered items."
+    },
+    {
+      "id": "ac2",
+      "criterion": "C2 - GET /metadata/last-sync honors the stage query param (not hardcoded 'inicio') and the min_queries filter; absent stage still defaults to 'inicio'.",
+      "how_to_verify": "new vitest mock-server/__tests__/metadata-last-sync.test.js: seed jobs of stage 'inicio' and 'pesaje' into the jobs store; assert last-sync?stage=pesaje returns the pesaje job, last-sync (no stage) returns the inicio job, and min_queries excludes jobs with queries_total below the threshold."
+    },
+    {
+      "id": "ac3",
+      "criterion": "C3 - LastSyncEntry TS type matches what the mock + backend actually return ({country, completed_at, run_id, period} with optional tag/triggered_by/started_at); no consumer reads the removed job_id/stage fields.",
+      "how_to_verify": "npx tsc -b clean after the type change; grep shows no src/ consumer reads LastSyncEntry.job_id or LastSyncEntry.stage."
+    },
+    {
+      "id": "ac4",
+      "criterion": "C4 - POST /trigger models the 6 extra fields the frontend sends (table_suffix, group_by, start_period, final_period, skip_merge, skip_simulation): they are stored on the job and observable via GET /events/{id}.",
+      "how_to_verify": "new vitest mock-server/__tests__/trigger-fields.test.js: POST /trigger with all 6 fields set, then GET /events/{job_id} and assert each field is reflected on the job."
+    },
+    {
+      "id": "ac5",
+      "criterion": "No regression: full vitest + lint + tsc green; Playwright smoke passes and the Calibracion card 'Sync:' date renders (driven by last-sync?stage=pesaje) without error.",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b; MOCK_SERVER_PORT-based Playwright smoke run green; manual/Playwright check of /ms-process-app/calibracion shows Sync dates."
+    }
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "C1: add integer-period validation to the 4 POST /runs handlers (reject non-integer body period with 422). TDD: run-period-validation.test.js first.", "status": "complete"},
+    {"id": "t2", "desc": "C2: metadata.js last-sync handler honors req.query.stage (default 'inicio') + min_queries filter (queries_total). TDD: metadata-last-sync.test.js.", "status": "complete"},
+    {"id": "t3", "desc": "C3: align LastSyncEntry in src/types/api.ts to actual responses; fix any consumer/tsc fallout.", "status": "complete"},
+    {"id": "t4", "desc": "C4: sync.js /trigger destructures + stores the 6 extra fields; reflected on job + GET /events/{id}. TDD: trigger-fields.test.js.", "status": "complete"},
+    {"id": "t5", "desc": "Run full VERIFY_CMD + Playwright smoke + calibracion Sync-date check; no regression.", "status": "complete"}
+  ]
+}

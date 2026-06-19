@@ -123,12 +123,19 @@ export interface EventListResponse {
   offset: number
 }
 
+// JAA-384 C3: align to what the mock + real backend actually return. The mock
+// emits {country, completed_at, run_id, period}; the backend's last-calibration
+// adds {tag, triggered_by, started_at}. The frontend only reads completed_at
+// (+ optional period), but the type must not lie about job_id/stage (never sent).
 /** Last sync entry for a country from GET /metadata/last-sync */
 export interface LastSyncEntry {
   country: string
   completed_at: string
-  job_id: string
-  stage: string
+  run_id: string
+  period?: number | string
+  tag?: string
+  triggered_by?: string
+  started_at?: string
 }
 
 export interface LastSyncResponse {
