@@ -1,5 +1,6 @@
 import express from "express"
 import cors from "cors"
+import path from "path"
 
 import syncRouter, { jobs } from "./routes/sync.js"
 import metadataRouter from "./routes/metadata.js"
@@ -21,7 +22,23 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-const PORT = Number(process.env.PORT) || 5000
+// Never let browsers cache API/health/auth responses. Otherwise a stale entry
+// (e.g. an index.html once served for an unknown route) gets replayed for an
+// API URL and the SPA parses HTML as JSON and crashes.
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/health") || req.path.startsWith("/auth/")) {
+    res.set("Cache-Control", "no-store")
+  }
+  next()
+})
+
+const PORT = Number(process.env.PORT) || Number(process.env.WEBSITES_PORT) || 5000
+// When serving a real SPA build same-origin (prod demo), point at its directory.
+const SPA_DIR = process.env.SPA_DIR || ""
+// Demo mode: accept any bearer token (e.g. a real Entra token the mock can't
+// verify) and return the mock user instead of 401. Off by default → local dev
+// and e2e keep validating the app JWT exactly as before.
+const ACCEPT_ANY_TOKEN = process.env.MOCK_ACCEPT_ANY_TOKEN === "true"
 
 // ---------------------------------------------------------------------------
 // Health
@@ -55,6 +72,11 @@ app.get("/api/v1/auth/me", (req, res) => {
         countries: claims.countries,
       })
     }
+    if (ACCEPT_ANY_TOKEN) {
+      // Demo: token didn't verify against the mock secret (e.g. a real Entra
+      // token). Return the mock user so the SPA can render with sample data.
+      return res.json({ email: "demo@numerator.com", name: "Demo User", roles: ["admin"], countries: ["*"] })
+    }
     return res.status(401).json({ error: "invalid_token", message: "JWT verification failed" })
   }
 
@@ -70,6 +92,7 @@ app.get("/api/v1/auth/me", (req, res) => {
 app.get("/api/v1/metadata/last-prices", (req, res) => res.json({ countries: pricesStore.lastCompleted(req.query.period) }))
 app.get("/api/v1/metadata/last-weighting", (req, res) => res.json({ countries: weightingStore.lastCompleted(req.query.period) }))
 app.get("/api/v1/metadata/last-mtr", (req, res) => res.json({ countries: mtrStore.lastCompleted(req.query.period) }))
+app.get("/api/v1/metadata/last-eligibility", (req, res) => res.json({ countries: eligibilityStore.lastCompleted(req.query.period) }))
 
 app.use("/api/v1", syncRouter)
 app.use("/api/v1", metadataRouter)
@@ -84,6 +107,28 @@ app.use("/api/v1", testRouter)
 app.use("/api/v1", adminRouter)
 app.use("/api/v1", telemetryRouter)
 app.use("/api/v1", feedbackRouter)
+
+// ---------------------------------------------------------------------------
+// SPA same-origin serving (prod demo). Only active when SPA_DIR is set, so it
+// never affects local dev. Static assets first, then a catch-all that returns
+// index.html for client-side router deep-links. API/health routes above keep
+// precedence (registered first).
+// ---------------------------------------------------------------------------
+
+if (SPA_DIR) {
+  app.use(express.static(SPA_DIR))
+  app.use((req, res) => {
+    // Never mask an unknown API/health/auth route with the SPA — returning
+    // index.html (HTML) there makes the frontend parse HTML as JSON and crash.
+    // Return a clean 404 instead; only real client-side routes get index.html.
+    if (req.path.startsWith("/api/") || req.path.startsWith("/health") || req.path.startsWith("/auth/")) {
+      return res.status(404).json({ error: "not_found", message: `No route ${req.method} ${req.path}` })
+    }
+    // Don't cache the SPA shell — it references hashed assets that change per build.
+    res.set("Cache-Control", "no-store")
+    res.sendFile(path.join(SPA_DIR, "index.html"))
+  })
+}
 
 // ---------------------------------------------------------------------------
 // Seed and start

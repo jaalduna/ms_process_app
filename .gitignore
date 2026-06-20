@@ -39,3 +39,4 @@ test-results/
 # Playwright
 playwright-report/
 .claude/worktrees/
+spa.zip
