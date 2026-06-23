@@ -14,7 +14,6 @@ import type {
   ProcessStage,
   ProcessStatusResponse,
   StagesResponse,
-  TablesResponse,
   TriggerRequest,
   TriggerResponse,
   UserInfo,
@@ -465,10 +464,6 @@ export function adminReload() {
 
 // -- Downloads --
 
-export function getJobTables(jobId: string) {
-  return api.get<TablesResponse>(`/events/${jobId}/tables`).then((r) => r.data)
-}
-
 export async function downloadCalibrationReport(tag: string, country: string): Promise<void> {
   const response = await api.get(`/calibration/${encodeURIComponent(tag)}/download`, {
     responseType: "blob",
@@ -480,24 +475,6 @@ export async function downloadCalibrationReport(tag: string, country: string): P
   const disposition = response.headers["content-disposition"] ?? ""
   const match = disposition.match(/filename="?([^";\n]+)"?/)
   a.download = match?.[1] ?? `${tag}.zip`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
-}
-
-export async function downloadCSV(jobId: string, table?: string): Promise<void> {
-  const params = table ? { table } : undefined
-  const response = await api.get(`/events/${jobId}/download`, { responseType: "blob", params })
-  const url = URL.createObjectURL(new Blob([response.data]))
-  const a = document.createElement("a")
-  a.href = url
-
-  // Parse filename from Content-Disposition header, fall back to generic name
-  const disposition = response.headers["content-disposition"] ?? ""
-  const match = disposition.match(/filename="?([^";\n]+)"?/)
-  a.download = match?.[1] ?? `calibration_${jobId.slice(0, 8)}.csv`
-
   document.body.appendChild(a)
   a.click()
   a.remove()

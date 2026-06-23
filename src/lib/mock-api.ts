@@ -204,7 +204,6 @@ const routes: [RegExp, RouteHandler][] = [
   [/\/metadata\/last-mtr$/, () => makeLastStageCompletion()],
   [/\/events$/, () => makeEvents()],
   [/\/events\/[^/]+$/, () => ({ ...makeEvents().items[0], results: [] })],
-  [/\/events\/[^/]+\/tables$/, () => ({ job_id: "demo", country: "CL", tables: [] })],
   [/\/events\/[^/]+\/cancel$/, () => ({ status: "cancelled" })],
   [/\/trigger$/, () => ({ job_id: crypto.randomUUID(), status: "pending", country: "CL", stage: "calibration", tag: "demo", queries: ["q_compras"], queries_count: 1, created_at: new Date().toISOString(), triggered_by: "demo@kantar.com" })],
   [/\/eligibility\/runs$/, () => makeEligibilityRuns()],

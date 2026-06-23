@@ -246,21 +246,6 @@ export interface FeedbackResponse {
   createdAt: string
 }
 
-/** Info about a Delta table available for download */
-export interface TableInfo {
-  full_name: string
-  catalog: string
-  schema_name: string
-  table_name: string
-}
-
-/** Response from GET /events/{job_id}/tables */
-export interface TablesResponse {
-  job_id: string
-  country: string
-  tables: TableInfo[]
-}
-
 // -- Process open/close (per stage, per country) --
 
 /** Pipeline stages that can be opened/closed independently per country. */
