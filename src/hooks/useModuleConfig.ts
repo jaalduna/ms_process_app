@@ -28,5 +28,7 @@ export function useModuleConfig(): ModuleConfig {
     traceability: config?.traceability ?? false,
     // Enabled by default: the module is additionally gated by the admin role.
     admin: config?.admin ?? true,
+    // Parameters editor (mockup) — gated by the admin role like admin.
+    parametros: config?.parametros ?? true,
   }
 }
