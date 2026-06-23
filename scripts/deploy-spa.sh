@@ -30,23 +30,31 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # --- per-environment configuration ------------------------------------------
-# Both App Services run with AUTH_ENABLED=false and serve the SPA same-origin,
-# so the build is identical (auth bypassed, API at /api/v1). If prd ever enables
-# real Entra auth, give it its own build env below.
-BUILD_AUTH_BYPASS="true"
+# Build env differs by environment:
+#   dev → auth BYPASSED (DevAuthProvider), so the IP-locked dev env opens without
+#         a login screen.
+#   prd → REAL Entra login (azure-builtin / App Service Easy Auth), matching the
+#         ms-process-app-deploy pipeline — the public demo shows a Microsoft login.
+# Both serve the SPA same-origin, so the API is always /api/v1.
 BUILD_API_URL="/api/v1"
 
 resolve_env() {
+  # Sets, per env: APP_NAME, CONFIG_SRC, REQUIRE_YES, and the build vars
+  # BUILD_AUTH_BYPASS / BUILD_AUTH_PROVIDER (empty provider = decided by bypass).
+  BUILD_AUTH_PROVIDER=""
   case "$1" in
     dev)
       APP_NAME="app-cl-prd-nmr-wp-msproc-dev"
       CONFIG_SRC="${REPO_ROOT}/deploy/config.dev.js"
       REQUIRE_YES="false"
+      BUILD_AUTH_BYPASS="true"
       ;;
     prd|prod)
       APP_NAME="app-cl-prd-nmr-wp-msproc-01"
       CONFIG_SRC="${REPO_ROOT}/deploy/config.prod.js"
       REQUIRE_YES="true"
+      BUILD_AUTH_BYPASS="false"
+      BUILD_AUTH_PROVIDER="azure-builtin"
       ;;
     *)
       echo "ERROR: unknown environment '$1' (expected: dev | prd)" >&2
@@ -113,9 +121,15 @@ echo "==> App Service: $APP_NAME"
 echo "==> Config     : ${CONFIG_SRC#"${REPO_ROOT}/"}"
 echo "==> Dry run    : $DRY_RUN"
 
-# --- build (same-origin, auth-bypass) ---------------------------------------
-echo "==> Building SPA (VITE_AUTH_BYPASS=$BUILD_AUTH_BYPASS, VITE_BRIDGE_API_URL=$BUILD_API_URL)"
-( cd "$REPO_ROOT" && VITE_AUTH_BYPASS="$BUILD_AUTH_BYPASS" VITE_BRIDGE_API_URL="$BUILD_API_URL" npm run build )
+# --- build (same-origin) ----------------------------------------------------
+echo "==> Building SPA (VITE_AUTH_BYPASS=$BUILD_AUTH_BYPASS, VITE_AUTH_PROVIDER=${BUILD_AUTH_PROVIDER:-<bypass>}, VITE_BRIDGE_API_URL=$BUILD_API_URL)"
+(
+  cd "$REPO_ROOT"
+  export VITE_AUTH_BYPASS="$BUILD_AUTH_BYPASS" VITE_BRIDGE_API_URL="$BUILD_API_URL"
+  # Only set the provider for real-auth builds (dev relies on the bypass).
+  [[ -n "$BUILD_AUTH_PROVIDER" ]] && export VITE_AUTH_PROVIDER="$BUILD_AUTH_PROVIDER"
+  npm run build
+)
 
 # `vite build` copies public/config.js (localhost dev config) into dist/. Replace
 # it with the target environment's runtime config so the SPA talks to the right API.
