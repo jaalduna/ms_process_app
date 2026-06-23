@@ -25,10 +25,11 @@ verificación final responda 200.
 
 ## Qué hace el script
 
-1. **Build same-origin**: `VITE_AUTH_BYPASS=true VITE_BRIDGE_API_URL=/api/v1 npm run build`.
-   Ambos App Services corren con `AUTH_ENABLED=false` y SPA same-origin, por eso el build es
-   idéntico para dev y prd. Si prd algún día activa Entra real, hay que darle su propio build
-   env en el bloque `resolve_env` del script.
+1. **Build same-origin** (`VITE_BRIDGE_API_URL=/api/v1`), con auth distinto por ambiente:
+   - **dev** → `VITE_AUTH_BYPASS=true` (DevAuthProvider): el dev IP-locked abre sin pantalla de login.
+   - **prd** → `VITE_AUTH_BYPASS=false VITE_AUTH_PROVIDER=azure-builtin` (App Service Easy Auth): el
+     demo público muestra login Microsoft/Entra, igual que el pipeline `ms-process-app-deploy`.
+   El auth por ambiente vive en el bloque `resolve_env` del script.
 2. **Inyecta `config.js`**: `vite build` copia `public/config.js` (config localhost) dentro de
    `dist/`. El script lo reemplaza por el runtime config del ambiente:
    - dev → `deploy/config.dev.js`
