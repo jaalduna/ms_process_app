@@ -1,0 +1,6 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "bash -n exits 0; no-arg run prints 'ERROR: missing environment argument' + usage, exit 1."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "dev --dry-run: build OK, 'Packaged 57 files', 'DRY RUN: would PUT ... skipping upload', exit 0. dist/config.js == deploy/config.dev.js with 'parametros: true' on line 27 (not the localhost public/config.js)."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "prd (no --yes): 'REFUSING: prd is a guarded environment', exit 1, guard fires before any build/network call."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "No stubs/TODOs. Full impl: npm build (auth-bypass + /api/v1) -> cp per-env config OVER dist/config.js AFTER build -> zip temp dir -> curl PUT Kudu /api/zip/site/spa with AAD bearer -> live verify. prd --dry-run allowed (guard excludes DRY_RUN). docs/DEPLOY.md documents the separate Storage $web pipeline (ms-process-app-deploy) as out-of-scope."}
+]
