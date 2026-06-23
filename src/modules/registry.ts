@@ -10,6 +10,7 @@ import { trazabilidadModule } from "./trazabilidad"
 import { overviewModule } from "./overview"
 import { adminModule } from "./admin"
 import { parametrosModule } from "./parametros"
+import { parametrosElegibilidadModule } from "./parametros-elegibilidad"
 import type { ModuleDefinition } from "./types"
 
 /**
@@ -29,5 +30,6 @@ export const allModules: ModuleDefinition[] = [
   macrocacModule,
   trazabilidadModule,
   parametrosModule,
+  parametrosElegibilidadModule,
   adminModule,
 ]

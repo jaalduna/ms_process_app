@@ -30,5 +30,7 @@ export function useModuleConfig(): ModuleConfig {
     admin: config?.admin ?? true,
     // Parameters editor (mockup) — gated by the admin role like admin.
     parametros: config?.parametros ?? true,
+    // Eligibility parameters editor (JAA-547) — gated by the admin role.
+    "parametros-elegibilidad": config?.["parametros-elegibilidad"] ?? true,
   }
 }

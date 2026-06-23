@@ -2,6 +2,32 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-23 — JAA-547 (eligibility-params editor UI) — webapp — EXECUTED
+
+**What:** In-app editor for eligibility parameters. New module `src/modules/parametros-elegibilidad/`
+(admin-gated, nav label **"Editor de Parámetros"**, route `/parametros-elegibilidad`): country selector
+(9 countries BO,BR,BR_MOSAICO,CAM,CL,CO,EC,MX,PE) + 4 specialized tab editors —
+`Code_Parametros` (key-value), `Criterios_Elegibilidad` (rules+range), `Q/M_Variables`
+(vocab-bound selector → no invalid column typable), `Estructura` (locked; only `Muestra_Ideal`
+editable). Live client validation (`validation.ts`, structured issues) gates the publish button;
+`ReviewPublishDialog` shows the before→after diff and publishes via react-query mutation against the
+mock `POST /params/{tabla}/{pais}/publish`.
+
+**Backend seam:** mock-server gained `mock-server/routes/params.js` faithful to the frozen JAA-546
+contract (GET/PUT/validate/publish; `/api/v1/params`; string `errors[]`; `added/removed` diff; 404
+unknown table; 422 invalid publish). Seeded 9 countries × 5 tables; wired into `seed.js` + `test.js`
+reset. Scope = framework + 4 tables (per user); other 11 tables → follow-up.
+
+**Why label "Editor de Parámetros":** "Parámetros Elegibilidad" collided (substring) with existing
+e2e `getByRole("link", {name:"Elegibilidad"})` + `navigateTo("Elegibilidad")` matchers (strict-mode
+violation). Distinct label avoids the collision without touching 8 existing call sites.
+
+**Verify:** `npm test` 184/184 + new (mock params 12, validation 12) ✓; lint ✓; `tsc -b` ✓;
+`npm run build` ✓; Playwright e2e `e2e/parametros-elegibilidad.spec.ts` (2 @smoke) ✓.
+
+**Next:** separate evaluator → commit → push ado → PR to develop → sync Linear. Follow-up tickets for
+the remaining 11 eligibility tables.
+
 ## 2026-06-19 — JAA-384 (mock-server fidelity: C1-C4) — webapp — EXECUTED, evaluator PASS
 
 **What:** Closed 4 mock-server contract divergences so the in-repo mock faithfully mirrors the

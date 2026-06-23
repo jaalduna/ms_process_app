@@ -6,6 +6,7 @@ import { mtrStore, seedMtr } from "./mtr.js"
 import { eligibilityStore, seedEligibility } from "./eligibility.js"
 import { processStore, seedProcesses } from "./processes.js"
 import { tagStore, seedTraceability } from "./traceability.js"
+import { seedParams } from "./params.js"
 import { seedSyncJobs } from "../fixtures/seed.js"
 
 const router = Router()
@@ -40,6 +41,7 @@ router.post("/test/reset", (_req, res) => {
   seedEligibility()
   seedProcesses()
   seedTraceability()
+  seedParams()
 
   res.json({ status: "ok", message: "All stores reset, re-seeded, and deterministic mode enabled" })
 })

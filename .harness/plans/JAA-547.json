@@ -1,0 +1,23 @@
+{
+  "ticket": "JAA-547",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-547/ms-process-app-editor-ui-de-parametros-de-elegibilidad-selector-pais",
+  "branch": "feat/JAA-547-elegibilidad-params-editor",
+  "archetype": "webapp",
+  "goal": "In-app eligibility-params editor: country selector (9 countries) + specialized per-table tabs with live validation that blocks publish + review/diff dialog that publishes via the mock-server, faithful to the frozen JAA-546 contract.",
+  "scope_decision": "Framework + 4 representative tables (Code_Parametros key-value, Criterios_Elegibilidad rules+range, Q/M_Variables vocab-selector, Estructura locked) covering all validation kinds. Remaining 11 tables -> follow-up tickets (capture-don't-chase).",
+  "contract_source": "JAA-546 (Done). Base path /api/v1/params. GET/PUT envelope {country,table,rows:[{...}],updated_at,updated_by}; PUT body {rows:[...]}; validate -> {valid,errors:string[],warnings:string[]}; publish -> {country,table,publish_id,published_at,parquet_path,versioned_path,row_count,diff:{row_count_before,row_count_after,added[],removed[],added_count,removed_count},warnings[]}, 4xx{errors[]} when invalid; 404 unknown table; 403 forbidden country. 15 tables; 9 countries BO,BR,BR_MOSAICO,CAM,CL,CO,EC,MX,PE.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "Unit/lint/typecheck/build all green", "how_to_verify": "cd ../ms_process_app-JAA-547 && npm test && npm run lint && npx tsc -b && npm run build"},
+    {"id": "ac2", "criterion": "Playwright: select a country, edit a table to introduce an error (duplicate/type/range), live validation shows the error and publish is blocked", "how_to_verify": "e2e spec asserts an error badge/message is visible and the 'Revisar y publicar' flow cannot publish while invalid"},
+    {"id": "ac3", "criterion": "Review/publish dialog shows before->after diff rows; with a validation error the Publish button is disabled", "how_to_verify": "e2e spec opens the dialog, asserts diff table rows render and the publish button has [disabled] when invalid"},
+    {"id": "ac4", "criterion": "Happy path publish calls the mock publish endpoint and shows a confirmation", "how_to_verify": "e2e spec waits for POST /api/v1/params/{tabla}/{pais}/publish to the mock and asserts a success toast/confirmation appears"},
+    {"id": "ac5", "criterion": "Whole walkthrough runs against mock-server, no real backend", "how_to_verify": "e2e runs with npm run mock:fast only; assert the publish network request hit the mock origin"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "mock-server: add params routes + in-memory store seeded with 9 countries x 4 tables; mirror JAA-546 shapes (GET/PUT/validate/publish, 404 unknown table, 4xx invalid publish). Contract test in mock-server/__tests__.", "status": "complete"},
+    {"id": "t2", "desc": "Frontend data layer: types for the 4 tables + countries, api fns + react-query hooks (useParamsTable query, useSaveParams + usePublishParams mutations) against /api/v1/params.", "status": "complete"},
+    {"id": "t3", "desc": "Pure client-side validation + cell-level diff fns per table (structured issues for live UX), with vitest unit tests covering duplicate/type/range/out-of-vocab.", "status": "complete"},
+    {"id": "t4", "desc": "UI module src/modules/parametros-elegibilidad/: country selector (9), tab shell, 4 specialized tab editors, ReviewPublishDialog wired to publish mutation + sonner confirmation; register in registry (admin, nav-reachable).", "status": "complete"},
+    {"id": "t5", "desc": "Playwright e2e spec for the full walkthrough; run VERIFY_CMD + build.", "status": "complete"}
+  ]
+}
