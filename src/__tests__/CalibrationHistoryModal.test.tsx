@@ -14,24 +14,15 @@ vi.mock("sonner", () => ({
 }))
 
 const mockGetEvent = vi.fn()
-const mockDownloadCSV = vi.fn()
+const mockDownloadCalibrationReport = vi.fn()
 vi.mock("@/lib/api", () => ({
   getEvent: (...a: unknown[]) => mockGetEvent(...a),
-  downloadCSV: (...a: unknown[]) => mockDownloadCSV(...a),
+  downloadCalibrationReport: (...a: unknown[]) => mockDownloadCalibrationReport(...a),
 }))
 
 let historyState: { data: unknown; isLoading: boolean; isError: boolean }
 vi.mock("@/modules/calibracion/hooks/useCalibrationHistory", () => ({
   useCalibrationHistory: () => historyState,
-}))
-
-// One table → TablePicker auto-downloads without showing the dropdown.
-vi.mock("@/modules/calibracion/hooks/useJobTables", () => ({
-  useJobTables: () => ({
-    data: { tables: [{ full_name: "cat.sch.tbl", catalog: "cat", schema_name: "sch", table_name: "tbl" }] },
-    isLoading: false,
-    isError: false,
-  }),
 }))
 
 // Stub the nested detail modal — its full tree is exercised by e2e.
@@ -77,7 +68,7 @@ describe("CalibrationHistoryModal (JAA-424 unified history grid)", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetEvent.mockResolvedValue({ ...completedEvent } as EventDetail)
-    mockDownloadCSV.mockResolvedValue(undefined)
+    mockDownloadCalibrationReport.mockResolvedValue(undefined)
     historyState = { data: { items: [completedEvent], total: 1, limit: 20, offset: 0 }, isLoading: false, isError: false }
   })
 
@@ -105,12 +96,12 @@ describe("CalibrationHistoryModal (JAA-424 unified history grid)", () => {
     })
   })
 
-  it("clicking download still uses the table-picker flow (single table auto-downloads)", async () => {
+  it("clicking download streams the real calibration zip via tag + country", async () => {
     const user = userEvent.setup()
     renderModal()
-    await user.click(screen.getByTitle("Descargar CSV"))
+    await user.click(screen.getByTitle("Descargar resultados"))
     await waitFor(() => {
-      expect(mockDownloadCSV).toHaveBeenCalledWith("job-1", "cat.sch.tbl")
+      expect(mockDownloadCalibrationReport).toHaveBeenCalledWith("tag-1", "mexico")
       expect(mockToastSuccess).toHaveBeenCalled()
     })
   })
@@ -122,7 +113,7 @@ describe("CalibrationHistoryModal (JAA-424 unified history grid)", () => {
       isError: false,
     }
     renderModal()
-    expect(screen.queryByTitle("Descargar CSV")).not.toBeInTheDocument()
+    expect(screen.queryByTitle("Descargar resultados")).not.toBeInTheDocument()
     expect(screen.getByTitle("Ver detalle")).toBeInTheDocument()
   })
 })

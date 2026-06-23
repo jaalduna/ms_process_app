@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
@@ -10,19 +10,11 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Download, Eye, Loader2, FileText } from "lucide-react"
-import { downloadCSV, getEvent } from "@/lib/api"
+import { downloadCalibrationReport, getEvent } from "@/lib/api"
 import { useCalibrationHistory } from "../hooks/useCalibrationHistory"
-import { useJobTables } from "../hooks/useJobTables"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
-import type { JobStatus, TableInfo } from "@/types/api"
+import type { EventSummary, JobStatus } from "@/types/api"
 
 interface CalibrationHistoryModalProps {
   country: string
@@ -89,106 +81,6 @@ function getStatusConfig(status: JobStatus): StatusBadgeConfig {
 
 const GRID = "grid grid-cols-[minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_auto] gap-2"
 
-interface TablePickerProps {
-  jobId: string
-  onDownload: (jobId: string, table: string) => Promise<void>
-  onCollapse: () => void
-}
-
-function TablePicker({ jobId, onDownload, onCollapse }: TablePickerProps) {
-  const { data, isLoading, isError } = useJobTables(jobId)
-  const [selectedTable, setSelectedTable] = useState<string>("")
-  const [isDownloading, setIsDownloading] = useState(false)
-
-  const tables: TableInfo[] = data?.tables ?? []
-
-  // Auto-download when exactly 1 table, or show error when 0 tables
-  useEffect(() => {
-    if (isLoading || isError) return
-    if (tables.length === 0) {
-      toast.error("No tables available")
-      onCollapse()
-    } else if (tables.length === 1) {
-      onDownload(jobId, tables[0].full_name).finally(onCollapse)
-    }
-  }, [isLoading, isError, tables.length]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // For 0 or 1 tables, the useEffect handles it -- don't render the picker
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/60 text-xs text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        <span>Loading available tables...</span>
-      </div>
-    )
-  }
-
-  if (isError) {
-    return (
-      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/60 text-xs">
-        <span className="text-destructive">Failed to load tables</span>
-        <button
-          onClick={onCollapse}
-          className="text-muted-foreground hover:text-foreground underline"
-        >
-          Cancel
-        </button>
-      </div>
-    )
-  }
-
-  // 0 or 1 table: useEffect handles these, render nothing while it runs
-  if (tables.length <= 1) return null
-
-  async function handlePickerDownload() {
-    if (!selectedTable) return
-    setIsDownloading(true)
-    try {
-      await onDownload(jobId, selectedTable)
-    } finally {
-      setIsDownloading(false)
-      onCollapse()
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/60">
-      <span className="text-xs text-muted-foreground shrink-0">Table:</span>
-      <Select value={selectedTable} onValueChange={setSelectedTable}>
-        <SelectTrigger size="sm" className="h-7 text-xs min-w-[200px]">
-          <SelectValue placeholder="Select a table..." />
-        </SelectTrigger>
-        <SelectContent>
-          {tables.map((t) => (
-            <SelectItem key={t.full_name} value={t.full_name} className="text-xs">
-              {t.schema_name}.{t.table_name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button
-        size="sm"
-        className="h-7 text-xs px-3"
-        disabled={!selectedTable || isDownloading}
-        onClick={handlePickerDownload}
-      >
-        {isDownloading ? (
-          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-        ) : (
-          <Download className="h-3 w-3 mr-1" />
-        )}
-        Download
-      </Button>
-      <button
-        onClick={onCollapse}
-        className="text-xs text-muted-foreground hover:text-foreground ml-auto"
-      >
-        Cancel
-      </button>
-    </div>
-  )
-}
-
 export function CalibrationHistoryModal({
   country,
   countryLabel,
@@ -197,7 +89,6 @@ export function CalibrationHistoryModal({
   onClose,
 }: CalibrationHistoryModalProps) {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set())
-  const [expandedJobId, setExpandedJobId] = useState<string | null>(null)
   const [detailJobId, setDetailJobId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const { data, isLoading, isError } = useCalibrationHistory(country, open)
@@ -215,22 +106,24 @@ export function CalibrationHistoryModal({
     setDetailOpen(true)
   }
 
-  function handleDownload(jobId: string) {
-    // Toggle: second click on same row collapses the picker
-    setExpandedJobId((prev) => (prev === jobId ? null : jobId))
-  }
-
-  async function actualDownload(jobId: string, table: string) {
-    setDownloadingIds((prev) => new Set(prev).add(jobId))
+  async function handleDownload(event: EventSummary) {
+    if (!event.tag) {
+      toast.error("No hay resultado descargable para esta calibracion")
+      return
+    }
+    setDownloadingIds((prev) => new Set(prev).add(event.job_id))
     try {
-      await downloadCSV(jobId, table)
-      toast.success("CSV downloaded successfully")
+      // Real download: streams the result zip from the Databricks Volume via
+      // GET /calibration/{tag}/download. Calibration produces a single zip
+      // report per run, so there is no per-table picker.
+      await downloadCalibrationReport(event.tag, country)
+      toast.success("Resultados descargados")
     } catch {
-      toast.error("Failed to download CSV")
+      toast.error("Error al descargar los resultados")
     } finally {
       setDownloadingIds((prev) => {
         const next = new Set(prev)
-        next.delete(jobId)
+        next.delete(event.job_id)
         return next
       })
     }
@@ -248,7 +141,7 @@ export function CalibrationHistoryModal({
               <span>Historial de Calibracion - {countryLabel}</span>
             </DialogTitle>
             <DialogDescription>
-              Todas las calibraciones para {countryLabel}. Descarga CSV de las completadas.
+              Todas las calibraciones para {countryLabel}. Descarga los resultados de las completadas.
             </DialogDescription>
           </DialogHeader>
 
@@ -312,9 +205,9 @@ export function CalibrationHistoryModal({
                             size="sm"
                             className="h-7 w-7 p-0"
                             disabled={isDownloading}
-                            onClick={() => handleDownload(event.job_id)}
-                            aria-label={`Descargar CSV de ${formatDate(event.created_at)}`}
-                            title="Descargar CSV"
+                            onClick={() => handleDownload(event)}
+                            aria-label={`Descargar resultados de ${formatDate(event.created_at)}`}
+                            title="Descargar resultados"
                           >
                             {isDownloading ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -334,13 +227,6 @@ export function CalibrationHistoryModal({
                         </Button>
                       </div>
                     </div>
-                    {expandedJobId === event.job_id && (
-                      <TablePicker
-                        jobId={event.job_id}
-                        onDownload={actualDownload}
-                        onCollapse={() => setExpandedJobId(null)}
-                      />
-                    )}
                   </div>
                 )
               })}
