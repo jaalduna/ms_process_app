@@ -6,6 +6,7 @@ export interface ModuleConfig {
   prices: boolean
   weighting: boolean
   mtr: boolean
+  formato4: boolean
   qmstr: boolean
   macrocac: boolean
   traceability: boolean
@@ -23,6 +24,7 @@ export function useModuleConfig(): ModuleConfig {
     prices: config?.prices ?? false,
     weighting: config?.weighting ?? false,
     mtr: config?.mtr ?? false,
+    formato4: config?.formato4 ?? false,
     qmstr: config?.qmstr ?? false,
     macrocac: config?.macrocac ?? false,
     traceability: config?.traceability ?? false,

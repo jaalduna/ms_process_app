@@ -19,6 +19,8 @@ window.__APP_CONFIG__ = {
     prices: true,
     weighting: true,
     mtr: true,
+    // Scaffold only (MTR-28): hidden in production until the run flow ships (MTR-29).
+    formato4: false,
     qmstr: true,
     macrocac: true,
     traceability: false,

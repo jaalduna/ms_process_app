@@ -22,6 +22,7 @@ export const PROCESS_STAGE_LABELS: Record<ProcessStage, string> = {
   pesaje: "Pesaje",
   calibracion: "Calibración",
   mtr: "MTR",
+  formato4: "Formato 4",
 }
 
 // eslint-disable-next-line react-refresh/only-export-components -- shared date formatter used by OverviewPage
