@@ -58,3 +58,13 @@ values, request/response bodies, or any PII beyond the authenticated email.
   syncs the user and emits `page_view` per route.
 - `track(name, props?)` is exported for explicit instrumentation; `data-telemetry` is the
   declarative path.
+
+## Feature flag / kill-switch (JAA-558)
+
+Telemetry is gated by `window.__APP_CONFIG__.features.telemetry` (read via
+`src/lib/feature-flags.ts`). Default **on** when unset, so mock/dev/tests are unaffected.
+When `false`, `initTelemetry()` early-returns — no listeners, no timer, **no network requests**
+(so backends without the sink produce no `405`/failed-request console errors). The real-API
+deploy configs (`deploy/config.{dev,prod}.js`) set it `false`; flip back to `true` once
+`ms-process-api` implements `POST /telemetry/events`. The sibling flag
+`features.processStatus` gates the `/processes/status` poller the same way.

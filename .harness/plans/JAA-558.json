@@ -1,0 +1,22 @@
+{
+  "ticket": "JAA-558",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-558/frontend-calls-unimplemented-api-endpoints-recurring-console-errors",
+  "branch": "fix/JAA-558-silence-unimpl-endpoints",
+  "archetype": "webapp",
+  "goal": "Stop the SPA from calling telemetry/events (405) and processes/status (404) against backends that don't implement them, via a runtime feature guard (default-on; off in real-API deploy configs), eliminating the recurring console errors.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "With __APP_CONFIG__.features={telemetry:false,processStatus:false}, loading the SPA + running a calibration makes ZERO network requests to /telemetry/events, /telemetry/errors, /processes/status, and zero console errors matching those patterns.", "how_to_verify": "Playwright e2e: route config.js to flags-off, navigate + trigger calibration, assert browser_network_requests has no matching URLs and browser_console_messages(onlyErrors) is clean of those patterns."},
+    {"id": "ac2", "criterion": "No regression: with default flags on (mock), telemetry posts (202) and process-status polls (200) fire, and calibration trigger->status->download still works with no new console errors.", "how_to_verify": "Playwright e2e default flow against mock; assert telemetry/events 202 + processes/status 200 occur and no console errors."},
+    {"id": "ac3", "criterion": "Unit: initTelemetry() is a no-op (no listeners/timer/queued session_start, no fetch) when telemetry flag false; behaves normally when true/unset. isProcessStatusEnabled()/isTelemetryEnabled() default true and respect __APP_CONFIG__.features.", "how_to_verify": "vitest: src/__tests__/feature-flags.test.ts + telemetry guard test."},
+    {"id": "ac4", "criterion": "deploy/config.dev.js and deploy/config.prod.js set features.telemetry=false and features.processStatus=false; public/config.js leaves them on (mock supports both).", "how_to_verify": "grep features in deploy/config.*.js"},
+    {"id": "ac5", "criterion": "Baseline gates green.", "how_to_verify": "npx vitest run && npm run lint && npx tsc --noEmit"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Add src/lib/feature-flags.ts: getFeatureFlags() reading window.__APP_CONFIG__.features; isTelemetryEnabled()/isProcessStatusEnabled() default true.", "status": "complete"},
+    {"id": "t2", "desc": "Guard initTelemetry() with isTelemetryEnabled() early-return + post() chokepoint re-check (deferred-script race); guard useProcessStatus with enabled: isProcessStatusEnabled().", "status": "complete"},
+    {"id": "t3", "desc": "Pass features through in main.tsx loadConfig() (Tauri config.json), like modules/authProvider.", "status": "complete"},
+    {"id": "t4", "desc": "Set features off in deploy/config.dev.js + deploy/config.prod.js; document on flags in public/config.js + specs/SPEC-telemetry.md.", "status": "complete"},
+    {"id": "t5", "desc": "Unit tests (vitest) for feature flags + telemetry/process-status guards.", "status": "complete"},
+    {"id": "t6", "desc": "Playwright e2e: flags-off zero-calls/zero-errors (ac1) + flags-on regression (ac2).", "status": "complete"}
+  ]
+}

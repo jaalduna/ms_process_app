@@ -18,6 +18,8 @@
  *  No form values, no request bodies, no PII beyond the authenticated user's email.
  */
 
+import { isTelemetryEnabled } from "./feature-flags"
+
 export type TelemetryEventType = "session_start" | "session_end" | "page_view" | "interaction"
 
 export interface TelemetryEvent {
@@ -116,6 +118,14 @@ function telemetryBaseUrl(): string {
 
 /** Resilient POST: never throws, never rejects. Returns true on a 2xx. */
 async function post(path: string, body: unknown, opts: { beacon?: boolean } = {}): Promise<boolean> {
+  // Network chokepoint for every telemetry transport. Re-check the flag here
+  // (not just in initTelemetry) because the runtime config.js is a deferred
+  // script that can execute AFTER the init microtask — so init may slip through
+  // with the default-on flag, but by the time anything actually flushes the
+  // config has loaded. Gating here guarantees ZERO requests when telemetry is
+  // disabled (JAA-558), so backends without the sink produce no console errors.
+  if (!isTelemetryEnabled()) return false
+
   const url = `${telemetryBaseUrl()}${path}`
   const payload = JSON.stringify(body)
 
@@ -290,6 +300,10 @@ function onDocumentClick(event: MouseEvent): void {
  */
 export function initTelemetry(config: Partial<TelemetryConfig> = {}): void {
   if (state.started) return
+  // Skip entirely when the backend has no telemetry sink (JAA-558): never
+  // register listeners/timers and never POST, so there are no failed-request
+  // console errors. Turned off via __APP_CONFIG__.features.telemetry.
+  if (!isTelemetryEnabled()) return
   state.config = { ...DEFAULTS, ...config }
   state.started = true
   state.sessionStart = Date.now()

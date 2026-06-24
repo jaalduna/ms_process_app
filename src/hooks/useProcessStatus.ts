@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { closeProcess, getProcessStatus, openProcess } from "@/lib/api"
+import { isProcessStatusEnabled } from "@/lib/feature-flags"
 import type { ProcessStage, ProcessState } from "@/types/api"
 
 export const PROCESS_STATUS_KEY = ["process-status"]
@@ -11,6 +12,10 @@ export function useProcessStatus() {
     queryFn: getProcessStatus,
     staleTime: 10_000,
     refetchInterval: 30_000,
+    // Skip polling when the backend has no /processes/status endpoint
+    // (JAA-558): no fetch, no 404 console errors. Off via
+    // __APP_CONFIG__.features.processStatus.
+    enabled: isProcessStatusEnabled(),
   })
 }
 

@@ -19,7 +19,11 @@ async function loadConfig() {
       const config = JSON.parse(configStr)
 
       type BridgeConfig = { API_URL?: string }
-      type AppConfig = { modules?: Record<string, boolean>; authProvider?: string }
+      type AppConfig = {
+        modules?: Record<string, boolean>
+        authProvider?: string
+        features?: Record<string, boolean>
+      }
       type WindowGlobals = {
         __BRIDGE_CONFIG__?: BridgeConfig
         __APP_CONFIG__?: AppConfig
@@ -54,6 +58,18 @@ async function loadConfig() {
           modules: {
             ...win.__APP_CONFIG__?.modules,
             ...config.modules,
+          },
+        }
+      }
+
+      // Apply feature flags (e.g. telemetry/processStatus — JAA-558) so a
+      // real-API config.json can disable callers the backend doesn't implement.
+      if (config.features) {
+        win.__APP_CONFIG__ = {
+          ...win.__APP_CONFIG__,
+          features: {
+            ...win.__APP_CONFIG__?.features,
+            ...config.features,
           },
         }
       }

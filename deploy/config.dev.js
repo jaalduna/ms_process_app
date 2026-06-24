@@ -26,4 +26,12 @@ window.__APP_CONFIG__ = {
     traceability: false,
     parametros: true,
   },
+  // Feature flags (JAA-558). The real ms-process-api does not implement the
+  // telemetry sink (POST /telemetry/events) nor the process-status endpoint
+  // (GET /processes/status), so these are OFF here to avoid recurring 405/404
+  // console errors. Flip a flag to true once the backend implements it.
+  features: {
+    telemetry: false,
+    processStatus: false,
+  },
 };

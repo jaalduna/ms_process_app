@@ -519,3 +519,21 @@ endpoints → 202. Separate skeptical evaluator (ux-ui-reviewer, fresh ctx): ALL
 not 127.0.0.1 (already in memory). Used dev:5273 + mock:8000 to avoid sibling-worktree collisions.
 
 **Next:** commit → push ado → PR to develop → auto-merge when policies green.
+
+## 2026-06-24 — JAA-558 (silence telemetry/events 405 + processes/status 404 console errors) — DONE (PR open)
+**Fix:** runtime feature guard `window.__APP_CONFIG__.features` ({telemetry, processStatus}), read via new
+`src/lib/feature-flags.ts` (default ON). `initTelemetry()` early-returns when off; `useProcessStatus`
+gets `enabled: isProcessStatusEnabled()`. `main.tsx` passes `features` through from Tauri config.json.
+Real-API deploys (`deploy/config.{dev,prod}.js`) set both OFF → zero such calls → zero 405/404 console
+errors; `public/config.js` keeps them ON (mock supports both). Reversible: flip on when backend implements.
+**Root-cause gotcha:** Chromium ran the `type=module` main.tsx BEFORE the classic `defer config.js`, so
+`initTelemetry()` read the flag before `__APP_CONFIG__` existed (defaulted ON → still posted). Fixed by also
+gating the single network chokepoint `post()` (re-checks flag at send time, after config has loaded) — belt
++ suspenders. processStatus was unaffected (React renders after load).
+**Verify:** vitest 191✓ (+7: feature-flags.test.ts, useProcessStatus.test.tsx), lint ✓, tsc ✓.
+Playwright e2e feature-flags.spec.ts smoke 2/2 (off→0 calls/0 errors; on→202+200, no errors); existing
+telemetry.spec.ts smoke still green. Separate evaluator (ux-ui-reviewer, fresh ctx, independent Playwright
+cross-check): ac1-ac5 + overall ALL PASS → .harness/eval_feedback/JAA-558.json.
+**Harness friction:** background `rtk proxy npx playwright … | grep` lost stdout to the .output file
+(0B) — run playwright e2e in the FOREGROUND to capture pass/fail. Used isolated ports dev:5274 mock:5074
+(5173/5000 taken by sibling worktree); symlinked node_modules from main checkout (same commit, same lockfile).

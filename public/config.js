@@ -24,4 +24,11 @@ window.__APP_CONFIG__ = {
     macrocac: true,
     traceability: false,
   },
+  // Feature flags (JAA-558). The bundled mock-server implements both the
+  // telemetry sink and /processes/status, so they stay ON for local/mock dev.
+  // The real-API deploy configs (deploy/config.{dev,prod}.js) turn these OFF.
+  features: {
+    telemetry: true,
+    processStatus: true,
+  },
 };
