@@ -2,6 +2,7 @@ import { seedCompletedJob, seedFailedJob, defaultPeriod } from "../routes/sync.j
 import { seedPrices } from "../routes/prices.js"
 import { seedWeighting } from "../routes/weighting.js"
 import { seedMtr } from "../routes/mtr.js"
+import { seedFormato4 } from "../routes/formato4.js"
 import { seedEligibility } from "../routes/eligibility.js"
 import { seedProcesses } from "../routes/processes.js"
 import { seedTraceability } from "../routes/traceability.js"
@@ -61,6 +62,7 @@ export function seedAll() {
   seedPrices()
   seedWeighting()
   seedMtr()
+  seedFormato4()
   seedEligibility()
   seedProcesses()
   seedTraceability()
