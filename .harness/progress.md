@@ -2,6 +2,32 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-24 — JAA-628 (params-editor Excel download/import frontend) — IN REVIEW
+**What:** Frontend half of JAA-543 Excel round-trip (backend JAA-614 Done). Added a per-country
+Excel toolbar to the eligibility-params editor: `ParamsExcelToolbar` (new) with a "Descargar Excel"
+button + a Switch toggle **valores actuales** vs **template vacío** (sends `?template=true` only when
+on), and an "Importar Excel" file input → `POST /params/{pais}/import` → maps the backend ImportResult
+into the existing `ReviewPublishDialog` (diff + errors). `importMapping.ts` (pure, unit-tested) flattens
+the per-country/all-tables preview: errors/warnings → ValidationIssue[], added/removed rows → DiffEntry[].
+Publish reuses the existing per-table `publishParams` for each changed table; the dialog blocks publish
+when any table has errors (existing gate). api.ts: `downloadParamsExcel`/`importParamsExcel` (blob +
+multipart, cloned from downloadWeightingCSV/uploadEligibilityFiles). mock-server params.js: added
+`GET /params/:pais/export.xlsx` (xlsx blob + Content-Disposition) and `POST /params/:pais/import`
+(deterministic contract-shaped preview from the seed; `?scenario=invalid` injects a contract error),
+declared BEFORE the generic `/:tabla/:pais` to avoid path shadowing.
+**Contract note:** export/import are per-COUNTRY (whole workbook), not per-table; frontend does NOT
+revalidate — it only renders the backend's errors/diff (ticket rule).
+**Verify:** vitest 316/316 (+9: importMapping 6, ParamsExcelToolbar 3); eslint clean; tsc -b clean;
+build OK. Playwright @smoke parametros-elegibilidad.spec.ts 3/3 on isolated ports (mock :8628, vite
+:5628) incl. new "Excel round-trip" (download params_CL.xlsx → import → diff-row → publish 200 →
+toast). Separate skeptical evaluator (general-purpose, fresh ctx): ALL 4 ACs PASS, no stubs →
+eval_feedback/JAA-628.json.
+**Repo/mode:** ms_process_app, DIRECT mode → ado/develop (AGENTS.md authoritative; the injected
+origin/harness-auto context was computed for the launch repo ms-process-api, and origin/GitHub has no
+develop). JAA-614 is `related to` (not blocked-by) and built against the mock — no unmet dependency.
+**NEXT:** commit `Fixes JAA-628`, push to ado, open PR → develop with auto-complete armed; Linear → In
+Review. A later /harness JAA-628 re-run (Orient → step 7) confirms merge + cleans worktree + sets Done.
+
 ## 2026-06-24 — JAA-613 (extend params editor to remaining 10 tables) IMPLEMENTED
 
 **What:** Extended the eligibility-params editor (JAA-547 shell `ParamsEditor`) from 5 to all 15

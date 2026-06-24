@@ -14,6 +14,7 @@ import { CriteriosTab } from "../components/CriteriosTab"
 import { VariablesTab } from "../components/VariablesTab"
 import { EstructuraTab } from "../components/EstructuraTab"
 import { EXTRA_TABS } from "../components/extraTabs"
+import { ParamsExcelToolbar } from "../components/ParamsExcelToolbar"
 
 export function ParametrosElegibilidadPage() {
   const [country, setCountry] = useState<ElegCountry>("CL")
@@ -28,20 +29,23 @@ export function ParametrosElegibilidadPage() {
             previsualiza (diff antes→después) antes de publicar el parquet.
           </p>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">País</label>
-          <Select value={country} onValueChange={(v) => setCountry(v as ElegCountry)}>
-            <SelectTrigger className="w-48" data-testid="country-select">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ELEG_COUNTRIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  <span className="font-mono">{c}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-end gap-4">
+          <ParamsExcelToolbar country={country} />
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">País</label>
+            <Select value={country} onValueChange={(v) => setCountry(v as ElegCountry)}>
+              <SelectTrigger className="w-48" data-testid="country-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ELEG_COUNTRIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    <span className="font-mono">{c}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

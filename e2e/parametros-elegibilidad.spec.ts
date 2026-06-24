@@ -78,6 +78,54 @@ test.describe("Parámetros de elegibilidad — editor", () => {
     },
   )
 
+  // JAA-628 — Excel round-trip: download the per-country workbook, (mock) upload
+  // an edited one, review the diff the backend /import returns, and publish.
+  test(
+    "Excel round-trip: descargar → importar → ver diff → publicar",
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await login(page)
+
+      const nav = page.getByRole("navigation", { name: /main navigation/i })
+      await nav.getByRole("link", { name: /Editor de Parámetros/i }).click()
+      await expect(page).toHaveURL(/\/parametros-elegibilidad/, { timeout: 10_000 })
+      await expect(page.getByTestId("params-excel-toolbar")).toBeVisible({ timeout: 10_000 })
+
+      // --- descargar: streams params_CL.xlsx (Content-Disposition) -------------
+      const downloadPromise = page.waitForEvent("download", { timeout: 30_000 })
+      await page.getByTestId("download-excel-btn").click()
+      const download = await downloadPromise
+      expect(download.suggestedFilename()).toMatch(/^params_CL\.xlsx$/)
+
+      // --- importar: feed a file → POST /import → review dialog opens ----------
+      await page.getByTestId("import-excel-input").setInputFiles({
+        name: "params_CL.xlsx",
+        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        buffer: Buffer.from("edited workbook"),
+      })
+
+      const dialog = page.getByTestId("review-dialog")
+      await expect(dialog).toBeVisible({ timeout: 10_000 })
+      // the backend preview reports a +1 row diff for Code_Parametros
+      await expect(page.getByTestId("diff-table")).toBeVisible()
+      await expect(page.getByTestId("diff-row").first()).toBeVisible()
+      await expect(page.getByTestId("confirm-publish")).toBeEnabled()
+
+      // --- publicar: reuses the per-table publish endpoint --------------------
+      const publishResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/params/Code_Parametros/CL/publish") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      )
+      await page.getByTestId("confirm-publish").click()
+      const resp = await publishResponse
+      expect(resp.url()).toContain(MOCK_API_BASE)
+
+      await expect(page.getByText(/Publicado desde Excel/i)).toBeVisible({ timeout: 10_000 })
+    },
+  )
+
   test("out-of-vocabulary is impossible: Q_Variables uses a controlled selector", { tag: "@smoke" }, async ({ page }) => {
     await login(page)
     const nav = page.getByRole("navigation", { name: /main navigation/i })
