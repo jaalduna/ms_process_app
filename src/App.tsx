@@ -8,7 +8,7 @@ import { AuthenticatedLayout } from "@/components/AuthenticatedLayout"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { useModuleConfig } from "@/hooks/useModuleConfig"
 import { useAuth } from "@/hooks/useAuth"
-import { allModules } from "@/modules/registry"
+import { allModules, hasModuleAccess } from "@/modules/registry"
 import { Skeleton } from "@/components/ui/skeleton"
 import { authBypassed } from "@/lib/runtime-mode"
 import { setTelemetryUser, trackPageView } from "@/lib/telemetry"
@@ -70,15 +70,9 @@ function TelemetryRouteListener() {
 function AppRoutes() {
   const modules = useModuleConfig()
   const { roles } = useAuth()
-  // Mirrors backend AuthorizedUser.has_role: admin implies every role.
-  const isAdmin = roles.includes("admin")
-  const enabledModules = allModules.filter((m) => {
-    if (!modules[m.id]) return false
-    if (m.requiredRoles && m.requiredRoles.length > 0) {
-      return isAdmin || m.requiredRoles.some((r) => roles.includes(r))
-    }
-    return true
-  })
+  // A module shows only when its config toggle is on AND the user passes the
+  // role gate (hasModuleAccess: admin implies every role).
+  const enabledModules = allModules.filter((m) => modules[m.id] && hasModuleAccess(m, roles))
   const defaultRoute = enabledModules[0]?.routes[0]?.path ?? "/"
 
   return (
