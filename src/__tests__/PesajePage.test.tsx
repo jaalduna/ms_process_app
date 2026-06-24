@@ -187,7 +187,7 @@ describe("PesajePage", () => {
 
     await user.click(screen.getByRole("tab", { name: "Parametros" }))
     await waitFor(() => {
-      expect(screen.getByText(/Configuracion de parametros por proceso/)).toBeVisible()
+      expect(screen.getByText(/organizada por frecuencia de cambio/i)).toBeVisible()
     })
   })
 

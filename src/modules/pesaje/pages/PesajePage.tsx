@@ -6,6 +6,7 @@ import { WeightingHistoryPanel } from "../components/WeightingHistoryPanel"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCountries } from "@/hooks/useCountries"
 import { useLastWeighting } from "../hooks/useLastWeighting"
+import { PesajeParametrosTab } from "../components/PesajeParametrosTab"
 
 function currentPeriod(): string {
   const now = new Date()
@@ -55,11 +56,7 @@ export function PesajePage() {
     </div>
   )
 
-  const parametros = (
-    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-      Configuracion de parametros por proceso (proximamente).
-    </div>
-  )
+  const parametros = <PesajeParametrosTab />
 
   return (
     <div className="space-y-6">
