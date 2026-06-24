@@ -239,6 +239,65 @@ function unknownTable(res, table) {
 // Routes
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// JAA-628 / JAA-614 — Excel round-trip (per-country, all tables).
+//   GET  /params/{pais}/export.xlsx[?template=true] -> xlsx blob
+//   POST /params/{pais}/import (multipart xlsx)      -> validate-only preview
+// Declared BEFORE the generic GET /params/:tabla/:pais so the literal
+// `export.xlsx` segment is not captured as a `:pais` value.
+// ---------------------------------------------------------------------------
+
+router.get("/params/:pais/export.xlsx", (req, res) => {
+  const { pais } = req.params
+  const template = req.query.template === "true" || req.query.template === "1"
+  const name = `params_${pais}${template ? "_template" : ""}.xlsx`
+  // The mock has no xlsx writer; the UI only needs a real download (correct
+  // content-type + Content-Disposition). Bytes need not be a valid workbook.
+  const body = Buffer.from(`mock xlsx for ${pais} (${template ? "template" : "values"})`)
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+  res.setHeader("Content-Disposition", `attachment; filename="${name}"`)
+  res.send(body)
+})
+
+// Build a deterministic, contract-shaped import preview from the seeded store.
+// Default: simulate an uploaded workbook that adds one Code_Parametros row (so
+// the diff is visible and publishable). `?scenario=invalid` injects a contract
+// error so the publish gate can be exercised. Nothing is ever persisted.
+function buildImportResult(pais, scenario) {
+  const invalid = scenario === "invalid"
+  const tables = []
+
+  const cp = getEntry("Code_Parametros", pais)
+  const cpUploaded = invalid
+    ? [...cp.published, { Variable: "umbral_excel", Valor: "abc", "Observación": "valor inválido" }]
+    : [...cp.published, { Variable: "umbral_excel", Valor: 7, "Observación": "via excel" }]
+  tables.push({
+    table: "Code_Parametros",
+    rows: cpUploaded,
+    diff: diffRows(cp.published, cpUploaded),
+    errors: invalid ? validateRows("Code_Parametros", cpUploaded).errors : [],
+    warnings: [],
+  })
+
+  for (const t of ["Criterios_Elegibilidad", "Q_Variables", "M_Variables", "Estructura"]) {
+    const e = getEntry(t, pais)
+    tables.push({ table: t, rows: e.published, diff: diffRows(e.published, e.published), errors: [], warnings: [] })
+  }
+
+  const valid = tables.every((t) => t.errors.length === 0)
+  return { country: pais, valid, tables }
+}
+
+router.post("/params/:pais/import", (req, res) => {
+  const { pais } = req.params
+  if (!PARAMS_COUNTRIES.includes(pais)) {
+    return res.status(404).json({ error: "not_found", message: `unknown country '${pais}'` })
+  }
+  // express.json() leaves the multipart body unparsed; like the eligibility mock
+  // we ignore the bytes and synthesize a faithful, contract-shaped preview.
+  res.json(buildImportResult(pais, req.query.scenario))
+})
+
 router.get("/params/:tabla/:pais", (req, res) => {
   const { tabla, pais } = req.params
   if (!PARAMS_TABLES.includes(tabla)) return unknownTable(res, tabla)

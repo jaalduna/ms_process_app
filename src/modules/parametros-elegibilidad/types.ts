@@ -74,6 +74,29 @@ export interface PublishResult {
   warnings: string[]
 }
 
+// ---- JAA-628: Excel round-trip (import preview) ---------------------------
+// Mirrors the ms-process-api JAA-614 contract: POST /params/{pais}/import
+// returns a per-country, all-tables validate-only preview (nothing is written).
+
+/** Full-row add/removed diff for one table (same shape as PublishDiff). */
+export type ImportTableDiff = PublishDiff
+
+export interface ImportTableResult {
+  table: string
+  rows: ParamRow[]
+  diff: ImportTableDiff
+  /** flat strings from the backend contract validator (no per-cell nesting). */
+  errors: string[]
+  warnings: string[]
+}
+
+export interface ImportResult {
+  country: string
+  /** false if ANY table has at least one error. */
+  valid: boolean
+  tables: ImportTableResult[]
+}
+
 // ---- per-table row shapes -------------------------------------------------
 
 export interface CodeParametrosRow extends ParamRow {
