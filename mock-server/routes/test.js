@@ -3,6 +3,7 @@ import { resetJobs } from "./sync.js"
 import { pricesStore, seedPrices } from "./prices.js"
 import { weightingStore, seedWeighting } from "./weighting.js"
 import { mtrStore, seedMtr } from "./mtr.js"
+import { formato4Store, seedFormato4 } from "./formato4.js"
 import { eligibilityStore, seedEligibility } from "./eligibility.js"
 import { processStore, seedProcesses } from "./processes.js"
 import { tagStore, seedTraceability } from "./traceability.js"
@@ -23,6 +24,7 @@ router.post("/test/reset", (_req, res) => {
   pricesStore.reset()
   weightingStore.reset()
   mtrStore.reset()
+  formato4Store.reset()
   eligibilityStore.reset()
   processStore.reset()
   tagStore.reset()
@@ -32,12 +34,14 @@ router.post("/test/reset", (_req, res) => {
   pricesStore.setDeterministic(true)
   weightingStore.setDeterministic(true)
   mtrStore.setDeterministic(true)
+  formato4Store.setDeterministic(true)
 
   // Re-seed
   seedSyncJobs()
   seedPrices()
   seedWeighting()
   seedMtr()
+  seedFormato4()
   seedEligibility()
   seedProcesses()
   seedTraceability()

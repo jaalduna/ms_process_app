@@ -32,6 +32,31 @@ async function confirmAction(page: Page, trigger: Locator, actionName: RegExp) {
   throw new Error(`confirmAction(${actionName}) did not complete`)
 }
 
+/** The detail (eye) button — renders once a run leaves "pending" (status !== pending). */
+function eyeButton(c: Locator): Locator {
+  return c.getByRole("button", { name: /Ver detalle/ })
+}
+
+/**
+ * Trigger a Formato 4 run and confirm it actually started. Mirrors the MTR
+ * spec's `startMtr`: a single radix confirm can race the animation and close
+ * without submitting, so retry until the success signal appears. The signal is
+ * the eye button, which renders once the run leaves "pending" and survives
+ * running→completed — making the trigger deterministic at retries:0.
+ */
+async function startFormato4(page: Page, c: Locator) {
+  const eye = eyeButton(c)
+  const ejecutar = c.getByRole("button", { name: /^Ejecutar$/ })
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await eye.isVisible().catch(() => false)) return
+    // The card may still be loading its runs query → Ejecutar not yet enabled.
+    if (!(await ejecutar.isEnabled({ timeout: 10_000 }).catch(() => false))) continue
+    await confirmAction(page, ejecutar, /^Confirm$/).catch(() => {})
+    if (await eye.isVisible({ timeout: 8_000 }).catch(() => false)) return
+  }
+  throw new Error("Formato 4 run did not start")
+}
+
 test.describe("Formato 4 Module E2E", () => {
   test.beforeEach(async ({ page }) => {
     await setModuleConfig(page, {})
@@ -49,9 +74,7 @@ test.describe("Formato 4 Module E2E", () => {
   test("trigger creates a run that completes", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Formato 4", /formato4/)
     const chile = card(page, "Chile")
-    const ejecutar = chile.getByRole("button", { name: /^Ejecutar$/ })
-    await expect(ejecutar).toBeEnabled({ timeout: 10_000 })
-    await confirmAction(page, ejecutar, /^Confirm$/)
+    await startFormato4(page, chile)
     // Deterministic mock → the run reaches the "Completado" terminal badge.
     await expect(chile.getByText(/Completado/i)).toBeVisible({ timeout: 30_000 })
   })
@@ -59,12 +82,13 @@ test.describe("Formato 4 Module E2E", () => {
   // MTR-32: once completed, the card exposes a Download button that streams the
   // SERVER-generated zip (mock-server /formato4/runs/:id/download fixture), NOT
   // a client-built CSV.
-  test("completed run exposes a Download that fetches the server zip", async ({ page }) => {
+  // MTR-34: this is the decisive end-to-end gate (open → run a country → progress
+  // reaches done → download the zip), so it runs in the @smoke project (retries:0),
+  // mirroring the mtr e2e and the run wired into azure-pipelines.yml CI.
+  test("completed run exposes a Download that fetches the server zip", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Formato 4", /formato4/)
     const chile = card(page, "Chile")
-    const ejecutar = chile.getByRole("button", { name: /^Ejecutar$/ })
-    await expect(ejecutar).toBeEnabled({ timeout: 10_000 })
-    await confirmAction(page, ejecutar, /^Confirm$/)
+    await startFormato4(page, chile)
     await expect(chile.getByText(/Completado/i)).toBeVisible({ timeout: 30_000 })
 
     const downloadBtn = chile.getByRole("button", { name: /Descargar/ })
@@ -84,12 +108,10 @@ test.describe("Formato 4 Module E2E", () => {
   test("completed run: Eye opens the detail modal with pipeline + download", async ({ page }) => {
     await navigateTo(page, "Formato 4", /formato4/)
     const chile = card(page, "Chile")
-    const ejecutar = chile.getByRole("button", { name: /^Ejecutar$/ })
-    await expect(ejecutar).toBeEnabled({ timeout: 10_000 })
-    await confirmAction(page, ejecutar, /^Confirm$/)
+    await startFormato4(page, chile)
     await expect(chile.getByText(/Completado/i)).toBeVisible({ timeout: 30_000 })
 
-    const eye = chile.getByRole("button", { name: /Ver detalle/ })
+    const eye = eyeButton(chile)
     await expect(eye).toBeVisible({ timeout: 10_000 })
     await eye.click()
 
