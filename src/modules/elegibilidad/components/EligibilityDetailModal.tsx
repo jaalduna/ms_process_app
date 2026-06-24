@@ -49,19 +49,7 @@ import {
 } from "../hooks/useEligibility"
 import { STEP_ORDER, STEP_LABELS, ACTIVE_STATUSES, STATUS_CONFIG } from "../types"
 import type { EligibilityFile, EligibilityRun, EligibilityStep } from "../types"
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brasil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_LABELS } from "@/lib/countries"
 
 interface EligibilityDetailModalProps {
   run: EligibilityRun | null

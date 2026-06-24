@@ -14,7 +14,7 @@ import { downloadWeightingCSV } from "@/lib/api"
 import { useWeightingRuns } from "../hooks/useWeighting"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WEIGHTING_STATUS_CONFIG } from "../types"
-import { COUNTRY_LABELS } from "./WeightingCountryCard"
+import { COUNTRY_LABELS } from "@/lib/countries"
 import type { WeightingRun } from "../types"
 
 interface WeightingHistoryModalProps {

@@ -22,44 +22,8 @@ import { WeightingProgress } from "./WeightingProgress"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WeightingHistoryModal } from "./WeightingHistoryModal"
 import { WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
-
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
-
-const COUNTRY_FLAGS: Record<string, string> = {
-  argentina: "\u{1F1E6}\u{1F1F7}",
-  bolivia: "\u{1F1E7}\u{1F1F4}",
-  brasil: "\u{1F1E7}\u{1F1F7}",
-  brazil: "\u{1F1E7}\u{1F1F7}",
-  cam: "\u{1F30E}",
-  chile: "\u{1F1E8}\u{1F1F1}",
-  colombia: "\u{1F1E8}\u{1F1F4}",
-  ecuador: "\u{1F1EA}\u{1F1E8}",
-  mexico: "\u{1F1F2}\u{1F1FD}",
-  peru: "\u{1F1F5}\u{1F1EA}",
-}
-
-// eslint-disable-next-line react-refresh/only-export-components -- intentional shadcn/context pattern: co-exports constant with component
-export const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brasil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
+import { formatRelativeTime } from "@/lib/utils"
 
 interface WeightingCountryCardProps {
   countryCode: string

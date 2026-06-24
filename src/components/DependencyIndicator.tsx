@@ -1,17 +1,7 @@
 import { CheckCircle2, MinusCircle, HelpCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { DependencyStatus, DepStatusValue } from "@/hooks/usePipelineDeps"
-
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
+import { formatRelativeTime } from "@/lib/utils"
 
 const STATUS_CONFIG: Record<DepStatusValue, {
   Icon: typeof CheckCircle2

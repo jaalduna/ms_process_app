@@ -27,19 +27,7 @@ import { useApprovePrices } from "../hooks/usePrices"
 import { PRICES_STATUS_CONFIG } from "../types"
 import { downloadOutliersCSV } from "../outliersCsv"
 import type { PricesRun, PricesOutlier } from "../types"
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brazil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_LABELS } from "@/lib/countries"
 
 function parseUTC(ts: string): number {
   return new Date(/([zZ]|[+-]\d{2}:?\d{2})$/.test(ts) ? ts : ts + "Z").getTime()
