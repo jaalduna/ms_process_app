@@ -28,9 +28,11 @@ test.describe("Telemetry", () => {
       page.getByRole("navigation", { name: /main navigation/i }).getByRole("link", { name: "Precios" }).click(),
     ])
 
+    // Assert request-side only. The events batch is POSTed via fetch({keepalive:true}),
+    // whose response body is NOT readable from the page context — `await response.json()`
+    // hangs until the test times out (JAA-627). status()/postDataJSON() come off the
+    // request/response metadata Playwright already holds, so they never touch the body.
     expect(response.status()).toBe(202)
-    const body = await response.json()
-    expect(body.accepted).toBe(true)
 
     // The flushed batch carries the events we expect.
     const sent = response.request().postDataJSON() as { events: Array<{ type: string; name?: string }> }
