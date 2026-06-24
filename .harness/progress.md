@@ -2,6 +2,37 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-24 — JAA-613 (extend params editor to remaining 10 tables) IMPLEMENTED
+
+**What:** Extended the eligibility-params editor (JAA-547 shell `ParamsEditor`) from 5 to all 15
+contract tables by adding the remaining 10. Two new generic, schema-driven editor components do the
+heavy lifting (no per-table copy/paste):
+- `components/GridTab.tsx` — multi-column grid; column type `int|float|string|bool` (bool → 0/1
+  Switch). Wires `validate` + `diffByIndex` to the shared `ParamsEditor`.
+- `components/ExclusionListTab.tsx` — single integer column, chip multi-add UX (Origen/IdProduto/
+  IdDomicilio); duplicates + non-integers caught by `validateNumericList` and block publish.
+- `components/extraTabs.tsx` — `EXTRA_TABS` registry (columns + validator + newRow per table); the
+  page maps it into `TabsTrigger`/`TabsContent` (TabsList now wraps).
+New validators in `validation.ts` (+ `isNum`/`isBinary` helpers): Validation_Conditions,
+Validation_Combined_Conditions, validateNumericList, IdPainel, Variables (string kv),
+Parametros_Region (R int unique + float factors), Criterios_Elegibilidad_Datas (Data_Saida req),
+Criterios_Elegibilidad_ExCateg. Row types added to `types.ts`; `ELEG_TABLES` now all 15.
+
+**Dead-code cleanup (AC6):** removed `useSaveParams` (hooks.ts), `putParamsTable` + `validateParams`
+(api.ts), and the now-unused `ValidationResult` type (types.ts). The editor validates client-side and
+publishes directly (publish re-validates server-side); there is no draft-save step, so these were
+genuinely unused.
+
+**Tests:** vitest 298 passed (added 32 validator cases incl. range/duplicate/binary/float). tsc -b +
+eslint clean; `npm run build` green. Playwright @smoke +2 specs
+(`e2e/parametros-elegibilidad-extra.spec.ts`): Validation_Conditions (rules — Min>Max blocks, diff
+shown, fix→publish) and Origen_NoConsiderar (list — duplicate blocks, remove→publish). Both pass
+against the mock.
+
+**Notes:** Buen_Colaborador is NOT in params_schema.json / mock contract → out of scope (ticket said
+"revisar"); AR is the known adapter gap. direct mode (no harness/auto in this repo): branched off
+`ado/develop`, PR targets `develop`. Next: evaluator (separate ctx) → PR.
+
 ## 2026-06-24 — MTR-30 (Formato4Page + Formato4CountryCard, clone mtr) — webapp — EVALUATOR PASS
 **What:** Built the Formato 4 country grid + card shell driving the run lifecycle.
 - `src/modules/formato4/pages/Formato4Page.tsx` (was a placeholder) → clone of `MtrPage`:
@@ -593,3 +624,12 @@ cross-check): ac1-ac5 + overall ALL PASS → .harness/eval_feedback/JAA-558.json
 - Tests: mock-server/__tests__/formato4.test.js (15 cases) — all green; full mock suite 52 PASS; eslint clean; boot smoke OK.
 - Contract source: specs/SPEC-formato4-api-contract.md (MTR-26). 26-col schema not enumerated upstream → representative sample used.
 - Next: open PR to develop, auto-complete when build policy green.
+
+### 2026-06-24 — JAA-613 RESUME → EVALUATOR PASS → PR
+Prior session implemented but left work UNCOMMITTED ("Next: evaluator → PR"). This run verified +
+graded + shipped. Unit gate green: vitest 298/298, eslint clean, tsc -b clean, build ok. e2e smoke
+`parametros-elegibilidad-extra.spec.ts` 2/2 (mock :8061, vite :5561). Separate skeptical evaluator
+(ux-ui-reviewer, fresh ctx, ran every check itself) → ALL 6 ACs PASS → eval_feedback/JAA-613.json.
+Captured 1 unrelated pre-existing smoke flake (telemetry events `response.json()` hang) as **JAA-627**
+(related to JAA-613, non-blocking; mock route healthy via curl, JAA-613 touches no telemetry/route/mock).
+direct mode: branch off ado/develop, PR → develop, auto-complete armed.
