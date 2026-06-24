@@ -4,10 +4,31 @@ import {
   validateCriterios,
   validateVocab,
   validateEstructura,
+  validateValidationConditions,
+  validateCombinedConditions,
+  validateNumericList,
+  validateIdPainel,
+  validateVariables,
+  validateParametrosRegion,
+  validateCriteriosDatas,
+  validateCriteriosExCateg,
   diffByKey,
   diffByIndex,
+  type ValidationIssue,
 } from "../validation"
-import type { CodeParametrosRow, CriteriosRow } from "../types"
+import type {
+  CodeParametrosRow,
+  CriteriosRow,
+  ValidationConditionsRow,
+  CombinedConditionsRow,
+  IdPainelRow,
+  VariablesRow,
+  ParametrosRegionRow,
+  CriteriosDatasRow,
+  CriteriosExCategRow,
+} from "../types"
+
+const errsOf = (issues: ValidationIssue[]) => issues.filter((i) => i.severity === "error")
 
 describe("eligibility params validation (JAA-547)", () => {
   describe("Code_Parametros", () => {
@@ -101,6 +122,159 @@ describe("eligibility params validation (JAA-547)", () => {
       ]
       const diff = diffByIndex(base, draft, ["Variable", "Valor"], (r) => r.Variable)
       expect(diff.some((d) => d.after === "(fila nueva)")).toBe(true)
+    })
+  })
+})
+
+describe("eligibility params validation — remaining tables (JAA-613)", () => {
+  const vcRow = (o: Partial<ValidationConditionsRow> = {}): ValidationConditionsRow => ({
+    Var: "Edad",
+    Activa: 1,
+    NotNull: 0,
+    Min: 0,
+    Max: 10,
+    "Solo No Pesado": 0,
+    ...o,
+  })
+
+  describe("Validation_Conditions", () => {
+    it("flags an empty Var", () => {
+      expect(errsOf(validateValidationConditions([vcRow({ Var: "" })])).length).toBeGreaterThan(0)
+    })
+    it("flags a duplicate Var", () => {
+      const issues = validateValidationConditions([vcRow(), vcRow()])
+      expect(errsOf(issues).some((e) => /duplicad/i.test(e.message))).toBe(true)
+    })
+    it("flags Min > Max", () => {
+      const issues = validateValidationConditions([vcRow({ Min: 9, Max: 1 })])
+      expect(errsOf(issues).some((e) => /Min/i.test(e.message))).toBe(true)
+    })
+    it("flags a non-binary flag column", () => {
+      const issues = validateValidationConditions([vcRow({ Activa: 2 })])
+      expect(errsOf(issues).some((e) => /0 o 1/i.test(e.message))).toBe(true)
+    })
+    it("passes for clean rows", () => {
+      expect(errsOf(validateValidationConditions([vcRow()]))).toEqual([])
+    })
+  })
+
+  describe("Validation_Combined_Conditions", () => {
+    const ccRow = (o: Partial<CombinedConditionsRow> = {}): CombinedConditionsRow => ({
+      Var1: "Edad",
+      Var2: "",
+      Var3: "",
+      "Min Var1": 0,
+      "Max Var1": 10,
+      "NotNull Var1": 0,
+      "Min Var2": 0,
+      "Max Var2": 0,
+      "NotNull Var2": 0,
+      "Min Var3": 0,
+      "Max Var3": 0,
+      "NotNull Var3": 0,
+      Activa: 1,
+      "Solo No Pesado": 0,
+      Accion: "excluir",
+      ...o,
+    })
+    it("flags an empty Var1", () => {
+      expect(errsOf(validateCombinedConditions([ccRow({ Var1: "" })])).length).toBeGreaterThan(0)
+    })
+    it("flags a non-binary Activa", () => {
+      expect(errsOf(validateCombinedConditions([ccRow({ Activa: 5 })])).length).toBeGreaterThan(0)
+    })
+    it("passes for clean rows", () => {
+      expect(errsOf(validateCombinedConditions([ccRow()]))).toEqual([])
+    })
+  })
+
+  describe("validateNumericList (exclusion lists)", () => {
+    it("flags a non-integer entry", () => {
+      const issues = validateNumericList([1, 2.5, 3], "Origen")
+      expect(errsOf(issues).some((e) => /entero/i.test(e.message))).toBe(true)
+    })
+    it("flags a duplicate entry", () => {
+      const issues = validateNumericList([7, 7], "IdProduto")
+      expect(errsOf(issues).some((e) => /duplicad/i.test(e.message))).toBe(true)
+    })
+    it("passes for clean integers", () => {
+      expect(errsOf(validateNumericList([1, 2, 3], "Origen"))).toEqual([])
+    })
+  })
+
+  describe("IdPainel", () => {
+    const row = (o: Partial<IdPainelRow> = {}): IdPainelRow => ({ IdPainel_J: 1, IdPainel_PD: 2, ...o })
+    it("flags a non-integer IdPainel_J", () => {
+      expect(errsOf(validateIdPainel([row({ IdPainel_J: 1.5 })])).length).toBeGreaterThan(0)
+    })
+    it("passes for clean rows", () => {
+      expect(errsOf(validateIdPainel([row()]))).toEqual([])
+    })
+  })
+
+  describe("Variables (string key-value)", () => {
+    const row = (o: Partial<VariablesRow> = {}): VariablesRow => ({ Variable: "k", Valor: "v", ...o })
+    it("flags an empty Variable", () => {
+      expect(errsOf(validateVariables([row({ Variable: "" })])).length).toBeGreaterThan(0)
+    })
+    it("flags a duplicate Variable", () => {
+      expect(errsOf(validateVariables([row(), row()])).some((e) => /duplicad/i.test(e.message))).toBe(true)
+    })
+    it("flags an empty Valor", () => {
+      expect(errsOf(validateVariables([row({ Valor: "" })])).length).toBeGreaterThan(0)
+    })
+    it("passes for clean rows", () => {
+      expect(errsOf(validateVariables([row()]))).toEqual([])
+    })
+  })
+
+  describe("Parametros_Region", () => {
+    const row = (o: Partial<ParametrosRegionRow> = {}): ParametrosRegionRow => ({
+      R: 1,
+      f_fill_flex: 0.5,
+      f_fill_strict: 0.8,
+      f_ok: 1.0,
+      f_ok_flex: 0.9,
+      ...o,
+    })
+    it("accepts float factors", () => {
+      expect(errsOf(validateParametrosRegion([row()]))).toEqual([])
+    })
+    it("flags a non-integer R", () => {
+      expect(errsOf(validateParametrosRegion([row({ R: 1.5 })])).length).toBeGreaterThan(0)
+    })
+    it("flags a duplicate R", () => {
+      expect(errsOf(validateParametrosRegion([row(), row()])).some((e) => /duplicad/i.test(e.message))).toBe(true)
+    })
+    it("flags a non-numeric factor", () => {
+      expect(errsOf(validateParametrosRegion([row({ f_ok: NaN })])).length).toBeGreaterThan(0)
+    })
+  })
+
+  describe("Criterios_Elegibilidad_Datas", () => {
+    const row = (o: Partial<CriteriosDatasRow> = {}): CriteriosDatasRow => ({
+      Data_Entrada: "2024-01-01",
+      Data_Saida: "2024-12-31",
+      ...o,
+    })
+    it("flags an empty Data_Saida (required)", () => {
+      expect(errsOf(validateCriteriosDatas([row({ Data_Saida: "" })])).length).toBeGreaterThan(0)
+    })
+    it("passes when Data_Saida is present", () => {
+      expect(errsOf(validateCriteriosDatas([row({ Data_Entrada: "" })]))).toEqual([])
+    })
+  })
+
+  describe("Criterios_Elegibilidad_ExCateg", () => {
+    const row = (o: Partial<CriteriosExCategRow> = {}): CriteriosExCategRow => ({ ExCateg: "99", IdProduto: 5, ...o })
+    it("flags a non-integer IdProduto", () => {
+      expect(errsOf(validateCriteriosExCateg([row({ IdProduto: 1.2 })])).length).toBeGreaterThan(0)
+    })
+    it("flags an empty ExCateg", () => {
+      expect(errsOf(validateCriteriosExCateg([row({ ExCateg: "" })])).length).toBeGreaterThan(0)
+    })
+    it("passes for clean rows", () => {
+      expect(errsOf(validateCriteriosExCateg([row()]))).toEqual([])
     })
   })
 })

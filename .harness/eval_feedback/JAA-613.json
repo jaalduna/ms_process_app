@@ -1,0 +1,9 @@
+[
+  {"id":"ac1","verdict":"PASS","evidence":"ELEG_TABLES lists all 15 (5 original + 10 new). Page registers EXTRA_TABS (10) each rendering with country prop. tsc -b: No errors. EXIT 0."},
+  {"id":"ac2","verdict":"PASS","evidence":"validation.ts has validators for all 10 new tables wired via GridTab/ExclusionListTab validate prop. vitest src/modules/parametros-elegibilidad: PASS 38 FAIL 0."},
+  {"id":"ac3","verdict":"PASS","evidence":"GridTab + ExclusionListTab wire diff={diffByIndex(...)} into ParamsEditor. e2e asserts diff-table/diff-row visible before publish."},
+  {"id":"ac4","verdict":"PASS","evidence":"npm test: 298 passed. lint: No issues. tsc -b: No errors. build: ok (2260 modules). All EXIT 0."},
+  {"id":"ac5","verdict":"PASS","evidence":"playwright smoke e2e/parametros-elegibilidad-extra.spec.ts: 2 passed. Validation_Conditions (rules: Min>Max blocks, diff visible, fix publishes 200) + Origen_NoConsiderar (list: dup blocks, remove publishes 200)."},
+  {"id":"ac6","verdict":"PASS","evidence":"grep useSaveParams|putParamsTable|validateParams|ValidationResult in src: nothing (EXIT 1). tsc/lint/build clean."},
+  {"id":"overall","verdict":"PASS","evidence":"All 6 ACs pass; verified by separate skeptical ux-ui-reviewer evaluator running every check itself. Unrelated pre-existing telemetry smoke flake captured as JAA-627."}
+]
