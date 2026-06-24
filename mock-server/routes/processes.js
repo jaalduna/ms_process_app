@@ -8,7 +8,7 @@ const router = Router()
 export const processStore = new ProcessStateStore()
 
 const VALID_COUNTRIES = new Set(COUNTRIES.map((c) => c.code))
-const VALID_STAGES = new Set(["precios", "elegibilidad", "pesaje", "calibracion", "mtr"])
+const VALID_STAGES = new Set(["precios", "elegibilidad", "pesaje", "calibracion", "mtr", "formato4"])
 
 const STATUS_LABELS = { open: "abierto", closed: "cerrado" }
 

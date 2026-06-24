@@ -2,6 +2,32 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-24 — MTR-30 (Formato4Page + Formato4CountryCard, clone mtr) — webapp — EVALUATOR PASS
+**What:** Built the Formato 4 country grid + card shell driving the run lifecycle.
+- `src/modules/formato4/pages/Formato4Page.tsx` (was a placeholder) → clone of `MtrPage`:
+  `useCountries()` filtered to `type==="country"`, skeleton grid → `grid gap-5 sm:grid-cols-2
+  lg:grid-cols-3 xl:grid-cols-4`, one card per country, error banner. Header = `PeriodSelector`
+  ONLY (formato4 has no params → no config dialog, unlike MTR).
+- `src/modules/formato4/components/Formato4CountryCard.tsx` → clone of `MtrCountryCard`: state
+  machine off `latestRun.status` (idle/pending/running/completed/failed/cancelled), create→execute
+  in onSuccess, Stop=cancel via AlertDialog confirm, toasts, `Formato4Progress` (MTR-31, already on
+  develop) while active/terminal, `ProcessStatusBadge stage="formato4"`. Create sends NO
+  `parameters` field. The Eye/detail (MTR-33), zip download (MTR-32) and history/card-click (MTR-50)
+  sub-widgets are intentionally ABSENT (own tickets) — no stubs; the card renders complete states.
+- t1 seam: `mock-server/routes/processes.js` VALID_STAGES += "formato4" (header badge toggle);
+  `e2e/helpers/config.ts` default modules += `formato4:true` (nav renders under dev `admin` role).
+- Tests: `Formato4Page.test.tsx` (5) + `Formato4CountryCard.test.tsx` (14, incl. the
+  not.toHaveProperty("parameters") guard); updated `Formato4Module.test.tsx` render test (page is
+  now query-backed → wrapped in QueryClientProvider+Router).
+**Note (resume):** a prior session's WIP worktree/branch/plan for MTR-30 were removed concurrently
+mid-session (uncommitted WIP lost). The whole MTR-28→49→26→27→29→31 stack has since MERGED into
+develop, so this run branched MTR-30 CLEANLY off `ado/develop` (no stacking) — all deps present.
+**Verify:** tsc -b clean · eslint clean · vitest **267/267** (+19 new) · Playwright smoke
+`e2e/formato4.spec.ts` **2/2** (9 cards; Ejecutar→confirm→Completado vs mock, ports mock:8030
+dev:5530). Separate evaluator (ux-ui-reviewer, fresh ctx, re-ran everything itself) → ALL 4 ACs PASS.
+**Next:** commit → push ado → PR to develop (auto-complete armed) → Linear In Review → merge when
+Build policy green.
+
 ## 2026-06-24 — MTR-29 (useFormato4 hooks) — webapp — EVALUATOR PASS, PR open
 
 **What:** Cloned the MTR react-query lifecycle hooks for the new `formato4` pipeline.

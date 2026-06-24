@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { render, screen } from "@testing-library/react"
+import { MemoryRouter } from "react-router-dom"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { allModules } from "@/modules/registry"
 import { formato4Module } from "@/modules/formato4"
 import { Formato4Page } from "@/modules/formato4/pages/Formato4Page"
@@ -24,8 +26,15 @@ describe("formato4 module scaffold (MTR-28)", () => {
     expect(KNOWN_ROLES).toContain("formato4_specialist")
   })
 
-  it("renders an empty placeholder page without crashing (ac6)", () => {
-    render(<Formato4Page />)
+  it("renders the page header without crashing (MTR-30: now a query-backed country grid)", () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Formato4Page />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
     expect(screen.getByRole("heading", { name: "Formato 4" })).toBeInTheDocument()
   })
 })

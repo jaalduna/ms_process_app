@@ -1,0 +1,20 @@
+{
+  "ticket": "MTR-30",
+  "linear_url": "https://linear.app/jaalduna/issue/MTR-30/formato4page-formato4countrycard-clone-mtr",
+  "branch": "feat/MTR-30-formato4-page-card",
+  "archetype": "webapp",
+  "goal": "Clone MtrPage + MtrCountryCard into Formato4Page + Formato4CountryCard: a country grid whose cards drive the formato4 run lifecycle (create->execute->poll->cancel) off latestRun.status.",
+  "scope_notes": "MTR-30 owns the Page + Card SHELL with the status-driven state machine + run flow. The visual sub-widgets each have their own Backlog ticket and wire INTO this card later: download-zip button (MTR-32), detail modal/Eye (MTR-33), history modal/card-click (MTR-50). They are intentionally NOT implemented here (no stubs); the card renders complete, working states without them. Formato4Progress (MTR-31) IS already on develop and is consumed here. Formato4 has no params type, so the page header has only PeriodSelector (no config dialog, unlike MTR) and create sends no parameters. The mock-server processes VALID_STAGES gains 'formato4' so the header ProcessStatusBadge toggle works.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "Formato4Page renders useCountries() filtered to type==='country', one Formato4CountryCard per country, in a 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' grid; shows a skeleton grid while loading and an error banner on error; header has an h1 'Formato 4' + a PeriodSelector.", "how_to_verify": "vitest Formato4Page test (skeleton on loading, N country cards, non-country filtered out, grid classes present, PeriodSelector present); tsc -b; eslint"},
+    {"id": "ac2", "criterion": "Formato4CountryCard state machine driven by latestRun.status: idle -> 'Ejecutar' button; pending -> disabled spinner 'Starting...' + Stop; running -> disabled spinner 'Running...' + Formato4Progress + Stop; completed -> green 'Completado' badge; failed -> destructive 'Error' badge + error_message + 'Ejecutar'(retry); cancelled -> 'Cancelado' badge + 'Ejecutar'. Header shows ProcessStatusBadge stage='formato4'.", "how_to_verify": "vitest Formato4CountryCard test asserting each state's visible label/buttons via mocked useFormato4 hooks"},
+    {"id": "ac3", "criterion": "Run flow: clicking Ejecutar -> AlertDialog confirm -> createFormato4Run({country,period}), then executeFormato4(run_id) in its onSuccess. Stop -> AlertDialog confirm -> cancelFormato4(run_id). Toasts on success/error.", "how_to_verify": "vitest Formato4CountryCard test: confirm Ejecutar calls create then execute; confirm Stop calls cancel with run_id"},
+    {"id": "ac4", "criterion": "VERIFY_CMD green and module reachable: npm test + npm run lint + npx tsc -b all pass; Playwright smoke walks /formato4 -> sees 9 country cards -> triggers a run -> observes completed state against the mock.", "how_to_verify": "npm test && npm run lint && npx tsc -b; MOCK_SERVER_PORT=8000 playwright e2e/formato4.spec.ts"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Add 'formato4' to mock-server processes VALID_STAGES (+ e2e config formato4:true) so the header ProcessStatusBadge + nav work", "status": "complete"},
+    {"id": "t2", "desc": "Implement Formato4CountryCard (clone MtrCountryCard, minus params/detail/history/download sub-widgets, + Formato4Progress) + vitest", "status": "complete"},
+    {"id": "t3", "desc": "Implement Formato4Page (clone MtrPage, header = PeriodSelector only) + vitest; update Formato4Module render test for the new query-backed page", "status": "complete"},
+    {"id": "t4", "desc": "Playwright smoke e2e e2e/formato4.spec.ts (load grid -> trigger run -> completed)", "status": "complete"}
+  ]
+}

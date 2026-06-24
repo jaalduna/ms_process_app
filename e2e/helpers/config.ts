@@ -32,6 +32,7 @@ export async function setModuleConfig(
     prices: true,
     weighting: true,
     mtr: true,
+    formato4: true,
     traceability: true,
     ...modules,
   }
