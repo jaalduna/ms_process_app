@@ -1,0 +1,8 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "features off @smoke: '1 passed' twice (deterministic). silencedRequests stays empty; no matching console errors after 4s. toHaveLength(0) assertions hold."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "features on @smoke: '1 passed'. POST /telemetry/events 202, GET /processes/status 200, no console errors. Gate doesn't break happy path."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "azure-pipelines.yml: new step 'Playwright smoke e2e — Feature flags (retries:0)' runs `--project=smoke e2e/feature-flags.spec.ts`. formato4 step still present. YAML parses."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "vitest 334 passed incl. feature-flags.test.ts (5) + useProcessStatus.test.tsx (2). tsc -b exit 0."},
+  {"id": "integrity", "verdict": "PASS", "evidence": "Spec assertions unchanged (toHaveLength(0) x2). Gating product code intact (isTelemetryEnabled/isProcessStatusEnabled, telemetry post() guard, useProcessStatus enabled). Diff vs ado/develop: ONLY azure-pipelines.yml (+10); no src/ or e2e/ changes."},
+  {"id": "overall", "verdict": "PASS", "evidence": "All ACs pass. CI-only change; no weakening; gating logic intact; both smoke tests deterministically green; YAML valid; tsc clean; 334 unit tests pass."}
+]

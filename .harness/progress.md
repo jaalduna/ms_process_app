@@ -2,6 +2,32 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-24 — JAA-639 (feature-flags @smoke red: telemetry/processes still emit with flags off) — webapp — EVALUATOR PASS, PR armed
+**What:** The reported failure (flags off → 2× POST /telemetry/events + 1× GET /processes/status)
+**does NOT reproduce on current ado/develop.** JAA-558's gating is present and correct: every
+telemetry transport routes through the single `post()` chokepoint which re-checks
+`isTelemetryEnabled()` (`src/lib/telemetry.ts:127`), and every `/processes/status` read goes through
+`useProcessStatus`'s `enabled: isProcessStatusEnabled()` (`src/hooks/useProcessStatus.ts:18`) — one
+gated chokepoint each, no ungated caller (verified by grep). Reproduced green **17+ times**: isolation,
+full file, under `yes`×4 CPU load, with config.js delivery delayed up to 3s (a custom probe spec —
+proved the documented "config.js executes after init microtask" race is NOT exploitable because the
+`defer` script ordering guarantees config.js runs before main.tsx), and in **CI-mirror IPv4
+127.0.0.1** conditions. The all-defaults-ON symptom is exactly the state when `feature-flags.ts` is
+ABSENT (pre-JAA-558 / stale local worktree) but the spec present — the most likely provenance of the
+author's local observation; JAA-558 merged at 13:51Z, ~9.5h before the ticket, so a stale/un-rebased
+JAA-627 worktree is the prime suspect.
+**Durable fix (no product change, no weakening):** wired `e2e/feature-flags.spec.ts` into the CI smoke
+e2e job (`azure-pipelines.yml`) as its own retries:0 step alongside formato4 — previously the gate was
+only ever run locally, so a regression could land silently. Now both "features off" and "features on"
+@smoke run on every PR. Independent of the telemetry.spec keepalive hang (MTR-61), so safe to add.
+**Verify:** feature-flags @smoke 2/2 green (CI-mirror IPv4 5280, mock 8039); vitest 334/334 (incl.
+feature-flags.test.ts 5 + useProcessStatus.test.tsx 2); tsc -b 0; eslint 0; YAML parses. Separate
+skeptical evaluator (general-purpose, fresh ctx) ran ac1 twice + ac2 + grepped the yml + tsc + vitest
++ confirmed diff vs ado/develop is ONLY azure-pipelines.yml (+10): ALL ACs PASS → eval_feedback/JAA-639.json.
+**PR:** → develop, auto-complete to be ARMED at creation. Commit `Fixes JAA-639`. Linear → In Review.
+**NEXT:** Build green → auto-complete merges; a later /harness JAA-639 re-run (Orient → step 7)
+confirms merge + cleans worktree + sets Done.
+
 ## 2026-06-24 — JAA-628 (params-editor Excel download/import frontend) — IN REVIEW
 **What:** Frontend half of JAA-543 Excel round-trip (backend JAA-614 Done). Added a per-country
 Excel toolbar to the eligibility-params editor: `ParamsExcelToolbar` (new) with a "Descargar Excel"

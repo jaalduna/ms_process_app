@@ -86,6 +86,16 @@ stages:
           - script: MOCK_SERVER_PORT=8000 PLAYWRIGHT_BASE_URL="http://127.0.0.1:5173/ms-process-app/" npx playwright test --project=smoke e2e/formato4.spec.ts
             displayName: "Playwright smoke e2e — Formato 4 (retries:0)"
 
+          # Feature-flag silencing gate (JAA-558 / JAA-639): with telemetry +
+          # processStatus flags OFF the SPA must make ZERO /telemetry/* and
+          # /processes/status requests (and ON it still fires them cleanly). This
+          # @smoke spec was previously only run locally; wiring it into CI makes
+          # the silencing gate a continuously-enforced check so it can never
+          # silently regress. Scoped to feature-flags.spec.ts (retries:0); it is
+          # independent of the telemetry.spec.ts keepalive hang tracked in MTR-61.
+          - script: MOCK_SERVER_PORT=8000 PLAYWRIGHT_BASE_URL="http://127.0.0.1:5173/ms-process-app/" npx playwright test --project=smoke e2e/feature-flags.spec.ts
+            displayName: "Playwright smoke e2e — Feature flags (retries:0)"
+
           - task: PublishPipelineArtifact@1
             condition: failed()
             inputs:

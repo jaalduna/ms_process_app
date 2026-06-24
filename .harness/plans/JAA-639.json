@@ -1,0 +1,19 @@
+{
+  "ticket": "JAA-639",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-639/ms-process-app-e2e-smoke-red-feature-flags-features-off-still-emits",
+  "branch": "fix/JAA-639-feature-flags-telemetry-silence",
+  "archetype": "webapp",
+  "goal": "Make the feature-flags 'features off' @smoke test green and keep it green: confirm the telemetry + process-status silencing gate works on develop and add the spec to CI so it can never silently regress.",
+  "investigation": "The reported failure (2x POST /telemetry/events + 1x GET /processes/status with both flags off) does NOT reproduce on current ado/develop. JAA-558 (feature-flags.ts + telemetry post() gate + useProcessStatus enabled gate) is present and correct. All /telemetry/* sends route through the single post() chokepoint (isTelemetryEnabled re-check) and all /processes/status reads through useProcessStatus's enabled:isProcessStatusEnabled(). Verified green 17+ times: isolation, full file, 4x-yes CPU load, config.js delivery delayed up to 3s, and CI-mirror IPv4 127.0.0.1 host. The all-defaults-ON symptom matches a state where feature-flags.ts is ABSENT (pre-JAA-558 / stale worktree) but the spec present — the most likely provenance of the author's local observation.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "e2e/feature-flags.spec.ts 'features off' @smoke passes against the node mock: zero requests matching /telemetry/events|/telemetry/errors|/processes/status and zero matching console errors. The assertion is NOT weakened.", "how_to_verify": "PORT mock + dev:e2e, then MOCK_SERVER_PORT=<p> PLAYWRIGHT_BASE_URL=<url> npx playwright test --project=smoke e2e/feature-flags.spec.ts -g 'features off' --workers=1"},
+    {"id": "ac2", "criterion": "e2e/feature-flags.spec.ts 'features on (default)' @smoke still passes (the gate does not break the happy path: telemetry 202 + process-status 200, no console errors).", "how_to_verify": "npx playwright test --project=smoke e2e/feature-flags.spec.ts -g 'features on' --workers=1"},
+    {"id": "ac3", "criterion": "The CI smoke e2e job (azure-pipelines.yml) runs e2e/feature-flags.spec.ts so the silencing gate is continuously enforced on every PR (it was previously scoped to formato4.spec.ts only).", "how_to_verify": "grep -n 'feature-flags.spec.ts' azure-pipelines.yml shows it in the playwright smoke step(s)"},
+    {"id": "ac4", "criterion": "No regression: vitest gating unit tests pass and lint + tsc are clean.", "how_to_verify": "npm run test -- feature-flags useProcessStatus ; npx eslint azure-pipelines.yml is N/A; npm run build (tsc) clean"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Reproduce/confirm gating on develop (DONE during orient: 17+ green runs incl. adversarial conditions).", "status": "complete"},
+    {"id": "t2", "desc": "Add e2e/feature-flags.spec.ts to the CI smoke e2e job in azure-pipelines.yml as its own retries:0 step.", "status": "complete"},
+    {"id": "t3", "desc": "Run feature-flags @smoke (both tests) + vitest gating tests + tsc to confirm green.", "status": "complete"}
+  ]
+}
