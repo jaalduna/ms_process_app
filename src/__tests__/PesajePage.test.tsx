@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
+import userEvent from "@testing-library/user-event"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 // Mock MSAL
@@ -67,11 +68,11 @@ function createTestQueryClient() {
   })
 }
 
-function renderWithProviders(ui: React.ReactElement) {
+function renderWithProviders(ui: React.ReactElement, initialEntries: string[] = ["/pesaje"]) {
   const queryClient = createTestQueryClient()
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{ui}</MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -146,6 +147,48 @@ describe("PesajePage", () => {
       expect(screen.getByText("Argentina")).toBeInTheDocument()
     })
     expect(screen.queryByRole("button", { name: "Parametros de pesaje" })).not.toBeInTheDocument()
+  })
+
+  it("renders the 3 process-workspace tabs and defaults to Ejecutar (the grid) (ac2)", async () => {
+    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
+
+    const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
+    renderWithProviders(<PesajePage />)
+
+    expect(screen.getByRole("tab", { name: "Ejecutar" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Parametros" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Historial" })).toBeInTheDocument()
+    // Ejecutar is the default active tab → the country grid is visible
+    await waitFor(() => {
+      expect(screen.getByText("Argentina")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("tab", { name: "Ejecutar" })).toHaveAttribute("data-state", "active")
+  })
+
+  it("activates the Historial tab from the ?tab=historial URL param and survives refresh (ac3)", async () => {
+    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
+    mockGetWeightingRuns.mockResolvedValue([])
+
+    const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
+    renderWithProviders(<PesajePage />, ["/pesaje?tab=historial"])
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Historial" })).toHaveAttribute("data-state", "active")
+    })
+    expect(await screen.findByText("No hay ejecuciones registradas.")).toBeInTheDocument()
+  })
+
+  it("switches tab and reflects it in the URL on click (ac3)", async () => {
+    const user = userEvent.setup()
+    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
+
+    const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
+    renderWithProviders(<PesajePage />)
+
+    await user.click(screen.getByRole("tab", { name: "Parametros" }))
+    await waitFor(() => {
+      expect(screen.getByText(/Configuracion de parametros por proceso/)).toBeVisible()
+    })
   })
 
   it('shows "never" for countries with no last weighting date', async () => {
