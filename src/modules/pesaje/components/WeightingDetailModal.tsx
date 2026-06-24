@@ -51,19 +51,7 @@ import {
 import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
 import type { WeightingRun, WeightingStep } from "../types"
 import { DEFAULT_WEIGHTING_PARAMS, WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brasil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_LABELS } from "@/lib/countries"
 
 interface WeightingDetailModalProps {
   run: WeightingRun | null

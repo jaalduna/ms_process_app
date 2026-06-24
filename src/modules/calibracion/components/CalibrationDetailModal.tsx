@@ -15,19 +15,7 @@ import { downloadCalibrationReport } from "@/lib/api"
 import type { EventDetail } from "@/types/api"
 import type { CalibrationStep } from "../types"
 import { stepLabel } from "../types"
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brazil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_LABELS } from "@/lib/countries"
 
 interface CalibrationDetailModalProps {
   job: EventDetail | undefined

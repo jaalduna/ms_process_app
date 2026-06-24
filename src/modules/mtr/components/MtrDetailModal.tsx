@@ -37,19 +37,7 @@ import { useMtrRun, useCreateMtrRun, useExecuteMtr, useCancelMtr } from "../hook
 import { MTR_STEPS, MTR_STEP_LABELS, MTR_ACTIVE_STATUSES, MTR_STATUS_CONFIG } from "../types"
 import type { MtrStep } from "../types"
 import { downloadMtrCsv } from "../utils/downloadMtrCsv"
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brasil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_LABELS } from "@/lib/countries"
 
 function parseUTC(ts: string): number {
   return new Date(ts).getTime()

@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useWeightingRuns } from "../hooks/useWeighting"
 import { WEIGHTING_STATUS_CONFIG } from "../types"
-import { COUNTRY_LABELS } from "./WeightingCountryCard"
+import { COUNTRY_LABELS } from "@/lib/countries"
 
 function formatDate(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString("es-CL", {
