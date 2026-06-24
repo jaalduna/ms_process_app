@@ -12,12 +12,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Download, Loader2, Square } from "lucide-react"
+import { Download, Eye, Loader2, Square } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { Formato4Progress } from "./Formato4Progress"
+import { Formato4DetailModal } from "./Formato4DetailModal"
 import {
   useFormato4Runs,
   useCreateFormato4Run,
@@ -43,10 +44,8 @@ interface Formato4CountryCardProps {
  * Country card for the Formato 4 module. Clone of `MtrCountryCard` (MTR-30)
  * driving the formato4 run lifecycle (create → execute → poll → cancel) off
  * `latestRun.status`. Formato 4 has no params, so there is no config dialog and
- * `create` sends no parameters. The detail (Eye), zip download and history
- * sub-widgets land in later tickets (MTR-33 / MTR-32 / MTR-50) and are
- * intentionally absent here — the card renders complete, working states without
- * them.
+ * `create` sends no parameters. The zip download (MTR-32) and detail Eye
+ * (MTR-33) are wired here; the history modal (MTR-50) lands later.
  */
 export function Formato4CountryCard({
   countryCode,
@@ -97,6 +96,11 @@ export function Formato4CountryCard({
       onError: () => toast.error(`Failed to cancel Formato 4 for ${countryLabel}`),
     })
   }
+
+  // Detail modal (MTR-33): opened from the Eye button on any run that has
+  // started (status !== "pending"); reads live updates via useFormato4Run.
+  const [detailRunId, setDetailRunId] = useState<string | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
 
   const [isDownloading, setIsDownloading] = useState(false)
   const handleDownload = async () => {
@@ -256,8 +260,30 @@ export function Formato4CountryCard({
               Descargar
             </Button>
           )}
+
+          {/* View detail (MTR-33): opens the Formato4DetailModal for the run */}
+          {latestRun && latestRun.status !== "pending" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setDetailRunId(latestRun.run_id)
+                setDetailOpen(true)
+              }}
+              title={`Ver detalle Formato 4 (${countryLabel})`}
+              aria-label="Ver detalle"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardContent>
+
+      <Formato4DetailModal
+        runId={detailRunId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </Card>
   )
 }

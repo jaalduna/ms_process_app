@@ -77,4 +77,33 @@ test.describe("Formato 4 Module E2E", () => {
     // The mock streams format_4_<country>_<period>.csv.zip (Content-Disposition).
     expect(download.suggestedFilename()).toMatch(/^format_4_.*\.csv\.zip$/)
   })
+
+  // MTR-33: once a run exists the card exposes an Eye (view detail) button that
+  // opens the Formato4DetailModal — pipeline steps, generated-output grid and a
+  // download — driven live by useFormato4Run.
+  test("completed run: Eye opens the detail modal with pipeline + download", async ({ page }) => {
+    await navigateTo(page, "Formato 4", /formato4/)
+    const chile = card(page, "Chile")
+    const ejecutar = chile.getByRole("button", { name: /^Ejecutar$/ })
+    await expect(ejecutar).toBeEnabled({ timeout: 10_000 })
+    await confirmAction(page, ejecutar, /^Confirm$/)
+    await expect(chile.getByText(/Completado/i)).toBeVisible({ timeout: 30_000 })
+
+    const eye = chile.getByRole("button", { name: /Ver detalle/ })
+    await expect(eye).toBeVisible({ timeout: 10_000 })
+    await eye.click()
+
+    const dialog = page.getByRole("dialog")
+    await expect(dialog.getByText(/Formato 4 Detail/i)).toBeVisible({ timeout: 10_000 })
+    // Generated-output grid surfaces the writer's metadata (row count).
+    await expect(dialog.getByText(/Row Count/i)).toBeVisible({ timeout: 10_000 })
+
+    // The modal streams the SAME server zip as the card download.
+    const downloadBtn = dialog.getByRole("button", { name: /Descargar/ })
+    await expect(downloadBtn).toBeVisible({ timeout: 10_000 })
+    const downloadPromise = page.waitForEvent("download", { timeout: 30_000 })
+    await downloadBtn.click()
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toMatch(/^format_4_.*\.csv\.zip$/)
+  })
 })

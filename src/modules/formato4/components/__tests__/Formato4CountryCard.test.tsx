@@ -264,4 +264,37 @@ describe("Formato4CountryCard", () => {
 
     await waitFor(() => expect(mockCancelFormato4).toHaveBeenCalledWith("run-1"))
   })
+
+  // --- Detail modal (MTR-33) ------------------------------------------------
+
+  it("completed: an Eye (view detail) button opens the Formato4DetailModal for that run", async () => {
+    const user = userEvent.setup()
+    mockGetFormato4Runs.mockResolvedValue({ items: [baseRun("completed")], total: 1 })
+    mockGetFormato4Run.mockResolvedValue(
+      baseRun("completed", {
+        results_summary: {
+          country: "chile",
+          period: 202602,
+          row_count: 12345,
+          generated_at: "2026-01-01T00:00:00Z",
+          sim_wheel_version: "3.0.0-dev-gold",
+        },
+      }),
+    )
+
+    renderCard()
+    const eye = await screen.findByRole("button", { name: /Ver detalle/ })
+    await user.click(eye)
+
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).getByText(/Formato 4 Detail/i)).toBeInTheDocument()
+    await waitFor(() => expect(mockGetFormato4Run).toHaveBeenCalledWith("run-1"))
+  })
+
+  it("does NOT render the Eye (view detail) button before a run exists", async () => {
+    mockGetFormato4Runs.mockResolvedValue({ items: [], total: 0 })
+    renderCard()
+    await waitFor(() => expect(screen.getByRole("button", { name: "Ejecutar" })).toBeInTheDocument())
+    expect(screen.queryByRole("button", { name: /Ver detalle/ })).not.toBeInTheDocument()
+  })
 })
