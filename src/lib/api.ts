@@ -22,6 +22,7 @@ import type { EligibilityFile, EligibilityRun, EligibilityRunCreate } from "@/mo
 import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
 import type { WeightingRun, WeightingRunCreate } from "@/modules/pesaje/types"
 import type { MtrRun, MtrRunCreate } from "@/modules/mtr/types"
+import type { Formato4Run, Formato4RunCreate } from "@/modules/formato4/types"
 import type { TagListResponse, TagFilters } from "@/modules/trazabilidad/types"
 import type {
   AdminStage,
@@ -359,6 +360,41 @@ export function executeMtr(runId: string) {
 
 export function cancelMtr(runId: string) {
   return api.post<MtrRun>(`/mtr/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+// -- Formato 4 --
+// Mirrors the MTR lifecycle (MTR-29). The mock-server formato4 routes (MTR-27)
+// expose the same shape, so the cloned hooks work unchanged. The zip download
+// fn (downloadFormato4Report) lands separately in MTR-32.
+
+export function getFormato4Runs(params?: {
+  country?: string
+  period?: number
+  status?: string
+  limit?: number
+  offset?: number
+}) {
+  return api.get<{ items: Formato4Run[]; total: number }>("/formato4/runs", { params }).then((r) => r.data)
+}
+
+export function getFormato4Run(runId: string) {
+  return api.get<Formato4Run>(`/formato4/runs/${runId}`).then((r) => r.data)
+}
+
+export function createFormato4Run(data: Formato4RunCreate) {
+  return api.post<Formato4Run>("/formato4/runs", data).then((r) => r.data)
+}
+
+export function executeFormato4(runId: string) {
+  return api.post<Formato4Run>(`/formato4/runs/${runId}/execute`).then((r) => r.data)
+}
+
+export function cancelFormato4(runId: string) {
+  return api.post<Formato4Run>(`/formato4/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+export function getLastFormato4(period?: number) {
+  return api.get<LastStageCompletionResponse>("/metadata/last-formato4", periodParams(period)).then((r) => r.data)
 }
 
 // -- Traceability --

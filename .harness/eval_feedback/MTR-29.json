@@ -1,0 +1,7 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "api.ts formato4 fns target /formato4/runs* + /metadata/last-formato4, matching mock routes/formato4.js exactly. api-formato4.test.ts 7/7 pass."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "useFormato4.ts exports all 5 hooks; refetchInterval keys off FORMATO4_POLL_STATUSES (pending/running)→3000 else false. Polling tests genuine: advance 3000ms→2 calls (active), 6000ms→1 call (terminal)."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "useLastFormato4 returns countries map from getLastFormato4; test asserts data equals countries map."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "server.js GET /api/v1/metadata/last-formato4 + mock-api.ts last-formato4 fallback both present."},
+  {"id": "ac5", "verdict": "PASS", "evidence": "tsc -b clean; eslint clean; vitest 243 passed (227 baseline + 16 new)."}
+]
