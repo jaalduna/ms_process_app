@@ -94,6 +94,7 @@ app.get("/api/v1/auth/me", (req, res) => {
 app.get("/api/v1/metadata/last-prices", (req, res) => res.json({ countries: pricesStore.lastCompleted(req.query.period) }))
 app.get("/api/v1/metadata/last-weighting", (req, res) => res.json({ countries: weightingStore.lastCompleted(req.query.period) }))
 app.get("/api/v1/metadata/last-mtr", (req, res) => res.json({ countries: mtrStore.lastCompleted(req.query.period) }))
+app.get("/api/v1/metadata/last-formato4", (req, res) => res.json({ countries: formato4Store.lastCompleted(req.query.period) }))
 app.get("/api/v1/metadata/last-eligibility", (req, res) => res.json({ countries: eligibilityStore.lastCompleted(req.query.period) }))
 
 app.use("/api/v1", syncRouter)

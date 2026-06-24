@@ -202,6 +202,7 @@ const routes: [RegExp, RouteHandler][] = [
   [/\/metadata\/last-prices$/, () => makeLastStageCompletion()],
   [/\/metadata\/last-weighting$/, () => makeLastStageCompletion()],
   [/\/metadata\/last-mtr$/, () => makeLastStageCompletion()],
+  [/\/metadata\/last-formato4$/, () => makeLastStageCompletion()],
   [/\/events$/, () => makeEvents()],
   [/\/events\/[^/]+$/, () => ({ ...makeEvents().items[0], results: [] })],
   [/\/events\/[^/]+\/cancel$/, () => ({ status: "cancelled" })],

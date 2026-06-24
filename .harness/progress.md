@@ -2,6 +2,27 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-24 — MTR-29 (useFormato4 hooks) — webapp — EVALUATOR PASS, PR open
+
+**What:** Cloned the MTR react-query lifecycle hooks for the new `formato4` pipeline.
+New `src/modules/formato4/types.ts` (Formato4Run/Step/Status + the mock's
+`sync→merge→simulate→format_4→zip` step names + a `formato4Percent` derive helper so the future
+grid/detail can expose `{status,steps,percent,results_summary,error}`); new
+`src/modules/formato4/hooks/useFormato4.ts` (useFormato4Runs/Run/Create/Execute/Cancel — list polls
+3000ms while any run is pending/running, detail polls per-run) and `useLastFormato4.ts`. Added the
+six formato4 api fns to `src/lib/api.ts` (runs CRUD + execute/cancel + getLastFormato4); the zip
+download fn stays for MTR-32. Wired the mock seam: `GET /metadata/last-formato4` in
+`mock-server/server.js` (formato4Store.lastCompleted) + the matching `mock-api.ts` fallback so the
+last-completion hook isn't dead against the mock.
+
+**Deps:** MTR-27 (mock /formato4 routes) + MTR-28 (module scaffold) both Done — verified before start.
+Paths matched verbatim to `mock-server/routes/formato4.js`.
+
+**Verify:** `tsc -b` clean · `eslint` clean · `vitest run` 243 passed (227 baseline + 16 new: 7 api +
+9 hooks incl. fake-timer polling assertions). Mock route smoke-curled OK.
+**Evaluator:** separate general-purpose agent, PASS on all 5 AC (path-match + non-vacuous polling +
+no-stub checks). **Next:** PR → develop, auto-complete armed. Linear → In Review.
+
 ## 2026-06-23 — JAA-547 (eligibility-params editor UI) — webapp — EXECUTED
 
 **What:** In-app editor for eligibility parameters. New module `src/modules/parametros-elegibilidad/`
