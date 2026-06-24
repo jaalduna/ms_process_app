@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { PeriodSelector } from "@/components/PeriodSelector"
+import { ProcessWorkspaceTabs } from "@/components/ProcessWorkspaceTabs"
 import { WeightingCountryCard } from "../components/WeightingCountryCard"
+import { WeightingHistoryPanel } from "../components/WeightingHistoryPanel"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCountries } from "@/hooks/useCountries"
 import { useLastWeighting } from "../hooks/useLastWeighting"
@@ -18,22 +20,12 @@ export function PesajePage() {
   const { data, isLoading, error } = useCountries()
   const { data: lastWeighting } = useLastWeighting()
 
-  return (
+  const ejecutar = (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pesaje</h1>
-          <p className="text-sm text-muted-foreground">
-            Ejecuta y monitorea procesos de pesaje por pais
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PeriodSelector value={period} onChange={setPeriod} />
-        </div>
+      <div className="flex items-center justify-end">
+        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
-      {/* Country grid */}
       {isLoading && (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -60,6 +52,32 @@ export function PesajePage() {
           ))}
         </div>
       )}
+    </div>
+  )
+
+  const parametros = (
+    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+      Configuracion de parametros por proceso (proximamente).
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Pesaje</h1>
+        <p className="text-sm text-muted-foreground">
+          Ejecuta y monitorea procesos de pesaje por pais
+        </p>
+      </div>
+
+      <ProcessWorkspaceTabs
+        tabs={[
+          { value: "ejecutar", label: "Ejecutar", content: ejecutar },
+          { value: "parametros", label: "Parametros", content: parametros },
+          { value: "historial", label: "Historial", content: <WeightingHistoryPanel /> },
+        ]}
+      />
     </div>
   )
 }
