@@ -537,3 +537,12 @@ cross-check): ac1-ac5 + overall ALL PASS → .harness/eval_feedback/JAA-558.json
 **Harness friction:** background `rtk proxy npx playwright … | grep` lost stdout to the .output file
 (0B) — run playwright e2e in the FOREGROUND to capture pass/fail. Used isolated ports dev:5274 mock:5074
 (5173/5000 taken by sibling worktree); symlinked node_modules from main checkout (same commit, same lockfile).
+
+## MTR-27 — Formato 4 mock-server routes (2026-06-24)
+- Added mock-server/routes/formato4.js: 6 endpoints (create/execute/poll/list/cancel/download)
+  mirroring mtr.js + weighting.js, steps sync→merge→simulate→format_4→zip, by-runId zip download.
+- Committed fixture mock-server/fixtures/format_4_sample.csv.zip (26-col sample csv + _metadata.json).
+- Registered router+seed in server.js and fixtures/seed.js.
+- Tests: mock-server/__tests__/formato4.test.js (15 cases) — all green; full mock suite 52 PASS; eslint clean; boot smoke OK.
+- Contract source: specs/SPEC-formato4-api-contract.md (MTR-26). 26-col schema not enumerated upstream → representative sample used.
+- Next: open PR to develop, auto-complete when build policy green.

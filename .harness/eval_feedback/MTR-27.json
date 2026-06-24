@@ -1,0 +1,10 @@
+[
+ {"id":"ac1","verdict":"PASS","evidence":"201 pending, steps exactly sync,merge,simulate,format_4,zip; 400 missing; 422 non-int. 3 cases pass."},
+ {"id":"ac2","verdict":"PASS","evidence":"execute→running; 404 unknown; 409 already running."},
+ {"id":"ac3","verdict":"PASS","evidence":"poll advances to completed, results_summary populated; 404 unknown."},
+ {"id":"ac4","verdict":"PASS","evidence":"list {items,total,limit,offset} filtered by country&period."},
+ {"id":"ac5","verdict":"PASS","evidence":"cancel→cancelled; 409 terminal; 404 unknown."},
+ {"id":"ac6","verdict":"PASS","evidence":"download application/zip, Content-Disposition format_4_<country>_<period>.csv.zip, 853-byte PK zip namelist [format_4_sample.csv,_metadata.json]; 409 not completed; 404 unknown."},
+ {"id":"ac7","verdict":"PASS","evidence":"router mounted /api/v1 server.js, seedFormato4 in seed.js, boots + serves; eslint clean."},
+ {"id":"overall","verdict":"PASS","evidence":"15 formato4 tests pass; full mock suite 52/52; eslint clean; boot smoke OK. No stubs/TODOs."}
+]
