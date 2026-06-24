@@ -1,0 +1,9 @@
+[
+  {"id":"ac1","verdict":"PASS","evidence":"Formato4DetailModal uses useFormato4Run(open ? runId : null); `if (!run) return null`; renders <Formato4Progress steps currentStep>."},
+  {"id":"ac2","verdict":"PASS","evidence":"hasResults = isCompleted && summary != null; results grid renders row_count.toLocaleString(), sim_wheel_version, generated_at."},
+  {"id":"ac3","verdict":"PASS","evidence":"download handler awaits downloadFormato4(run.run_id, run.country) from @/lib/api (server zip, not client CSV); success/error toasts."},
+  {"id":"ac4","verdict":"PASS","evidence":"Formato4CountryCard: Eye button (aria-label 'Ver detalle') for non-pending latestRun sets detailRunId+detailOpen and mounts <Formato4DetailModal>."},
+  {"id":"ac5","verdict":"PASS","evidence":"vitest 281 passed (45 formato4, incl. 7 modal + 2 card); npm run lint clean; npx tsc -b clean."},
+  {"id":"ac6","verdict":"PASS","evidence":"e2e/formato4.spec.ts: Eye→dialog 'Formato 4 Detail' + 'Row Count' + server zip download. Implementer ran formato4 e2e 4/4 (flow 2/2 + smoke 2/2)."},
+  {"id":"overall","verdict":"PASS","evidence":"All 6 ACs pass. No placeholders/stubs/TODOs. Download is server-side. Evaluated in a separate skeptical subagent."}
+]
