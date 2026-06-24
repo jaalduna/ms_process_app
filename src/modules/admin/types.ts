@@ -37,4 +37,5 @@ export const KNOWN_ROLES = [
   "weighting_specialist",
   "calibration_specialist",
   "mtr_specialist",
+  "formato4_specialist",
 ] as const

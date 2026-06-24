@@ -4,6 +4,7 @@ import { elegibilidadModule } from "./elegibilidad"
 import { preciosModule } from "./precios"
 import { pesajeModule } from "./pesaje"
 import { mtrModule } from "./mtr"
+import { formato4Module } from "./formato4"
 import { qmstrModule } from "./qmstr"
 import { macrocacModule } from "./macrocac"
 import { trazabilidadModule } from "./trazabilidad"
@@ -26,6 +27,7 @@ export const allModules: ModuleDefinition[] = [
   calibracionModule,
   qmstrModule,
   mtrModule,
+  formato4Module,
   macrocacModule,
   trazabilidadModule,
   parametrosElegibilidadModule,

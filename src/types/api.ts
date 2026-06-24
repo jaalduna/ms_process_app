@@ -249,7 +249,7 @@ export interface FeedbackResponse {
 // -- Process open/close (per stage, per country) --
 
 /** Pipeline stages that can be opened/closed independently per country. */
-export type ProcessStage = "precios" | "elegibilidad" | "pesaje" | "calibracion" | "mtr"
+export type ProcessStage = "precios" | "elegibilidad" | "pesaje" | "calibracion" | "mtr" | "formato4"
 
 /** Whether a stage+country process is open (editable) or closed (locked). */
 export type ProcessState = "open" | "closed"
