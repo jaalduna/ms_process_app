@@ -397,6 +397,24 @@ export function getLastFormato4(period?: number) {
   return api.get<LastStageCompletionResponse>("/metadata/last-formato4", periodParams(period)).then((r) => r.data)
 }
 
+// MTR-32: download the server-generated result zip by runId. Clones the
+// weighting by-runId pattern (downloadWeightingCSV) — a blob GET + anchor-click
+// + revokeObjectURL — NOT the client-side CSV builder (downloadMtrCsv). The
+// `country` arg only seeds the fallback filename; the endpoint keys on runId.
+export async function downloadFormato4(runId: string, country: string): Promise<void> {
+  const response = await api.get(`/formato4/runs/${runId}/download`, { responseType: "blob" })
+  const url = URL.createObjectURL(new Blob([response.data]))
+  const a = document.createElement("a")
+  a.href = url
+  const disposition = response.headers["content-disposition"] ?? ""
+  const match = disposition.match(/filename="?([^";\n]+)"?/)
+  a.download = match?.[1] ?? `format_4_${country}.csv.zip`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 // -- Traceability --
 
 export function getTags(params?: TagFilters & { limit?: number; offset?: number }) {

@@ -22,6 +22,7 @@ const mockGetFormato4Run = vi.fn()
 const mockCreateFormato4Run = vi.fn()
 const mockExecuteFormato4 = vi.fn()
 const mockCancelFormato4 = vi.fn()
+const mockDownloadFormato4 = vi.fn()
 const mockGetProcessStatus = vi.fn()
 
 vi.mock("@/lib/api", () => ({
@@ -30,6 +31,7 @@ vi.mock("@/lib/api", () => ({
   createFormato4Run: (...a: unknown[]) => mockCreateFormato4Run(...a),
   executeFormato4: (...a: unknown[]) => mockExecuteFormato4(...a),
   cancelFormato4: (...a: unknown[]) => mockCancelFormato4(...a),
+  downloadFormato4: (...a: unknown[]) => mockDownloadFormato4(...a),
   getLastFormato4: vi.fn().mockResolvedValue({ countries: {} }),
   getProcessStatus: (...a: unknown[]) => mockGetProcessStatus(...a),
   openProcess: vi.fn(),
@@ -211,6 +213,39 @@ describe("Formato4CountryCard", () => {
     await waitFor(() => expect(mockCreateFormato4Run).toHaveBeenCalled())
     const arg = mockCreateFormato4Run.mock.calls[0][0]
     expect(arg).not.toHaveProperty("parameters")
+  })
+
+  // --- Download zip (MTR-32) ------------------------------------------------
+
+  it("completed: renders a Download button that fetches the server zip + success toast", async () => {
+    const user = userEvent.setup()
+    mockGetFormato4Runs.mockResolvedValue({ items: [baseRun("completed")], total: 1 })
+    mockDownloadFormato4.mockResolvedValue(undefined)
+
+    renderCard()
+    const downloadBtn = await screen.findByRole("button", { name: /Descargar/ })
+    await user.click(downloadBtn)
+
+    await waitFor(() => expect(mockDownloadFormato4).toHaveBeenCalledWith("run-1", "chile"))
+    await waitFor(() => expect(mockToastSuccess).toHaveBeenCalled())
+  })
+
+  it("completed: download failure surfaces an error toast", async () => {
+    const user = userEvent.setup()
+    mockGetFormato4Runs.mockResolvedValue({ items: [baseRun("completed")], total: 1 })
+    mockDownloadFormato4.mockRejectedValue(new Error("boom"))
+
+    renderCard()
+    await user.click(await screen.findByRole("button", { name: /Descargar/ }))
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalled())
+  })
+
+  it("does NOT render a Download button when the run is not completed", async () => {
+    mockGetFormato4Runs.mockResolvedValue({ items: [baseRun("running")], total: 1 })
+    renderCard()
+    await waitFor(() => expect(screen.getByText("Ejecutando...")).toBeInTheDocument())
+    expect(screen.queryByRole("button", { name: /Descargar/ })).not.toBeInTheDocument()
   })
 
   // --- Stop flow (ac3) ------------------------------------------------------
