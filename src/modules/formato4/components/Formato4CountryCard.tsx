@@ -12,7 +12,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Square } from "lucide-react"
+import { Download, Loader2, Square } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
@@ -23,6 +24,7 @@ import {
   useExecuteFormato4,
   useCancelFormato4,
 } from "../hooks/useFormato4"
+import { downloadFormato4 } from "@/lib/api"
 import { FORMATO4_ACTIVE_STATUSES, FORMATO4_STATUS_CONFIG } from "../types"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
 import { formatRelativeTime } from "@/lib/utils"
@@ -94,6 +96,22 @@ export function Formato4CountryCard({
       onSuccess: () => toast.info(`Formato 4 stopped for ${countryLabel}`),
       onError: () => toast.error(`Failed to cancel Formato 4 for ${countryLabel}`),
     })
+  }
+
+  const [isDownloading, setIsDownloading] = useState(false)
+  const handleDownload = async () => {
+    if (!latestRun) return
+    setIsDownloading(true)
+    try {
+      // Server-generated zip by runId (MTR-32) — mirrors the weighting
+      // download, NOT the client-side MTR CSV builder.
+      await downloadFormato4(latestRun.run_id, countryCode)
+      toast.success(`Formato 4 zip downloaded for ${countryLabel}`)
+    } catch {
+      toast.error(`Failed to download Formato 4 zip for ${countryLabel}`)
+    } finally {
+      setIsDownloading(false)
+    }
   }
 
   return (
@@ -219,6 +237,24 @@ export function Formato4CountryCard({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+          )}
+
+          {/* Download server-generated zip (only once completed) */}
+          {isCompleted && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              title={`Descargar Formato 4 (${countryLabel})`}
+            >
+              {isDownloading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Descargar
+            </Button>
           )}
         </div>
       </CardContent>

@@ -55,4 +55,26 @@ test.describe("Formato 4 Module E2E", () => {
     // Deterministic mock → the run reaches the "Completado" terminal badge.
     await expect(chile.getByText(/Completado/i)).toBeVisible({ timeout: 30_000 })
   })
+
+  // MTR-32: once completed, the card exposes a Download button that streams the
+  // SERVER-generated zip (mock-server /formato4/runs/:id/download fixture), NOT
+  // a client-built CSV.
+  test("completed run exposes a Download that fetches the server zip", async ({ page }) => {
+    await navigateTo(page, "Formato 4", /formato4/)
+    const chile = card(page, "Chile")
+    const ejecutar = chile.getByRole("button", { name: /^Ejecutar$/ })
+    await expect(ejecutar).toBeEnabled({ timeout: 10_000 })
+    await confirmAction(page, ejecutar, /^Confirm$/)
+    await expect(chile.getByText(/Completado/i)).toBeVisible({ timeout: 30_000 })
+
+    const downloadBtn = chile.getByRole("button", { name: /Descargar/ })
+    await expect(downloadBtn).toBeVisible({ timeout: 10_000 })
+
+    const downloadPromise = page.waitForEvent("download", { timeout: 30_000 })
+    await downloadBtn.click()
+    const download = await downloadPromise
+
+    // The mock streams format_4_<country>_<period>.csv.zip (Content-Disposition).
+    expect(download.suggestedFilename()).toMatch(/^format_4_.*\.csv\.zip$/)
+  })
 })
