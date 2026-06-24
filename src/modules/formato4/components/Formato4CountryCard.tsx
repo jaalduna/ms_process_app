@@ -12,13 +12,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Download, Eye, Loader2, Square } from "lucide-react"
+import { Download, Eye, History, Loader2, Square } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { Formato4Progress } from "./Formato4Progress"
 import { Formato4DetailModal } from "./Formato4DetailModal"
+import { Formato4HistoryModal } from "./Formato4HistoryModal"
 import {
   useFormato4Runs,
   useCreateFormato4Run,
@@ -44,8 +45,8 @@ interface Formato4CountryCardProps {
  * Country card for the Formato 4 module. Clone of `MtrCountryCard` (MTR-30)
  * driving the formato4 run lifecycle (create → execute → poll → cancel) off
  * `latestRun.status`. Formato 4 has no params, so there is no config dialog and
- * `create` sends no parameters. The zip download (MTR-32) and detail Eye
- * (MTR-33) are wired here; the history modal (MTR-50) lands later.
+ * `create` sends no parameters. The zip download (MTR-32), detail Eye
+ * (MTR-33) and history modal (MTR-50) are all wired here.
  */
 export function Formato4CountryCard({
   countryCode,
@@ -101,6 +102,10 @@ export function Formato4CountryCard({
   // started (status !== "pending"); reads live updates via useFormato4Run.
   const [detailRunId, setDetailRunId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+
+  // History modal (MTR-50): lists prior runs for this country with a
+  // per-completed-run re-download. Shown once at least one run exists.
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const [isDownloading, setIsDownloading] = useState(false)
   const handleDownload = async () => {
@@ -276,6 +281,19 @@ export function Formato4CountryCard({
               <Eye className="h-4 w-4" />
             </Button>
           )}
+
+          {/* History (MTR-50): opens the Formato4HistoryModal for the country */}
+          {latestRun && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setHistoryOpen(true)}
+              title={`Historial Formato 4 (${countryLabel})`}
+              aria-label="Ver historial"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardContent>
 
@@ -283,6 +301,14 @@ export function Formato4CountryCard({
         runId={detailRunId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+
+      <Formato4HistoryModal
+        country={countryCode}
+        countryLabel={countryLabel}
+        countryFlag={flag}
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
       />
     </Card>
   )

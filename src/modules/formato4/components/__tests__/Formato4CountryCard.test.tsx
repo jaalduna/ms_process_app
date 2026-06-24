@@ -297,4 +297,25 @@ describe("Formato4CountryCard", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Ejecutar" })).toBeInTheDocument())
     expect(screen.queryByRole("button", { name: /Ver detalle/ })).not.toBeInTheDocument()
   })
+
+  // --- History modal (MTR-50) -----------------------------------------------
+
+  it("a History button opens the Formato4HistoryModal for the country", async () => {
+    const user = userEvent.setup()
+    mockGetFormato4Runs.mockResolvedValue({ items: [baseRun("completed")], total: 1 })
+
+    renderCard()
+    const historyBtn = await screen.findByRole("button", { name: /Ver historial/ })
+    await user.click(historyBtn)
+
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).getByText(/Formato 4 History/i)).toBeInTheDocument()
+  })
+
+  it("does NOT render the History button before a run exists", async () => {
+    mockGetFormato4Runs.mockResolvedValue({ items: [], total: 0 })
+    renderCard()
+    await waitFor(() => expect(screen.getByRole("button", { name: "Ejecutar" })).toBeInTheDocument())
+    expect(screen.queryByRole("button", { name: /Ver historial/ })).not.toBeInTheDocument()
+  })
 })
