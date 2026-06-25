@@ -23,10 +23,15 @@ import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
 import { CalibrationProgress } from "./CalibrationProgress"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
+import { CountryGroupByDialog } from "./CountryGroupByDialog"
 import { useCalibration } from "../hooks/useCalibration"
+import {
+  useCountryGroupBy,
+  useSaveCountryGroupBy,
+  resolveGroupBy,
+} from "../hooks/useCalibrationConfig"
 import type { CountryInfo } from "@/types/api"
 import type { DataAvailability, CalibrationConfig } from "../types"
-import { DEFAULT_GROUP_BY } from "../types"
 
 interface CountryCardProps {
   country: CountryInfo
@@ -49,6 +54,13 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
   const isCancelled = job?.status === "cancelled"
   const { isClosed } = useProcessEntry("calibracion", country.code)
   const canTrigger = availability.elegibilidad && !isRunning && !isPending && !isClosed
+
+  // Per-country shared group_by (JAA-667): persisted under scope=country code,
+  // falling back to the built-in DEFAULT_GROUP_BY when no row exists yet.
+  const { data: groupByConfig } = useCountryGroupBy(country.code)
+  const saveGroupBy = useSaveCountryGroupBy(country.code)
+  const groupBy = resolveGroupBy(groupByConfig?.config, country.code)
+  const groupByEditable = groupByConfig?.editable ?? false
 
   const countryLabel = COUNTRY_LABELS[country.code] ?? country.code
   const flag = COUNTRY_FLAGS[country.code] ?? ""
@@ -158,7 +170,7 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                         <p className="mt-2">
                           Group by:{" "}
                           <code className="text-xs bg-muted px-1 rounded">
-                            {DEFAULT_GROUP_BY[country.code] || "default"}
+                            {groupBy || "default"}
                           </code>
                         </p>
                         <p className="mt-2">
@@ -176,7 +188,7 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                         lookback_months: calibrationConfig.lookback_months,
                         skip_sync: true,
                         table_suffix: "_full",
-                        group_by: DEFAULT_GROUP_BY[country.code] || null,
+                        group_by: groupBy,
                       }).then(() => {
                         toast.success(`Calibration started for ${countryLabel}`);
                       }).catch((err: unknown) => {
@@ -238,6 +250,26 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
+              )}
+
+              {/* Admin-only per-country group_by editor (JAA-667). */}
+              {groupByEditable && (
+                <CountryGroupByDialog
+                  countryLabel={countryLabel}
+                  value={groupBy}
+                  saving={saveGroupBy.isPending}
+                  onSave={async (gb) => {
+                    try {
+                      await saveGroupBy.mutateAsync(gb)
+                      toast.success(`Group by guardado para ${countryLabel}`)
+                    } catch (err) {
+                      toast.error(
+                        `No se pudo guardar group by: ${(err as Error).message ?? "error"}`,
+                      )
+                      throw err
+                    }
+                  }}
+                />
               )}
             </div>
           </div>

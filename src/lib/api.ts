@@ -97,17 +97,29 @@ export function submitFeedback(payload: FeedbackPayload) {
 
 // -- Shared process config (JAA-642) --
 
-/** GET the shared default config for a process (mtr/calibration/prices/...). */
-export function getProcessConfig(process: string) {
+/** GET the shared default config for a process (mtr/calibration/prices/...).
+ * Pass a non-default `scope` (e.g. a country code, JAA-667) to read a per-scope row. */
+export function getProcessConfig(process: string, scope?: string) {
   return api
-    .get<ProcessConfigResponse>(`/config/processes/${encodeURIComponent(process)}`)
+    .get<ProcessConfigResponse>(`/config/processes/${encodeURIComponent(process)}`, {
+      params: scope ? { scope } : undefined,
+    })
     .then((r) => r.data)
 }
 
-/** PUT (upsert) the shared default config for a process. 403 if not a process admin. */
-export function putProcessConfig(process: string, config: Record<string, unknown>) {
+/** PUT (upsert) the shared default config for a process. 403 if not a process admin.
+ * Pass a non-default `scope` (e.g. a country code, JAA-667) to upsert a per-scope row. */
+export function putProcessConfig(
+  process: string,
+  config: Record<string, unknown>,
+  scope?: string,
+) {
   return api
-    .put<ProcessConfigResponse>(`/config/processes/${encodeURIComponent(process)}`, { config })
+    .put<ProcessConfigResponse>(
+      `/config/processes/${encodeURIComponent(process)}`,
+      { config },
+      { params: scope ? { scope } : undefined },
+    )
     .then((r) => r.data)
 }
 
