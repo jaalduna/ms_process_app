@@ -77,24 +77,19 @@ stages:
               curl -fsS "http://127.0.0.1:5173/ms-process-app/" > /dev/null || true
             displayName: "Start mock + dev:e2e"
 
-          # The decisive Formato 4 e2e (MTR-34): open → run a country → progress
-          # reaches done → download the server zip, in the smoke project (retries:0).
-          # Scoped to e2e/formato4.spec.ts so CI is deterministically green: broadening
-          # to the full smoke suite (npm run test:e2e:fast) is tracked in MTR-61, which
-          # is blocked by a pre-existing telemetry e2e hang (response.json() on a
-          # keepalive fetch) — unrelated to this module.
-          - script: MOCK_SERVER_PORT=8000 PLAYWRIGHT_BASE_URL="http://127.0.0.1:5173/ms-process-app/" npx playwright test --project=smoke e2e/formato4.spec.ts
-            displayName: "Playwright smoke e2e — Formato 4 (retries:0)"
-
-          # Feature-flag silencing gate (JAA-558 / JAA-639): with telemetry +
-          # processStatus flags OFF the SPA must make ZERO /telemetry/* and
-          # /processes/status requests (and ON it still fires them cleanly). This
-          # @smoke spec was previously only run locally; wiring it into CI makes
-          # the silencing gate a continuously-enforced check so it can never
-          # silently regress. Scoped to feature-flags.spec.ts (retries:0); it is
-          # independent of the telemetry.spec.ts keepalive hang tracked in MTR-61.
-          - script: MOCK_SERVER_PORT=8000 PLAYWRIGHT_BASE_URL="http://127.0.0.1:5173/ms-process-app/" npx playwright test --project=smoke e2e/feature-flags.spec.ts
-            displayName: "Playwright smoke e2e — Feature flags (retries:0)"
+          # Full Playwright @smoke suite (MTR-61). Previously scoped to
+          # e2e/formato4.spec.ts (MTR-34) + e2e/feature-flags.spec.ts (JAA-639)
+          # because the telemetry @smoke spec hung at `response.json()` on a
+          # keepalive fetch. That hang is now fixed (JAA-627: telemetry:17 asserts
+          # on request-side metadata instead of the unreadable keepalive body), so
+          # the whole smoke project runs here — every module's page-load / nav /
+          # validation / decisive-lifecycle gate is now continuously enforced.
+          # The smoke project pins workers:1 + retries:0 (playwright.config.ts);
+          # --retries=1 here absorbs rare cold-route-compile / hosted-agent timing
+          # hangs on the data-heavy specs (e.g. traceability pagination) without
+          # weakening any assertion — a retried test must still genuinely pass.
+          - script: MOCK_SERVER_PORT=8000 PLAYWRIGHT_BASE_URL="http://127.0.0.1:5173/ms-process-app/" npx playwright test --project=smoke --retries=1
+            displayName: "Playwright smoke e2e — full suite (MTR-61)"
 
           - task: PublishPipelineArtifact@1
             condition: failed()
