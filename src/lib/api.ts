@@ -10,6 +10,7 @@ import type {
   LastElegibilidadResponse,
   LastStageCompletionResponse,
   LastSyncResponse,
+  ProcessConfigResponse,
   ProcessEntry,
   ProcessStage,
   ProcessStatusResponse,
@@ -92,6 +93,22 @@ export function getMe() {
  * rejects with ApiError (e.g. 400 for an empty message). */
 export function submitFeedback(payload: FeedbackPayload) {
   return api.post<FeedbackResponse>("/feedback", payload).then((r) => r.data)
+}
+
+// -- Shared process config (JAA-642) --
+
+/** GET the shared default config for a process (mtr/calibration/prices/...). */
+export function getProcessConfig(process: string) {
+  return api
+    .get<ProcessConfigResponse>(`/config/processes/${encodeURIComponent(process)}`)
+    .then((r) => r.data)
+}
+
+/** PUT (upsert) the shared default config for a process. 403 if not a process admin. */
+export function putProcessConfig(process: string, config: Record<string, unknown>) {
+  return api
+    .put<ProcessConfigResponse>(`/config/processes/${encodeURIComponent(process)}`, { config })
+    .then((r) => r.data)
 }
 
 // -- Trigger --

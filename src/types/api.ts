@@ -277,3 +277,15 @@ export interface ProcessEntry {
 export interface ProcessStatusResponse {
   countries: Record<string, Partial<Record<ProcessStage, ProcessEntry>>>
 }
+
+/**
+ * Shared per-process config (JAA-642): defaults visible to all users.
+ * `config` is `{}` when no row exists yet; `editable` is true when the
+ * requester may PUT (global `admin` or `{process}:admin`).
+ */
+export interface ProcessConfigResponse {
+  process: string
+  scope: string
+  config: Record<string, unknown>
+  editable: boolean
+}

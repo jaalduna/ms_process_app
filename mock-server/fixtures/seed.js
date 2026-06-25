@@ -7,6 +7,7 @@ import { seedEligibility } from "../routes/eligibility.js"
 import { seedProcesses } from "../routes/processes.js"
 import { seedTraceability } from "../routes/traceability.js"
 import { seedParams } from "../routes/params.js"
+import { seedProcessConfig } from "../routes/process_config.js"
 
 const CURRENT_PERIOD = "202602"
 const PREVIOUS_PERIOD = "202601"
@@ -67,4 +68,5 @@ export function seedAll() {
   seedProcesses()
   seedTraceability()
   seedParams()
+  seedProcessConfig()
 }
