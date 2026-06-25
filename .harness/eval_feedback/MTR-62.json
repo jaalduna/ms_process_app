@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "REAL_BACKEND=http://127.0.0.1:8000 PLAYWRIGHT_BASE_URL=\"http://[::1]:5174/ms-process-app/\" rtk proxy npx playwright test e2e/formato4-real-api.spec.ts --reporter=list -> '1 passed'. Drives navigate -> Ejecutar Chile -> card reaches Completado -> download suggestedFilename === format_4_chile.csv.zip. Backend access log: card reached Completado driven by 12 list polls (GET /api/v1/formato4/runs?country=chile) with 0 detail GETs, then 1 download stream (proves the MTR-63 list-reconcile fix)."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "Same command WITHOUT REAL_BACKEND -> '1 skipped', exit 0. Spec has test.skip(!REAL_BACKEND, ...) guard."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "grep -n formato4 mock-server/hybrid-proxy.js -> proxy stanzas for /api/v1/formato4/runs (list/create), /{runId} (detail), /execute, /cancel, /download. Spec header lines 9-27 contain RUNBOOK with the fake-backend start command."
+  },
+  {
+    "id": "ac4",
+    "verdict": "PASS",
+    "evidence": "npm run lint -> exit 0 (no issues); npx tsc -b -> exit 0 (no errors)."
+  }
+]
