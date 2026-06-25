@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -11,15 +12,43 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import type { CalibrationConfig } from "../types"
+import { DEFAULT_CALIBRATION_CONFIG } from "../types"
 
 interface CalibrationConfigDialogProps {
+  /** Current shared defaults (hydrated from the backend). */
   config: CalibrationConfig
-  onChange: (config: CalibrationConfig) => void
+  /** Whether the requester may edit/save (GET `editable`). Read-only otherwise. */
+  editable: boolean
+  /** Persist the edited config (PUT shared config). Only called when editable. */
+  onSave: (config: CalibrationConfig) => Promise<void> | void
+  /** True while a save is in flight. */
+  saving?: boolean
 }
 
-export function CalibrationConfigDialog({ config, onChange }: CalibrationConfigDialogProps) {
+export function CalibrationConfigDialog({
+  config,
+  editable,
+  onSave,
+  saving = false,
+}: CalibrationConfigDialogProps) {
+  const [open, setOpen] = useState(false)
+  // Local draft so editing doesn't mutate the shared/hydrated value until saved.
+  const [draft, setDraft] = useState<CalibrationConfig>(config)
+
+  // Re-seed the draft from the latest hydrated config whenever the dialog opens,
+  // so a cancelled edit is discarded and a fresh GET is reflected.
+  function handleOpenChange(next: boolean) {
+    if (next) setDraft(config)
+    setOpen(next)
+  }
+
+  async function handleSave() {
+    await onSave(draft)
+    setOpen(false)
+  }
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="icon" aria-label="Calibration settings">
           <Settings className="h-4 w-4" />
@@ -29,7 +58,9 @@ export function CalibrationConfigDialog({ config, onChange }: CalibrationConfigD
         <DialogHeader>
           <DialogTitle>Calibration Settings</DialogTitle>
           <DialogDescription>
-            Configure options applied to all countries.
+            {editable
+              ? "Configure shared defaults applied to all countries for every user."
+              : "Shared defaults applied to all countries. Only a calibration admin can edit these."}
           </DialogDescription>
         </DialogHeader>
 
@@ -39,24 +70,26 @@ export function CalibrationConfigDialog({ config, onChange }: CalibrationConfigD
             <legend className="text-sm font-medium">Aggregations</legend>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox
-                checked={config.aggregations.region}
+                checked={draft.aggregations.region}
+                disabled={!editable}
                 onCheckedChange={(v) =>
-                  onChange({
-                    ...config,
-                    aggregations: { ...config.aggregations, region: v === true },
-                  })
+                  setDraft((d) => ({
+                    ...d,
+                    aggregations: { ...d.aggregations, region: v === true },
+                  }))
                 }
               />
               Region
             </label>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox
-                checked={config.aggregations.nivel_2}
+                checked={draft.aggregations.nivel_2}
+                disabled={!editable}
                 onCheckedChange={(v) =>
-                  onChange({
-                    ...config,
-                    aggregations: { ...config.aggregations, nivel_2: v === true },
-                  })
+                  setDraft((d) => ({
+                    ...d,
+                    aggregations: { ...d.aggregations, nivel_2: v === true },
+                  }))
                 }
               />
               Canal
@@ -72,18 +105,35 @@ export function CalibrationConfigDialog({ config, onChange }: CalibrationConfigD
                 type="number"
                 min={1}
                 max={120}
-                value={config.lookback_months}
+                disabled={!editable}
+                value={draft.lookback_months}
                 onChange={(e) =>
-                  onChange({
-                    ...config,
-                    lookback_months: e.target.value ? parseInt(e.target.value, 10) : 36,
-                  })
+                  setDraft((d) => ({
+                    ...d,
+                    lookback_months: e.target.value ? parseInt(e.target.value, 10) : 0,
+                  }))
                 }
                 className="h-8 text-sm"
               />
             </label>
           </fieldset>
         </div>
+
+        {editable && (
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              onClick={() => setDraft(DEFAULT_CALIBRATION_CONFIG)}
+            >
+              Restore defaults
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {saving ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

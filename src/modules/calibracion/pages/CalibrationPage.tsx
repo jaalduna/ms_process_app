@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { toast } from "sonner"
 import { PeriodSelector } from "@/components/PeriodSelector"
 import { CalibrationConfigDialog } from "../components/CalibrationConfigDialog"
 import { CountryCard } from "../components/CountryCard"
@@ -7,8 +8,12 @@ import { useCountries } from "@/hooks/useCountries"
 import { useDataAvailability } from "../hooks/useDataAvailability"
 import { useLastSync } from "@/hooks/useLastSync"
 import { useLastCalibration } from "../hooks/useLastCalibration"
+import {
+  useCalibrationConfig,
+  useSaveCalibrationConfig,
+  mergeCalibrationConfig,
+} from "../hooks/useCalibrationConfig"
 import type { DataAvailability, CalibrationConfig } from "../types"
-import { DEFAULT_CALIBRATION_CONFIG } from "../types"
 
 function currentPeriod(): string {
   // Default to the previous month: January is calibrated in February, etc.
@@ -23,11 +28,27 @@ const NO_DATA: DataAvailability = { elegibilidad: false, pesaje: false }
 
 export function CalibrationPage() {
   const [period, setPeriod] = useState(currentPeriod)
-  const [calibrationConfig, setCalibrationConfig] = useState<CalibrationConfig>(DEFAULT_CALIBRATION_CONFIG)
   const { data, isLoading, error } = useCountries()
   const { data: availability, isLoading: availabilityLoading } = useDataAvailability(period)
   const { data: lastSync } = useLastSync("pesaje")
   const { data: lastCalibration } = useLastCalibration()
+
+  // Shared calibration defaults from the backend (JAA-645). Fall back to the
+  // built-in DEFAULT_CALIBRATION_CONFIG for any key the backend hasn't set yet.
+  const { data: configData } = useCalibrationConfig()
+  const saveCalibrationConfig = useSaveCalibrationConfig()
+  const calibrationConfig: CalibrationConfig = mergeCalibrationConfig(configData?.config)
+  const editable = configData?.editable ?? false
+
+  async function handleSave(config: CalibrationConfig) {
+    try {
+      await saveCalibrationConfig.mutateAsync(config)
+      toast.success("Calibration settings saved")
+    } catch (err) {
+      toast.error((err as Error).message ?? "Failed to save calibration settings")
+      throw err
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -41,7 +62,12 @@ export function CalibrationPage() {
         </div>
         <div className="flex items-center gap-2">
           <PeriodSelector value={period} onChange={setPeriod} />
-          <CalibrationConfigDialog config={calibrationConfig} onChange={setCalibrationConfig} />
+          <CalibrationConfigDialog
+            config={calibrationConfig}
+            editable={editable}
+            onSave={handleSave}
+            saving={saveCalibrationConfig.isPending}
+          />
         </div>
       </div>
 
