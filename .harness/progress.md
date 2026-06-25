@@ -2,6 +2,24 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-24 — MTR-62 (Formato 4 e2e vs real fake-mode ms-process-api) — EVALUATOR PASS, PR armed
+**What:** Re-ran now that the blocker **MTR-63 landed** (backend list-reconcile, origin/develop
+commit 9898931 — `GET /{process}/runs` reconciles active Databricks runs). No frontend code change
+needed: the spec `e2e/formato4-real-api.spec.ts` + hybrid-proxy formato4 stanzas authored in the
+prior MTR-62 session (commit b05a161) now go green. This session is the **verification + PR**.
+**How verified:** started the real `ms-process-api` at origin/develop 17a9075 (with the MTR-63 fix)
+in fake mode (`DATABRICKS_FAKE=true DATABRICKS_FAKE_STEP_SECONDS=0.3 AUTH_ENABLED=false`, fresh
+RUN_REGISTRY_DB_PATH) on :8000, dev:e2e on :5174 (5173 taken by another worktree).
+**Verify:** lint=0, tsc -b=0; self-skip without REAL_BACKEND = 1 skipped (exit 0);
+`REAL_BACKEND=http://127.0.0.1:8000 npx playwright test e2e/formato4-real-api.spec.ts` = **1 passed
+(7.0s)** — navigate → Ejecutar Chile → Completado → download `format_4_chile.csv.zip` (no `_period`
+suffix). Backend access log is decisive: card reached Completado via **12 list polls, 0 detail GETs**,
+then 1 download stream — proves the MTR-63 list-reconcile fix drives the card. Separate skeptical
+evaluator (general-purpose, fresh ctx) re-ran all 4 ACs against the live servers → ALL PASS →
+eval_feedback/MTR-62.json.
+**NEXT:** Build green → auto-complete merges; a later /harness MTR-62 re-run (Orient → step 7)
+confirms merge + cleans worktree + sets Done. Closes the frontend half of MTR-39.
+
 ## 2026-06-24 — JAA-639 (feature-flags @smoke red: telemetry/processes still emit with flags off) — webapp — EVALUATOR PASS, PR armed
 **What:** The reported failure (flags off → 2× POST /telemetry/events + 1× GET /processes/status)
 **does NOT reproduce on current ado/develop.** JAA-558's gating is present and correct: every
@@ -685,3 +703,25 @@ graded + shipped. Unit gate green: vitest 298/298, eslint clean, tsc -b clean, b
 Captured 1 unrelated pre-existing smoke flake (telemetry events `response.json()` hang) as **JAA-627**
 (related to JAA-613, non-blocking; mock route healthy via curl, JAA-613 touches no telemetry/route/mock).
 direct mode: branch off ado/develop, PR → develop, auto-complete armed.
+
+## 2026-06-24 — MTR-62 (Playwright e2e: Formato 4 vs real fake-mode ms-process-api) — PARKED needs-human
+
+**What:** Added `e2e/formato4-real-api.spec.ts` (points the app's API base at the REAL fake-mode
+ms-process-api via config.js interception → `REAL_BACKEND/api/v1`; drives Formato 4
+navigate→Ejecutar→Completado→download; pins real download `format_4_chile.csv.zip`; self-skips
+unless `REAL_BACKEND` set). Added `/api/v1/formato4/*` proxy stanzas to `mock-server/hybrid-proxy.js`
+(the gap the ticket flagged). lint ✅ tsc ✅; spec self-skips green without REAL_BACKEND.
+
+**Blocker (MTR-63, filed):** driven against the live fake-mode backend the card never reaches
+Completado — it polls the LIST endpoint (`GET /formato4/runs`) which doesn't reconcile active runs;
+only the DETAIL endpoint (`GET /runs/{id}`) advances them. The Node mock hid this (advances on a
+timer). Same pattern in mtr/weighting/prices cards. Fix is cross-repo + architectural (backend
+list-reconcile/background poller, or FE detail-poll) → parked `needs-human`, MTR-62 `blocked by`
+MTR-63. Test left correct/unweakened; NO PR opened (acceptance not met).
+
+**Detector friction:** launched in backend repo ms-process-api but MTR-62 is a frontend
+(ms_process_app) ticket — detector matched the "ms-process-api" substring in the body. Implemented
+in the correct repo (direct mode → ado/develop).
+
+**Next:** land MTR-63, then re-run `/harness MTR-62` (spec already encodes the full assertion; goes
+green with REAL_BACKEND set).
