@@ -12,7 +12,6 @@ import { ModeToggle } from "@/components/ModeToggle"
 import { BrandMark } from "@/components/BrandMark"
 import { FeedbackDialog } from "@/components/FeedbackDialog"
 import { cn } from "@/lib/utils"
-import { CalibrationProvider } from "@/modules/calibracion/contexts/CalibrationContext"
 import type { ModuleDefinition } from "@/modules/types"
 import {
   Tag,
@@ -92,8 +91,7 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
     (path === "/history" && location.pathname.startsWith("/events/"))
 
   return (
-    <CalibrationProvider>
-      <TooltipProvider>
+    <TooltipProvider>
         <div className="min-h-screen bg-background flex flex-col">
           {/* Update Banner */}
           {available && (
@@ -296,6 +294,5 @@ export function AuthenticatedLayout({ modules }: AuthenticatedLayoutProps) {
           </div>
         </div>
       </TooltipProvider>
-    </CalibrationProvider>
   )
 }

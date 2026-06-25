@@ -120,6 +120,27 @@ export function triggerSync(body: TriggerRequest) {
 /** Alias for triggerSync for calibration_frontend compatibility. */
 export const triggerCalibration = triggerSync
 
+// -- Calibration runs (JAA-648) --
+
+/**
+ * List calibration runs from the shared, server-authoritative backend run store
+ * (JAA-647 lifecycle in process_runs). Mirrors the mtr/prices runs pattern: the
+ * active run is derived as `items[0]` (newest first) instead of from per-browser
+ * localStorage, so the running state is recovered after reload and shared across
+ * browsers/users.
+ */
+export function getCalibrationRuns(params?: {
+  country?: string
+  period?: string
+  status?: string
+  limit?: number
+  offset?: number
+}) {
+  return api
+    .get<EventListResponse>("/calibration/runs", { params })
+    .then((r) => r.data)
+}
+
 // -- Events --
 
 export function getEvents(params?: {

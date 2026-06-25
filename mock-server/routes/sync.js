@@ -107,7 +107,7 @@ export function defaultPeriod() {
 /** @type {Map<string, object>} */
 export const jobs = new Map()
 
-function enrichSummary(job) {
+export function enrichSummary(job) {
   const { results, _stepIndex, _forceOutcome, ...base } = job
   const running_queries = (results || []).filter(r => r.status === "running").map(r => r.query_name)
   const failed_queries = (results || []).filter(r => r.status === "failed").map(r => r.query_name)
@@ -141,6 +141,30 @@ export function seedFailedJob(country, stage, period, daysAgo) {
   })
   const failStepIndex = Math.min(2, CALIBRATION_STEPS.length - 1)
   jobs.set(jobId, { job_id: jobId, status: "failed", country, stage, period, tag: `${country}-${stage}-seed`, queries_total: queries.length, queries_completed: queries.length - 1, queries_failed: 1, created_at: created, started_at: failedStarted, completed_at: new Date(new Date(created).getTime() + 45000).toISOString(), triggered_by: "system-seed", error: "1 query failed", results, steps: makeFailedSteps(failedStarted, failStepIndex), current_step: null })
+}
+
+/**
+ * Seed a *frozen* running job (no advancing timer). Used by E2E to assert the
+ * server-authoritative active-run derivation (JAA-648) without racing the fast
+ * step interval: the run stays "running" across reloads and across browser
+ * contexts. Returns the seeded job. The first step is completed, the second
+ * ("merge_data") is in progress.
+ */
+export function seedRunningJob(country, stage, period) {
+  const countryMeta = COUNTRIES.find(c => c.code === country)
+  const queries = countryMeta ? countryMeta.queries : ["j_atoscompra_new", "productos"]
+  const jobId = uuid()
+  const now = isoNow()
+  const results = queries.map(q => ({ query_name: q, status: "completed", rows_extracted: Math.floor(Math.random() * 40000) + 500, table_name: `kpi_prd_01.bridge.${country}_${q}`, duration_seconds: +(Math.random() * 15 + 1).toFixed(2), error: null, started_at: now }))
+  const steps = makeSteps()
+  // sync_data + copy_to_calibration done, merge_data running, rest pending.
+  steps[0].status = "completed"; steps[0].started_at = now; steps[0].completed_at = now
+  steps[1].status = "completed"; steps[1].started_at = now; steps[1].completed_at = now
+  steps[2].status = "running"; steps[2].started_at = now
+  if (steps[2].tasks?.length) { steps[2].tasks[0].status = "running"; steps[2].tasks[0].started_at = now }
+  const job = { job_id: jobId, status: "running", country, stage, period: period ?? null, tag: `${country}-${stage}-${Date.now()}`, queries_total: queries.length, queries_completed: queries.length, queries_failed: 0, created_at: now, started_at: now, completed_at: null, triggered_by: "e2e-seed", error: null, results, steps, current_step: "merge_data", _stepIndex: 2 }
+  jobs.set(jobId, job)
+  return job
 }
 
 export function resetJobs() {

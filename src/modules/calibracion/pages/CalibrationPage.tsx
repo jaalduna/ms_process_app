@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { PeriodSelector } from "@/components/PeriodSelector"
 import { CalibrationConfigDialog } from "../components/CalibrationConfigDialog"
@@ -28,6 +28,17 @@ const NO_DATA: DataAvailability = { elegibilidad: false, pesaje: false }
 
 export function CalibrationPage() {
   const [period, setPeriod] = useState(currentPeriod)
+
+  useEffect(() => {
+    // Legacy per-browser key that tracked in-flight calibration job-ids. Run state
+    // is now server-authoritative (JAA-648), so any stale value is ignored and
+    // removed one time on mount — the backend is the source of truth.
+    try {
+      localStorage.removeItem("bridge:calibration-job-ids")
+    } catch {
+      // ignore storage access errors
+    }
+  }, [])
   const { data, isLoading, error } = useCountries()
   const { data: availability, isLoading: availabilityLoading } = useDataAvailability(period)
   const { data: lastSync } = useLastSync("pesaje")

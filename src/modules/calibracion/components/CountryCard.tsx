@@ -41,7 +41,7 @@ interface CountryCardProps {
 export const CountryCard = memo(function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion")
+  const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion", period)
 
   const isRunning = job?.status === "running" || job?.status === "pending"
   const isCompleted = job?.status === "completed"
