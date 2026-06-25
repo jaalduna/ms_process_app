@@ -1,0 +1,23 @@
+{
+  "ticket": "MTR-62",
+  "linear_url": "https://linear.app/jaalduna/issue/MTR-62/playwright-e2e-formato-4-against-the-real-ms-process-api-in-fake-mode",
+  "branch": "feat/MTR-62-formato4-real-api-e2e",
+  "archetype": "webapp",
+  "repo": "ms_process_app (frontend) — NOTE: harness-auto launched this session in ms-process-api (backend) due to a detector repo-resolution miss (the ticket body repeatedly names 'ms-process-api', the backend it drives AGAINST, but the ticket header says 'repo ms_process_app'). Implemented in the correct repo per the ticket. Friction logged.",
+  "integration_note": "Frontend repo is DIRECT mode (its own AGENTS.md): INTEGRATION_REMOTE=ado, INTEGRATION_BRANCH=develop. The injected backend git contract (origin/harness/auto, integration mode) does NOT apply here. Branch off ado/develop, PR to ado/develop, auto-complete when its build policy is green.",
+  "goal": "Add a Playwright e2e that drives the Formato 4 module against a REAL fake-mode ms-process-api (DATABRICKS_FAKE=true, no cluster) instead of the Node mock, catching mock-vs-real divergence: open module -> run a country -> progress reaches Completado -> download the zip named format_4_<country>.csv.zip.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "New spec e2e/formato4-real-api.spec.ts points the frontend's API base at the REAL backend (config.js API_URL -> REAL_BACKEND/api/v1, default http://127.0.0.1:8000, NOT the Node mock on :5000) and drives Formato 4: navigate to the module, Ejecutar a country, the card reaches the 'Completado' badge, then a Download yields a zip whose suggestedFilename matches /^format_4_<country>\\.csv\\.zip$/ (real backend has NO _period suffix the mock adds).", "how_to_verify": "Start fake backend (DATABRICKS_FAKE=true AUTH_ENABLED=false fresh RUN_REGISTRY_DB_PATH) + npm run dev:e2e, then REAL_BACKEND=http://127.0.0.1:8000 npx playwright test e2e/formato4-real-api.spec.ts -> all tests pass."},
+    {"id": "ac2", "criterion": "The real-backend spec is isolated so the default backend-less mock run stays green: it self-skips (test.skip) unless REAL_BACKEND is set, so `npx playwright test` without a live Python backend does NOT execute (and cannot fail) it.", "how_to_verify": "grep the spec for a REAL_BACKEND skip guard; run `npx playwright test e2e/formato4-real-api.spec.ts` WITHOUT REAL_BACKEND -> reported as skipped, exit 0."},
+    {"id": "ac3", "criterion": "mock-server/hybrid-proxy.js proxies /api/v1/formato4/* to the real backend (closes the gap the ticket flags: today only trigger/events are proxied), and the manual integration runbook is documented (how to start the fake backend + dev server + run the spec).", "how_to_verify": "grep hybrid-proxy.js for formato4 proxy stanzas; spec header / AGENTS documents the manual gate command."},
+    {"id": "ac4", "criterion": "Lint + typecheck clean; existing mock formato4 e2e and unit tests unaffected.", "how_to_verify": "npm run lint && npx tsc -b -> exit 0."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Write e2e/formato4-real-api.spec.ts: config.js interception -> REAL_BACKEND/api/v1; self-skip unless REAL_BACKEND set; drive navigate -> Ejecutar -> Completado -> download; assert filename format_4_<country>.csv.zip. Reuse existing helpers + the startFormato4/card patterns from formato4.spec.ts.", "status": "incomplete"},
+    {"id": "t2", "desc": "Add formato4 proxy stanzas to mock-server/hybrid-proxy.js (/api/v1/formato4/* incl download) per the ticket gap note.", "status": "incomplete"},
+    {"id": "t3", "desc": "Document the manual integration gate (spec header + a short runbook).", "status": "incomplete"},
+    {"id": "t4", "desc": "VERIFY: lint + tsc; run the new spec against a live fake-mode backend (pass); confirm it self-skips without REAL_BACKEND.", "status": "blocked"}
+  ],
+  "status": "PARKED needs-human, blocked by MTR-63",
+  "outcome": "t1/t2/t3 done (spec + hybrid-proxy + runbook); lint+tsc green; spec self-skips without REAL_BACKEND. t4 BLOCKED: against the live fake-mode backend the card never reaches Completado because GET /formato4/runs (list, what the card polls) doesn't reconcile active runs — only GET /runs/{id} (detail) does. Real mock-vs-real divergence (MTR-63), affects mtr/weighting/prices too. Test is correct and left as-is; not weakened. No PR opened (acceptance not met). Re-run /harness MTR-62 after MTR-63 lands."
+}
