@@ -78,3 +78,25 @@ export interface PricesRunCreate {
   period: number
   parameters?: Record<string, unknown>
 }
+
+/**
+ * Shared prices process config (JAA-646), persisted via the JAA-642
+ * `process_config` backend (GET/PUT /config/processes/prices).
+ *
+ * NOTE: these params are intentionally **dummy placeholders** — provisional, to
+ * be replaced once the real prices config fields are defined. The value of this
+ * issue is the end-to-end path (table → endpoint → dialog → shared persistence
+ * + role gating); only the field set changes later.
+ */
+export interface PricesConfig {
+  placeholder_param_1: number
+  placeholder_param_2: string
+  notes: string
+}
+
+/** Built-in defaults used when the backend has no prices config row yet. */
+export const DEFAULT_PRICES_CONFIG: PricesConfig = {
+  placeholder_param_1: 0,
+  placeholder_param_2: "",
+  notes: "",
+}
