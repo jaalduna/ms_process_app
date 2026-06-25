@@ -65,6 +65,9 @@ Note: e2e timeouts are 5 min (syncs are slow); servers are started manually (`we
 
 ## Run / init
 - Dev server: `npm run dev` → http://[::1]:5173/ms-process-app/ (for e2e use `npm run dev:e2e` = auth bypass)
+- **Remote dev build (no login gate):** `npm run build:dev-noauth` (= `vite build --mode dev-noauth`,
+  reads `.env.dev-noauth` instead of `.env.production`, so `VITE_AUTH_BYPASS=true` is baked in →
+  `DevAuthProvider`, same-origin `/api/v1`). Used for the dev App Service deploy (JAA-656).
 - Mock backend: `npm run mock` (fixtures in `mock-server/fixtures/`, routes in `mock-server/routes/`)
 - Tauri desktop: `npm run tauri:dev` (rarely needed for feature work)
 - Env: copy `.env.example` → `.env.local`; mock-server may need its own `.env` (GitHub OAuth, JWT).

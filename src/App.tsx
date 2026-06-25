@@ -10,7 +10,7 @@ import { useModuleConfig } from "@/hooks/useModuleConfig"
 import { useAuth } from "@/hooks/useAuth"
 import { allModules, hasModuleAccess } from "@/modules/registry"
 import { Skeleton } from "@/components/ui/skeleton"
-import { authBypassed } from "@/lib/runtime-mode"
+import { loadAuthProvider } from "@/lib/auth-provider"
 import { setTelemetryUser, trackPageView } from "@/lib/telemetry"
 
 const LoginPage = lazy(() => import("@/pages/LoginPage"))
@@ -27,25 +27,10 @@ const queryClient = new QueryClient({
 const isTauri = '__TAURI_INTERNALS__' in window
 const basename = isTauri ? "/" : import.meta.env.BASE_URL
 
-// Resolve the auth provider at render time (NOT module scope): in the bundled
-// single-exe build, mock mode is only known after config.json is read in main.tsx,
-// so authBypassed()/authProvider must be evaluated after that runs.
-// Only the selected provider's chunk is fetched (keeps MSAL ~220KB out of the bundle).
-function loadAuthProvider() {
-  if (authBypassed()) {
-    return import("@/components/DevAuthProvider").then((m) => ({ default: m.DevAuthProvider }))
-  }
-  const provider =
-    import.meta.env.VITE_AUTH_PROVIDER ??
-    (window as unknown as { __APP_CONFIG__?: { authProvider?: string } }).__APP_CONFIG__?.authProvider
-  if (provider === "azure-builtin") {
-    return import("@/components/AzureBuiltInAuthProvider").then((m) => ({ default: m.AzureBuiltInAuthProvider }))
-  }
-  if (provider === "github") {
-    return import("@/components/GithubAuthProvider").then((m) => ({ default: m.GithubAuthProvider }))
-  }
-  return import("@/components/MsalAuthProvider").then((m) => ({ default: m.MsalAuthProvider }))
-}
+// loadAuthProvider() lives in @/lib/auth-provider so it can be unit-tested in
+// isolation (JAA-656). It is evaluated lazily, at render time — NOT module scope —
+// because in the bundled single-exe build mock mode is only known after main.tsx
+// reads config.json. Only the selected provider's chunk is fetched.
 const AuthProvider = lazy(loadAuthProvider)
 
 /**

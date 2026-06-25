@@ -10,6 +10,7 @@
     "dev": "vite",
     "dev:e2e": "VITE_AUTH_BYPASS=true vite",
     "build": "tsc -b && vite build",
+    "build:dev-noauth": "tsc -b && vite build --mode dev-noauth",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
