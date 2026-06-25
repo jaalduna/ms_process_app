@@ -109,3 +109,47 @@ export interface PublishResponse {
 export type IdPesoPayload = { rows: IdPesoConfigRow[] }
 export type VariablesPayload = { q_vars: string[]; m_vars: string[] }
 export type WeightingParamsPayload = IdPesoPayload | VariablesPayload
+
+// ---- Universo Excel upload flow (JAA-580 / JAA-583) -----------------------
+
+/** Row counts of the preview diff between the uploaded Excel and the current
+ *  published Universo. */
+export interface UniversoUploadPreview {
+  added: number
+  removed: number
+  changed: number
+}
+
+/** Response of POST /weighting/params/{pais}/universo/upload. The server parses
+ *  + validates the .xlsx; on `valid` it mints an `upload_token` to be confirmed
+ *  by publish. When invalid, `errors` carries the failing row/column and
+ *  `upload_token` is null (nothing is persisted). */
+export interface UniversoUploadResponse {
+  valid: boolean
+  errors: ServerValidationError[]
+  preview: UniversoUploadPreview
+  upload_token: string | null
+}
+
+/** Metadata for one published weighting-params version (history entry). Mirrors
+ *  the ms-process-api `WeightingParamsVersion` (JAA-579 / JAA-580). */
+export interface WeightingParamsVersion {
+  version: number
+  version_id: string
+  hash: string
+  published_by: string | null
+  published_at: string
+  diff: Record<string, unknown>
+}
+
+/** Response of POST /weighting/params/{pais}/universo/publish. `version` is the
+ *  nested version object (NOT a flat number) — matches the real JAA-580
+ *  `UniversoPublishResponse`. `unchanged` is true when re-publishing identical
+ *  content ("Sin cambios"). */
+export interface UniversoPublishResponse {
+  country: string
+  table: string
+  unchanged: boolean
+  row_count: number
+  version: WeightingParamsVersion
+}

@@ -8,6 +8,7 @@ import { eligibilityStore, seedEligibility } from "./eligibility.js"
 import { processStore, seedProcesses } from "./processes.js"
 import { tagStore, seedTraceability } from "./traceability.js"
 import { seedParams } from "./params.js"
+import { resetWeightingParams } from "./weighting-params.js"
 import { seedProcessConfig } from "./process_config.js"
 import { seedSyncJobs } from "../fixtures/seed.js"
 
@@ -29,6 +30,7 @@ router.post("/test/reset", (_req, res) => {
   eligibilityStore.reset()
   processStore.reset()
   tagStore.reset()
+  resetWeightingParams()
 
   // Enable deterministic mode on all run stores so E2E happy-path tests
   // never fail due to the 5% random failure in _advanceStep().

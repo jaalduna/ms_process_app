@@ -2,6 +2,37 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-06-25 — JAA-583 (UI carga Excel Universo: subir→validar→diff→publicar) — EVALUATOR PASS, PR armed
+**What:** Excel-upload wizard in the Pesaje "Parametros → Universo" tab. New
+`UniversoUploadWizard.tsx` (drop zone adapted from MordomUploadZone, accept .xlsx) drives
+`uploadUniverso(pais,file)` → POST /weighting/params/{pais}/universo/upload (validate) → renders
+preview diff {added,removed,changed} when valid (Publicar enabled only on valid && upload_token) or
+the failing row/column errors when invalid (Publicar disabled); on confirm `publishUniverso(pais,
+token)` → POST .../universo/publish, invalidates ['weighting-params','universo',pais] so the
+UniversoTab card badge re-fetches the new row_count. Mock seam: new
+`mock-server/routes/weighting-params.js` (also serves the JAA-576/578/579 GET/validate/publish
+routes) + universo upload/publish (valid/invalid keyed off ?filename, token minted only when valid,
+consumed-once → 404), `resetWeightingParams()` wired into /test/reset.
+**Contract-fidelity fix (this session):** the inherited commit modeled `UniversoPublishResponse`
+flat (`version: number` + author/hash) — DIVERGED from the real JAA-580 API
+(ms-process-api@8ecf8d2) which returns nested `version: WeightingParamsVersion{version,version_id,
+hash,published_by,published_at,diff}`. The wizard toast read `data.version`, so against the REAL
+backend it would render "v[object Object]". Aligned types.ts + wizard (data.version.version) + mock
+publish (nested version, version_id `wv_universo_<pais>_<n>`) + both tests to the real shape.
+**Verify:** vitest 356/356 (incl UniversoUploadWizard 3/3 + mock contract weighting-params-universo
+7/7), eslint clean, tsc -b clean, prod build green; Playwright smoke e2e/universo-excel.spec.ts 2/2
+(valid 6→7 filas + publish; invalid 'fila 4 · Q2-26' + Publicar disabled) on mock:8000 + dev:e2e.
+**Evaluator:** separate skeptical ux-ui-reviewer/sonnet, fresh ctx, re-ran build → ALL 5 ACs PASS →
+eval_feedback/JAA-583.json.
+**Capture-don't-chase:** the real JAA-580 GET /universo reads the Parametros/Universo.parquet while
+publish writes the SQLite WeightingStore (table universo) — so on the REAL backend publishing does
+NOT change what GET /universo returns (the card wouldn't reflect the new version until the
+parquet/UC write, which is JAA-582). The mock makes GET reflect published rows, so the FE flow is
+correct against the seam; the backend read/write-store mismatch is a separate gap → filing a
+follow-up related to JAA-580/JAA-582.
+**NEXT:** push branch → PR to develop (auto-complete armed). Build green → auto-complete merges; a
+later /harness JAA-583 re-run (Orient → step 7) confirms merge, cleans worktree, sets Done.
+
 ## 2026-06-24 — MTR-62 (Formato 4 e2e vs real fake-mode ms-process-api) — EVALUATOR PASS, PR armed
 **What:** Re-ran now that the blocker **MTR-63 landed** (backend list-reconcile, origin/develop
 commit 9898931 — `GET /{process}/runs` reconciles active Databricks runs). No frontend code change

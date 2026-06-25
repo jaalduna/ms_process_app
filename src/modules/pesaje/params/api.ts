@@ -7,7 +7,9 @@ import type {
   IdPesoConfigResponse,
   PublishableTable,
   PublishResponse,
+  UniversoPublishResponse,
   UniversoResponse,
+  UniversoUploadResponse,
   ValidateResponse,
   WeightingParamsPayload,
   WeightingVariablesResponse,
@@ -43,5 +45,31 @@ export async function publishWeightingParams(
   payload: WeightingParamsPayload,
 ): Promise<PublishResponse> {
   const { data } = await api.post<PublishResponse>(`/weighting/params/${pais}/${tabla}/publish`, payload)
+  return data
+}
+
+// ---- Universo Excel upload flow (JAA-580 / JAA-583) -----------------------
+
+/** Upload the Universo `.xlsx` for parsing + validation. The backend parses the
+ *  country sheet (openpyxl) and returns validation + a preview diff; the mock
+ *  stubs valid/invalid by filename (no multipart parser), so the filename is
+ *  passed as a query param. */
+export async function uploadUniverso(pais: string, file: File): Promise<UniversoUploadResponse> {
+  const formData = new FormData()
+  formData.append("file", file)
+  const { data } = await api.post<UniversoUploadResponse>(
+    `/weighting/params/${pais}/universo/upload?filename=${encodeURIComponent(file.name)}`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  )
+  return data
+}
+
+/** Confirm a previously validated upload_token → write a new versioned Universo. */
+export async function publishUniverso(pais: string, uploadToken: string): Promise<UniversoPublishResponse> {
+  const { data } = await api.post<UniversoPublishResponse>(
+    `/weighting/params/${pais}/universo/publish`,
+    { upload_token: uploadToken },
+  )
   return data
 }

@@ -1,0 +1,28 @@
+{
+  "ticket": "JAA-583",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-583",
+  "title": "[frontend] UI carga Excel Universo (upload → validate → preview diff → publish)",
+  "archetype": "webapp",
+  "branch": "feat/JAA-583-universo-excel-wizard",
+  "base": "ado/develop",
+  "base_commit": "70c382f",
+  "mode": "direct",
+  "goal": "Wire the Excel-upload wizard into the Universo tab (src/modules/pesaje/params/UniversoTab.tsx): subir .xlsx → POST .../universo/upload (validate) → render preview diff {added,removed,changed} or per-row/column errors (Publicar disabled if invalid) → POST .../universo/publish {upload_token} → refresh Universo card. Contract = JAA-580; mock-server is the seam.",
+  "contract_note": "Real JAA-580 shapes (ms-process-api@8ecf8d2): upload -> {country, valid, errors:FieldError[], preview:{added:int,removed:int,changed:int}, upload_token:str|null}; publish body {upload_token} -> {country, table:'universo', unchanged:bool, row_count:int, version:WeightingParamsVersion{version:int,version_id,hash,published_by,published_at,diff}}. FieldError={row:int|null, field:str, message:str}. Invalid file=400 {error:'invalid_file'}; bad/consumed/cross-country token=404 {error:'not_found'}.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "Uploading a valid xlsx shows the preview diff (added/removed/changed counts) before publish and enables Publicar.", "how_to_verify": "vitest src/__tests__/UniversoUploadWizard.test.tsx (valid flow renders preview-added/removed/changed, universo-publish enabled); mock contract test ac1."},
+    {"id": "ac2", "criterion": "Uploading an invalid xlsx shows which row/column fails and leaves Publicar disabled.", "how_to_verify": "vitest (invalid flow: errors panel shows 'fila N · field', universo-publish toBeDisabled); mock contract test: valid:false, errors[{row,field,message}], upload_token null."},
+    {"id": "ac3", "criterion": "Publishing with the upload_token persists and the Universo card reflects the new version.", "how_to_verify": "publishUniverso called with token; usePublishUniverso invalidates ['weighting-params','universo',pais]; mock publish bumps version + row_count; GET universo re-fetch reflects new row_count in the card badge."},
+    {"id": "ac4", "criterion": "npm run build && npm run test green (API mocked) + lint + tsc.", "how_to_verify": "npm run test && npm run lint && npx tsc -b && npm run build all exit 0; mock contract suite green."},
+    {"id": "ac5", "criterion": "Publish-response shape matches the real JAA-580 contract (version is the nested WeightingParamsVersion object, not a flat number) so the mock seam does not diverge from ms-process-api.", "how_to_verify": "types.ts UniversoPublishResponse.version is WeightingParamsVersion; wizard toast reads data.version.version; mock publish returns nested version object; vitest + mock contract assert the nested shape."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Inherit prior complete implementation (wizard, api, hooks, mock route, tests, UniversoTab wiring).", "status": "complete"},
+    {"id": "t2", "desc": "Fix UniversoPublishResponse contract divergence: nest version as WeightingParamsVersion in types.ts, wizard toast, mock route, and tests.", "status": "complete"},
+    {"id": "t3", "desc": "Run VERIFY_CMD (vitest + lint + tsc + build + mock contract).", "status": "complete"},
+    {"id": "t4", "desc": "Separate skeptical evaluator (sonnet).", "status": "incomplete"},
+    {"id": "t5", "desc": "Commit, push, PR to develop with auto-complete; capture GET-universo parquet-vs-store divergence as follow-up.", "status": "incomplete"}
+  ],
+  "out_of_scope": "UC write (JAA-582). Real xlsx parsing in the mock (mock stubs valid/invalid by filename). Backend GET-universo reads parquet while publish writes WeightingStore (JAA-580/582 concern) — captured separately.",
+  "status": "in_progress"
+}

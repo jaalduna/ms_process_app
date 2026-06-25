@@ -1,15 +1,19 @@
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Lock, Info } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Loader2, Lock, Info, Upload } from "lucide-react"
 import { useUniverso } from "./hooks"
 import { UNIVERSO_PERIODS } from "./types"
+import { UniversoUploadWizard } from "./UniversoUploadWizard"
 
 /**
- * Universo — read-only here. The current versioned table + its version metadata
- * come from the API (JAA-576). Editing/publishing the Universo is done through
- * the Excel upload flow tracked in JAA-582; this tab is that container.
+ * Universo — read-only table of the current versioned strata (JAA-576). The
+ * Universo changes by uploading an Excel: subir → validar → previsualizar diff
+ * → publicar a new version (JAA-583), via the wizard launched from here.
  */
 export function UniversoTab({ pais, country }: { pais: string; country: string }) {
   const query = useUniverso(pais)
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   if (query.isLoading)
     return (
@@ -34,16 +38,24 @@ export function UniversoTab({ pais, country }: { pais: string; country: string }
         <p className="text-sm text-muted-foreground">
           Estratos del universo para <span className="font-medium">{country}</span> (versión publicada).
         </p>
-        <Badge variant="outline" className="gap-1 font-mono text-muted-foreground" data-testid="universo-version">
-          v·{data.version.hash.slice(0, 8)} · {data.version.row_count} filas
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="gap-1 font-mono text-muted-foreground" data-testid="universo-version">
+            v·{data.version.hash.slice(0, 8)} · {data.version.row_count} filas
+          </Badge>
+          <Button size="sm" data-testid="universo-upload-open" onClick={() => setWizardOpen(true)}>
+            <Upload className="h-4 w-4" />
+            Actualizar desde Excel
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
         <Info className="h-3.5 w-3.5 shrink-0" />
-        La edición del Universo se hace cargando un Excel (validación + preview + publicación
-        versionada). Esa carga es la issue <span className="font-mono">JAA-582</span>.
+        La edición del Universo se hace cargando un Excel: subir, validar, previsualizar el diff y
+        publicar una versión nueva. Usa <span className="font-medium">«Actualizar desde Excel»</span>.
       </div>
+
+      <UniversoUploadWizard pais={pais} country={country} open={wizardOpen} onOpenChange={setWizardOpen} />
 
       <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
         <table className="w-full text-sm">

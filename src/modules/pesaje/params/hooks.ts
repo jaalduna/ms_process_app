@@ -6,7 +6,9 @@ import {
   getIdPesoConfig,
   getUniverso,
   getWeightingVariables,
+  publishUniverso,
   publishWeightingParams,
+  uploadUniverso,
   validateWeightingParams,
 } from "./api"
 import type { PublishableTable, WeightingParamsPayload } from "./types"
@@ -48,5 +50,24 @@ export function usePublishWeightingParams(pais: string, tabla: PublishableTable)
 export function useValidateWeightingParams(pais: string, tabla: string) {
   return useMutation({
     mutationFn: (payload: WeightingParamsPayload) => validateWeightingParams(pais, tabla, payload),
+  })
+}
+
+// ---- Universo Excel upload flow (JAA-583) ---------------------------------
+
+/** Upload + validate a Universo `.xlsx` → preview diff. Does not persist. */
+export function useUploadUniverso(pais: string) {
+  return useMutation({
+    mutationFn: (file: File) => uploadUniverso(pais, file),
+  })
+}
+
+/** Confirm a validated upload_token → publish a new Universo version, then
+ *  refresh the published table shown in the card. */
+export function usePublishUniverso(pais: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (uploadToken: string) => publishUniverso(pais, uploadToken),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["weighting-params", "universo", pais] }),
   })
 }

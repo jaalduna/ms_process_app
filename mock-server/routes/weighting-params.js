@@ -103,6 +103,12 @@ function seedUniverso() {
 
 const state = {}
 
+// Validated-but-not-yet-published Universo uploads. token -> { pais, rows }.
+// Minted on a valid upload, consumed (deleted) on publish — so a token publishes
+// at most once. Mirrors the real `universo_uploads` pending-token table.
+const pendingUploads = new Map()
+let uploadCounter = 0
+
 function ensureCountry(pais) {
   if (!state[pais]) {
     state[pais] = {
@@ -255,6 +261,117 @@ router.get("/weighting/params/:pais/universo", (req, res) => {
   })
 })
 
+// ---------------------------------------------------------------------------
+// Universo Excel upload flow (JAA-580 / JAA-583): subir .xlsx -> validar ->
+// preview diff -> publicar versión nueva. Declared BEFORE the generic
+// /:tabla/publish so "universo/publish" is not shadowed by it.
+//
+// The mock has no multipart/xlsx parser (the real backend uses openpyxl); it
+// decides valid/invalid from the ?filename query — filenames containing
+// "invalid" simulate a bad sheet. A valid upload synthesizes the parsed rows
+// (current + one new strata + a bumped marginal) so the preview diff and the
+// post-publish version are deterministic and non-trivial.
+// ---------------------------------------------------------------------------
+
+function synthesizeUpload(currentRows) {
+  const next = currentRows.map((r) => ({
+    ...r,
+    marginales_por_periodo: { ...r.marginales_por_periodo },
+  }))
+  // changed = 1: bump one existing leaf's marginals
+  const leaf = next.find((r) => r.marginales === 1)
+  if (leaf) for (const p of UNIVERSO_PERIODS) leaf.marginales_por_periodo[p] += 1000
+  // added = 1: one brand-new strata
+  next.push({
+    categoria: "F (nuevo)",
+    expresion: "[NSE_AIM] = 0",
+    jerarquia: 1,
+    secuencia: next.length,
+    marginales: 1,
+    marginales_por_periodo: { "Q3-25": 1000, "Q4-25": 1000, "Q1-26": 1000, "Q2-26": 1000 },
+  })
+  return next
+}
+
+function previewDiff(before, after) {
+  const key = (r) => r.categoria
+  const beforeKeys = new Set(before.map(key))
+  const beforeByKey = new Map(before.map((r) => [key(r), r]))
+  const afterKeys = new Set(after.map(key))
+  const added = after.filter((r) => !beforeKeys.has(key(r))).length
+  const removed = before.filter((r) => !afterKeys.has(key(r))).length
+  let changed = 0
+  for (const r of after) {
+    const b = beforeByKey.get(key(r))
+    if (b && JSON.stringify(b.marginales_por_periodo) !== JSON.stringify(r.marginales_por_periodo)) changed++
+  }
+  return { added, removed, changed }
+}
+
+router.post("/weighting/params/:pais/universo/upload", (req, res) => {
+  const { pais } = req.params
+  if (!isKnownCountry(pais)) return notFoundCountry(res, pais)
+  const filename = String(req.query.filename || "Universo.xlsx")
+  if (/invalid/i.test(filename)) {
+    return res.json({
+      valid: false,
+      errors: [
+        { row: 3, field: "Q2-26", message: "Se esperaba un entero ≥ 0; se encontró texto." },
+        { row: null, field: "Q1-26", message: "Falta la columna 'Q1-26' en la hoja del país." },
+      ],
+      preview: { added: 0, removed: 0, changed: 0 },
+      upload_token: null,
+    })
+  }
+  const current = ensureCountry(pais).universo.rows
+  const nextRows = synthesizeUpload(current)
+  uploadCounter += 1
+  const token = `utok_${pais}_${uploadCounter}`
+  pendingUploads.set(token, { pais, rows: nextRows })
+  res.json({
+    valid: true,
+    errors: [],
+    preview: previewDiff(current, nextRows),
+    upload_token: token,
+  })
+})
+
+router.post("/weighting/params/:pais/universo/publish", (req, res) => {
+  const { pais } = req.params
+  if (!isKnownCountry(pais)) return notFoundCountry(res, pais)
+  const token = req.body?.upload_token
+  const pending = token ? pendingUploads.get(token) : null
+  if (!pending || pending.pais !== pais) {
+    return res.status(404).json({
+      error: "not_found",
+      message: "upload_token inválido, ya consumido o de otro país.",
+    })
+  }
+  pendingUploads.delete(token)
+  const entry = ensureCountry(pais).universo
+  entry.rows = pending.rows
+  const hash = contentHash({ rows: entry.rows })
+  const nextVersion = entry.history.length + 1
+  // Mirror the real JAA-580 UniversoPublishResponse: `version` is the nested
+  // WeightingParamsVersion object (NOT a flat number).
+  const version = {
+    version: nextVersion,
+    version_id: `wv_universo_${pais}_${nextVersion}`,
+    hash,
+    published_by: "dev@local",
+    published_at: "2026-06-25T12:00:00Z",
+    diff: {},
+  }
+  entry.history.push({ ...version, row_count: entry.rows.length })
+  res.json({
+    country: pais,
+    table: "universo",
+    unchanged: false,
+    row_count: entry.rows.length,
+    version,
+  })
+})
+
 router.post("/weighting/params/:pais/:tabla/validate", (req, res) => {
   const { pais, tabla } = req.params
   if (!isKnownCountry(pais)) return notFoundCountry(res, pais)
@@ -329,6 +446,14 @@ router.get("/weighting/params/:pais/:tabla/history", (req, res) => {
 
 function normalizeStored(tabla, rows) {
   return tabla === "variables" ? rows : { rows }
+}
+
+// Reset all weighting-params state (re-seeded lazily per country on next GET)
+// and drop any pending Universo uploads — keeps e2e runs deterministic.
+export function resetWeightingParams() {
+  for (const k of Object.keys(state)) delete state[k]
+  pendingUploads.clear()
+  uploadCounter = 0
 }
 
 function notFoundCountry(res, pais) {
