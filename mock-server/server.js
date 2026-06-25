@@ -19,6 +19,7 @@ import telemetryRouter from "./routes/telemetry.js"
 import feedbackRouter from "./routes/feedback.js"
 import processConfigRouter from "./routes/process_config.js"
 import paramsRouter from "./routes/params.js"
+import weightingParamsRouter from "./routes/weighting-params.js"
 import { seedAll } from "./fixtures/seed.js"
 
 const app = express()
@@ -113,6 +114,7 @@ app.use("/api/v1", adminRouter)
 app.use("/api/v1", telemetryRouter)
 app.use("/api/v1", feedbackRouter)
 app.use("/api/v1", paramsRouter)
+app.use("/api/v1", weightingParamsRouter)
 app.use("/api/v1", processConfigRouter)
 
 // ---------------------------------------------------------------------------

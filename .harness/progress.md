@@ -725,3 +725,27 @@ in the correct repo (direct mode → ado/develop).
 
 **Next:** land MTR-63, then re-run `/harness MTR-62` (spec already encodes the full assertion; goes
 green with REAL_BACKEND set).
+
+## 2026-06-25 — JAA-581 (Pesaje Parámetros tab → real weighting-params API) — IN REVIEW
+**What:** Wired the Pesaje "Parámetros" tab (3-level hierarchy, scaffolded mockup from the prior
+JAA-581 merge) to the real weighting-params API and added the mock-server contract seam.
+- New `src/modules/pesaje/params/`: types.ts, api.ts (`@/lib/api` axios), hooks.ts (react-query
+  GET idpeso-config/variables/universo + validate + publish), validation.ts (ported pure
+  validators/diff), StatusPill, ReviewPublishDialog (runs server `/validate` on open → inline
+  errors; async real publish), IdPesoTab + VariablesTab (editable→publish), UniversoTab (read-only
+  + version; Universo Excel edit deferred to JAA-582 — container/note left).
+- Rewrote PesajeParametrosTab to use the wired components; dropped the "Mockup" badge and the fake
+  "Guardar/Publicar (mockup — sin escritura real)" handlers (Nivel 1 & 3 are read-only reference of
+  run-launch params).
+- Deleted the orphaned `src/modules/parametros/` module (mockData + components + page; not in the
+  module registry — only PesajeParametrosTab consumed it).
+- mock-server: `routes/weighting-params.js` (GET x3, POST validate, POST publish [validate-gate
+  422 + idempotent unchanged], GET history) registered in server.js. Validators mirror the client.
+**Verify:** vitest 350 passed (new PesajeParametrosTab.test.tsx: ac1 order+collapsed, ac2 API data,
+ac3 edit→publish→"Sin cambios", ac4 server validate errors inline+blocked); eslint clean; tsc -b
+clean; npm run build exit 0; live mock-server curl (idpeso/variables/universo/validate/publish/
+unchanged/404) all correct. Separate skeptical evaluator (general-purpose, Sonnet, fresh ctx):
+ALL 5 ACs PASS → eval_feedback/JAA-581.json.
+**PR:** → develop (direct mode), auto-complete to be armed at creation. Linear → In Review.
+**NEXT:** Build green → auto-complete merges; a later /harness JAA-581 re-run (Orient → step 7)
+confirms merge + cleans worktree + sets Done. Unblocks JAA-583 (UI carga Excel Universo / JAA-582).

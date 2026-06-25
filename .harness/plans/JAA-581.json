@@ -1,0 +1,71 @@
+{
+  "ticket": "JAA-581",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-581",
+  "branch": "feat/JAA-581-parametros-real-api",
+  "archetype": "webapp",
+  "goal": "Wire the Pesaje 'Parametros' tab (3-level hierarchy) to the real weighting-params API via react-query hooks (GET/validate/publish), add the mock-server seam, and drop mockData + the 'Mockup' badge.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "The Parametros tab shows the 3 volatility levels in order (1 De ejecucion, 2 Insumos versionados, 3 Estaticos/Avanzados) and the advanced level starts collapsed.",
+      "how_to_verify": "vitest: render PesajeParametrosTab, assert level headers present in order and Nivel 3 content hidden until expanded."
+    },
+    {
+      "id": "ac2",
+      "criterion": "Insumos tabs (IdPeso_Config, Variables, Universo) load their data from the API per country (no parametros/mockData.ts). mockData.ts and the orphaned parametros module are removed.",
+      "how_to_verify": "vitest: mock the params api module, assert API rows render; grep shows no import of @/modules/parametros and no mockData.ts file."
+    },
+    {
+      "id": "ac3",
+      "criterion": "Editing IdPeso_Config / Variables + 'Revisar y publicar' calls the real publish endpoint; after a successful publish the StatusPill returns to 'Sin cambios'.",
+      "how_to_verify": "vitest: edit a cell -> StatusPill shows changes -> open review -> confirm -> publish mutation called with draft -> StatusPill shows 'Sin cambios'."
+    },
+    {
+      "id": "ac4",
+      "criterion": "Validation errors from the server validate endpoint are shown inline in the review dialog (row/field/message).",
+      "how_to_verify": "vitest: mock validate to return errors[{row,field,message}] -> open review -> assert each error message is rendered; publish button blocked."
+    },
+    {
+      "id": "ac5",
+      "criterion": "mock-server exposes GET idpeso-config/variables/universo, POST {tabla}/validate, POST {tabla}/publish, GET {tabla}/history under /weighting/params/{pais}, and npm run build + npm test + lint + tsc pass.",
+      "how_to_verify": "node smoke of mock route handlers; npm run build && npm test && npm run lint && npx tsc -b."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "mock-server/routes/weighting-params.js (GET x3, validate, publish, history) + register in server.js",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "pesaje/params: types.ts, api.ts, hooks.ts, validation.ts (port validators+diff)",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Wired tab components: IdPesoTab, VariablesTab (editable+publish), UniversoTab (read-only+version), StatusPill, ReviewPublishDialog (server validate + async publish)",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Rewrite PesajeParametrosTab to use params/ components, remove Mockup badges, keep Universo JAA-582 container note",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Delete orphaned src/modules/parametros/ (mockData + components + page)",
+      "status": "complete"
+    },
+    {
+      "id": "t6",
+      "desc": "Tests: PesajeParametrosTab wiring + params editor behaviour; update PesajePage.test",
+      "status": "complete"
+    },
+    {
+      "id": "t7",
+      "desc": "VERIFY_CMD green (build+test+lint+tsc); evaluator subagent",
+      "status": "complete"
+    }
+  ]
+}

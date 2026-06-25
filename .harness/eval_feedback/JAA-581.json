@@ -1,0 +1,14 @@
+{
+  "ticket": "JAA-581",
+  "evaluator": "general-purpose (Sonnet), separate context",
+  "date": "2026-06-25",
+  "overall": "PASS",
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "3 niveles in order (1 De ejecución, 2 Insumos versionados, 3 Estáticos/Avanzados); Radix Collapsible starts closed → advanced-content absent until toggle. No Mockup badge. component test ac1 passed."},
+    {"id": "ac2", "verdict": "PASS", "evidence": "src/modules/parametros deleted; grep modules/parametros (non-eleg) → 0; data via react-query hooks (pesaje/params/hooks.ts + api.ts on @/lib/api)."},
+    {"id": "ac3", "verdict": "PASS", "evidence": "handlePublish → publish.mutateAsync (real POST); no 'sin escritura real' strings; test asserts publish called with edited draft + pill returns 'Sin cambios'."},
+    {"id": "ac4", "verdict": "PASS", "evidence": "ReviewPublishDialog runs server validate on open, merges errors, blocks publish; test asserts server error rendered inline (fila 1 · periodos) + confirm disabled + publish not called."},
+    {"id": "ac5", "verdict": "PASS", "evidence": "mock-server/routes/weighting-params.js mounted at /api/v1; live curl GET/validate/publish/404 all correct (own run also confirmed double-publish unchanged:true with valid payload). vitest 350 passed, eslint clean, tsc clean, build 0."}
+  ],
+  "gate": {"vitest": "350 passed", "eslint": "clean", "tsc": "clean", "build": "exit 0", "mock_live_curl": "ok"}
+}
