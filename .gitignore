@@ -40,3 +40,6 @@ test-results/
 playwright-report/
 .claude/worktrees/
 spa.zip
+
+# Playwright MCP ephemeral output
+.playwright-mcp/
