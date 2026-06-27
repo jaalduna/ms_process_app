@@ -52,10 +52,13 @@ test.describe("Calibración Module E2E", () => {
     const cards = page.locator('[data-slot="card"]')
     expect(await cards.count()).toBe(9)
 
-    // Full availability → Calibrar enabled (Mexico is seeded full + forced pass).
+    // JAA-570: availability is forced to UNKNOWN ("?") for every card until the
+    // real elegibilidad/pesaje check is wired (the dev cloud env has no on-prem
+    // SQL, so the backend returns meaningless `false`s). Unknown does NOT block
+    // triggering — only an explicit `false` would — so Calibrar is enabled for
+    // every country, regardless of the mock's seeded availability spread.
     await expect(countryCard(page, "Mexico").getByRole("button", { name: /^Calibrar$/ })).toBeEnabled()
-    // No availability → Calibrar disabled (Ecuador is seeded with no data).
-    await expect(countryCard(page, "Ecuador").getByRole("button", { name: /^Calibrar$/ })).toBeDisabled()
+    await expect(countryCard(page, "Ecuador").getByRole("button", { name: /^Calibrar$/ })).toBeEnabled()
   })
 
   // @flow (not @smoke): this triggers a run AND opens the detail modal — the

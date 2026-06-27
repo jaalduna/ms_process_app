@@ -5,7 +5,7 @@ import { CalibrationConfigDialog } from "../components/CalibrationConfigDialog"
 import { CountryCard } from "../components/CountryCard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCountries } from "@/hooks/useCountries"
-import { useDataAvailability } from "../hooks/useDataAvailability"
+// useDataAvailability intentionally not used for now — see UNKNOWN_AVAILABILITY (JAA-570).
 import { useLastSync } from "@/hooks/useLastSync"
 import { useLastCalibration } from "../hooks/useLastCalibration"
 import {
@@ -24,7 +24,13 @@ function currentPeriod(): string {
   return `${yyyy}${mm}`
 }
 
-const NO_DATA: DataAvailability = { elegibilidad: false, pesaje: false }
+// Unknown availability: the elegibilidad/pesaje checks can't be determined a
+// priori yet (the dev cloud env has no on-prem SQL connectivity, so the backend
+// returns meaningless `false`s). Until the real check is implemented, force every
+// card to "?" and keep triggering enabled (JAA-570). To re-enable the real
+// signal: restore `useDataAvailability(period)` and pass
+// `availability?.[c.code] ?? UNKNOWN_AVAILABILITY`.
+const UNKNOWN_AVAILABILITY: DataAvailability = { elegibilidad: null, pesaje: null }
 
 export function CalibrationPage() {
   const [period, setPeriod] = useState(currentPeriod)
@@ -40,7 +46,6 @@ export function CalibrationPage() {
     }
   }, [])
   const { data, isLoading, error } = useCountries()
-  const { data: availability, isLoading: availabilityLoading } = useDataAvailability(period)
   const { data: lastSync } = useLastSync("pesaje")
   const { data: lastCalibration } = useLastCalibration()
 
@@ -104,8 +109,8 @@ export function CalibrationPage() {
               key={c.code}
               country={c}
               period={period}
-              availability={availability?.[c.code] ?? NO_DATA}
-              availabilityLoading={availabilityLoading}
+              availability={UNKNOWN_AVAILABILITY}
+              availabilityLoading={false}
               calibrationConfig={calibrationConfig}
               lastSyncDate={lastSync?.[c.code]?.completed_at ?? null}
               lastCalibrationDate={lastCalibration?.[c.code]?.completed_at ?? null}

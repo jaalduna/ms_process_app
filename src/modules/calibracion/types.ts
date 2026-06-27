@@ -98,10 +98,14 @@ export const DEFAULT_GROUP_BY: Record<string, string> = {
   peru:     "IdProduto_Calib;IdProduto_Calib,Region",
 }
 
-/** Data availability for a country+period */
+/** Data availability for a country+period.
+ *
+ * `true` = data present, `false` = data missing, `null` = unknown (the check
+ * cannot be determined a priori yet). Unknown renders as a "?" badge and does
+ * NOT block triggering — only an explicit `false` does. */
 export interface DataAvailability {
-  elegibilidad: boolean
-  pesaje: boolean
+  elegibilidad: boolean | null
+  pesaje: boolean | null
 }
 
 /** Response from GET /metadata/data-availability */

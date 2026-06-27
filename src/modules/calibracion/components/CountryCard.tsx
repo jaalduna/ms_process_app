@@ -53,7 +53,9 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
   const isFailed = job?.status === "failed"
   const isCancelled = job?.status === "cancelled"
   const { isClosed } = useProcessEntry("calibracion", country.code)
-  const canTrigger = availability.elegibilidad && !isRunning && !isPending && !isClosed
+  // Unknown elegibilidad (null — not determinable a priori yet) must NOT block
+  // triggering; only an explicit `false` does. The "?" badge signals the gap.
+  const canTrigger = availability.elegibilidad !== false && !isRunning && !isPending && !isClosed
 
   // Per-country shared group_by (JAA-667): persisted under scope=country code,
   // falling back to the built-in DEFAULT_GROUP_BY when no row exists yet.
