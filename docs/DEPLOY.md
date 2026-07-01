@@ -27,8 +27,9 @@ verificación final responda 200.
 
 1. **Build same-origin** (`VITE_BRIDGE_API_URL=/api/v1`), con auth distinto por ambiente:
    - **dev** → `VITE_AUTH_BYPASS=true` (DevAuthProvider): el dev IP-locked abre sin pantalla de login.
-   - **prd** → `VITE_AUTH_BYPASS=false VITE_AUTH_PROVIDER=azure-builtin` (App Service Easy Auth): el
-     demo público muestra login Microsoft/Entra, igual que el pipeline `ms-process-app-deploy`.
+   - **prd** → `VITE_AUTH_BYPASS=false VITE_AUTH_PROVIDER=azure-ad` (MSAL, app registration
+     `ms-process-app-prd`): -01 no tiene Easy Auth habilitado, así que `azure-builtin` deja el
+     login en loop (`/.auth/login/aad` nunca resuelve).
    El auth por ambiente vive en el bloque `resolve_env` del script.
 2. **Inyecta `config.js`**: `vite build` copia `public/config.js` (config localhost) dentro de
    `dist/`. El script lo reemplaza por el runtime config del ambiente:
@@ -44,8 +45,8 @@ verificación final responda 200.
 
 | Env | App Service | Backend | Deploy |
 |-----|-------------|---------|--------|
-| `dev` | `app-cl-prd-nmr-wp-msproc-dev` | real `ms-process-api` (IP-locked) | `scripts/deploy-spa.sh dev` |
-| `prd` | `app-cl-prd-nmr-wp-msproc-01` | mock `ms-process-mock:demo` | `scripts/deploy-spa.sh prd --yes` |
+| `dev` | `app-cl-prd-nmr-wp-msproc-dev` | mock `ms-process-mock:demo` (IP-locked) | `scripts/deploy-spa.sh dev` |
+| `prd` | `app-cl-prd-nmr-wp-msproc-01` | real `ms-process-api` (IP-locked + Entra login) | `scripts/deploy-spa.sh prd --yes` |
 
 ## Fuera del alcance de este script: la "prod real" en Storage `$web`
 

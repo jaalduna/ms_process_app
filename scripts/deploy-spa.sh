@@ -33,8 +33,10 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # Build env differs by environment:
 #   dev → auth BYPASSED (DevAuthProvider), so the IP-locked dev env opens without
 #         a login screen.
-#   prd → REAL Entra login (azure-builtin / App Service Easy Auth), matching the
-#         ms-process-app-deploy pipeline — the public demo shows a Microsoft login.
+#   prd → REAL Entra login via MSAL (azure-ad), app registration ms-process-app-prd
+#         (JAA-347). NOT azure-builtin/Easy Auth — Easy Auth is not enabled on
+#         app-cl-prd-nmr-wp-msproc-01, so that provider loops back to the login
+#         screen (/.auth/login/aad never resolves). See .env.production.
 # Both serve the SPA same-origin, so the API is always /api/v1.
 BUILD_API_URL="/api/v1"
 
@@ -54,7 +56,7 @@ resolve_env() {
       CONFIG_SRC="${REPO_ROOT}/deploy/config.prod.js"
       REQUIRE_YES="true"
       BUILD_AUTH_BYPASS="false"
-      BUILD_AUTH_PROVIDER="azure-builtin"
+      BUILD_AUTH_PROVIDER="azure-ad"
       ;;
     *)
       echo "ERROR: unknown environment '$1' (expected: dev | prd)" >&2
