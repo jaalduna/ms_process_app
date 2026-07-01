@@ -20,8 +20,9 @@ test("downloads a streamed CSV from Argentina calibration history", async ({ pag
   await login(page)
   await navigateTo(page, "calibraci", /calibration|calibraci/i)
 
-  // Open Argentina's Calibration History modal.
-  await page.getByLabel(/view calibration history for argentina/i).click()
+  // Open Argentina's Calibration History modal via the dedicated Historial button.
+  const argentinaCard = page.locator('[data-slot="card"]').filter({ hasText: "Argentina" }).first()
+  await argentinaCard.getByTitle("Historial").click()
 
   const dialog = page.getByRole("dialog")
   await expect(dialog.getByText(/Historial de Calibracion/i)).toBeVisible({ timeout: 10_000 })

@@ -59,7 +59,8 @@ test("calibracion history: grid + eye→detail + table-picker download", async (
   await login(page)
   await navigateTo(page, "calibraci", /calibration|calibraci/i)
 
-  await page.getByLabel(/view calibration history for argentina/i).click()
+  const argentinaCard = page.locator('[data-slot="card"]').filter({ hasText: "Argentina" }).first()
+  await argentinaCard.getByTitle("Historial").click()
 
   const history = page.getByRole("dialog").filter({ hasText: "Historial de Calibracion" })
   await expect(history).toBeVisible({ timeout: 10_000 })

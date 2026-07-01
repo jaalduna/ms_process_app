@@ -2,7 +2,7 @@ import { memo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye } from "lucide-react"
+import { History } from "lucide-react"
 import { toast } from "sonner"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
@@ -64,9 +64,9 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
         className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
         role="button"
         tabIndex={0}
-        aria-label={`View calibration history for ${countryLabel}`}
-        onClick={() => setShowHistory(true)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowHistory(true) } }}
+        aria-label={`View calibration details for ${countryLabel}`}
+        onClick={() => setShowDetail(true)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowDetail(true) } }}
       >
         <CardHeader className="pb-2">
           <div className="space-y-1.5">
@@ -145,16 +145,17 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                 />
               )}
 
-              {job && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  aria-label="View calibration details"
-                  onClick={() => setShowDetail(true)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowHistory(true)
+                }}
+                title="Historial"
+              >
+                <History className="h-3.5 w-3.5" />
+              </Button>
 
               {/* Admin-only per-country group_by editor (JAA-667). */}
               {groupByEditable && (

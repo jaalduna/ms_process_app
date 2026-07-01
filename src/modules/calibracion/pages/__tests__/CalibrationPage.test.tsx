@@ -68,7 +68,7 @@ describe("CalibrationPage — Tarjetas/Lista toggle (JAA-763)", () => {
     render(<CalibrationPage />, { wrapper: Wrapper })
 
     await waitFor(() => expect(screen.getByText("Chile")).toBeInTheDocument())
-    expect(screen.getByRole("button", { name: "View calibration history for Chile" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "View calibration details for Chile" })).toBeInTheDocument()
     expect(screen.getByRole("group", { name: "Cambiar vista" })).toBeInTheDocument()
   })
 
@@ -82,6 +82,7 @@ describe("CalibrationPage — Tarjetas/Lista toggle (JAA-763)", () => {
     await user.click(screen.getByRole("button", { name: "Lista" }))
 
     await waitFor(() => expect(screen.getByRole("table")).toBeInTheDocument())
+    // List view renders CountryListRow (untouched by JAA-762), still "history".
     expect(screen.getByRole("button", { name: "View calibration history for Chile" })).toBeInTheDocument()
     expect(screen.getByText("Mexico")).toBeInTheDocument()
 

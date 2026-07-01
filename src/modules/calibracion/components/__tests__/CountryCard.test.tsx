@@ -82,11 +82,19 @@ describe("CountryCard", () => {
     expect(screen.getByText(/Cal: never/)).toBeInTheDocument()
   })
 
-  it("whole card click opens the history modal (same aria-label used by history-unify.spec.ts)", async () => {
+  it("the dedicated Historial button opens the history modal (JAA-762)", async () => {
     const user = userEvent.setup()
     renderCard()
-    await user.click(screen.getByRole("button", { name: /View calibration history for chile/i }))
+    await user.click(screen.getByTitle("Historial"))
     expect(await screen.findByText(/Historial de Calibracion/i)).toBeInTheDocument()
+  })
+
+  it("whole card click opens the detail modal (JAA-762)", async () => {
+    const user = userEvent.setup()
+    mockUseCalibration.mockReturnValue(baseCalibration({ job: { status: "running" } }))
+    renderCard()
+    await user.click(screen.getByRole("button", { name: /View calibration details for chile/i }))
+    expect(await screen.findByText(/Calibration Detail/i)).toBeInTheDocument()
   })
 
   it("Calibrar button starts calibration and does not open the history modal", async () => {
@@ -102,12 +110,12 @@ describe("CountryCard", () => {
     expect(screen.queryByText(/Historial de Calibracion/i)).not.toBeInTheDocument()
   })
 
-  it("shows the Stop button while running, and the eye/detail button when a job exists", () => {
+  it("shows the Stop button while running, and the card itself is the detail trigger when a job exists", () => {
     mockUseCalibration.mockReturnValue(
       baseCalibration({ job: { status: "running" } }),
     )
     renderCard()
     expect(screen.getByRole("button", { name: "Stop calibration" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "View calibration details" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /View calibration details for chile/i })).toBeInTheDocument()
   })
 })
