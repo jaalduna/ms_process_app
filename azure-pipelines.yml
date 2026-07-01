@@ -40,3 +40,67 @@ stages:
 
           - script: npm run build
             displayName: "Build (tsc + vite)"
+
+      - job: e2e
+        displayName: "Playwright smoke e2e (against node mock)"
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "$(NODE_VERSION)"
+            displayName: "Use Node $(NODE_VERSION)"
+
+          - script: npm ci
+            displayName: "Install app deps"
+
+          - script: npm install --no-save --prefix mock-server
+            displayName: "Install mock-server deps"
+
+          - script: npx playwright install --with-deps chromium
+            displayName: "Install Playwright (chromium)"
+
+          - bash: |
+              set -euo pipefail
+              # Mock backend on :8000 (fast step interval), vite dev with auth bypass
+              # on 127.0.0.1:5173. Both run in the background; logs are published below.
+              PORT=8000 MOCK_STEP_INTERVAL_MS=150 node mock-server/server.js > "$(Build.ArtifactStagingDirectory)/mock.log" 2>&1 &
+              echo "mock pid $!"
+              npm run dev:e2e -- --host 127.0.0.1 --port 5173 > "$(Build.ArtifactStagingDirectory)/dev.log" 2>&1 &
+              echo "dev:e2e pid $!"
+              # Wait (up to 60s) for both ports to accept connections.
+              for i in $(seq 1 60); do
+                if (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null && (exec 3<>/dev/tcp/127.0.0.1/5173) 2>/dev/null; then
+                  echo "servers up after ${i}s"; break
+                fi
+                sleep 1
+              done
+              # Warm the lazily-compiled SPA route so the first test isn't cold.
+              curl -fsS "http://127.0.0.1:5173/ms-process-app/" > /dev/null || true
+            displayName: "Start mock + dev:e2e"
+
+          # Full Playwright @smoke suite (MTR-61). Previously scoped to
+          # e2e/formato4.spec.ts (MTR-34) + e2e/feature-flags.spec.ts (JAA-639)
+          # because the telemetry @smoke spec hung at `response.json()` on a
+          # keepalive fetch. That hang is now fixed (JAA-627: telemetry:17 asserts
+          # on request-side metadata instead of the unreadable keepalive body), so
+          # the whole smoke project runs here — every module's page-load / nav /
+          # validation / decisive-lifecycle gate is now continuously enforced.
+          # The smoke project pins workers:1 + retries:0 (playwright.config.ts);
+          # --retries=1 here absorbs rare cold-route-compile / hosted-agent timing
+          # hangs on the data-heavy specs (e.g. traceability pagination) without
+          # weakening any assertion — a retried test must still genuinely pass.
+          - script: MOCK_SERVER_PORT=8000 PLAYWRIGHT_BASE_URL="http://127.0.0.1:5173/ms-process-app/" npx playwright test --project=smoke --retries=1
+            displayName: "Playwright smoke e2e — full suite (MTR-61)"
+
+          - task: PublishPipelineArtifact@1
+            condition: failed()
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)"
+              artifact: "e2e-logs"
+            displayName: "Publish server logs on failure"
+
+          - task: PublishPipelineArtifact@1
+            condition: failed()
+            inputs:
+              targetPath: "playwright-report"
+              artifact: "playwright-report"
+            displayName: "Publish Playwright report on failure"

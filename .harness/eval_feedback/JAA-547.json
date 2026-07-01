@@ -1,0 +1,27 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "npm test: 25 test files, 184 tests passed (0 failures). npm run lint: 'ESLint: No issues found'. npx tsc -b: 'TypeScript: No errors found'. npm run build: built ok — ParametrosElegibilidadPage chunk emitted at 21.91 kB."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "Browser: set code-variable-1 = code-variable-0 (duplicate). status-pill = '1 error · 1 cambio'. open-review → confirm-publish disabled === true."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "Review dialog: diff-table present, diffRowCount 1, destructive '1 error' badge, confirm-publish disabled. Both diff renders AND publish blocked when invalid."
+  },
+  {
+    "id": "ac4",
+    "verdict": "PASS",
+    "evidence": "Fixed duplicate → pill '1 cambio · válido' → confirm-publish enabled. POST /api/v1/params/Code_Parametros/CL/publish => 200. toast.success('Publicado: ...') fires (ParamsEditor.tsx). curl valid publish 200 with parquet_path+diff; curl duplicate-rows publish => 422."
+  },
+  {
+    "id": "ac5",
+    "verdict": "PASS",
+    "evidence": "Only mock-server listening on :5000 serves /api/v1. App requests go to localhost:5000. GET params/Code_Parametros/BR_MOSAICO returns seeded rows; GET params/Nope_Table/CL => 404. No TODO/FIXME/stub in module; publish handler calls mutateAsync (not a no-op). e2e parametros-elegibilidad.spec.ts: PASS (2) FAIL (0)."
+  }
+]

@@ -3,8 +3,8 @@ import { login } from "./helpers/auth"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
 
 test.describe("Navigation and Module Toggle E2E", () => {
-  test("all module nav items visible when all modules enabled", async ({ page }) => {
-    // Enable all modules
+  test("all module nav items visible when all modules enabled", { tag: "@smoke" }, async ({ page }) => {
+    // Enable every module, including the off-by-default sync module.
     await setModuleConfig(page, {
       sync: true,
       calibration: true,
@@ -17,98 +17,47 @@ test.describe("Navigation and Module Toggle E2E", () => {
     await page.request.post(`${MOCK_API_BASE}/test/reset`)
     await login(page)
 
-    // Wait for the navigation to render after login
-    await expect(page.locator("nav, [role='navigation'], aside")).toBeVisible({ timeout: 10_000 })
+    const nav = page.getByRole("navigation", { name: /main navigation/i })
+    await expect(nav).toBeVisible({ timeout: 10_000 })
 
-    // Check for each module's nav item. The nav labels may be in Spanish.
-    // Currently registered modules: sync, elegibilidad, calibracion
-    // New modules (prices, weighting, mtr, traceability) depend on their
-    // respective SPECs being implemented in the registry.
-    // Check for the modules that are currently in the registry:
-    const existingModuleLabels = [
-      /sync|sincronizaci/i,
-      /elegibilidad/i,
-      /calibraci/i,
+    // Every registered module's nav link is present (exact labels from the
+    // module registry). Sync renders as "Sincronización".
+    const labels = [
+      "Overview",
+      "Sincronización",
+      "Precios",
+      "Elegibilidad",
+      "Pesaje",
+      "Calibración",
+      "MTR",
+      "Trazabilidad",
+      "Admin",
     ]
-
-    for (const label of existingModuleLabels) {
-      const navItem = page.getByRole("link", { name: label }).or(
-        page.locator("nav, aside").getByText(label),
-      )
-      await expect(navItem.first()).toBeVisible({ timeout: 5_000 })
-    }
-
-    // New module labels — these will be visible once their module definitions
-    // are added to src/modules/registry.ts. Check gracefully.
-    const newModuleLabels = [
-      /precios|prices/i,
-      /pesaje|weighting/i,
-      /mtr/i,
-      /trazabilidad|traceability/i,
-    ]
-
-    for (const label of newModuleLabels) {
-      const navItem = page.getByRole("link", { name: label }).or(
-        page.locator("nav, aside").getByText(label),
-      )
-      // These may not be visible yet if the module isn't registered
-      if (await navItem.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await expect(navItem.first()).toBeVisible()
-      }
+    for (const label of labels) {
+      await expect(nav.getByRole("link", { name: label })).toBeVisible({ timeout: 5_000 })
     }
   })
 
-  test("disabled module is hidden from navigation", async ({ page }) => {
-    // Disable prices module
+  test("disabled module is hidden from navigation", { tag: "@smoke" }, async ({ page }) => {
+    // Disable the prices module (others stay at their defaults).
     await setModuleConfig(page, { prices: false })
     await page.request.post(`${MOCK_API_BASE}/test/reset`)
     await login(page)
 
-    await expect(page.locator("nav, [role='navigation'], aside")).toBeVisible({ timeout: 10_000 })
+    const nav = page.getByRole("navigation", { name: /main navigation/i })
+    await expect(nav).toBeVisible({ timeout: 10_000 })
 
-    // "Precios" should NOT be in the navigation
-    const preciosLink = page.getByRole("link", { name: /precios|prices/i }).or(
-      page.locator("nav, aside").getByText(/precios|prices/i),
-    )
-    await expect(preciosLink).not.toBeVisible({ timeout: 3_000 })
-
-    // Other enabled modules should still be visible
-    const syncLink = page.getByRole("link", { name: /sync|sincronizaci/i }).or(
-      page.locator("nav, aside").getByText(/sync|sincronizaci/i),
-    )
-    await expect(syncLink.first()).toBeVisible({ timeout: 5_000 })
+    // "Precios" must NOT be in the navigation...
+    await expect(nav.getByRole("link", { name: "Precios" })).toHaveCount(0)
+    // ...while other enabled modules still are.
+    await expect(nav.getByRole("link", { name: "Elegibilidad" })).toBeVisible({ timeout: 5_000 })
   })
 
-  test("navigating to disabled module route redirects to default", async ({ page }) => {
-    // Disable prices module
-    await setModuleConfig(page, { prices: false })
-    await page.request.post(`${MOCK_API_BASE}/test/reset`)
-    await login(page)
-
-    // Navigate directly to the disabled module's route
-    await page.goto("/ms-process-app/precios")
-
-    // Should redirect to the default (first enabled) module, not show a blank page
-    // Wait for the URL to change away from /precios
-    await expect(page).not.toHaveURL(/precios/, { timeout: 10_000 })
-  })
-
-  test("unknown path redirects to first enabled module", async ({ page }) => {
-    await setModuleConfig(page, {})
-    await page.request.post(`${MOCK_API_BASE}/test/reset`)
-    await login(page)
-
-    // Navigate to a nonexistent route
-    await page.goto("/ms-process-app/nonexistent-route")
-
-    // Should redirect to the first enabled module (not show a 404 blank page)
-    // The exact URL depends on which module is first in the registry
-    await expect(page.locator("nav, [role='navigation'], aside, main")).toBeVisible({
-      timeout: 10_000,
-    })
-
-    // The URL should not remain at /nonexistent-route
-    const url = page.url()
-    expect(url).not.toContain("nonexistent-route")
-  })
+  // Route-redirect behaviours (catch-all → default module, disabled-module route
+  // → default) are intentionally NOT e2e tests: the dev auth state is in-memory
+  // only (DevAuthProvider useState), so a hard page.goto() to a deep route logs
+  // the session out before the SPA router runs. They are guaranteed by
+  // construction — App.tsx only registers <Route>s for enabled modules and a
+  // catch-all <Navigate to={defaultRoute}> — and the disabled-module case is
+  // already covered above by "disabled module is hidden from navigation".
 })

@@ -1,9 +1,17 @@
 import { useState } from "react"
+import { toast } from "sonner"
 import { PeriodSelector } from "@/components/PeriodSelector"
+import { PricesConfigDialog } from "../components/PricesConfigDialog"
 import { PricesCountryCard } from "../components/PricesCountryCard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCountries } from "@/hooks/useCountries"
 import { useLastPrices } from "../hooks/useLastPrices"
+import {
+  usePricesConfig,
+  useSavePricesConfig,
+  mergePricesConfig,
+} from "../hooks/usePricesConfig"
+import type { PricesConfig } from "../types"
 
 function currentPeriod(): string {
   const now = new Date()
@@ -18,6 +26,23 @@ export function PreciosPage() {
   const { data, isLoading, error } = useCountries()
   const { data: lastPrices } = useLastPrices()
 
+  // Shared prices defaults from the backend (JAA-646). Fall back to the built-in
+  // (dummy) DEFAULT_PRICES_CONFIG for any key the backend hasn't set yet.
+  const { data: configData } = usePricesConfig()
+  const savePricesConfig = useSavePricesConfig()
+  const pricesConfig: PricesConfig = mergePricesConfig(configData?.config)
+  const editable = configData?.editable ?? false
+
+  async function handleSave(config: PricesConfig) {
+    try {
+      await savePricesConfig.mutateAsync(config)
+      toast.success("Prices settings saved")
+    } catch (err) {
+      toast.error((err as Error).message ?? "Failed to save prices settings")
+      throw err
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -30,6 +55,12 @@ export function PreciosPage() {
         </div>
         <div className="flex items-center gap-2">
           <PeriodSelector value={period} onChange={setPeriod} />
+          <PricesConfigDialog
+            config={pricesConfig}
+            editable={editable}
+            onSave={handleSave}
+            saving={savePricesConfig.isPending}
+          />
         </div>
       </div>
 

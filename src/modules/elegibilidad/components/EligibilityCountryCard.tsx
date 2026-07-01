@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,52 +14,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { CheckCircle2, Eye, Loader2, RefreshCcw, Square } from "lucide-react"
+import { CheckCircle2, ClipboardCheck, Eye, History, Loader2, RefreshCcw, Square } from "lucide-react"
 import { toast } from "sonner"
 import { DependencyIndicator } from "@/components/DependencyIndicator"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { usePipelineDeps } from "@/hooks/usePipelineDeps"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { useEligibilityRuns, useCreateEligibilityRun, useExecuteEligibility, useCancelEligibility } from "../hooks/useEligibility"
 import { EligibilityProgress } from "./EligibilityProgress"
 import { EligibilityDetailModal } from "./EligibilityDetailModal"
+import { EligibilityHistoryModal } from "./EligibilityHistoryModal"
 import { ACTIVE_STATUSES, STATUS_CONFIG } from "../types"
 import type { EligibilityParams } from "./EligibilityConfigDialog"
-
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
-
-const COUNTRY_FLAGS: Record<string, string> = {
-  argentina: "\u{1F1E6}\u{1F1F7}",
-  bolivia: "\u{1F1E7}\u{1F1F4}",
-  brasil: "\u{1F1E7}\u{1F1F7}",
-  brazil: "\u{1F1E7}\u{1F1F7}",
-  cam: "\u{1F30E}",
-  chile: "\u{1F1E8}\u{1F1F1}",
-  colombia: "\u{1F1E8}\u{1F1F4}",
-  ecuador: "\u{1F1EA}\u{1F1E8}",
-  mexico: "\u{1F1F2}\u{1F1FD}",
-  peru: "\u{1F1F5}\u{1F1EA}",
-}
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brasil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
+import { formatRelativeTime } from "@/lib/utils"
 
 interface EligibilityCountryCardProps {
   countryCode: string
@@ -71,14 +40,17 @@ function periodStringToNumber(period: string): number {
   return parseInt(period, 10)
 }
 
-export function EligibilityCountryCard({ countryCode, period, eligibilityParams, lastFinalizedDate }: EligibilityCountryCardProps) {
+export const EligibilityCountryCard = memo(function EligibilityCountryCard({ countryCode, period, eligibilityParams, lastFinalizedDate }: EligibilityCountryCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const { dependencies, allMet } = usePipelineDeps("elegibilidad", countryCode)
+  const { isClosed } = useProcessEntry("elegibilidad", countryCode)
   const { data: runs, isLoading } = useEligibilityRuns(countryCode, periodStringToNumber(period))
   const createRun = useCreateEligibilityRun()
   const executeRun = useExecuteEligibility()
   const cancelRun = useCancelEligibility()
+  const queryClient = useQueryClient()
 
   const latestRun = runs?.[0] ?? null
   const countryLabel = COUNTRY_LABELS[countryCode] ?? countryCode
@@ -86,6 +58,19 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
 
   const isProcessing = latestRun ? ACTIVE_STATUSES.includes(latestRun.status) : false
   const isReady = latestRun?.status === "ready"
+
+  // The final "→ ready" transition lands via the runs poll (a backend timer),
+  // not via a mutation — so refresh the "last completed" badge the moment a run
+  // becomes ready, instead of waiting for staleTime/reload (JAA-392). Fires only
+  // on the transition into ready, never on every poll.
+  const prevStatusRef = useRef(latestRun?.status)
+  useEffect(() => {
+    const status = latestRun?.status
+    if (status === "ready" && prevStatusRef.current !== "ready") {
+      queryClient.invalidateQueries({ queryKey: ["last-elegibilidad"] })
+    }
+    prevStatusRef.current = status
+  }, [latestRun?.status, queryClient])
   const isResultsReady = latestRun?.status === "results_ready"
   const hasActiveProcess = latestRun != null && !["failed", "cancelled", "ready"].includes(latestRun.status) && latestRun.status !== "pending"
   const canExecute = !isProcessing && !createRun.isPending && !executeRun.isPending
@@ -140,13 +125,26 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
               {flag && <span className="mr-1.5">{flag}</span>}
               {countryLabel}
             </CardTitle>
-            <Badge variant="outline" className="text-xs" title={lastFinalizedDate ? `Last: ${lastFinalizedDate.replace("T", " ").slice(0, 16)}` : undefined}>
-              {lastFinalizedDate
-                ? formatRelativeTime(lastFinalizedDate)
-                : "never"}
-            </Badge>
+            <div className="flex items-center gap-1.5">
+              <Badge variant="outline" className="text-xs" title={lastFinalizedDate ? `Last: ${lastFinalizedDate.replace("T", " ").slice(0, 16)}` : undefined}>
+                {lastFinalizedDate
+                  ? formatRelativeTime(lastFinalizedDate)
+                  : "never"}
+              </Badge>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0"
+                onClick={() => setHistoryOpen(true)}
+                title="Historial"
+                aria-label="Ver historial de elegibilidad"
+              >
+                <History className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
           <DependencyIndicator dependencies={dependencies} />
+          <ProcessStatusBadge stage="elegibilidad" country={countryCode} countryLabel={countryLabel} />
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Latest run status */}
@@ -172,7 +170,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
           )}
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* Processing: spinner + Detener */}
             {isProcessing && (
               <>
@@ -209,7 +207,7 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
             {!isProcessing && !hasActiveProcess && !isReady && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" disabled={!canExecute} className="flex-1" title={!allMet ? "Upstream dependencies not met" : undefined}>
+                  <Button size="sm" disabled={!canExecute || isClosed} className="flex-1" title={isClosed ? "Proceso cerrado" : !allMet ? "Upstream dependencies not met" : undefined}>
                     {(createRun.isPending || executeRun.isPending) ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -235,13 +233,16 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
               </AlertDialog>
             )}
 
-            {/* Results ready: re-run button + note */}
+            {/* Results ready: phase-1 results need human review/approval before the
+                remaining steps run. Surface an explicit call-to-action so the card
+                doesn't read as "finished" with no path forward (JAA-387). */}
             {isResultsReady && (
               <>
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={createRun.isPending || executeRun.isPending}
+                  disabled={createRun.isPending || executeRun.isPending || isClosed}
+                  title={isClosed ? "Proceso cerrado" : undefined}
                   onClick={() => handleRerun({ ...eligibilityParams } as Record<string, unknown>)}
                 >
                   {(createRun.isPending || executeRun.isPending) ? (
@@ -251,15 +252,20 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
                   )}
                   Re-ejecutar
                 </Button>
-                <div className="flex items-center gap-1.5 text-amber-500 text-sm font-medium flex-1">
-                  Revisar resultados
-                </div>
+                <Button
+                  size="sm"
+                  className="flex-1 bg-amber-500 text-white hover:bg-amber-500/80"
+                  onClick={() => setModalOpen(true)}
+                >
+                  <ClipboardCheck className="mr-2 h-3.5 w-3.5" />
+                  Revisar y aprobar
+                </Button>
               </>
             )}
 
             {/* Ready: green checkmark */}
             {isReady && (
-              <div className="flex items-center gap-1.5 text-green-600 text-sm font-medium flex-1">
+              <div className="flex items-center gap-1.5 text-success text-sm font-medium flex-1">
                 <CheckCircle2 className="h-4 w-4" />
                 Listo
               </div>
@@ -267,13 +273,14 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
 
             {/* Waiting for user action (mordom_ready, mordom_uploaded) */}
             {latestRun && ["mordom_ready", "mordom_uploaded"].includes(latestRun.status) && (
-              <div className="flex items-center gap-1.5 text-amber-500 text-sm font-medium flex-1">
+              <div className="flex items-center gap-1.5 text-warning text-sm font-medium flex-1">
                 Acción requerida
               </div>
             )}
 
-            {/* Ver detalle button */}
-            {showDetailButton && (
+            {/* Ver detalle button. In results_ready the "Revisar y aprobar" CTA
+                above already opens this same modal, so don't duplicate it. */}
+            {showDetailButton && !isResultsReady && (
               <Button size="sm" variant="outline" onClick={() => setModalOpen(true)}>
                 <Eye className="mr-2 h-3.5 w-3.5" />
                 Ver detalle
@@ -289,6 +296,13 @@ export function EligibilityCountryCard({ countryCode, period, eligibilityParams,
         onOpenChange={setModalOpen}
         onRerun={handleRerun}
       />
+      <EligibilityHistoryModal
+        countryCode={countryCode}
+        countryLabel={countryLabel}
+        countryFlag={flag}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      />
     </>
   )
-}
+})

@@ -1,0 +1,53 @@
+{
+  "ticket": "calibration-download-streaming",
+  "linear_url": null,
+  "branch": "fix/calibration-download-streaming",
+  "archetype": "webapp",
+  "goal": "Make the calibration-history CSV download stream a substantial file from the mock (:5000), mirroring the real API's StreamingResponse contract, and verify the full download flow end-to-end so 'Failed to load tables' no longer blocks it.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "Mock GET /events/:jobId/download streams the CSV (chunked transfer, not a single buffered res.send) and emits the actual extracted rows for the selected table, so the body is large (>100 KB for a ~100k-row table), not the ~1 KB metadata report.",
+      "how_to_verify": "curl -sD - 'http://localhost:5000/api/v1/events/<jobId>/download?table=<full_name>' -o /tmp/dl.csv | grep -i 'transfer-encoding: chunked'; wc -c /tmp/dl.csv shows >100000; head shows CSV rows for that table."
+    },
+    {
+      "id": "ac2",
+      "criterion": "Mock GET /events/:jobId/tables returns 200 with >=1 TableInfo for a completed job (no 'Failed to load tables').",
+      "how_to_verify": "curl -s -w '%{http_code}' 'http://localhost:5000/api/v1/events/<jobId>/tables' returns 200 and a non-empty tables array."
+    },
+    {
+      "id": "ac3",
+      "criterion": "End-to-end in the running app against :5000: open Argentina Calibration History -> click download on the completed run -> table picker loads -> select a table -> download succeeds (success toast, file saved). No console errors.",
+      "how_to_verify": "Playwright walkthrough via ux-ui-reviewer / playwright MCP: navigate, open modal, expand picker, assert options present, trigger download, assert success toast + downloaded file non-empty."
+    },
+    {
+      "id": "ac4",
+      "criterion": "Repo stays green.",
+      "how_to_verify": "npm run lint && npx tsc -b && npm test all pass."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Mock: stream a real, large per-table CSV from /events/:jobId/download (Node stream, chunked); keep Content-Disposition filename + text/csv.",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Add/confirm an e2e Playwright spec for the calibration-history download flow against :5000.",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Run lint/tsc/vitest + Playwright; separate-context evaluator.",
+      "status": "complete"
+    }
+  ],
+  "findings_to_capture": [
+    "BACKEND ticket: implement ms_process_api /events/{jobId}/tables and /events/{jobId}/download (currently 501 stubs in routes/events.py:159-175). Download should use StreamingResponse like calibration.py. This is the true root cause of the screenshot's 'Failed to load tables'.",
+    "public/config.js API_URL switched to localhost:5000 + traceability:false are LOCAL DEMO config and must NOT be committed to the repo."
+  ],
+  "open_decisions": [
+    "Frontend stays on axios blob (transparently consumes the chunked stream). True client-side stream-to-disk (Tauri fs/http plugin, no webview buffering, progress UI) is a larger optional follow-up - recommend deferring."
+  ]
+}

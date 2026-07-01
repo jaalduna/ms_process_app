@@ -1,27 +1,48 @@
 import type { JobStatus } from "@/types/api"
 
-/** Calibration pipeline step names (ordered). */
+/** Calibration pipeline step names (ordered).
+ *
+ * SQL→Databricks sync is owned outside this app — calibration assumes data is
+ * already landed in Unity Catalog `000` before triggering. The first step
+ * `copy_to_calibration` promotes data from catalog `000` to catalog `001`
+ * (calibration-ready) and must succeed before any calculation step runs. */
 export type CalibrationStepName =
-  | "sync_data"
   | "copy_to_calibration"
   | "merge_data"
   | "simulate_kpis"
   | "calculate_penetration"
   | "download_csv"
 
-/** Human-readable labels for each calibration step. */
-export const CALIBRATION_STEP_LABELS: Record<CalibrationStepName, string> = {
-  sync_data: "Sync Data",
-  copy_to_calibration: "Copy to Calibration",
+/** Known human-readable labels for calibration step names. This is only a
+ * presentation niceity — the actual steps (names + order) are driven entirely
+ * by the backend (the Databricks job's task list). Names not listed here fall
+ * back to `prettifyStepName`. */
+export const CALIBRATION_STEP_LABELS: Record<string, string> = {
+  copy_to_calibration: "Copy to Calibration Catalog",
   merge_data: "Merge Data",
   simulate_kpis: "Simulate KPIs",
   calculate_penetration: "Calculate Penetration",
   download_csv: "Download CSV",
 }
 
-/** Ordered list of calibration steps for iteration. */
+/** Fallback label for backend step names not in CALIBRATION_STEP_LABELS:
+ * "calculate_penetration" -> "Calculate Penetration". */
+export function prettifyStepName(name: string): string {
+  return name
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
+}
+
+/** Resolve a display label for a backend step name (known label or prettified). */
+export function stepLabel(name: string): string {
+  return CALIBRATION_STEP_LABELS[name] ?? prettifyStepName(name)
+}
+
+/** Known calibration step names in canonical order. Kept for reference only —
+ * rendering iterates the backend-provided steps, NOT this list. */
 export const CALIBRATION_STEPS: CalibrationStepName[] = [
-  "sync_data",
   "copy_to_calibration",
   "merge_data",
   "simulate_kpis",
@@ -38,9 +59,10 @@ export interface DatabricksTaskStatus {
   error: string | null
 }
 
-/** Status of a single calibration sub-step. */
+/** Status of a single calibration sub-step. The `name` is backend-driven
+ * (the Databricks task key); not constrained to a fixed set. */
 export interface CalibrationStep {
-  name: CalibrationStepName
+  name: string
   status: JobStatus
   started_at: string | null
   completed_at: string | null
@@ -57,39 +79,22 @@ export interface AggregationOptions {
 /** Global calibration configuration applied to all countries */
 export interface CalibrationConfig {
   aggregations: AggregationOptions
-  row_limit: number | null
-  lookback_months: number | null
-  group_by: string
-  start_period: string
-  skip_merge: boolean
-  skip_simulation: boolean
+  lookback_months: number
 }
 
 export const DEFAULT_CALIBRATION_CONFIG: CalibrationConfig = {
-  aggregations: { region: false, nivel_2: false },
-  row_limit: null,
-  lookback_months: null,
-  group_by: "",
-  start_period: "202102",
-  skip_merge: false,
-  skip_simulation: false,
+  aggregations: { region: true, nivel_2: true },
+  lookback_months: 36,
 }
 
-/** Default group_by per country (semicolon-separated dimension combos). */
-export const DEFAULT_GROUP_BY: Record<string, string> = {
-  bolivia:  "IdProduto_Calib;IdProduto_Calib,Region",
-  cam:      "IdProduto_Calib,Pais",
-  chile:    "IdProduto_Calib;IdProduto_Calib,Region",
-  colombia: "IdProduto_Calib;IdProduto_Calib,Region",
-  ecuador:  "IdProduto_Calib,Region_A;IdProduto_Calib,Region_A,Nivel_2",
-  mexico:   "IdProduto_Calib;IdProduto_Calib,Region",
-  peru:     "IdProduto_Calib;IdProduto_Calib,Region",
-}
-
-/** Data availability for a country+period */
+/** Data availability for a country+period.
+ *
+ * `true` = data present, `false` = data missing, `null` = unknown (the check
+ * cannot be determined a priori yet). Unknown renders as a "?" badge and does
+ * NOT block triggering — only an explicit `false` does. */
 export interface DataAvailability {
-  elegibilidad: boolean
-  pesaje: boolean
+  elegibilidad: boolean | null
+  pesaje: boolean | null
 }
 
 /** Response from GET /metadata/data-availability */

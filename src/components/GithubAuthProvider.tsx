@@ -70,7 +70,7 @@ export function GithubAuthProvider({ children }: { children: React.ReactNode }) 
   const login = useCallback(async () => {
     // Derive server root from the API URL (strip /api/v1 suffix)
     const apiUrl: string =
-      (window as any).__BRIDGE_CONFIG__?.API_URL ??
+      (window as unknown as { __BRIDGE_CONFIG__?: { API_URL?: string } }).__BRIDGE_CONFIG__?.API_URL ??
       import.meta.env.VITE_BRIDGE_API_URL ??
       "http://localhost:5000/api/v1"
     const serverRoot = apiUrl.replace(/\/api\/v1$/, "")
@@ -89,18 +89,23 @@ export function GithubAuthProvider({ children }: { children: React.ReactNode }) 
     return token
   }, [token])
 
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      user,
+      roles: userInfo?.roles ?? [],
+      countries: userInfo?.countries ?? [],
+      loading,
+      login,
+      logout,
+      getAccessToken,
+    }),
+    [isAuthenticated, user, userInfo, loading, login, logout, getAccessToken],
+  )
+
   return (
     <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        user,
-        roles: userInfo?.roles ?? [],
-        countries: userInfo?.countries ?? [],
-        loading,
-        login,
-        logout,
-        getAccessToken,
-      }}
+      value={contextValue}
     >
       <ApiTokenBinder />
       {children}

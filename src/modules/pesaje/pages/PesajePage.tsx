@@ -1,11 +1,16 @@
 import { useState } from "react"
 import { PeriodSelector } from "@/components/PeriodSelector"
-import { WeightingConfigDialog, DEFAULT_WEIGHTING_PARAMS } from "../components/WeightingConfigDialog"
-import type { WeightingParams } from "../components/WeightingConfigDialog"
+import { ProcessWorkspaceTabs } from "@/components/ProcessWorkspaceTabs"
+import { ViewToggle } from "@/components/ViewToggle"
 import { WeightingCountryCard } from "../components/WeightingCountryCard"
+import { WeightingCountryListRow } from "../components/WeightingCountryListRow"
+import { WeightingHistoryPanel } from "../components/WeightingHistoryPanel"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useCountries } from "@/hooks/useCountries"
+import { useViewMode } from "@/hooks/useViewMode"
 import { useLastWeighting } from "../hooks/useLastWeighting"
+import { PesajeParametrosTab } from "../components/PesajeParametrosTab"
 
 function currentPeriod(): string {
   const now = new Date()
@@ -17,29 +22,19 @@ function currentPeriod(): string {
 
 export function PesajePage() {
   const [period, setPeriod] = useState(currentPeriod)
-  const [weightingParams, setWeightingParams] = useState<WeightingParams>(DEFAULT_WEIGHTING_PARAMS)
+  const [viewMode, setViewMode] = useViewMode("pesaje")
   const { data, isLoading, error } = useCountries()
   const { data: lastWeighting } = useLastWeighting()
 
-  return (
+  const ejecutar = (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pesaje</h1>
-          <p className="text-sm text-muted-foreground">
-            Ejecuta y monitorea procesos de pesaje por pais
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PeriodSelector value={period} onChange={setPeriod} />
-          <WeightingConfigDialog params={weightingParams} onChange={setWeightingParams} />
-        </div>
+      <div className="flex items-center justify-end gap-2">
+        <ViewToggle value={viewMode} onChange={setViewMode} />
+        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
-      {/* Country grid */}
       {isLoading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
@@ -52,19 +47,64 @@ export function PesajePage() {
         </div>
       )}
 
-      {data && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {data && viewMode === "cards" && (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data.countries.filter((c) => c.type === "country").map((c) => (
             <WeightingCountryCard
               key={c.code}
               countryCode={c.code}
               period={period}
-              weightingParams={weightingParams}
               lastFinalizedDate={lastWeighting?.[c.code]?.completed_at ?? null}
             />
           ))}
         </div>
       )}
+
+      {data && viewMode === "list" && (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>País</TableHead>
+              <TableHead>Último</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Resultado</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.countries.filter((c) => c.type === "country").map((c) => (
+              <WeightingCountryListRow
+                key={c.code}
+                countryCode={c.code}
+                period={period}
+                lastFinalizedDate={lastWeighting?.[c.code]?.completed_at ?? null}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  )
+
+  const parametros = <PesajeParametrosTab />
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Pesaje</h1>
+        <p className="text-sm text-muted-foreground">
+          Ejecuta y monitorea procesos de pesaje por pais
+        </p>
+      </div>
+
+      <ProcessWorkspaceTabs
+        tabs={[
+          { value: "ejecutar", label: "Ejecutar", content: ejecutar },
+          { value: "parametros", label: "Parametros", content: parametros },
+          { value: "historial", label: "Historial", content: <WeightingHistoryPanel /> },
+        ]}
+      />
     </div>
   )
 }

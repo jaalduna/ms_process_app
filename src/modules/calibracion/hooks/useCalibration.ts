@@ -1,9 +1,8 @@
 import { useCallback } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { triggerCalibration, getEvent, cancelJob } from "@/lib/api"
+import { triggerCalibration, getCalibrationRuns, getEvent, cancelJob } from "@/lib/api"
 import type { EventDetail, TriggerRequest } from "@/types/api"
 import type { AggregationOptions } from "../types"
-import { useCalibrationContext } from "../contexts/CalibrationContext"
 
 export interface CalibrationOverrides {
   aggregations?: AggregationOptions
@@ -13,22 +12,40 @@ export interface CalibrationOverrides {
   skip_copy?: boolean
   period?: string
   table_suffix?: string | null
-  group_by?: string | null
   start_period?: string | null
   final_period?: string | null
   skip_merge?: boolean
   skip_simulation?: boolean
 }
 
-export function useCalibration(country: string, stage: string) {
+const ACTIVE_STATUSES = ["pending", "running"]
+
+/**
+ * Calibration run state is server-authoritative (JAA-648). The active run for a
+ * country+period is derived from `GET /calibration/runs` (newest first), exactly
+ * like `useMtr` derives `runs?.[0]` — NOT from `localStorage`. This makes the
+ * "running" state survive a reload and be shared across browsers/users.
+ */
+export function useCalibration(country: string, stage: string, period?: string) {
   const queryClient = useQueryClient()
-  const ctx = useCalibrationContext()
-  const activeJobId = ctx.getJobId(country)
+
+  const runs = useQuery({
+    queryKey: ["calibration-runs", country, period],
+    queryFn: () => getCalibrationRuns({ country, period }),
+    select: (data) => data.items,
+    refetchInterval: (query) => {
+      const items = query.state.data?.items
+      if (!items) return false
+      return items.some((r) => ACTIVE_STATUSES.includes(r.status)) ? 3000 : false
+    },
+  })
+
+  const activeJobId = runs.data?.[0]?.job_id ?? null
 
   const trigger = useMutation({
     mutationFn: (body: TriggerRequest) => triggerCalibration(body),
-    onSuccess: (data) => {
-      ctx.setJobId(country, data.job_id)
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["calibration-runs", country, period] })
     },
   })
 
@@ -56,7 +73,6 @@ export function useCalibration(country: string, stage: string) {
       skip_sync: overrides?.skip_sync,
       skip_copy: overrides?.skip_copy,
       table_suffix: overrides?.table_suffix,
-      group_by: overrides?.group_by,
       start_period: overrides?.start_period,
       final_period: overrides?.final_period,
       skip_merge: overrides?.skip_merge,
@@ -67,6 +83,7 @@ export function useCalibration(country: string, stage: string) {
   const cancel = useMutation({
     mutationFn: (jobId: string) => cancelJob(jobId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["calibration-runs", country, period] })
       queryClient.invalidateQueries({ queryKey: ["calibration-job", activeJobId] })
     },
   })
@@ -77,11 +94,6 @@ export function useCalibration(country: string, stage: string) {
     }
   }, [cancel, activeJobId])
 
-  const reset = useCallback(() => {
-    ctx.clearJobId(country)
-    queryClient.removeQueries({ queryKey: ["calibration-job", activeJobId] })
-  }, [ctx, country, activeJobId, queryClient])
-
   return {
     activeJobId,
     job: job.data as EventDetail | undefined,
@@ -91,6 +103,5 @@ export function useCalibration(country: string, stage: string) {
     triggerError: trigger.error,
     startCalibration,
     cancelCalibration,
-    reset,
   }
 }

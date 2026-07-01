@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
@@ -47,6 +47,10 @@ function renderLoginWithRoutes() {
 describe("LoginPage", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Deterministic env: no bypass, default (Microsoft) provider. .env.local
+    // sets VITE_AUTH_BYPASS=true for local dev, which would otherwise leak in.
+    vi.stubEnv("VITE_AUTH_BYPASS", "false")
+    vi.stubEnv("VITE_AUTH_PROVIDER", "")
     mockAuthState = {
       isAuthenticated: false,
       user: null,
@@ -57,9 +61,13 @@ describe("LoginPage", () => {
     }
   })
 
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it("renders the app title", () => {
     renderLogin()
-    expect(screen.getByText("SQL-Databricks Bridge")).toBeInTheDocument()
+    expect(screen.getByText("MS Process App")).toBeInTheDocument()
   })
 
   it("renders the description text", () => {
@@ -79,17 +87,29 @@ describe("LoginPage", () => {
     expect(mockLogin).toHaveBeenCalled()
   })
 
+  it("shows a GitHub label when the active provider is github", () => {
+    vi.stubEnv("VITE_AUTH_PROVIDER", "github")
+    renderLogin()
+    expect(screen.getByRole("button", { name: /sign in with github/i })).toBeInTheDocument()
+  })
+
+  it("shows a dev label when auth bypass is enabled", () => {
+    vi.stubEnv("VITE_AUTH_BYPASS", "true")
+    renderLogin()
+    expect(screen.getByRole("button", { name: /continue \(dev\)/i })).toBeInTheDocument()
+  })
+
   it("redirects to dashboard when already authenticated", () => {
     mockAuthState = { ...mockAuthState, isAuthenticated: true, user: { email: "test@test.com", name: "Test" } }
     renderLoginWithRoutes()
     expect(screen.getByText("Dashboard Page")).toBeInTheDocument()
-    expect(screen.queryByText("SQL-Databricks Bridge")).not.toBeInTheDocument()
+    expect(screen.queryByText("MS Process App")).not.toBeInTheDocument()
   })
 
   it("does not redirect when not authenticated", () => {
     mockAuthState = { ...mockAuthState, isAuthenticated: false }
     renderLoginWithRoutes()
-    expect(screen.getByText("SQL-Databricks Bridge")).toBeInTheDocument()
+    expect(screen.getByText("MS Process App")).toBeInTheDocument()
     expect(screen.queryByText("Dashboard Page")).not.toBeInTheDocument()
   })
 })

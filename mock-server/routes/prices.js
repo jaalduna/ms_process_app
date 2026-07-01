@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { RunStore } from "../stores/run-store.js"
-import { COUNTRIES } from "./sync.js"
+import { COUNTRIES, isIntegerPeriod } from "./sync.js"
 
 const router = Router()
 
@@ -33,6 +33,7 @@ function generateOutliers(country) {
 router.post("/prices/runs", (req, res) => {
   const { country, period, parameters } = req.body
   if (!country || !period) return res.status(400).json({ error: "bad_request", message: "country and period are required" })
+  if (!isIntegerPeriod(period)) return res.status(422).json({ error: "validation_error", message: "period must be an integer (YYYYMM)" })
   const run = pricesStore.create(country, period, PRICES_STEPS, parameters, { outliers: [], outliers_count: 0, approved_by: null, approved_at: null })
   res.status(201).json(run)
 })

@@ -1,0 +1,17 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "E2E test 'history modal table fits without horizontal scroll' (weighting.spec.ts) asserts dialog scrollWidth - clientWidth <= 1. Passes with plain `PLAYWRIGHT_BASE_URL=http://[::1]:5180/ms-process-app/ npx playwright test weighting.spec.ts` (4/4 PASS). Standalone probe of the live dialog measured offsetWidth=768, clientWidth=766, scrollWidth=766, overflow=0, computedMaxWidth=768px. Note: previous evaluator false-FAILed because `rtk proxy` drops env vars (browser hit stale :5173 worktree with OLD code) and an earlier run hit a dead mock (mock runs on port 5000, not 8000)."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "Same e2e test asserts every 'Ver detalle' action button right edge <= dialog right edge; passes. Screenshot (history-after.png) shows all six columns (Periodo/Estado/Fecha/Duracion/Resumen/Acciones) and the download+eye action buttons fully visible with no horizontal scrollbar. Grid resolves to '64px 80px 110px 52px 303px 53px' inside 766px content."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "Independently confirmed by separate evaluator: npm test = 13 files / 92 tests pass; npm run lint = 'ESLint: No issues found'; npx tsc -b = 'TypeScript: No errors found'. All exit 0."
+  }
+]

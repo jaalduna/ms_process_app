@@ -1,0 +1,19 @@
+{
+  "ticket": "JAA-544",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-544/sistematizar-deploy-del-spa-a-devprd-script-runbook",
+  "branch": "feat/JAA-544-deploy-spa-script",
+  "archetype": "webapp",
+  "goal": "Make the SPA frontend deploy to the dev/prd App Services repeatable via a committed Kudu deploy script + runbook.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "Script syntax is valid and invoking it with no args (or --help) prints usage and exits non-zero", "how_to_verify": "bash -n scripts/deploy-spa.sh; bash scripts/deploy-spa.sh; echo $?"},
+    {"id": "ac2", "criterion": "deploy-spa.sh dev --dry-run builds, zips dist, and injects deploy/config.dev.js (which contains parametros: true) WITHOUT uploading", "how_to_verify": "bash scripts/deploy-spa.sh dev --dry-run; grep parametros dist/config.js"},
+    {"id": "ac3", "criterion": "deploy-spa.sh prd without --yes refuses (exits non-zero, no upload)", "how_to_verify": "bash scripts/deploy-spa.sh prd; echo $?"},
+    {"id": "ac4", "criterion": "No stubs/placeholders; docs/DEPLOY.md documents dev (script) and the separate prod $web pipeline", "how_to_verify": "read scripts/deploy-spa.sh and docs/DEPLOY.md"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "deploy/config.dev.js — known-good dev runtime config", "status": "complete"},
+    {"id": "t2", "desc": "scripts/deploy-spa.sh — parametrized dev|prd Kudu deploy with prd guard + dry-run", "status": "complete"},
+    {"id": "t3", "desc": "docs/DEPLOY.md runbook", "status": "complete"},
+    {"id": "t4", "desc": "Linear issue JAA-544 + agent memory", "status": "complete"}
+  ]
+}

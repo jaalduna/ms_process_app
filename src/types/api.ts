@@ -52,7 +52,6 @@ export interface TriggerRequest {
   skip_sync?: boolean
   skip_copy?: boolean
   table_suffix?: string | null
-  group_by?: string | null
   start_period?: string | null
   final_period?: string | null
   skip_merge?: boolean
@@ -107,7 +106,11 @@ export interface EventSummary {
   queries_running: number
   total_rows_extracted: number
   steps?: CalibrationStep[]
-  current_step?: CalibrationStepName | null
+  current_step?: string | null
+  /** JAA-755: exclusive per (country, stage, period) — marks the run used for that scope */
+  is_final?: boolean
+  /** JAA-755: free-text note, e.g. "aprobada por X" */
+  label?: string | null
 }
 
 /** Detailed job info including per-query results */
@@ -123,12 +126,19 @@ export interface EventListResponse {
   offset: number
 }
 
+// JAA-384 C3: align to what the mock + real backend actually return. The mock
+// emits {country, completed_at, run_id, period}; the backend's last-calibration
+// adds {tag, triggered_by, started_at}. The frontend only reads completed_at
+// (+ optional period), but the type must not lie about job_id/stage (never sent).
 /** Last sync entry for a country from GET /metadata/last-sync */
 export interface LastSyncEntry {
   country: string
   completed_at: string
-  job_id: string
-  stage: string
+  run_id: string
+  period?: number | string
+  tag?: string
+  triggered_by?: string
+  started_at?: string
 }
 
 export interface LastSyncResponse {
@@ -214,17 +224,71 @@ export interface ApiError {
   message: string
 }
 
-/** Info about a Delta table available for download */
-export interface TableInfo {
-  full_name: string
-  catalog: string
-  schema_name: string
-  table_name: string
+/** In-app feedback (JAA-427 / parent JAA-426) */
+export type FeedbackCategory = "bug" | "idea" | "otro"
+
+/** Context auto-attached to feedback so reports are actionable. */
+export interface FeedbackContext {
+  module: string
+  path: string
+  appVersion: string
+  user?: string
 }
 
-/** Response from GET /events/{job_id}/tables */
-export interface TablesResponse {
-  job_id: string
+/** Body of POST /feedback. */
+export interface FeedbackPayload {
+  message: string
+  category: FeedbackCategory
+  contact?: string
+  context: FeedbackContext
+}
+
+/** Response from POST /feedback (201). */
+export interface FeedbackResponse {
+  id: string
+  createdAt: string
+}
+
+// -- Process open/close (per stage, per country) --
+
+/** Pipeline stages that can be opened/closed independently per country. */
+export type ProcessStage = "precios" | "elegibilidad" | "pesaje" | "calibracion" | "mtr" | "formato4"
+
+/** Whether a stage+country process is open (editable) or closed (locked). */
+export type ProcessState = "open" | "closed"
+
+/** A single open/close transition recorded for a stage+country process. */
+export interface ProcessHistoryEntry {
+  action: ProcessState
+  user_name: string
+  user_email: string
+  at: string
+}
+
+/** Current open/close state of one stage for one country, with attribution. */
+export interface ProcessEntry {
   country: string
-  tables: TableInfo[]
+  stage: ProcessStage
+  status: ProcessState
+  changed_by: string | null
+  changed_by_email: string | null
+  changed_at: string | null
+  history: ProcessHistoryEntry[]
+}
+
+/** Response from GET /processes/status: nested by country, then stage. */
+export interface ProcessStatusResponse {
+  countries: Record<string, Partial<Record<ProcessStage, ProcessEntry>>>
+}
+
+/**
+ * Shared per-process config (JAA-642): defaults visible to all users.
+ * `config` is `{}` when no row exists yet; `editable` is true when the
+ * requester may PUT (global `admin` or `{process}:admin`).
+ */
+export interface ProcessConfigResponse {
+  process: string
+  scope: string
+  config: Record<string, unknown>
+  editable: boolean
 }

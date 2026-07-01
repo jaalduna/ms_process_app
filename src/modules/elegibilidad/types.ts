@@ -113,10 +113,10 @@ export const STATUS_CONFIG: Record<
 > = {
   pending: { label: 'Pendiente', variant: 'outline', className: '' },
   running: { label: 'Ejecutando...', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
-  results_ready: { label: 'Resultados listos', variant: 'default', className: 'bg-amber-500 hover:bg-amber-500/80' },
+  results_ready: { label: 'Pendiente de revisión', variant: 'default', className: 'bg-amber-500 hover:bg-amber-500/80' },
   applying_sql: { label: 'Aplicando a SQL...', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
   mordom_downloading: { label: 'Descargando MorDom...', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
-  mordom_ready: { label: 'MorDom listo', variant: 'default', className: 'bg-amber-500 hover:bg-amber-500/80' },
+  mordom_ready: { label: 'Revisar MorDom', variant: 'default', className: 'bg-amber-500 hover:bg-amber-500/80' },
   mordom_uploaded: { label: 'MorDom subido', variant: 'default', className: 'bg-amber-500 hover:bg-amber-500/80' },
   applying_mordom: { label: 'Aplicando MorDom...', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
   ready: { label: 'Listo', variant: 'default', className: 'bg-green-600 hover:bg-green-600/80' },

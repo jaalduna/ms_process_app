@@ -1,0 +1,76 @@
+{
+  "ticket": "JAA-613",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-613/ms-process-app-extender-el-editor-de-parametros-a-las-11-tablas",
+  "branch": "feat/JAA-613-extend-params-editor",
+  "archetype": "webapp",
+  "goal": "Extend the eligibility-params editor to the 10 remaining contract tables (of 15), each as a country-selectable tab with live validation that blocks publish and a before->after diff dialog; remove the dead useSaveParams/validateParams/putParamsTable client code.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "All 10 remaining tables (Validation_Conditions, Validation_Combined_Conditions, Origen_NoConsiderar, Imputacion_ExCateg, IdDomicilio_Prueba, IdPainel, Variables, Parametros_Region, Criterios_Elegibilidad_Datas, Criterios_Elegibilidad_ExCateg) have an editor tab on the page, each rendered per the country selected from the 9-country selector.",
+      "how_to_verify": "Read ParametrosElegibilidadPage.tsx: 14 tabs registered (4 existing + 10 new); each new tab component receives the selected country. tsc -b passes."
+    },
+    {
+      "id": "ac2",
+      "criterion": "Each new table has live client-side validation (types/duplicates/ranges/vocabulary as applicable) returning ValidationIssue[]; an error issue blocks publish (ReviewPublishDialog confirm-publish disabled when errors>0).",
+      "how_to_verify": "vitest: new cases in validation.test.ts assert each new validator flags its error class and passes clean rows. Publish-block reuses existing ParamsEditor/ReviewPublishDialog wiring."
+    },
+    {
+      "id": "ac3",
+      "criterion": "The publish dialog shows the before->after diff per table for the new tables (diff prop wired via diffByIndex/diffByKey).",
+      "how_to_verify": "Each new tab passes a diff fn to ParamsEditor; e2e smoke asserts diff-table/diff-row visible for a new table."
+    },
+    {
+      "id": "ac4",
+      "criterion": "npm test + npm run lint + npx tsc -b + npm run build all pass.",
+      "how_to_verify": "Run all four commands; exit 0."
+    },
+    {
+      "id": "ac5",
+      "criterion": "Playwright @smoke covers at least 2 new tables: one rules table (Validation_Conditions) and one list table (an exclusion list). Tests assert validation blocks publish and the happy-path publish succeeds against the mock.",
+      "how_to_verify": "MOCK_SERVER_PORT=8000 npm run test:e2e:fast (smoke project) green incl. the 2 new specs."
+    },
+    {
+      "id": "ac6",
+      "criterion": "Dead code removed: useSaveParams (hooks.ts), putParamsTable + validateParams (api.ts), and the now-unused ValidationResult type are deleted; no remaining references.",
+      "how_to_verify": "grep -rn 'useSaveParams|putParamsTable|validateParams' src returns nothing; tsc -b + lint clean."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Add row types for the 10 new tables to types.ts; extend ELEG_TABLES to all 15.",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "TDD: add validation.test.ts cases for the new validators, then implement validators + isNum helper in validation.ts.",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Build generic GridTab (multi-column, int/float/string/bool-switch) and ExclusionListTab (single numeric col, chip add) components.",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Register all 10 new tabs on ParametrosElegibilidadPage (config-driven), wrapping TabsList for many tabs.",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Remove dead code: useSaveParams, putParamsTable, validateParams, ValidationResult.",
+      "status": "complete"
+    },
+    {
+      "id": "t6",
+      "desc": "Add Playwright @smoke specs for Validation_Conditions (rules) and an exclusion list table.",
+      "status": "complete"
+    },
+    {
+      "id": "t7",
+      "desc": "Run full VERIFY_CMD + e2e; fix until green.",
+      "status": "complete"
+    }
+  ]
+}

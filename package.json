@@ -1,11 +1,16 @@
 {
   "name": "ms-process-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.2",
   "type": "module",
+  "workspaces": [
+    "mock-server"
+  ],
   "scripts": {
     "dev": "vite",
+    "dev:e2e": "VITE_AUTH_BYPASS=true vite",
     "build": "tsc -b && vite build",
+    "build:dev-noauth": "tsc -b && vite build --mode dev-noauth",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -14,15 +19,24 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "mock": "node mock-server/server.js",
-    "mock:hybrid": "node mock-server/hybrid-proxy.js"
+    "mock:fast": "MOCK_STEP_INTERVAL_MS=150 node mock-server/server.js",
+    "mock:hybrid": "node mock-server/hybrid-proxy.js",
+    "mock:compile": "bun build mock-server/server.js --compile --target=bun-linux-x64 --outfile src-tauri/binaries/mock-server-x86_64-unknown-linux-gnu",
+    "mock:compile:win": "bun build mock-server/server.js --compile --target=bun-windows-x64 --outfile src-tauri/binaries/mock-server-x86_64-pc-windows-msvc.exe",
+    "tauri:build:mock": "npm run mock:compile && tauri build --config src-tauri/tauri.bundled-mock.conf.json -- --features mock-sidecar",
+    "test:e2e:fast": "playwright test --project=smoke",
+    "test:e2e:full": "playwright test"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.1.0",
     "@azure/msal-react": "^5.0.3",
+    "@fontsource-variable/bricolage-grotesque": "^5.2.10",
+    "@fontsource-variable/instrument-sans": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-table": "^8.21.3",
-    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.0",
     "axios": "^1.13.5",
@@ -41,7 +55,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.58.2",
-    "@tauri-apps/cli": "^2.10.0",
+    "@tauri-apps/cli": "^2.11.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

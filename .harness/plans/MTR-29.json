@@ -1,0 +1,61 @@
+{
+  "ticket": "MTR-29",
+  "linear_url": "https://linear.app/jaalduna/issue/MTR-29/useformato4-hooks-mirror-usemtr-createexecutecancellist-last",
+  "branch": "feat/MTR-29-useformato4-hooks",
+  "archetype": "webapp",
+  "goal": "Clone the useMtr/useLastMtr react-query hooks for the formato4 lifecycle (create/execute/cancel/list/get + last-completion) plus the api.ts functions they call.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "src/lib/api.ts exposes getFormato4Runs, getFormato4Run, createFormato4Run, executeFormato4, cancelFormato4 hitting /formato4/runs* (mirroring the MTR fns), and getLastFormato4 hitting /metadata/last-formato4 with the periodParams behaviour.",
+      "how_to_verify": "vitest src/__tests__/api-formato4.test.ts (mirrors api-last-period pattern) asserts each fn calls api with the correct path/method/params"
+    },
+    {
+      "id": "ac2",
+      "criterion": "src/modules/formato4/hooks/useFormato4.ts exports useFormato4Runs, useFormato4Run, useCreateFormato4Run, useExecuteFormato4, useCancelFormato4. useFormato4Runs polls every 3000ms while any run status is in [pending,running] and stops (refetchInterval false) when terminal; useFormato4Run polls 3000ms while its run is pending/running.",
+      "how_to_verify": "vitest renderHook tests: list returns items, mutations call the right api fn and invalidate; refetchInterval logic returns 3000 vs false for active vs terminal data"
+    },
+    {
+      "id": "ac3",
+      "criterion": "src/modules/formato4/hooks/useLastFormato4.ts exports useLastFormato4 returning the countries map from getLastFormato4.",
+      "how_to_verify": "vitest renderHook test asserts it resolves to the countries map"
+    },
+    {
+      "id": "ac4",
+      "criterion": "mock-server serves GET /metadata/last-formato4 (and mock-api.ts has the matching fallback) so the hook is not dead against the mock.",
+      "how_to_verify": "grep mock-server/server.js and src/lib/mock-api.ts for last-formato4"
+    },
+    {
+      "id": "ac5",
+      "criterion": "Repo stays green: tsc -b clean, eslint clean, full vitest suite passes with the new tests.",
+      "how_to_verify": "npx tsc -b && npx eslint . && npx vitest run"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Add Formato4 types (types.ts) mirroring mtr types with the sync/merge/simulate/format_4/zip steps",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Add formato4 api.ts functions (runs CRUD + last)",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Add useFormato4 + useLastFormato4 hooks (clone useMtr/useLastMtr)",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Add mock-server last-formato4 route + mock-api.ts fallback",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Write vitest tests for api fns + hooks",
+      "status": "complete"
+    }
+  ]
+}

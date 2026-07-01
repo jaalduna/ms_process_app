@@ -1,0 +1,8 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "Valid upload renders universo-preview with added/removed/changed; canPublish=valid&&upload_token enables Publicar. vitest ac1 + e2e valid-flow + mock contract ac1 green."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "Invalid upload (filename /invalid/) → valid:false, upload_token null, errors panel 'fila 4 · Q2-26'; Publicar disabled, publish never called. vitest ac2 + e2e invalid-flow + mock ac2 green."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "usePublishUniverso invalidates ['weighting-params','universo',pais]; mock publish bumps version+row_count; GET universo re-fetch reflects it. e2e card 6→7 filas; mock ac3 asserts after.version.row_count=before+1 & hash match."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "vitest 356/356 (incl UniversoUploadWizard 3/3 + mock contract 7/7), eslint clean, tsc -b clean, prod build green. Evaluator independently re-ran build (3.86s)."},
+  {"id": "ac5", "verdict": "PASS", "evidence": "Contract-fidelity fix: types.ts UniversoPublishResponse.version = nested WeightingParamsVersion {version,version_id,hash,published_by,published_at,diff}; wizard toast reads data.version.version; mock publish returns nested version (version_id wv_universo_<pais>_<n>); vitest+mock assert nested shape. Eliminates v[object Object] vs real JAA-580 backend."},
+  {"id": "overall", "verdict": "PASS", "evidence": "Separate skeptical ux-ui-reviewer/sonnet, fresh context, ran checks (build re-run confirms execution). All 5 ACs PASS. No placeholders; errors surface via sonner; wizard mounted in UniversoTab (reachable)."}
+]

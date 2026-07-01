@@ -1,66 +1,21 @@
-import { useState } from "react"
+import { memo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Eye, Square } from "lucide-react"
-import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { History } from "lucide-react"
+import { cn, formatRelativeTime } from "@/lib/utils"
+import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
 import { CalibrationProgress } from "./CalibrationProgress"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
+import { CalibrateButton } from "./CalibrateButton"
+import { StopCalibrationButton } from "./StopCalibrationButton"
 import { useCalibration } from "../hooks/useCalibration"
 import type { CountryInfo } from "@/types/api"
 import type { DataAvailability, CalibrationConfig } from "../types"
-import { DEFAULT_GROUP_BY } from "../types"
-
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
-
-const COUNTRY_FLAGS: Record<string, string> = {
-  argentina: "\u{1F1E6}\u{1F1F7}",
-  bolivia: "\u{1F1E7}\u{1F1F4}",
-  brasil: "\u{1F1E7}\u{1F1F7}",
-  brazil: "\u{1F1E7}\u{1F1F7}",
-  cam: "\u{1F30E}",
-  chile: "\u{1F1E8}\u{1F1F1}",
-  colombia: "\u{1F1E8}\u{1F1F4}",
-  ecuador: "\u{1F1EA}\u{1F1E8}",
-  mexico: "\u{1F1F2}\u{1F1FD}",
-  peru: "\u{1F1F5}\u{1F1EA}",
-}
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brazil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
 
 interface CountryCardProps {
   country: CountryInfo
@@ -72,16 +27,19 @@ interface CountryCardProps {
   lastCalibrationDate: string | null
 }
 
-export function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
+export const CountryCard = memo(function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion")
+  const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion", period)
 
   const isRunning = job?.status === "running" || job?.status === "pending"
   const isCompleted = job?.status === "completed"
   const isFailed = job?.status === "failed"
   const isCancelled = job?.status === "cancelled"
-  const canTrigger = availability.elegibilidad && !isRunning && !isPending
+  const { isClosed } = useProcessEntry("calibracion", country.code)
+  // Unknown elegibilidad (null — not determinable a priori yet) must NOT block
+  // triggering; only an explicit `false` does. The "?" badge signals the gap.
+  const canTrigger = availability.elegibilidad !== false && !isRunning && !isPending && !isClosed
 
   const countryLabel = COUNTRY_LABELS[country.code] ?? country.code
   const flag = COUNTRY_FLAGS[country.code] ?? ""
@@ -92,9 +50,9 @@ export function CountryCard({ country, period, availability, availabilityLoading
         className="cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
         role="button"
         tabIndex={0}
-        aria-label={`View calibration history for ${countryLabel}`}
-        onClick={() => setShowHistory(true)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowHistory(true) } }}
+        aria-label={`View calibration details for ${countryLabel}`}
+        onClick={() => setShowDetail(true)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowDetail(true) } }}
       >
         <CardHeader className="pb-2">
           <div className="space-y-1.5">
@@ -107,7 +65,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
                 variant="outline"
                 className={cn(
                   "text-xs",
-                  lastSyncDate ? "text-muted-foreground" : "text-amber-600 border-amber-300 bg-amber-50",
+                  lastSyncDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
                 )}
                 title={lastSyncDate ? `Sync: ${lastSyncDate.replace("T", " ").slice(0, 16)}` : undefined}
               >
@@ -117,13 +75,14 @@ export function CountryCard({ country, period, availability, availabilityLoading
                 variant="outline"
                 className={cn(
                   "text-xs",
-                  lastCalibrationDate ? "text-muted-foreground" : "text-amber-600 border-amber-300 bg-amber-50",
+                  lastCalibrationDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
                 )}
                 title={lastCalibrationDate ? `Cal: ${lastCalibrationDate.replace("T", " ").slice(0, 16)}` : undefined}
               >
                 Cal: {lastCalibrationDate ? formatRelativeTime(lastCalibrationDate) : "never"}
               </Badge>
             </div>
+            <ProcessStatusBadge stage="calibracion" country={country.code} countryLabel={countryLabel} />
             {/* DependencyIndicator removed — sync is skipped, data already in Databricks */}
           </div>
         </CardHeader>
@@ -141,7 +100,7 @@ export function CountryCard({ country, period, availability, availabilityLoading
 
           {/* Status badges */}
           {isCompleted && (
-            <Badge variant="default" className="bg-green-600">
+            <Badge variant="default" className="bg-success">
               Completed
             </Badge>
           )}
@@ -150,147 +109,38 @@ export function CountryCard({ country, period, availability, availabilityLoading
 
           {/* Actions */}
           <div onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-2 min-w-0">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    disabled={!canTrigger}
-                    className="flex-1"
-                    title={!canTrigger ? "Data not available or calibration already running" : undefined}
-                  >
-                    {isPending || isRunning ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isPending ? "Starting..." : "Running..."}
-                      </>
-                    ) : (
-                      "Calibrar"
-                    )}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirm Calibration</AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                      <div className="text-sm text-muted-foreground">
-                        <p>
-                          Start calibration for{" "}
-                          <strong>{countryLabel}</strong> period{" "}
-                          <strong>{period}</strong>?
-                        </p>
-                        {(calibrationConfig.aggregations.region || calibrationConfig.aggregations.nivel_2) && (
-                          <p className="mt-2">
-                            Aggregations:{" "}
-                            {[calibrationConfig.aggregations.region && "Region", calibrationConfig.aggregations.nivel_2 && "Nivel 2"]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        )}
-                        <p className="mt-2">
-                          Group by:{" "}
-                          <code className="text-xs bg-muted px-1 rounded">
-                            {calibrationConfig.group_by || DEFAULT_GROUP_BY[country.code] || "default"}
-                          </code>
-                        </p>
-                        {(calibrationConfig.skip_merge || calibrationConfig.skip_simulation) && (
-                          <p className="mt-1">
-                            Skipping:{" "}
-                            {[calibrationConfig.skip_merge && "merge", calibrationConfig.skip_simulation && "simulation"]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        )}
-                        {(calibrationConfig.row_limit != null || calibrationConfig.lookback_months != null) && (
-                          <p className="mt-2">
-                            Overrides:{" "}
-                            {[
-                              calibrationConfig.row_limit != null && `Top ${calibrationConfig.row_limit} rows`,
-                              calibrationConfig.lookback_months != null && `${calibrationConfig.lookback_months} months lookback`,
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        )}
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => {
-                      startCalibration({
-                        period,
-                        aggregations: calibrationConfig.aggregations,
-                        row_limit: calibrationConfig.row_limit,
-                        lookback_months: calibrationConfig.lookback_months,
-                        skip_sync: true,
-                        table_suffix: "_full",
-                        group_by: calibrationConfig.group_by || DEFAULT_GROUP_BY[country.code] || null,
-                        start_period: calibrationConfig.start_period || null,
-                        skip_merge: calibrationConfig.skip_merge,
-                        skip_simulation: calibrationConfig.skip_simulation,
-                      }).then(() => {
-                        toast.success(`Calibration started for ${countryLabel}`);
-                      }).catch((err: unknown) => {
-                        const message = (err as { message?: string })?.message ?? "Unknown error";
-                        toast.error(`Failed to start calibration for ${countryLabel}: ${message}`);
-                      });
-                    }}>
-                      Confirm
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            <div className="flex flex-wrap gap-2 min-w-0">
+              <CalibrateButton
+                countryLabel={countryLabel}
+                period={period}
+                calibrationConfig={calibrationConfig}
+                canTrigger={canTrigger}
+                isClosed={isClosed}
+                isPending={isPending}
+                isRunning={isRunning}
+                startCalibration={startCalibration}
+                className="flex-1"
+              />
 
               {isRunning && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      aria-label="Stop calibration"
-                      disabled={isCancelling}
-                    >
-                      {isCancelling ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Stop Calibration</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Stop the running calibration for <strong>{countryLabel}</strong>? This will cancel all pending steps.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Keep Running</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => {
-                          cancelCalibration()
-                          toast.info(`Calibration stopped for ${countryLabel}`)
-                        }}
-                      >
-                        Stop
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <StopCalibrationButton
+                  countryLabel={countryLabel}
+                  isCancelling={isCancelling}
+                  cancelCalibration={cancelCalibration}
+                />
               )}
 
-              {job && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  aria-label="View calibration details"
-                  onClick={() => setShowDetail(true)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowHistory(true)
+                }}
+                title="Historial"
+              >
+                <History className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -310,4 +160,4 @@ export function CountryCard({ country, period, availability, availabilityLoading
       />
     </>
   )
-}
+})

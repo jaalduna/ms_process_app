@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { memo, useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,7 +15,10 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Eye, Square, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { cn, formatRelativeTime } from "@/lib/utils"
+import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { PricesProgress } from "./PricesProgress"
 import { PricesDetailModal } from "./PricesDetailModal"
 import { PricesHistoryModal } from "./PricesHistoryModal"
@@ -24,50 +27,13 @@ import { PRICES_STATUS_CONFIG } from "../types"
 import type { PricesRun } from "../types"
 import type { CountryInfo } from "@/types/api"
 
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
-
-const COUNTRY_FLAGS: Record<string, string> = {
-  argentina: "\u{1F1E6}\u{1F1F7}",
-  bolivia: "\u{1F1E7}\u{1F1F4}",
-  brasil: "\u{1F1E7}\u{1F1F7}",
-  brazil: "\u{1F1E7}\u{1F1F7}",
-  cam: "\u{1F30E}",
-  chile: "\u{1F1E8}\u{1F1F1}",
-  colombia: "\u{1F1E8}\u{1F1F4}",
-  ecuador: "\u{1F1EA}\u{1F1E8}",
-  mexico: "\u{1F1F2}\u{1F1FD}",
-  peru: "\u{1F1F5}\u{1F1EA}",
-}
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brazil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
-
 interface PricesCountryCardProps {
   country: CountryInfo
   period: string
   lastValidationDate: string | null
 }
 
-export function PricesCountryCard({ country, period, lastValidationDate }: PricesCountryCardProps) {
+export const PricesCountryCard = memo(function PricesCountryCard({ country, period, lastValidationDate }: PricesCountryCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [selectedRun, setSelectedRun] = useState<PricesRun | null>(null)
@@ -85,7 +51,8 @@ export function PricesCountryCard({ country, period, lastValidationDate }: Price
   const isRunning = activeRun?.status === "running" || activeRun?.status === "pending"
   const isPending = createRun.isPending || executeRun.isPending
   const isCancelling = cancelRun.isPending
-  const canTrigger = !isRunning && !isPending
+  const { isClosed } = useProcessEntry("precios", country.code)
+  const canTrigger = !isRunning && !isPending && !isClosed
 
   const countryLabel = COUNTRY_LABELS[country.code] ?? country.code
   const flag = COUNTRY_FLAGS[country.code] ?? ""
@@ -142,12 +109,13 @@ export function PricesCountryCard({ country, period, lastValidationDate }: Price
               variant="outline"
               className={cn(
                 "text-xs",
-                lastValidationDate ? "text-muted-foreground" : "text-amber-600 border-amber-300 bg-amber-50",
+                lastValidationDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
               )}
               title={lastValidationDate ? `Last: ${lastValidationDate.replace("T", " ").slice(0, 16)}` : undefined}
             >
               Precios: {lastValidationDate ? formatRelativeTime(lastValidationDate) : "never"}
             </Badge>
+            <ProcessStatusBadge stage="precios" country={country.code} countryLabel={countryLabel} />
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -172,12 +140,12 @@ export function PricesCountryCard({ country, period, lastValidationDate }: Price
 
           {/* Actions */}
           <div onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {/* Trigger / Retry */}
               {displayRun?.status === "failed" ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" disabled={isClosed} title={isClosed ? "Proceso cerrado" : undefined}>
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Reintentar
                     </Button>
@@ -203,6 +171,7 @@ export function PricesCountryCard({ country, period, lastValidationDate }: Price
                       size="sm"
                       disabled={!canTrigger}
                       className="flex-1"
+                      title={isClosed ? "Proceso cerrado" : undefined}
                     >
                       {isPending || isRunning ? (
                         <>
@@ -299,4 +268,4 @@ export function PricesCountryCard({ country, period, lastValidationDate }: Price
       />
     </>
   )
-}
+})

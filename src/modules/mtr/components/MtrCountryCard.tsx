@@ -15,49 +15,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Eye, Loader2, Square } from "lucide-react"
 import { toast } from "sonner"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { MtrProgress } from "./MtrProgress"
 import { MtrDetailModal } from "./MtrDetailModal"
 import { MtrHistoryModal } from "./MtrHistoryModal"
 import { useMtrRuns, useCreateMtrRun, useExecuteMtr, useCancelMtr } from "../hooks/useMtr"
 import { MTR_ACTIVE_STATUSES, MTR_STATUS_CONFIG } from "../types"
 import type { MtrParams } from "../types"
-
-const COUNTRY_FLAGS: Record<string, string> = {
-  argentina: "\u{1F1E6}\u{1F1F7}",
-  bolivia: "\u{1F1E7}\u{1F1F4}",
-  brasil: "\u{1F1E7}\u{1F1F7}",
-  brazil: "\u{1F1E7}\u{1F1F7}",
-  cam: "\u{1F30E}",
-  chile: "\u{1F1E8}\u{1F1F1}",
-  colombia: "\u{1F1E8}\u{1F1F4}",
-  ecuador: "\u{1F1EA}\u{1F1E8}",
-  mexico: "\u{1F1F2}\u{1F1FD}",
-  peru: "\u{1F1F5}\u{1F1EA}",
-}
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brasil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
-
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
+import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
+import { formatRelativeTime } from "@/lib/utils"
 
 function periodStringToNumber(period: string): number {
   return parseInt(period, 10)
@@ -93,7 +60,8 @@ export function MtrCountryCard({
   const isPending = latestRun?.status === "pending"
   const isCompleted = latestRun?.status === "completed"
   const isFailed = latestRun?.status === "failed"
-  const canExecute = !isProcessing && !isPending && !createRun.isPending && !executeRun.isPending
+  const { isClosed } = useProcessEntry("mtr", countryCode)
+  const canExecute = !isProcessing && !isPending && !createRun.isPending && !executeRun.isPending && !isClosed
 
   const statusConfig = latestRun ? MTR_STATUS_CONFIG[latestRun.status] : null
 
@@ -147,6 +115,9 @@ export function MtrCountryCard({
             {lastMtrDate ? formatRelativeTime(lastMtrDate) : "never"}
           </Badge>
         </div>
+        <div className="mt-2">
+          <ProcessStatusBadge stage="mtr" country={countryCode} countryLabel={countryLabel} />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Latest run status */}
@@ -173,7 +144,7 @@ export function MtrCountryCard({
 
         {/* Actions */}
         <div onClick={(e) => e.stopPropagation()}>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* Processing state */}
             {(isProcessing || isPending) && (
               <>
@@ -213,7 +184,7 @@ export function MtrCountryCard({
             {!isProcessing && !isPending && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" disabled={!canExecute} className="flex-1">
+                  <Button size="sm" disabled={!canExecute} className="flex-1" title={isClosed ? "Proceso cerrado" : undefined}>
                     {(createRun.isPending || executeRun.isPending) ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

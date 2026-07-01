@@ -1,0 +1,4 @@
+[
+  {"id": "ac3", "verdict": "PASS", "evidence": "downloadCalibrationReport/downloadWeightingCSV no longer use responseType:'blob'/createObjectURL; GET .../download-url then window.location.assign(resolveDownloadUrl(url)). Full vitest suite 369/369 passed, lint clean, tsc -b clean. src/__tests__/api-downloads.test.ts asserts no responseType:'blob' and correct assign() call. Playwright e2e/signed-download.spec.ts: both tests pass against live mock-server+vite, asserting a real native download event AND that /download-url + /download-signed were hit (not the old blob /download endpoint). mock-server/__tests__/signed-download.test.js 6/6 passed, mirrors the JAA-757 backend contract faithfully."},
+  {"id": "overall", "verdict": "PASS", "evidence": "All verification commands independently re-run and green. Non-blocking note: branch was 1 commit behind ado/develop (JAA-755 touches adjacent region of api.ts) -- rebased before merging."}
+]

@@ -1,0 +1,49 @@
+{
+  "ticket": "JAA-755",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-755/marcaretiquetar-una-corrida-como-la-final-usada-por-proceso-pais",
+  "branch": "feat/JAA-755-run-final-tag",
+  "archetype": "webapp",
+  "goal": "Add an exclusive 'final' toggle and a free-text label/note per run to the Calibration and Weighting history modals, backed by a new mock-server PATCH contract, so users can mark which run was actually used for a (process, country, period) without guessing by date/tag.",
+  "scope_note": "Cross-repo ticket (real ms-process-api is out of scope for this session per AGENTS.md convention). This session implements UI + mock-server contract only. A separate backend sub-issue (API) will implement the real PATCH endpoint later, validated against this same contract.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "mock-server exposes PATCH /events/:jobId for calibration runs accepting {is_final?, label?}; setting is_final=true on one job unsets is_final on every other job sharing the same country+period+stage='calibracion'",
+      "how_to_verify": "npm run mock:fast in background; curl -X PATCH localhost:8000/api/v1/events/<jobA> -d '{\"is_final\":true}' then curl -X PATCH localhost:8000/api/v1/events/<jobB same country/period> -d '{\"is_final\":true}'; GET /events and assert only jobB has is_final:true. Also new mock-server/__tests__ test file covers this + label persistence + 404 on unknown id."
+    },
+    {
+      "id": "ac2",
+      "criterion": "mock-server exposes PATCH /weighting/runs/:runId accepting {is_final?, label?} with the same exclusivity semantics scoped to country+period, mirroring the eligibility PATCH precedent",
+      "how_to_verify": "new mock-server/__tests__ test file: PATCH sets label freely; PATCH is_final=true on run A then run B (same country/period) unsets A; PATCH on unrelated country/period does not affect exclusivity; 404 on unknown runId"
+    },
+    {
+      "id": "ac3",
+      "criterion": "EventSummary and WeightingRun TypeScript types include is_final?: boolean and label?: string | null; src/lib/api.ts exposes patchEvent(jobId, patch) and patchWeightingRun(runId, patch) calling the new PATCH routes",
+      "how_to_verify": "npx tsc -b passes; grep confirms both functions exist and are used by the modals (ac4/ac5)"
+    },
+    {
+      "id": "ac4",
+      "criterion": "CalibrationHistoryModal renders a 'Final' star toggle and an editable label per row; clicking the star on a row marks it final and visually un-marks any other row for the same country+period after refetch; editing the label persists via patchEvent",
+      "how_to_verify": "new/updated vitest test in src/__tests__ mounts CalibrationHistoryModal with 2+ mocked events sharing country+period, clicks star on row 2, asserts patchEvent called with is_final:true and (after refetch mock) row 1's star is no longer active; types a label and asserts patchEvent called with the label on blur/submit"
+    },
+    {
+      "id": "ac5",
+      "criterion": "WeightingHistoryModal has the equivalent 'Final' star toggle + editable label per row, same exclusivity behavior on the UI side",
+      "how_to_verify": "new/updated vitest test in src/__tests__ mirroring ac4 for WeightingHistoryModal + patchWeightingRun"
+    },
+    {
+      "id": "ac6",
+      "criterion": "Full verify gate green and a live Playwright walkthrough of at least one modal (calibration or weighting) confirms the star toggle and label are visible and clickable in the running app",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b && npm run build all exit 0; evaluator drives the running app (mock:fast + dev:e2e) with Playwright MCP: open a country's history modal, click the final star on a run, confirm badge appears, type+save a label, confirm it persists after modal close/reopen"
+    }
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "mock-server: add PATCH /events/:jobId in sync.js (or wherever the jobs Map lives) with is_final exclusivity (scope: country+period+stage) and label passthrough; add mock-server/__tests__ coverage", "status": "complete"},
+    {"id": "t2", "desc": "mock-server: add RunStore.update(runId, patch) (mirror EligibilityStore.update) + PATCH /weighting/runs/:runId in weighting.js with is_final exclusivity (scope: country+period) and label passthrough; add mock-server/__tests__ coverage", "status": "complete"},
+    {"id": "t3", "desc": "frontend contract: add is_final?/label? to EventSummary (src/types/api.ts) and WeightingRun (src/modules/pesaje/types.ts); add patchEvent + patchWeightingRun to src/lib/api.ts", "status": "complete"},
+    {"id": "t4", "desc": "CalibrationHistoryModal: add Final star toggle + editable label column/cell, wire to patchEvent + refetch (react-query invalidate), widen GRID template", "status": "complete"},
+    {"id": "t5", "desc": "WeightingHistoryModal: same as t4 using patchWeightingRun", "status": "complete"},
+    {"id": "t6", "desc": "vitest: cover ac4/ac5 exclusivity + label persistence in both modal test files", "status": "complete"},
+    {"id": "t7", "desc": "Capture the real-backend gap as a new Linear sub-issue (API): PATCH /events/:jobId and /weighting/runs/:runId equivalents in ms-process-api, blocked-by nothing, related-to JAA-755. Link it in progress.md and Linear comment.", "status": "complete"}
+  ]
+}

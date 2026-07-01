@@ -25,23 +25,12 @@ import { CheckCircle2, Download, Loader2, ArrowUpDown } from "lucide-react"
 import { PricesProgress } from "./PricesProgress"
 import { useApprovePrices } from "../hooks/usePrices"
 import { PRICES_STATUS_CONFIG } from "../types"
+import { downloadOutliersCSV } from "../outliersCsv"
 import type { PricesRun, PricesOutlier } from "../types"
-
-const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brazil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_LABELS } from "@/lib/countries"
 
 function parseUTC(ts: string): number {
-  return new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime()
+  return new Date(/([zZ]|[+-]\d{2}:?\d{2})$/.test(ts) ? ts : ts + "Z").getTime()
 }
 
 function formatDate(isoDate: string): string {
@@ -64,6 +53,7 @@ export function PricesDetailModal({ run, open, onClose }: PricesDetailModalProps
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const approve = useApprovePrices()
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- pre-existing, preserving behavior
   const sortedOutliers = useMemo(() => {
     if (!run?.outliers) return []
     return [...run.outliers].sort((a, b) => {
@@ -98,27 +88,8 @@ export function PricesDetailModal({ run, open, onClose }: PricesDetailModalProps
   }, [approve, run])
 
   const handleDownloadCSV = useCallback(() => {
-    if (!run?.outliers || run.outliers.length === 0) return
-    const headers = ["Product", "Declared Price", "Historical Avg", "Deviation %", "Reason", "Household ID"]
-    const rows = run.outliers.map((o) => [
-      `"${o.product}"`,
-      o.declared_price,
-      o.historical_avg,
-      o.deviation_pct,
-      `"${o.reason}"`,
-      o.household_id,
-    ])
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `prices_outliers_${run.country}_${run.period}.csv`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-    toast.success("CSV downloaded")
+    if (!run) return
+    if (downloadOutliersCSV(run)) toast.success("CSV downloaded")
   }, [run])
 
   if (!run) return null
@@ -139,7 +110,7 @@ export function PricesDetailModal({ run, open, onClose }: PricesDetailModalProps
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Price Validation Detail
@@ -242,7 +213,7 @@ export function PricesDetailModal({ run, open, onClose }: PricesDetailModalProps
                   </div>
                 ) : (
                   <div className="mt-2 flex items-center gap-2 rounded-lg border p-4 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <CheckCircle2 className="h-5 w-5 text-success" />
                     <span>No outliers detected. All prices are within expected ranges.</span>
                   </div>
                 )}

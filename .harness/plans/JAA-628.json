@@ -1,0 +1,29 @@
+{
+  "ticket": "JAA-628",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-628/params-editor-frontend-boton-descargarimportar-excel-flujo-de-carga",
+  "branch": "feat/JAA-628-params-excel-frontend",
+  "archetype": "webapp",
+  "integration": {"mode": "direct", "remote": "ado", "branch": "develop", "note": "AGENTS.md authoritative; injected origin/harness-auto was for the launch repo ms-process-api, not this frontend repo. origin(GitHub) has no develop/harness-auto."},
+  "goal": "Frontend (ms_process_app): per-country Descargar Excel button (valores actuales vs template) + import flow that POSTs the xlsx and renders diff+errors in ReviewPublishDialog, blocking publish on errors, reusing the existing per-table publish.",
+  "contract": {
+    "export": "GET /api/v1/params/{pais}/export.xlsx?template=true|false -> xlsx blob, Content-Disposition filename params_{pais}.xlsx / params_{pais}_template.xlsx",
+    "import": "POST /api/v1/params/{pais}/import (multipart field 'file') -> 200 {country, valid, tables:[{table, rows, diff:{row_count_before,row_count_after,added,removed,added_count,removed_count}, errors:[str], warnings:[str]}]}; 400 {error,message} on bad file",
+    "publish": "reuse POST /api/v1/params/{table}/{country}/publish {rows} per changed table"
+  },
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "Download control with mode toggle (valores actuales / template vacio) calls export.xlsx (template=true only for template) as a blob and triggers a file download with the contract filename.", "how_to_verify": "vitest: downloadParamsExcel(country, template) GETs /params/{country}/export.xlsx with responseType blob and params {template:true} only when template; anchor click + revokeObjectURL. e2e: download event suggestedFilename matches /^params_CL(_template)?\\.xlsx$/."},
+    {"id": "ac2", "criterion": "Import uploads the xlsx (multipart), maps the backend ImportResult to issues+diff, renders them in ReviewPublishDialog, and blocks publish when any table has errors.", "how_to_verify": "vitest: mapImportResult unit test (errors->error issues, warnings->warning issues, added/removed rows->DiffEntry). Component test: importParamsExcel resolves clean result -> dialog shows diff-table and confirm-publish enabled; resolves result with errors -> dialog-error-badge shown and confirm-publish disabled."},
+    {"id": "ac3", "criterion": "Playwright @smoke walkthrough: descargar -> (mock) subir xlsx -> ver diff -> publicar, against the mock-server.", "how_to_verify": "MOCK_SERVER_PORT=8000 npm run test:e2e:fast -- -g 'Excel' passes the new @smoke test: download event fires, import opens review-dialog with diff-row, confirm-publish hits POST /params/.../publish 200 and a success toast appears."},
+    {"id": "ac4", "criterion": "npm test + lint + tsc + build all green.", "how_to_verify": "npm test && npm run lint && npx tsc -b && npm run build"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "types.ts: add ImportTableDiff/ImportTableResult/ImportResult mirroring backend schema", "status": "complete"},
+    {"id": "t2", "desc": "api.ts: add downloadParamsExcel(country, template) blob download + importParamsExcel(country, file) multipart", "status": "complete"},
+    {"id": "t3", "desc": "importMapping.ts: pure mapImportResult(ImportResult)->{issues,diff} + unit tests", "status": "complete"},
+    {"id": "t4", "desc": "ParamsExcelToolbar.tsx: download toggle+button, import file input->dialog->publish; + component tests", "status": "complete"},
+    {"id": "t5", "desc": "Wire toolbar into ParametrosElegibilidadPage", "status": "complete"},
+    {"id": "t6", "desc": "mock-server/routes/params.js: GET /params/:pais/export.xlsx + POST /params/:pais/import (before generic 2-seg route)", "status": "complete"},
+    {"id": "t7", "desc": "e2e @smoke: download -> import -> diff -> publish", "status": "complete"},
+    {"id": "t8", "desc": "Run full VERIFY_CMD (test+lint+tsc+build) + e2e; separate evaluator", "status": "complete"}
+  ]
+}

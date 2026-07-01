@@ -1,0 +1,7 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "downloadParamsExcel sends params {template:true} ONLY when template (api.ts), Switch toggle drives it; e2e asserts download event filename params_CL.xlsx; 3/3 e2e pass. No stubs."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "importParamsExcel POSTs multipart; mapImportResult->ReviewPublishDialog; ReviewPublishDialog blocks publish when errors>0; ParamsExcelToolbar.test errorResult asserts dialog-error-badge + confirm-publish disabled + publishParams not called. Publish reuses publishParams per changedTable."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "@smoke 'Excel round-trip' test: download(params_CL.xlsx) -> setInputFiles -> review-dialog with diff-row -> confirm-publish enabled -> POST /params/Code_Parametros/CL/publish 200 -> 'Publicado desde Excel' toast. PASS(3) FAIL(0)."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "npm test 316/316; eslint clean; tsc -b no errors; npm run build success."},
+  {"id": "overall", "verdict": "PASS", "evidence": "All 4 ACs pass; no stubs/placeholders; separate skeptical evaluator (general-purpose, fresh ctx) ran all checks independently."}
+]

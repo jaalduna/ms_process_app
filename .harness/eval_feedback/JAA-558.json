@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "Independent Playwright cross-check with features={telemetry:false,processStatus:false}: navigated Overview->Precios->Calibracion, waited 4s. ZERO requests to /telemetry/events, /telemetry/errors, /processes/status; zero matching console errors (only unrelated dev-server font 403s). Repo e2e 'features off' smoke also passed. Guard at two levels: initTelemetry() early-return + post() chokepoint re-check; useProcessStatus enabled:false."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "Independent cross-check with features on: GET /processes/status 200, POST /telemetry/events 202, zero matching console errors. Repo e2e 'features on' smoke passed. Existing e2e/telemetry.spec.ts smoke still passes (no regression)."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "feature-flags.test.ts + useProcessStatus.test.tsx are non-vacuous: telemetry no-op when flag false (empty queue + no fetch), works when unset; helpers default true and honor __APP_CONFIG__.features; useProcessStatus idle/no-call when processStatus false, fetches when unset. 191/191 unit tests pass."
+  },
+  {
+    "id": "ac4",
+    "verdict": "PASS",
+    "evidence": "deploy/config.dev.js and deploy/config.prod.js both set features {telemetry:false,processStatus:false}; public/config.js keeps them on for mock/dev."
+  },
+  {
+    "id": "ac5",
+    "verdict": "PASS",
+    "evidence": "vitest 191/191 pass; npm run lint -> ESLint: No issues found; npx tsc --noEmit -> No errors found."
+  },
+  {
+    "id": "overall",
+    "verdict": "PASS",
+    "evidence": "All five ACs independently verified by a separate skeptical evaluator (ux-ui-reviewer, fresh context). No stubs/placeholders/vacuous tests. Dual-chokepoint guard ensures zero requests when disabled regardless of script-load timing."
+  }
+]

@@ -7,7 +7,7 @@
 window.__BRIDGE_CONFIG__ = {
   // Update this URL when using a tunnel (e.g. localtunnel, ngrok).
   // sql-databricks-bridge default: http://localhost:8000/api/v1
-  API_URL: "http://localhost:8000/api/v1",
+  API_URL: "http://localhost:5000/api/v1",
 };
 
 window.__APP_CONFIG__ = {
@@ -20,6 +20,16 @@ window.__APP_CONFIG__ = {
     prices: true,
     weighting: true,
     mtr: true,
-    traceability: true,
+    formato4: true,
+    qmstr: true,
+    macrocac: true,
+    traceability: false,
+  },
+  // Feature flags (JAA-558). The bundled mock-server implements both the
+  // telemetry sink and /processes/status, so they stay ON for local/mock dev.
+  // The real-API deploy configs (deploy/config.{dev,prod}.js) turn these OFF.
+  features: {
+    telemetry: true,
+    processStatus: true,
   },
 };

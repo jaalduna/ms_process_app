@@ -1,0 +1,29 @@
+{
+  "ticket": "JAA-423",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-423/pesaje-parametros-por-paiscorrida-flujo-iterativo-configurar-correr",
+  "branch": "feat/JAA-423-pesaje-per-country-params",
+  "archetype": "webapp",
+  "goal": "Make Pesaje parameters per-country/per-run (not one global config) and support the iterate loop: configure → run → review stats/CSV → adjust params → re-run (even after success) → mark as listo (reuse JAA-391 close).",
+  "ports": { "mock": 5123, "dev": 5323 },
+  "decisions": [
+    "Marcar como listo = cerrar proceso (reuse useSetProcessStatus/closeProcess, ProcessStatusBadge); no new state.",
+    "Config lives per-card, pre-filled from that country's last run parameters_json (or DEFAULT). Global gear removed.",
+    "Re-run with edited params is allowed after a COMPLETED run, not only after a failure. When the process is closed, re-run is not offered."
+  ],
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "PesajePage header no longer renders the global 'Parametros de pesaje' gear; each country card exposes its own 'Configurar parametros' control that opens a per-country param dialog.", "how_to_verify": "vitest: PesajePage renders no button with aria-label 'Parametros de pesaje'; WeightingCountryCard renders a 'Configurar parametros' trigger. e2e: clicking it on a card opens the params dialog."},
+    {"id": "ac2", "criterion": "A card's config dialog is pre-filled from that country's last run parameters_json; falls back to DEFAULT_WEIGHTING_PARAMS when the country has no runs.", "how_to_verify": "vitest: render card with a latest run whose parameters_json sets METODO_BOUNDS='iqr' → opening the dialog shows iqr selected; render card with no runs → shows percentile (default)."},
+    {"id": "ac3", "criterion": "Editing a card's params then running posts THAT card's params; params are independent per country.", "how_to_verify": "e2e: open Argentina config, set MAX_ROUNDS_COLAPSO to a distinctive value + METODO_BOUNDS='iqr', Ejecutar → assert POST /weighting/runs body.parameters reflects those values; a second country still posts its own/default values."},
+    {"id": "ac4", "criterion": "After a COMPLETED run the detail modal allows editing parameters and 'Re-ejecutar' (not only after a failure).", "how_to_verify": "e2e: run a country to completed, open 'Ver detalle', confirm Parametros are editable, change a value, 'Re-ejecutar' → a new run is created/executed (toast 'Re-ejecucion iniciada')."},
+    {"id": "ac5", "criterion": "A completed, open country can be 'Marcado como listo' which closes the pesaje process; Ejecutar becomes disabled; reopening via the badge re-enables iteration.", "how_to_verify": "e2e: with a completed run, click 'Marcar como listo' → confirm → process badge shows 'Cerrado' and Ejecutar is disabled (title 'Proceso cerrado'); click badge → 'Abrir proceso' → Ejecutar enabled again."},
+    {"id": "ac6", "criterion": "VERIFY_CMD green and no regressions.", "how_to_verify": "npm test (vitest) all pass, npm run lint clean, npx tsc -b clean."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "WeightingConfigDialog: add optional triggerLabel (labeled button) keeping controlled params/onChange API; keep 'Restaurar valores por defecto'.", "status": "complete"},
+    {"id": "t2", "desc": "WeightingCountryCard: hold local params state seeded from latest run's parameters_json (or DEFAULT) via effect keyed on run_id; render per-card config dialog; use local params in handleExecutar. Drop weightingParams prop.", "status": "complete"},
+    {"id": "t3", "desc": "PesajePage: remove global WeightingConfigDialog + weightingParams state; stop passing weightingParams to cards.", "status": "complete"},
+    {"id": "t4", "desc": "WeightingDetailModal: enable canRerun for completed runs too (failed || completed) and only when onRerun provided; tidy the 'editables' hint copy. Card passes onRerun only when process is not closed.", "status": "complete"},
+    {"id": "t5", "desc": "WeightingCountryCard: add 'Marcar como listo' CTA (visible when completed && open) calling useSetProcessStatus close('pesaje', country) with confirm + toast; closed state already disables Ejecutar.", "status": "complete"},
+    {"id": "t6", "desc": "Update unit tests (PesajePage, WeightingCountryCard, WeightingConfigDialog) for the new per-card model; add tests for ac2 seeding. New e2e e2e/weighting-iterate.spec.ts covering ac1-ac5.", "status": "complete"}
+  ]
+}

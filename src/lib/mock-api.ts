@@ -34,8 +34,8 @@ function makeLastSync() {
     countries[c.code] = {
       country: c.code,
       completed_at: new Date(Date.now() - Math.random() * 7 * 86400000).toISOString(),
-      job_id: crypto.randomUUID(),
-      stage: "calibration",
+      run_id: crypto.randomUUID(),
+      period: Number(new Date().toISOString().slice(0, 7).replace("-", "")),
     }
   }
   return { countries }
@@ -202,9 +202,9 @@ const routes: [RegExp, RouteHandler][] = [
   [/\/metadata\/last-prices$/, () => makeLastStageCompletion()],
   [/\/metadata\/last-weighting$/, () => makeLastStageCompletion()],
   [/\/metadata\/last-mtr$/, () => makeLastStageCompletion()],
+  [/\/metadata\/last-formato4$/, () => makeLastStageCompletion()],
   [/\/events$/, () => makeEvents()],
   [/\/events\/[^/]+$/, () => ({ ...makeEvents().items[0], results: [] })],
-  [/\/events\/[^/]+\/tables$/, () => ({ job_id: "demo", country: "CL", tables: [] })],
   [/\/events\/[^/]+\/cancel$/, () => ({ status: "cancelled" })],
   [/\/trigger$/, () => ({ job_id: crypto.randomUUID(), status: "pending", country: "CL", stage: "calibration", tag: "demo", queries: ["q_compras"], queries_count: 1, created_at: new Date().toISOString(), triggered_by: "demo@kantar.com" })],
   [/\/eligibility\/runs$/, () => makeEligibilityRuns()],

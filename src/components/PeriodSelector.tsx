@@ -31,10 +31,12 @@ function formatPeriod(p: string): string {
 interface PeriodSelectorProps {
   value: string
   onChange: (period: string) => void
+  /** Explicit list of YYYYMM periods to offer. Omit to generate the last 12 months. */
+  periods?: string[]
 }
 
-export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
-  const periods = generatePeriods(12)
+export function PeriodSelector({ value, onChange, periods: periodsProp }: PeriodSelectorProps) {
+  const periods = periodsProp ?? generatePeriods(12)
 
   return (
     <Select value={value} onValueChange={onChange}>

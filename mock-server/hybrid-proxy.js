@@ -93,6 +93,18 @@ app.get("/api/v1/events/:jobId/download", proxyToBackend)
 app.get("/api/v1/events/:jobId", proxyToBackend)
 app.post("/api/v1/events/:jobId/cancel", proxyToBackend)
 
+// Formato 4 lifecycle -> real backend (MTR-62). The Node mock only ever served
+// the E3 contract; proxying /formato4/* lets the integration walkthrough drive
+// the REAL fake-mode API (DATABRICKS_FAKE=true) and catch mock-vs-real
+// divergence. The download streams the server-generated zip (pipe handles the
+// binary body + Content-Disposition).
+app.get("/api/v1/formato4/runs", proxyToBackend)
+app.post("/api/v1/formato4/runs", proxyToBackend)
+app.get("/api/v1/formato4/runs/:runId", proxyToBackend)
+app.post("/api/v1/formato4/runs/:runId/execute", proxyToBackend)
+app.post("/api/v1/formato4/runs/:runId/cancel", proxyToBackend)
+app.get("/api/v1/formato4/runs/:runId/download", proxyToBackend)
+
 // ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
@@ -100,5 +112,5 @@ app.post("/api/v1/events/:jobId/cancel", proxyToBackend)
 app.listen(PORT, () => {
   console.log(`Hybrid proxy server running on http://localhost:${PORT}`)
   console.log(`  Mocked:  /metadata/*, /auth/me, /prices/*, /weighting/*, /mtr/*, /traceability/*`)
-  console.log(`  Proxied: /trigger, /events/* -> ${REAL_BACKEND}`)
+  console.log(`  Proxied: /trigger, /events/*, /formato4/* -> ${REAL_BACKEND}`)
 })

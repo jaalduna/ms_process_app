@@ -1,0 +1,41 @@
+{
+  "ticket": "JAA-411",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-411/e2e-follow-up-port-smoke-assertions-to-vitest-repairrewrite",
+  "branch": "feat/JAA-411-e2e-port-repair",
+  "archetype": "webapp",
+  "goal": "Repair/rewrite the quarantined and stale-selector Playwright e2e specs against the post-rebrand DOM, delete the obsolete sync-flow specs, port browser-free assertions to vitest, so `npm run test:e2e:full` is fully green (no test.fixme quarantines).",
+  "baseline": "21 passed, 22 skipped (21 JAA-411 fixme + 2 JAA-359 traceability skips), 11 failed. Failures: bolivia/chile/peru (obsolete sync), prices x4, mtr x2, weighting x2 (stale /trigger|run|start/ + card.click()).",
+  "servers": "Terminal A: PORT=8000 npm run mock:fast ; Terminal B: npm run dev:e2e ; run: MOCK_SERVER_PORT=8000 npm run test:e2e:full",
+  "real_dom_notes": {
+    "login": "heading 'MS Process App' + button 'Continue (dev)'; NOT 'SQL-Databricks Bridge'/'Sign in'",
+    "landing": "default route /overview = 'Country Pipeline Overview' table, 9 country rows; NO global History link in nav",
+    "nav": "Overview, Precios, Elegibilidad, Pesaje, Calibración, MTR, Trazabilidad, Admin (no Sync)",
+    "cards": "[data-slot=card] filtered by capitalized country name (Chile, Mexico, Argentina...)",
+    "prices": "trigger button /^Validar$/ -> alertdialog 'Confirm Price Validation' /^Confirm$/ -> card 'Resultados listos' + aria 'View validation details' -> dialog 'Price Validation Detail' (Outlier Results table; buttons Approve/Download CSV/Close)",
+    "process_badge": "/^Abierto$/ /^Cerrado$/; closed disables /^Validar$/",
+    "eligibility_model": "card /^Ejecutar$/ -> confirm /^Confirmar$/; running 'Detener'; results 'Pendiente de revisión' + 'Revisar y aprobar'",
+    "mtr_model": "card /Ejecutar/i -> alertdialog /^Confirm$/; running /Running\\.\\.\\./ + /^Stop$/ (confirm via mtr-action-row.spec)",
+    "weighting": "config via header button 'Parametros de pesaje'; trigger /^(re-?ejecutar|ejecutar)$/i -> 'Confirmar'"
+  },
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "No JAA-411 quarantines remain: zero test.fixme() in e2e/ (the 2 JAA-359 traceability test.skip may remain)", "how_to_verify": "grep -rn 'test.fixme' e2e/ | wc -l == 0"},
+    {"id": "ac2", "criterion": "Obsolete sync-flow specs deleted", "how_to_verify": "! test -e e2e/chile-sync.spec.ts && ! test -e e2e/bolivia-parallel.spec.ts && ! test -e e2e/peru-top100.spec.ts"},
+    {"id": "ac3", "criterion": "No stale brand strings or speculative selectors remain in e2e/", "how_to_verify": "grep -rnE 'SQL-Databricks Bridge|Trigger Data Sync|/trigger\\|run\\|start/|country-card' e2e/ | wc -l == 0"},
+    {"id": "ac4", "criterion": "Unit gate green incl. newly-ported vitest tests", "how_to_verify": "npm test && npm run lint && npx tsc -b"},
+    {"id": "ac5", "criterion": "Full e2e suite green (both projects) against fast mock", "how_to_verify": "PORT=8000 npm run mock:fast & ; npm run dev:e2e & ; MOCK_SERVER_PORT=8000 npm run test:e2e:full -> 0 failed"},
+    {"id": "ac6", "criterion": "Browser-free assertions ported to vitest component tests (card counts, button enabled/disabled, badge logic, dialog-open)", "how_to_verify": "new/expanded files under src/**/__tests__ render module cards and assert counts/disabled-state; included in npm test pass"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Delete obsolete sync specs (chile-sync, bolivia-parallel, peru-top100) + their committed PNG screenshots", "status": "complete"},
+    {"id": "t2", "desc": "Rewrite smoke.spec.ts against the Overview landing + correct health endpoint", "status": "complete"},
+    {"id": "t3", "desc": "Repair navigation.spec.ts fixme tests (real nav labels, no Sync; toggle/redirect)", "status": "complete"},
+    {"id": "t4", "desc": "Repair prices.spec.ts (2 fixme + 4 active flow): Validar/Confirm, Resultados listos, detail modal Approve+outlier table, cancel, failed/retry", "status": "complete"},
+    {"id": "t5", "desc": "Repair mtr.spec.ts (1 fixme + 2 active flow): Ejecutar/Confirm, results summary, failed/retry", "status": "complete"},
+    {"id": "t6", "desc": "Repair weighting.spec.ts (1 fixme + 2 active flow): config dialog, trigger/stats, cancel", "status": "complete"},
+    {"id": "t7", "desc": "Repair or port-to-vitest pipeline-deps.spec.ts (3 fixme) using real dependency-indicator DOM", "status": "complete"},
+    {"id": "t8", "desc": "Repair performance.spec.ts (2 fixme): rework to real landing/Overview (no global history page) or keep API-level perf checks", "status": "complete"},
+    {"id": "t9", "desc": "Un-fixme calibration.spec.ts (2) + eligibility.spec.ts (1): investigate real failures (good selectors already)", "status": "complete"},
+    {"id": "t10", "desc": "Port browser-free assertions to vitest component tests (card counts, button enable/disable, badges, dialog-open)", "status": "complete"},
+    {"id": "t11", "desc": "Full verify: vitest+lint+tsc green; test:e2e:full 0 failed; remove all fixme markers", "status": "complete"}
+  ]
+}

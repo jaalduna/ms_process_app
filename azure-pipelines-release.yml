@@ -1,0 +1,198 @@
+# Release pipeline (Azure DevOps) — build + SIGN the Tauri desktop app and
+# publish to the PUBLIC GitHub Releases host that the auto-updater reads.
+#
+# Flow:  push a tag  vX.Y.Z  ->  build Windows (NSIS) + Linux (AppImage),
+#        sign the updater artifacts, assemble latest.json, and create the
+#        GitHub Release  vX.Y.Z  with the installers + .sig + latest.json.
+#
+# The app's updater endpoint (src-tauri/tauri.conf.json) points at:
+#   https://github.com/jaalduna/ms_process_app/releases/latest/download/latest.json
+# so latest.json on the newest release is what every installed app checks.
+#
+# REQUIRED secret pipeline variables (set in a variable group or pipeline UI):
+#   TAURI_SIGNING_PRIVATE_KEY           - contents of the minisign private key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  - its password
+#   GH_TOKEN                            - GitHub PAT, scope: contents:write on
+#                                         jaalduna/ms_process_app
+# The signing key's PUBLIC half is embedded in tauri.conf.json (plugins.updater.pubkey).
+
+trigger:
+  tags:
+    include:
+      - "v*"
+
+pr: none
+
+variables:
+  NODE_VERSION: "20.x"
+  RELEASE_REPO: "jaalduna/ms_process_app"
+  # Tag like refs/tags/v0.2.0 -> 0.2.0
+  APP_VERSION: $[ replace(variables['Build.SourceBranchName'], 'v', '') ]
+
+stages:
+  - stage: build
+    displayName: "Build + sign (per platform)"
+    jobs:
+      - job: build
+        timeoutInMinutes: 90
+        strategy:
+          matrix:
+            # Windows-only: the embedded mock (Bun-compiled) breaks the Linux
+            # AppImage build — linuxdeploy runs `ldd` on the sidecar and aborts
+            # ("Failed to run ldd"). Distribution target is the Windows .exe, so
+            # Linux is dropped while the mock is bundled. To restore Linux later,
+            # ship it WITHOUT the mock (separate matrix leg, no overlay/feature).
+            windows:
+              osImage: "windows-latest"
+              bundles: "nsis"
+              artifactName: "windows"
+              # Triple the compiled mock sidecar must carry for Tauri to resolve it.
+              mockTarget: "bun-windows-x64"
+              mockOut: "src-tauri/binaries/mock-server-x86_64-pc-windows-msvc.exe"
+        pool:
+          vmImage: $(osImage)
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "$(NODE_VERSION)"
+            displayName: "Use Node $(NODE_VERSION)"
+
+          # --- Caches (keyed on lockfiles + OS) so repeat builds are incremental.
+          # NOTE: we do NOT override CARGO_HOME — the agent's pre-installed rustup
+          # lives in the default ~/.cargo and breaks if CARGO_HOME is moved.
+          # Caching src-tauri/target/ (compiled deps) is the dominant speedup and
+          # is a repo-relative path that works cross-platform.
+          - task: Cache@2
+            inputs:
+              key: 'cargo-target | "$(artifactName)" | src-tauri/Cargo.lock'
+              restoreKeys: 'cargo-target | "$(artifactName)"'
+              path: src-tauri/target
+            displayName: "Cache Rust target/ (incremental compile)"
+
+          - task: Cache@2
+            inputs:
+              key: 'npm | "$(artifactName)" | package-lock.json'
+              path: node_modules
+              cacheHitVar: NODE_MODULES_RESTORED
+            displayName: "Cache node_modules"
+
+          - script: rustup toolchain install stable --profile minimal && rustup default stable
+            displayName: "Rust toolchain"
+
+          - script: npm ci
+            displayName: "Install deps"
+            condition: ne(variables.NODE_MODULES_RESTORED, 'true')
+
+          # The shipped exe bundles the mock backend so it runs offline out of the
+          # box; if an external config.json supplies an API_URL the app uses the
+          # real backend instead and never starts the mock. Bun compiles the ESM
+          # mock-server into one self-contained sidecar binary.
+          # To DROP the embedded mock later: remove this step + the Bun install,
+          # and revert the tauri build line to `npx tauri build --bundles $(bundles)`.
+          - script: npm install -g bun
+            displayName: "Install Bun"
+
+          - bash: |
+              set -euo pipefail
+              mkdir -p src-tauri/binaries
+              bun build mock-server/server.js --compile --target=$(mockTarget) --outfile "$(mockOut)"
+              ls -lh src-tauri/binaries/
+            displayName: "Compile mock backend -> single-file sidecar"
+
+          - bash: npx tauri build --config src-tauri/tauri.bundled-mock.conf.json --bundles $(bundles) -- --features mock-sidecar
+            displayName: "tauri build (signed, mock bundled)"
+            env:
+              TAURI_SIGNING_PRIVATE_KEY: $(TAURI_SIGNING_PRIVATE_KEY)
+              TAURI_SIGNING_PRIVATE_KEY_PASSWORD: $(TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
+              # Bake the prod API base into the SPA (used in REAL mode, i.e. when a
+              # config.json provides an API_URL). MOCK mode overrides this at runtime.
+              VITE_AUTH_BYPASS: "false"
+              VITE_AUTH_PROVIDER: "github"
+              VITE_BRIDGE_API_URL: "$(API_BASE_URL)"
+
+          # Collect the updater artifacts (installer + .sig) into a flat folder.
+          - bash: |
+              set -euo pipefail
+              mkdir -p "$(Build.ArtifactStagingDirectory)/out"
+              # Updater artifacts: AppImage (+ .sig) on Linux; NSIS -setup.exe (+ .sig)
+              # on Windows — in Tauri 2 the NSIS updater target IS the -setup.exe.
+              find src-tauri/target/release/bundle -type f \
+                \( -name "*.AppImage" -o -name "*.AppImage.sig" \
+                   -o -name "*-setup.exe" -o -name "*-setup.exe.sig" \) \
+                -exec cp {} "$(Build.ArtifactStagingDirectory)/out/" \;
+              ls -l "$(Build.ArtifactStagingDirectory)/out/"
+            displayName: "Stage updater artifacts"
+
+          - publish: "$(Build.ArtifactStagingDirectory)/out"
+            artifact: "$(artifactName)"
+            displayName: "Publish $(artifactName) artifact"
+
+  - stage: release
+    displayName: "Assemble latest.json + GitHub Release"
+    dependsOn: build
+    condition: succeeded()
+    pool:
+      vmImage: ubuntu-latest
+    jobs:
+      - job: publish
+        steps:
+          - download: current
+            displayName: "Download platform artifacts"
+
+          - bash: |
+              set -euo pipefail
+              VERSION="$(APP_VERSION)"
+              TAG="v${VERSION}"
+              BASE="https://github.com/$(RELEASE_REPO)/releases/download/${TAG}"
+              WORK="$(Pipeline.Workspace)"
+              OUT="$(Build.ArtifactStagingDirectory)/release"
+              mkdir -p "$OUT"
+
+              # Helper: emit a platforms.<target> JSON entry for a bundle + its .sig.
+              # GitHub replaces spaces in asset names with dots on upload, so we
+              # rename bundle+sig to dotted names BEFORE upload and reference those
+              # exact names in the manifest url (otherwise the download 404s).
+              entry() {  # $1=target  $2=bundle-glob  $3=sig-glob
+                local target="$1" bundle sig
+                bundle=$(ls $2 2>/dev/null | head -1 || true)
+                sig=$(ls $3 2>/dev/null | head -1 || true)
+                [ -z "$bundle" ] && return 0
+                local fname; fname=$(basename "$bundle" | tr ' ' '.')
+                cp "$bundle" "$OUT/$fname"
+                local sigcontent=""
+                [ -n "$sig" ] && sigcontent=$(cat "$sig")
+                printf '"%s":{"signature":"%s","url":"%s/%s"}' \
+                  "$target" "$sigcontent" "$BASE" "$fname"
+              }
+
+              # Windows-only release. NSIS updater artifact IS the -setup.exe (+ .sig);
+              # this also doubles as the manual installer to download/share.
+              WIN=$(entry "windows-x86_64" "$WORK/windows/*-setup.exe" "$WORK/windows/*-setup.exe.sig")
+
+              PLATFORMS="$WIN"
+
+              cat > "$OUT/latest.json" <<JSON
+              {
+                "version": "${VERSION}",
+                "notes": "Release ${TAG}",
+                "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "platforms": { ${PLATFORMS} }
+              }
+              JSON
+              echo "--- latest.json ---"; cat "$OUT/latest.json"
+              ls -l "$OUT"
+            displayName: "Assemble latest.json"
+
+          - bash: |
+              set -euo pipefail
+              VERSION="$(APP_VERSION)"; TAG="v${VERSION}"
+              OUT="$(Build.ArtifactStagingDirectory)/release"
+              # gh resolves the repo from GH_TOKEN; --repo makes it explicit.
+              gh release create "$TAG" "$OUT"/* \
+                --repo "$(RELEASE_REPO)" \
+                --title "$TAG" \
+                --notes "Automated release $TAG" \
+                --latest
+            displayName: "gh release create"
+            env:
+              GH_TOKEN: $(GH_TOKEN)

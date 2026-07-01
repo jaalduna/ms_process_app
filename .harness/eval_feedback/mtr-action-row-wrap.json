@@ -1,0 +1,4 @@
+[
+  {"id":"ac1","verdict":"PASS","evidence":"1-line diff MtrCountryCard.tsx:176 flex gap-2 -> flex flex-wrap gap-2; Playwright mtr-action-row.spec.ts '1 passed' (running state, >=3 buttons, computed flex-wrap=wrap, overflow<=1px, all buttons inside row box)."},
+  {"id":"ac2","verdict":"PASS","evidence":"eslint no issues; tsc -b no errors; vitest 81 passed (81)."}
+]

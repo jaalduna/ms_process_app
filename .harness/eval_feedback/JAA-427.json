@@ -1,0 +1,8 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "vitest mock-server/__tests__/feedback.test.js 3/3 PASS. Live curl: POST /api/v1/feedback valid body → 201 {id:fb_000003, createdAt:...}; empty message → 400 {error:bad_request, message:'message is required'}."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "vitest src/__tests__/api-feedback.test.ts 2/2 PASS. submitFeedback posts ('/feedback', payload); 400 rejects with ApiError."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "feedback.spec.ts 'trigger is reachable from the layout across routes' PASS (visible on Overview + after nav to Precios)."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "feedback.spec.ts 'empty message is blocked with an inline validation error' PASS (inline error shown, dialog stays open, no POST fired)."},
+  {"id": "ac5", "verdict": "PASS", "evidence": "feedback.spec.ts 'successful submit shows confirmation and POSTs context' PASS (toast shown, dialog closed, POST body carries context.module/path(/overview)/appVersion)."},
+  {"id": "ac6", "verdict": "PASS", "evidence": "tsc -b: No errors. eslint: No issues. vitest: 18 files / 129 tests pass. feedback e2e 3/3. (2 pre-existing weighting smoke reds from JAA-425 are unrelated, captured as JAA-431.)"}
+]

@@ -1,0 +1,66 @@
+{
+  "ticket": "JAA-763",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-763/feature-toggle-vista-tarjetas-lista-para-las-grillas-de-paises",
+  "branch": "feat/JAA-763-view-toggle",
+  "archetype": "webapp",
+  "goal": "Add a Tarjetas/Lista view toggle to the country grids in Calibración and Pesaje, persisted per-module in localStorage, showing the same data and actions in both views.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "Calibración page shows a visible Tarjetas/Lista toggle control; clicking it switches the grid to a table/list layout without a page reload, and back.",
+      "how_to_verify": "vitest: CalibrationPage.test renders toggle, clicks 'Lista', asserts table/row markup appears and card markup disappears (and vice versa). Playwright: e2e/calibration.spec.ts click toggle, assert row count matches prior card count."
+    },
+    {
+      "id": "ac2",
+      "criterion": "The list view for Calibración shows the same information (país, Sync/Cal badges, estado Cerrado/Abierto, elegibilidad/pesaje '?' badges) and the same actions (Calibrar button, Stop button while running, eye/detail icon, whole-row click opens the same history modal with the same aria-label used today) as the card view — no functionality lost.",
+      "how_to_verify": "vitest: CountryListRow.test asserts same badges/buttons render from same props as CountryCard.test. Playwright: e2e/calibration.spec.ts (list mode) exercises Calibrar confirm dialog and clicks a row to open history modal, asserting the same aria-label ('View calibration history for {country}') and modal title as history-unify.spec.ts."
+    },
+    {
+      "id": "ac3",
+      "criterion": "Pesaje page shows the same Tarjetas/Lista toggle; the list view shows the same information (país, last-finalized badge, estado) and actions (whole-row click opens detail modal, history icon button opens history modal, Stop button while running) as WeightingCountryCard.",
+      "how_to_verify": "vitest: WeightingCountryListRow.test. Playwright/vitest: PesajePage toggle test asserts row click opens detail modal and history icon opens history modal."
+    },
+    {
+      "id": "ac4",
+      "criterion": "The Tarjetas/Lista preference persists across a reload, independently per module (Calibración and Pesaje can be in different modes at once).",
+      "how_to_verify": "vitest: useViewMode.test sets localStorage key per module, re-mounts hook, asserts it reads back the persisted value; asserts two different module keys don't collide."
+    },
+    {
+      "id": "ac5",
+      "criterion": "No regressions: full vitest suite, eslint, and tsc -b remain green; existing e2e/calibration.spec.ts and e2e/history-unify.spec.ts still pass unmodified (or with only additive changes, no weakened assertions).",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b; MOCK_SERVER_PORT=8000 npm run test:e2e:fast"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Add generic localStorage-backed useViewMode(moduleKey) hook (src/hooks/useViewMode.ts) returning ['cards'|'list', setViewMode], with try/catch guarded localStorage access (mirrors CalibrationPage.tsx existing pattern) and a vitest test covering default, persistence, and per-module isolation.",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Extract CountryCard's business logic (calibration mutation, showHistory/showDetail state, canTrigger gating) into a shared hook src/modules/calibracion/components/useCountryCardState.ts, refactor CountryCard.tsx to consume it with zero behavior change (existing CountryCard.skipSync.test.tsx must still pass unmodified).",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Add CountryListRow.tsx (table row) using the shared hook from t2, rendering the same badges/actions as CountryCard in a <Table> row layout; whole-row onClick opens history modal with the same aria-label. Add vitest test asserting parity with CountryCard for the same fixture props.",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Add a small ViewToggle.tsx component (two buttons/icons, Tarjetas|Lista) in src/components/, wire useViewMode('calibracion') + ViewToggle + conditional CountryListRow/Table rendering into CalibrationPage.tsx. Add vitest test toggling the view and asserting markup swap.",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Extract WeightingCountryCard's business logic into useWeightingCountryCardState.ts (same pattern as t2, zero behavior change), add WeightingCountryListRow.tsx, and wire useViewMode('pesaje') + ViewToggle into PesajePage.tsx. Add vitest tests mirroring t3/t4 for Pesaje.",
+      "status": "complete"
+    },
+    {
+      "id": "t6",
+      "desc": "Extend e2e/calibration.spec.ts with a list-view case (toggle to Lista, assert same Calibrar/history interactions as the card case) without weakening existing assertions. Run full VERIFY_CMD including Playwright smoke.",
+      "status": "complete"
+    }
+  ]
+}

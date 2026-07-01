@@ -1,0 +1,71 @@
+{
+  "ticket": "MTR-27",
+  "linear_url": "https://linear.app/jaalduna/issue/MTR-27/implement-node-mock-server-formato4-routes-mtr-lifecycle-fixtures",
+  "branch": "feat/MTR-27-formato4-mock-routes",
+  "archetype": "webapp",
+  "goal": "Add Node mock-server /formato4 lifecycle routes (create\u2192execute\u2192poll\u2192list\u2192cancel\u2192download zip) mirroring mtr + weighting, per the MTR-26 contract, so the Formato 4 UI clone works unchanged.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "POST /api/v1/formato4/runs with {country,period} returns 201 with status 'pending' and 5 pending steps named sync,merge,simulate,format_4,zip; 400 when country/period missing; 422 when period not integer",
+      "how_to_verify": "vitest mock-server/__tests__/formato4.test.js"
+    },
+    {
+      "id": "ac2",
+      "criterion": "POST /api/v1/formato4/runs/:id/execute transitions run to 'running'; 404 unknown id; 409 when already running",
+      "how_to_verify": "vitest formato4.test.js"
+    },
+    {
+      "id": "ac3",
+      "criterion": "GET /api/v1/formato4/runs/:id advances steps over time to completed with results_summary populated; 404 unknown id",
+      "how_to_verify": "vitest formato4.test.js with MOCK_STEP_INTERVAL_MS small"
+    },
+    {
+      "id": "ac4",
+      "criterion": "GET /api/v1/formato4/runs?country=&period= returns {items,total,limit,offset} newest-first filtered",
+      "how_to_verify": "vitest formato4.test.js"
+    },
+    {
+      "id": "ac5",
+      "criterion": "POST /api/v1/formato4/runs/:id/cancel cancels a running/pending run (status cancelled); 409 on terminal run; 404 unknown id",
+      "how_to_verify": "vitest formato4.test.js"
+    },
+    {
+      "id": "ac6",
+      "criterion": "GET /api/v1/formato4/runs/:id/download returns a real zip blob (Content-Type application/zip, Content-Disposition attachment filename format_4_<country>_<period>.csv.zip) for a completed run; 409 when not completed; 404 unknown id",
+      "how_to_verify": "vitest formato4.test.js asserts zip magic bytes PK + headers"
+    },
+    {
+      "id": "ac7",
+      "criterion": "formato4 router registered in server.js and seeded; npm run mock boots and serves the routes",
+      "how_to_verify": "node server.js boots; curl /api/v1/formato4/runs returns 200"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Commit a small format_4 sample csv.zip fixture under mock-server/fixtures/",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Write mock-server/routes/formato4.js (6 endpoints + seed) mirroring mtr/weighting, steps sync\u2192merge\u2192simulate\u2192format_4\u2192zip, by-runId zip download",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Register formato4 router + seed in server.js and fixtures/seed.js",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Write mock-server/__tests__/formato4.test.js covering all acceptance criteria (TDD)",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Run vitest + boot smoke test; all green",
+      "status": "complete"
+    }
+  ]
+}

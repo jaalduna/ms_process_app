@@ -1,9 +1,15 @@
 import { Router } from "express"
-import { resetJobs } from "./sync.js"
+import { resetJobs, seedRunningJob } from "./sync.js"
 import { pricesStore, seedPrices } from "./prices.js"
 import { weightingStore, seedWeighting } from "./weighting.js"
 import { mtrStore, seedMtr } from "./mtr.js"
+import { formato4Store, seedFormato4 } from "./formato4.js"
+import { eligibilityStore, seedEligibility } from "./eligibility.js"
+import { processStore, seedProcesses } from "./processes.js"
 import { tagStore, seedTraceability } from "./traceability.js"
+import { seedParams } from "./params.js"
+import { resetWeightingParams } from "./weighting-params.js"
+import { seedProcessConfig } from "./process_config.js"
 import { seedSyncJobs } from "../fixtures/seed.js"
 
 const router = Router()
@@ -20,20 +26,30 @@ router.post("/test/reset", (_req, res) => {
   pricesStore.reset()
   weightingStore.reset()
   mtrStore.reset()
+  formato4Store.reset()
+  eligibilityStore.reset()
+  processStore.reset()
   tagStore.reset()
+  resetWeightingParams()
 
   // Enable deterministic mode on all run stores so E2E happy-path tests
   // never fail due to the 5% random failure in _advanceStep().
   pricesStore.setDeterministic(true)
   weightingStore.setDeterministic(true)
   mtrStore.setDeterministic(true)
+  formato4Store.setDeterministic(true)
 
   // Re-seed
   seedSyncJobs()
   seedPrices()
   seedWeighting()
   seedMtr()
+  seedFormato4()
+  seedEligibility()
+  seedProcesses()
   seedTraceability()
+  seedParams()
+  seedProcessConfig()
 
   res.json({ status: "ok", message: "All stores reset, re-seeded, and deterministic mode enabled" })
 })
@@ -80,6 +96,21 @@ router.post("/test/fail-run/:runId", (req, res) => {
 
   store.forceFailAtStep(runId, targetStep)
   res.json({ status: "ok", message: `Run ${runId} will fail at step "${targetStep}"`, run_id: runId, fail_at_step: targetStep })
+})
+
+/**
+ * POST /api/v1/test/seed-calibration-run
+ * Seed a frozen "running" calibration job into the shared run store so E2E can
+ * assert JAA-648's server-authoritative active-run derivation (recovered after
+ * reload, shared across browsers) without racing the fast step interval.
+ *
+ * Body: { "country": "mexico", "period": "202601" }
+ */
+router.post("/test/seed-calibration-run", (req, res) => {
+  const { country, period } = req.body || {}
+  if (!country) return res.status(400).json({ error: "bad_request", message: "country is required" })
+  const job = seedRunningJob(country, "calibracion", period ?? null)
+  res.status(201).json({ status: "ok", job_id: job.job_id, country, period: job.period })
 })
 
 export default router

@@ -41,6 +41,10 @@ export interface WeightingRun {
   created_at: string
   updated_at: string
   error_message?: string | null
+  /** JAA-755: exclusive per (country, period) — marks the run used for that scope */
+  is_final?: boolean
+  /** JAA-755: free-text note, e.g. "aprobada por X" */
+  label?: string | null
 }
 
 export interface WeightingRunCreate {

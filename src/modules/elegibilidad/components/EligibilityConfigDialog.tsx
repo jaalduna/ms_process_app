@@ -23,6 +23,7 @@ export interface EligibilityParams {
   outlier_std_dev: number
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- intentional shadcn/context pattern: co-exports constant with component
 export const DEFAULT_ELIGIBILITY_PARAMS: EligibilityParams = {
   min_purchases: 3,
   min_periods: 6,

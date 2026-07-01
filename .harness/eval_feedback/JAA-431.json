@@ -1,0 +1,7 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "grep -rn 'Configurar parametros' e2e/ → exit 1, no lines. Stale selector fully removed."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "smoke project: 3 passed (weighting-params @smoke + weighting @smoke x2). The 2 previously-red smoke tests now green."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "full weighting suite (smoke+flow): 6 passed (54s) across weighting.spec/weighting-params/weighting-iterate."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "npx tsc -b: No errors. eslint e2e/: clean. vitest: 18 files / 129 tests passed."},
+  {"id": "sanity", "verdict": "PASS", "evidence": "params test asserts POST body METODO_BOUNDS=iqr/MAX_ROUNDS_COLAPSO=80/CORRECAO_BOUNDS=false; iterate test closes process via status badge then asserts runButton count 0, reopens and asserts visible. No hollow assertions; shared helper extracted."}
+]

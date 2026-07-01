@@ -2,67 +2,22 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Eye, History, Loader2, Square } from "lucide-react"
+import { History, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { useWeightingRuns, useCreateWeightingRun, useExecuteWeighting, useCancelWeighting } from "../hooks/useWeighting"
 import { WeightingProgress } from "./WeightingProgress"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WeightingHistoryModal } from "./WeightingHistoryModal"
+import { StopWeightingButton } from "./StopWeightingButton"
 import { WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
-import type { WeightingParams } from "./WeightingConfigDialog"
-
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
-
-const COUNTRY_FLAGS: Record<string, string> = {
-  argentina: "\u{1F1E6}\u{1F1F7}",
-  bolivia: "\u{1F1E7}\u{1F1F4}",
-  brasil: "\u{1F1E7}\u{1F1F7}",
-  brazil: "\u{1F1E7}\u{1F1F7}",
-  cam: "\u{1F30E}",
-  chile: "\u{1F1E8}\u{1F1F1}",
-  colombia: "\u{1F1E8}\u{1F1F4}",
-  ecuador: "\u{1F1EA}\u{1F1E8}",
-  mexico: "\u{1F1F2}\u{1F1FD}",
-  peru: "\u{1F1F5}\u{1F1EA}",
-}
-
-export const COUNTRY_LABELS: Record<string, string> = {
-  argentina: "Argentina",
-  bolivia: "Bolivia",
-  brasil: "Brasil",
-  brazil: "Brasil",
-  cam: "CAM",
-  chile: "Chile",
-  colombia: "Colombia",
-  ecuador: "Ecuador",
-  mexico: "Mexico",
-  peru: "Peru",
-}
+import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
+import { formatRelativeTime } from "@/lib/utils"
 
 interface WeightingCountryCardProps {
   countryCode: string
   period: string
-  weightingParams: WeightingParams
   lastFinalizedDate: string | null
 }
 
@@ -70,10 +25,9 @@ function periodStringToNumber(period: string): number {
   return parseInt(period, 10)
 }
 
-export function WeightingCountryCard({ countryCode, period, weightingParams, lastFinalizedDate }: WeightingCountryCardProps) {
+export function WeightingCountryCard({ countryCode, period, lastFinalizedDate }: WeightingCountryCardProps) {
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
-
   const { data: runs, isLoading } = useWeightingRuns(countryCode, periodStringToNumber(period))
   const createRun = useCreateWeightingRun()
   const executeRun = useExecuteWeighting()
@@ -83,19 +37,16 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
   const countryLabel = COUNTRY_LABELS[countryCode] ?? countryCode
   const flag = COUNTRY_FLAGS[countryCode] ?? ""
 
+  const { isClosed } = useProcessEntry("pesaje", countryCode)
   const isProcessing = latestRun ? WEIGHTING_ACTIVE_STATUSES.includes(latestRun.status) : false
-  const isCompleted = latestRun?.status === "completed"
-  const isFailed = latestRun?.status === "failed"
-  const canExecute = !isProcessing && !createRun.isPending && !executeRun.isPending
-    && (!latestRun || ["completed", "failed", "cancelled"].includes(latestRun.status))
-  const showDetailButton = latestRun != null && latestRun.status !== "pending"
-  const hasAnyRuns = runs && runs.length > 0
-
+  const hasAnyRuns = runs != null && runs.length > 0
   const statusConfig = latestRun ? WEIGHTING_STATUS_CONFIG[latestRun.status] : null
 
-  const handleExecutar = () => {
+  // Configure + run all happen inside the detail dialog now. The card just launches
+  // whatever the dialog's editor produced; create then execute (the "iterate" loop).
+  const handleRun = (params: Record<string, unknown>) => {
     createRun.mutate(
-      { country: countryCode, period: periodStringToNumber(period), parameters: { ...weightingParams } as Record<string, unknown> },
+      { country: countryCode, period: periodStringToNumber(period), parameters: params },
       {
         onSuccess: (run) => {
           executeRun.mutate(run.run_id, {
@@ -108,21 +59,6 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
     )
   }
 
-  const handleRerun = (params: Record<string, unknown>) => {
-    createRun.mutate(
-      { country: countryCode, period: periodStringToNumber(period), parameters: params },
-      {
-        onSuccess: (run) => {
-          executeRun.mutate(run.run_id, {
-            onSuccess: () => toast.success(`Re-ejecucion iniciada para ${countryLabel}`),
-            onError: () => toast.error(`Error al re-ejecutar pipeline para ${countryLabel}`),
-          })
-        },
-        onError: () => toast.error(`Error al crear re-ejecucion para ${countryLabel}`),
-      },
-    )
-  }
-
   const handleCancel = () => {
     if (!latestRun) return
     cancelRun.mutate(latestRun.run_id, {
@@ -131,9 +67,23 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
     })
   }
 
+  const openDetail = () => setDetailModalOpen(true)
+
   return (
     <>
-      <Card>
+      <Card
+        role="button"
+        tabIndex={0}
+        aria-label={`Abrir detalle de Pesaje para ${countryLabel}`}
+        onClick={openDetail}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            openDetail()
+          }
+        }}
+        className="cursor-pointer transition-colors hover:border-ring/40 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
@@ -145,6 +95,9 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
                 ? formatRelativeTime(lastFinalizedDate)
                 : "never"}
             </Badge>
+          </div>
+          <div className="mt-2">
+            <ProcessStatusBadge stage="pesaje" country={countryCode} countryLabel={countryLabel} />
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -170,88 +123,42 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
             </p>
           )}
 
+          {/* Hint: no runs yet — the card opens the config+run dialog */}
+          {!isLoading && !latestRun && !isClosed && (
+            <p className="text-xs text-muted-foreground">
+              Sin ejecuciones. Clic para configurar y ejecutar.
+            </p>
+          )}
+
           {/* Actions */}
-          <div className="flex gap-2">
-            {/* Processing: spinner + Detener */}
+          <div className="flex flex-wrap gap-2">
+            {/* Processing: spinner + Detener (clicks must not bubble to the card open handler) */}
             {isProcessing && (
               <>
                 <Button size="sm" disabled className="flex-1">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Procesando...
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="destructive" disabled={cancelRun.isPending}>
-                      <Square className="mr-2 h-3.5 w-3.5" />
-                      Detener
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Detener ejecucion</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Detener el proceso para <strong>{countryLabel}</strong> periodo <strong>{period}</strong>?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Volver</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleCancel}>
-                        Detener
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <StopWeightingButton
+                  countryLabel={countryLabel}
+                  period={period}
+                  disabled={cancelRun.isPending}
+                  onConfirm={handleCancel}
+                />
               </>
-            )}
-
-            {/* Ejecutar: when can execute */}
-            {!isProcessing && canExecute && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" disabled={!canExecute} className="flex-1">
-                    {(createRun.isPending || executeRun.isPending) ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Iniciando...
-                      </>
-                    ) : (
-                      isFailed ? "Re-ejecutar" : isCompleted ? "Re-ejecutar" : "Ejecutar"
-                    )}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmar ejecucion</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Iniciar pipeline de pesaje para <strong>{countryLabel}</strong> periodo <strong>{period}</strong>?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleExecutar}>Confirmar</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-
-            {/* Completed indicator */}
-            {isCompleted && !isProcessing && (
-              <div className="flex items-center gap-1.5 text-green-600 text-sm font-medium">
-                Completado
-              </div>
-            )}
-
-            {/* Ver detalle button */}
-            {showDetailButton && (
-              <Button size="sm" variant="outline" onClick={() => setDetailModalOpen(true)}>
-                <Eye className="mr-2 h-3.5 w-3.5" />
-                Ver detalle
-              </Button>
             )}
 
             {/* History button */}
             {hasAnyRuns && (
-              <Button size="sm" variant="ghost" onClick={() => setHistoryModalOpen(true)} title="Historial">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setHistoryModalOpen(true)
+                }}
+                title="Historial"
+              >
                 <History className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -263,7 +170,9 @@ export function WeightingCountryCard({ countryCode, period, weightingParams, las
         run={latestRun}
         open={detailModalOpen}
         onOpenChange={setDetailModalOpen}
-        onRerun={handleRerun}
+        onRun={isClosed ? undefined : handleRun}
+        countryCode={countryCode}
+        period={period}
       />
 
       <WeightingHistoryModal

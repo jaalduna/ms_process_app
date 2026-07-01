@@ -83,9 +83,9 @@ export class RunStore {
    * Start step progression for a run.
    * @param {string} runId
    * @param {function} [onComplete] - callback(run) when all steps complete
-   * @param {number} [intervalMs=2000]
+   * @param {number} [intervalMs] - per-step delay; defaults to MOCK_STEP_INTERVAL_MS env or 2000ms
    */
-  execute(runId, onComplete, intervalMs = 2000) {
+  execute(runId, onComplete, intervalMs = Number(process.env.MOCK_STEP_INTERVAL_MS) || 2000) {
     const run = this.runs.get(runId)
     if (!run) return null
     if (run.status !== "pending") return run
@@ -155,6 +155,31 @@ export class RunStore {
   }
 
   /**
+   * Patch is_final / label on a run. Setting is_final=true unsets it on every
+   * sibling run for the same (country, period), exclusive.
+   * @param {string} runId
+   * @param {{ is_final?: boolean, label?: string }} patch
+   */
+  update(runId, patch) {
+    const run = this.runs.get(runId)
+    if (!run) return null
+    const { is_final, label } = patch || {}
+    if (is_final === true) {
+      for (const other of this.runs.values()) {
+        if (other.run_id !== run.run_id && other.country === run.country && String(other.period) === String(run.period)) {
+          other.is_final = false
+        }
+      }
+      run.is_final = true
+    } else if (is_final === false) {
+      run.is_final = false
+    }
+    if (label !== undefined) run.label = label
+    run.updated_at = new Date().toISOString()
+    return run
+  }
+
+  /**
    * Create a pre-seeded completed run.
    * @param {string} country
    * @param {number} period
@@ -200,12 +225,15 @@ export class RunStore {
 
   /**
    * Get last completed run per country.
+   * @param {number|string} [period] optional YYYYMM — restrict to runs of this period.
+   *   Omitted ⇒ latest overall (backward compatible).
    * @returns {Record<string, object|null>}
    */
-  lastCompleted() {
+  lastCompleted(period) {
     const result = {}
     for (const run of this.runs.values()) {
       if (run.status !== "completed" && run.status !== "approved") continue
+      if (period != null && String(run.period) !== String(period)) continue
       const prev = result[run.country]
       if (!prev || new Date(run.completed_at) > new Date(prev.completed_at)) {
         result[run.country] = {

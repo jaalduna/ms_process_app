@@ -1,0 +1,17 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "Playwright 'results_ready ... does not clip Ver detalle (JAA-360)' passed. Bounding boxes: CARD_RIGHT=493px, BTN_RIGHT=412px (button 81px inside card right edge, not clipped). Normal hit-tested click (not dispatchEvent) opens the detail modal."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "Full e2e/eligibility.spec.ts green (implementer clean run: 5 passed/39.9s; evaluator run: 0 failed). No regression in processing/ready/mordom/ejecutar states. radix-dialog startRun is mildly flaky but absorbed by retries:2."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "npm test: 74/74 passed (9 files). npm run lint: ESLint No issues found. npx tsc -b: TypeScript No errors found."
+  }
+]

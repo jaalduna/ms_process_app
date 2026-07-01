@@ -1,0 +1,31 @@
+{
+  "ticket": "mtr-action-row-wrap",
+  "linear_url": null,
+  "branch": "fix/mtr-action-row-wrap",
+  "archetype": "webapp",
+  "goal": "Fix the MTR country-card action row clipping the Stop/eye buttons in the running state (same family as JAA-360/pesaje/precios/calibracion) by letting it wrap.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "MtrCountryCard action row uses flex-wrap so the Running/Stop/eye buttons are never clipped in a narrow card.",
+      "how_to_verify": "grep shows className=\"flex flex-wrap gap-2\" at the actions row; Playwright at a narrow card width shows Running + Stop + eye all fully within the card bounds in the running state."
+    },
+    {
+      "id": "ac2",
+      "criterion": "Repo stays green.",
+      "how_to_verify": "npx eslint src/modules/mtr/components/MtrCountryCard.tsx clean; npx tsc -b clean; npx vitest run all pass."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "flex gap-2 -> flex flex-wrap gap-2 on the MtrCountryCard actions row.",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Verify lint/tsc/vitest + Playwright running-state walkthrough; separate-context evaluator.",
+      "status": "complete"
+    }
+  ]
+}

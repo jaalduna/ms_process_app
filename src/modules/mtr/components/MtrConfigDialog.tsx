@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,13 +21,35 @@ import type { MtrParams } from "../types"
 import { DEFAULT_MTR_PARAMS, MTR_PARAM_META } from "../types"
 
 interface MtrConfigDialogProps {
+  /** Current shared defaults (hydrated from the backend). */
   params: MtrParams
-  onChange: (params: MtrParams) => void
+  /** Whether the requester may edit/save (GET `editable`). Read-only otherwise. */
+  editable: boolean
+  /** Persist the edited params (PUT shared config). Only called when editable. */
+  onSave: (params: MtrParams) => Promise<void> | void
+  /** True while a save is in flight. */
+  saving?: boolean
 }
 
-export function MtrConfigDialog({ params, onChange }: MtrConfigDialogProps) {
+export function MtrConfigDialog({ params, editable, onSave, saving = false }: MtrConfigDialogProps) {
+  const [open, setOpen] = useState(false)
+  // Local draft so editing doesn't mutate the shared/hydrated value until saved.
+  const [draft, setDraft] = useState<MtrParams>(params)
+
+  // Re-seed the draft from the latest hydrated params whenever the dialog opens,
+  // so a cancelled edit is discarded and a fresh GET is reflected.
+  function handleOpenChange(next: boolean) {
+    if (next) setDraft(params)
+    setOpen(next)
+  }
+
+  async function handleSave() {
+    await onSave(draft)
+    setOpen(false)
+  }
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="icon" aria-label="MTR settings">
           <Settings className="h-4 w-4" />
@@ -36,7 +59,9 @@ export function MtrConfigDialog({ params, onChange }: MtrConfigDialogProps) {
         <DialogHeader>
           <DialogTitle>MTR Parameters</DialogTitle>
           <DialogDescription>
-            Configure parameters applied to all MTR runs. Values are saved with each execution.
+            {editable
+              ? "Configure shared defaults applied to all MTR runs for every user."
+              : "Shared defaults applied to all MTR runs. Only an MTR admin can edit these."}
           </DialogDescription>
         </DialogHeader>
 
@@ -53,9 +78,10 @@ export function MtrConfigDialog({ params, onChange }: MtrConfigDialogProps) {
                 </div>
                 {meta.type === "select" && meta.options ? (
                   <Select
-                    value={String(params[key])}
+                    value={String(draft[key])}
+                    disabled={!editable}
                     onValueChange={(value) =>
-                      onChange({ ...params, [key]: value })
+                      setDraft((d) => ({ ...d, [key]: value }))
                     }
                   >
                     <SelectTrigger className="h-8 text-sm font-mono">
@@ -74,12 +100,13 @@ export function MtrConfigDialog({ params, onChange }: MtrConfigDialogProps) {
                     type="number"
                     step={meta.step ?? "1"}
                     min={0}
-                    value={params[key] as number}
+                    disabled={!editable}
+                    value={draft[key] as number}
                     onChange={(e) =>
-                      onChange({
-                        ...params,
+                      setDraft((d) => ({
+                        ...d,
                         [key]: e.target.value ? parseFloat(e.target.value) : 0,
-                      })
+                      }))
                     }
                     className="h-8 text-sm font-mono"
                   />
@@ -89,16 +116,21 @@ export function MtrConfigDialog({ params, onChange }: MtrConfigDialogProps) {
           })}
         </div>
 
-        <div className="pt-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs text-muted-foreground"
-            onClick={() => onChange(DEFAULT_MTR_PARAMS)}
-          >
-            Restore defaults
-          </Button>
-        </div>
+        {editable && (
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              onClick={() => setDraft(DEFAULT_MTR_PARAMS)}
+            >
+              Restore defaults
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {saving ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

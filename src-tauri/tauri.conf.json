@@ -1,6 +1,6 @@
 {
   "productName": "MS Process App",
-  "version": "0.1.0",
+  "version": "0.3.2",
   "identifier": "com.kantar.msprocessapp",
   "build": {
     "beforeBuildCommand": "npm run build",
@@ -39,7 +39,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDIwMTlCOTFDNUNBQzdGQzgKUldUSWY2eGNITGtaSUZWTEtVa2VPaXFvVVo0QVJlQlA2WE04dG5WRVowTDVsbTBWbGpzOHZNNzQK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJDNTVDOTNGMUEwRDgxQTUKUldTbGdRMGFQOGxWdk42N3BLclAzZ2djQjV0ZVRNWEFuMldtcjNxT1M0ckFpN21NRTdCRk9KRm8K",
       "endpoints": [
         "https://github.com/jaalduna/ms_process_app/releases/latest/download/latest.json"
       ]

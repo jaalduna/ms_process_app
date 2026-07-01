@@ -5,6 +5,8 @@ export const syncModule: ModuleDefinition = {
   id: "sync",
   label: "Sincronización",
   group: "data",
+  // Manual sync can trigger any pipeline stage — restrict the tab to admins.
+  requiredRoles: ["admin"],
   navItems: [
     { path: "/dashboard", label: "Sincronización" },
     { path: "/history", label: "Historial" },
