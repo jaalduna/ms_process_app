@@ -35,17 +35,17 @@ const publish = (pais, body) =>
 
 describe("Universo Excel upload flow (JAA-580 / JAA-583)", () => {
   it("ac1: valid upload returns valid:true, a preview diff and an upload_token", async () => {
-    const res = await upload("chile", "Universo.xlsx")
+    const res = await upload("CL", "Universo.xlsx")
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.valid).toBe(true)
     expect(body.errors).toEqual([])
-    expect(body.upload_token).toMatch(/^utok_chile_/)
+    expect(body.upload_token).toMatch(/^utok_CL_/)
     expect(body.preview).toEqual({ added: 1, removed: 0, changed: 1 })
   })
 
   it("ac2: invalid upload returns valid:false with row/column errors and a null token", async () => {
-    const res = await upload("chile", "Universo-invalid.xlsx")
+    const res = await upload("CL", "Universo-invalid.xlsx")
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.valid).toBe(false)
@@ -56,43 +56,43 @@ describe("Universo Excel upload flow (JAA-580 / JAA-583)", () => {
   })
 
   it("ac3: publishing a valid token bumps the version + row_count and the GET reflects it", async () => {
-    const before = await (await fetch(`${baseUrl}/weighting/params/chile/universo`)).json()
+    const before = await (await fetch(`${baseUrl}/weighting/params/CL/universo`)).json()
     const beforeCount = before.version.row_count
 
-    const uploaded = await (await upload("chile", "Universo.xlsx")).json()
-    const pubRes = await publish("chile", { upload_token: uploaded.upload_token })
+    const uploaded = await (await upload("CL", "Universo.xlsx")).json()
+    const pubRes = await publish("CL", { upload_token: uploaded.upload_token })
     expect(pubRes.status).toBe(200)
     const pub = await pubRes.json()
     expect(pub.table).toBe("universo")
     // `version` is the nested WeightingParamsVersion object (real JAA-580 shape).
     expect(pub.version.version).toBe(1)
-    expect(pub.version.version_id).toBe("wv_universo_chile_1")
+    expect(pub.version.version_id).toBe("wv_universo_CL_1")
     expect(pub.unchanged).toBe(false)
     expect(pub.row_count).toBe(beforeCount + 1)
 
-    const after = await (await fetch(`${baseUrl}/weighting/params/chile/universo`)).json()
+    const after = await (await fetch(`${baseUrl}/weighting/params/CL/universo`)).json()
     expect(after.version.row_count).toBe(beforeCount + 1)
     expect(after.version.hash).toBe(pub.version.hash)
   })
 
   it("a token can only be published once (consumed → 404)", async () => {
-    const uploaded = await (await upload("chile", "Universo.xlsx")).json()
-    expect((await publish("chile", { upload_token: uploaded.upload_token })).status).toBe(200)
-    expect((await publish("chile", { upload_token: uploaded.upload_token })).status).toBe(404)
+    const uploaded = await (await upload("CL", "Universo.xlsx")).json()
+    expect((await publish("CL", { upload_token: uploaded.upload_token })).status).toBe(200)
+    expect((await publish("CL", { upload_token: uploaded.upload_token })).status).toBe(404)
   })
 
   it("an unknown or cross-country token is rejected (404), nothing persisted", async () => {
-    expect((await publish("chile", { upload_token: "nope" })).status).toBe(404)
+    expect((await publish("CL", { upload_token: "nope" })).status).toBe(404)
 
-    const uploaded = await (await upload("chile", "Universo.xlsx")).json()
+    const uploaded = await (await upload("CL", "Universo.xlsx")).json()
     // same token, different country → 404
     expect((await publish("mexico", { upload_token: uploaded.upload_token })).status).toBe(404)
   })
 
   it("an invalid upload persists nothing and mints no token to publish", async () => {
-    const bad = await (await upload("chile", "Universo-invalid.xlsx")).json()
+    const bad = await (await upload("CL", "Universo-invalid.xlsx")).json()
     expect(bad.upload_token).toBeNull()
-    const before = await (await fetch(`${baseUrl}/weighting/params/chile/universo`)).json()
+    const before = await (await fetch(`${baseUrl}/weighting/params/CL/universo`)).json()
     expect(before.version.row_count).toBe(6) // unchanged seed
   })
 

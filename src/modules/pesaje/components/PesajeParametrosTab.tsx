@@ -99,7 +99,7 @@ function NivelEjecucion() {
 /* ------------------------------------------------------------------ */
 
 function NivelInsumos() {
-  const [code, setCode] = useState<CountryCode>("chile")
+  const [code, setCode] = useState<CountryCode>("CL")
   const country = COUNTRIES.find((c) => c.code === code)!.label
 
   return (

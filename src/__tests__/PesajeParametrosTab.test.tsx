@@ -78,7 +78,8 @@ describe("PesajeParametrosTab (wired to weighting-params API)", () => {
 
   it("ac2: IdPeso_Config rows come from the API per country", async () => {
     await renderTab()
-    await waitFor(() => expect(mockGetIdPeso).toHaveBeenCalledWith("chile"))
+    // JAA-752: the weighting-params API is keyed by país CODE (default CL), not name.
+    await waitFor(() => expect(mockGetIdPeso).toHaveBeenCalledWith("CL"))
     expect((await screen.findByTestId("idpeso-nombre-1")).getAttribute("value")).toBe("Mensual")
     expect(screen.getByTestId("idpeso-nombre-5").getAttribute("value")).toBe("Ult6")
   })
@@ -100,7 +101,7 @@ describe("PesajeParametrosTab (wired to weighting-params API)", () => {
     await user.click(confirm)
 
     await waitFor(() => expect(mockPublish).toHaveBeenCalledTimes(1))
-    expect(mockPublish).toHaveBeenCalledWith("chile", "idpeso-config", {
+    expect(mockPublish).toHaveBeenCalledWith("CL", "idpeso-config", {
       rows: [{ idpeso: 1, nombre: "Mensual-v2", per_min: 1, periodos: 1, obs: "todos los meses" }, ID_PESO_ROWS[1]],
     })
     await waitFor(() => expect(screen.getAllByTestId("status-pill")[0]).toHaveTextContent("Sin cambios"))

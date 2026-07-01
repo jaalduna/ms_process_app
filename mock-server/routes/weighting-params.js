@@ -21,7 +21,10 @@ import { Router } from "express"
 
 const router = Router()
 
-export const WEIGHTING_PARAMS_COUNTRIES = ["chile", "mexico", "brasil", "peru", "bolivia"]
+// JAA-752: the frontend now sends the país CODE (AR, BO, …), not the name —
+// the real /weighting/params/{code}/... endpoints 404 on the name. Mirrors
+// src/modules/pesaje/params/types.ts COUNTRIES.
+export const WEIGHTING_PARAMS_COUNTRIES = ["AR", "BO", "BR", "CAM", "CL", "CO", "EC", "MX", "PE"]
 export const PUBLISHABLE_TABLES = ["idpeso-config", "variables"]
 export const VALIDATABLE_TABLES = ["idpeso-config", "variables", "universo"]
 
@@ -66,11 +69,11 @@ function seedIdPeso() {
 }
 
 const VARIABLES_SEED = {
-  chile: { q_vars: ["EDBEQ"], m_vars: [] },
-  mexico: { q_vars: ["NIMEQ"], m_vars: ["NIME_MES"] },
-  brasil: { q_vars: ["IMEQ"], m_vars: ["BEBE_MES", "GEO_208", "GEO_3", "GEO_219"] },
-  peru: { q_vars: [], m_vars: ["EDBQ"] },
-  bolivia: { q_vars: ["EDBEQ"], m_vars: [] },
+  CL: { q_vars: ["EDBEQ"], m_vars: [] },
+  MX: { q_vars: ["NIMEQ"], m_vars: ["NIME_MES"] },
+  BR: { q_vars: ["IMEQ"], m_vars: ["BEBE_MES", "GEO_208", "GEO_3", "GEO_219"] },
+  PE: { q_vars: [], m_vars: ["EDBQ"] },
+  BO: { q_vars: ["EDBEQ"], m_vars: [] },
 }
 
 function seedUniverso() {

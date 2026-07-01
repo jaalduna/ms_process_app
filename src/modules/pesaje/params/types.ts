@@ -2,12 +2,19 @@
 // (JAA-576 GET / JAA-578 validate / JAA-579 publish) under
 // /api/v1/weighting/params/{pais}/...
 
+// ``code`` is the país CODE the weighting-params API is keyed by (AR, BO, …),
+// NOT the país name. The /weighting/params/{code}/... endpoints 404 on the name
+// (e.g. "chile"); only the /runs + execute endpoints take the país name (JAA-752).
 export const COUNTRIES = [
-  { code: "chile", label: "Chile" },
-  { code: "mexico", label: "México" },
-  { code: "brasil", label: "Brasil" },
-  { code: "peru", label: "Perú" },
-  { code: "bolivia", label: "Bolivia" },
+  { code: "AR", label: "Argentina" },
+  { code: "BO", label: "Bolivia" },
+  { code: "BR", label: "Brasil" },
+  { code: "CAM", label: "CAM" },
+  { code: "CL", label: "Chile" },
+  { code: "CO", label: "Colombia" },
+  { code: "EC", label: "Ecuador" },
+  { code: "MX", label: "México" },
+  { code: "PE", label: "Perú" },
 ] as const
 
 export type CountryCode = (typeof COUNTRIES)[number]["code"]
