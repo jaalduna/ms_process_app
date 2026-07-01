@@ -3,7 +3,6 @@ import { TableCell, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Eye } from "lucide-react"
-import { toast } from "sonner"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
@@ -11,15 +10,9 @@ import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
-import { CountryGroupByDialog } from "./CountryGroupByDialog"
 import { CalibrateButton } from "./CalibrateButton"
 import { StopCalibrationButton } from "./StopCalibrationButton"
 import { useCalibration } from "../hooks/useCalibration"
-import {
-  useCountryGroupBy,
-  useSaveCountryGroupBy,
-  resolveGroupBy,
-} from "../hooks/useCalibrationConfig"
 import type { CountryInfo } from "@/types/api"
 import type { DataAvailability, CalibrationConfig } from "../types"
 
@@ -53,11 +46,6 @@ export const CountryListRow = memo(function CountryListRow({
   const isCancelled = job?.status === "cancelled"
   const { isClosed } = useProcessEntry("calibracion", country.code)
   const canTrigger = availability.elegibilidad !== false && !isRunning && !isPending && !isClosed
-
-  const { data: groupByConfig } = useCountryGroupBy(country.code)
-  const saveGroupBy = useSaveCountryGroupBy(country.code)
-  const groupBy = resolveGroupBy(groupByConfig?.config, country.code)
-  const groupByEditable = groupByConfig?.editable ?? false
 
   const countryLabel = COUNTRY_LABELS[country.code] ?? country.code
   const flag = COUNTRY_FLAGS[country.code] ?? ""
@@ -122,7 +110,6 @@ export const CountryListRow = memo(function CountryListRow({
               countryLabel={countryLabel}
               period={period}
               calibrationConfig={calibrationConfig}
-              groupBy={groupBy}
               canTrigger={canTrigger}
               isClosed={isClosed}
               isPending={isPending}
@@ -147,25 +134,6 @@ export const CountryListRow = memo(function CountryListRow({
               >
                 <Eye className="h-4 w-4" />
               </Button>
-            )}
-
-            {groupByEditable && (
-              <CountryGroupByDialog
-                countryLabel={countryLabel}
-                value={groupBy}
-                saving={saveGroupBy.isPending}
-                onSave={async (gb) => {
-                  try {
-                    await saveGroupBy.mutateAsync(gb)
-                    toast.success(`Group by guardado para ${countryLabel}`)
-                  } catch (err) {
-                    toast.error(
-                      `No se pudo guardar group by: ${(err as Error).message ?? "error"}`,
-                    )
-                    throw err
-                  }
-                }}
-              />
             )}
           </div>
         </TableCell>

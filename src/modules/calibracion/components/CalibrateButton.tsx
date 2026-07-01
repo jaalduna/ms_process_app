@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   AlertDialog,
@@ -10,6 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import type { CalibrationConfig } from "../types"
@@ -18,7 +20,6 @@ interface CalibrateButtonProps {
   countryLabel: string
   period: string
   calibrationConfig: CalibrationConfig
-  groupBy: string | null
   canTrigger: boolean
   isClosed: boolean
   isPending: boolean
@@ -29,7 +30,6 @@ interface CalibrateButtonProps {
     lookback_months: number
     skip_sync: boolean
     table_suffix: string
-    group_by: string | null
   }) => Promise<unknown>
   className?: string
 }
@@ -39,7 +39,6 @@ export function CalibrateButton({
   countryLabel,
   period,
   calibrationConfig,
-  groupBy,
   canTrigger,
   isClosed,
   isPending,
@@ -47,6 +46,10 @@ export function CalibrateButton({
   startCalibration,
   className,
 }: CalibrateButtonProps) {
+  // skip_sync defaults to false: by default the run executes the SQL→bronze sync
+  // (check_sync→run_sync). Toggle on to skip it and rely on the daily mirror_sync.
+  const [skipSync, setSkipSync] = useState(false)
+
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -82,10 +85,24 @@ export function CalibrateButton({
                     .join(", ")}
                 </p>
               )}
-              <p className="mt-2">
-                Group by: <code className="text-xs bg-muted px-1 rounded">{groupBy || "default"}</code>
-              </p>
               <p className="mt-2">Overrides: {calibrationConfig.lookback_months} months lookback</p>
+              <label
+                className="mt-3 flex items-start gap-2 cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Switch
+                  checked={skipSync}
+                  onCheckedChange={setSkipSync}
+                  aria-label="Saltar sincronización"
+                  className="mt-0.5"
+                />
+                <span className="text-xs">
+                  Saltar sincronización (<code className="bg-muted px-1 rounded">skip_sync</code>)
+                  <span className="block text-muted-foreground">
+                    Por defecto se ejecuta la sync SQL→bronze. Actívalo solo si confías en el mirror_sync diario.
+                  </span>
+                </span>
+              </label>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -97,9 +114,8 @@ export function CalibrateButton({
                 period,
                 aggregations: calibrationConfig.aggregations,
                 lookback_months: calibrationConfig.lookback_months,
-                skip_sync: true,
+                skip_sync: skipSync,
                 table_suffix: "_full",
-                group_by: groupBy,
               })
                 .then(() => {
                   toast.success(`Calibration started for ${countryLabel}`)

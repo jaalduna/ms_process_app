@@ -12,7 +12,6 @@ export interface CalibrationOverrides {
   skip_copy?: boolean
   period?: string
   table_suffix?: string | null
-  group_by?: string | null
   start_period?: string | null
   final_period?: string | null
   skip_merge?: boolean
@@ -74,7 +73,6 @@ export function useCalibration(country: string, stage: string, period?: string) 
       skip_sync: overrides?.skip_sync,
       skip_copy: overrides?.skip_copy,
       table_suffix: overrides?.table_suffix,
-      group_by: overrides?.group_by,
       start_period: overrides?.start_period,
       final_period: overrides?.final_period,
       skip_merge: overrides?.skip_merge,

@@ -87,17 +87,6 @@ export const DEFAULT_CALIBRATION_CONFIG: CalibrationConfig = {
   lookback_months: 36,
 }
 
-/** Default group_by per country (semicolon-separated dimension combos). */
-export const DEFAULT_GROUP_BY: Record<string, string> = {
-  bolivia:  "IdProduto_Calib;IdProduto_Calib,Region",
-  cam:      "IdProduto_Calib,Pais",
-  chile:    "IdProduto_Calib;IdProduto_Calib,Region",
-  colombia: "IdProduto_Calib;IdProduto_Calib,Region",
-  ecuador:  "IdProduto_Calib,Region_A;IdProduto_Calib,Region_A,Nivel_2",
-  mexico:   "IdProduto_Calib;IdProduto_Calib,Region",
-  peru:     "IdProduto_Calib;IdProduto_Calib,Region",
-}
-
 /** Data availability for a country+period.
  *
  * `true` = data present, `false` = data missing, `null` = unknown (the check

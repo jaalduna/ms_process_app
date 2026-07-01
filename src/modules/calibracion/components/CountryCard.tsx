@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { History } from "lucide-react"
-import { toast } from "sonner"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
@@ -12,15 +11,9 @@ import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
 import { CalibrationProgress } from "./CalibrationProgress"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
-import { CountryGroupByDialog } from "./CountryGroupByDialog"
 import { CalibrateButton } from "./CalibrateButton"
 import { StopCalibrationButton } from "./StopCalibrationButton"
 import { useCalibration } from "../hooks/useCalibration"
-import {
-  useCountryGroupBy,
-  useSaveCountryGroupBy,
-  resolveGroupBy,
-} from "../hooks/useCalibrationConfig"
 import type { CountryInfo } from "@/types/api"
 import type { DataAvailability, CalibrationConfig } from "../types"
 
@@ -47,13 +40,6 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
   // Unknown elegibilidad (null — not determinable a priori yet) must NOT block
   // triggering; only an explicit `false` does. The "?" badge signals the gap.
   const canTrigger = availability.elegibilidad !== false && !isRunning && !isPending && !isClosed
-
-  // Per-country shared group_by (JAA-667): persisted under scope=country code,
-  // falling back to the built-in DEFAULT_GROUP_BY when no row exists yet.
-  const { data: groupByConfig } = useCountryGroupBy(country.code)
-  const saveGroupBy = useSaveCountryGroupBy(country.code)
-  const groupBy = resolveGroupBy(groupByConfig?.config, country.code)
-  const groupByEditable = groupByConfig?.editable ?? false
 
   const countryLabel = COUNTRY_LABELS[country.code] ?? country.code
   const flag = COUNTRY_FLAGS[country.code] ?? ""
@@ -128,7 +114,6 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                 countryLabel={countryLabel}
                 period={period}
                 calibrationConfig={calibrationConfig}
-                groupBy={groupBy}
                 canTrigger={canTrigger}
                 isClosed={isClosed}
                 isPending={isPending}
@@ -156,26 +141,6 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
               >
                 <History className="h-3.5 w-3.5" />
               </Button>
-
-              {/* Admin-only per-country group_by editor (JAA-667). */}
-              {groupByEditable && (
-                <CountryGroupByDialog
-                  countryLabel={countryLabel}
-                  value={groupBy}
-                  saving={saveGroupBy.isPending}
-                  onSave={async (gb) => {
-                    try {
-                      await saveGroupBy.mutateAsync(gb)
-                      toast.success(`Group by guardado para ${countryLabel}`)
-                    } catch (err) {
-                      toast.error(
-                        `No se pudo guardar group by: ${(err as Error).message ?? "error"}`,
-                      )
-                      throw err
-                    }
-                  }}
-                />
-              )}
             </div>
           </div>
         </CardContent>
