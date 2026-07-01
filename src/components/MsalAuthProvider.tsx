@@ -36,9 +36,13 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
     ;(async () => {
       try {
         const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account })
+        // STOPGAP (JAA-347): until SSO fase 2 grants the SPA→API delegated
+        // permission there is no API access token, so the backend validates the
+        // ID token (aud = SPA client id). Revert to accessToken once fase 2 is
+        // applied and the build sets VITE_AZURE_AD_API_SCOPE.
         const info = await api
           .get<UserInfo>("/auth/me", {
-            headers: { Authorization: `Bearer ${tokenResponse.accessToken}` },
+            headers: { Authorization: `Bearer ${tokenResponse.idToken}` },
           })
           .then((r) => r.data)
         if (!cancelled) setUserInfo({ roles: info.roles, countries: info.countries })
@@ -65,11 +69,12 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
   const getAccessToken = useCallback(async (): Promise<string> => {
     if (!account) throw new Error("No authenticated account")
     try {
+      // STOPGAP (JAA-347): ID token instead of access token — see /auth/me above.
       const response = await instance.acquireTokenSilent({ ...loginRequest, account })
-      return response.accessToken
+      return response.idToken
     } catch {
       const response = await instance.acquireTokenRedirect(loginRequest)
-      return (response as unknown as { accessToken: string })?.accessToken ?? ""
+      return (response as unknown as { idToken: string })?.idToken ?? ""
     }
   }, [instance, account])
 
