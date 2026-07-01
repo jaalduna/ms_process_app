@@ -8,6 +8,7 @@ export const macrocacModule: ModuleDefinition = {
   id: "macrocac",
   label: "Macrocac",
   group: "pipeline",
+  requiredRoles: ["macrocac_specialist"],
   navItems: [{ path: "/macrocac", label: "Macrocac" }],
   routes: [{ path: "/macrocac", component: lazy(() => import("./pages/MacrocacPage").then(m => ({ default: m.MacrocacPage }))) }],
 }
