@@ -13,7 +13,7 @@ describe("formato4 module scaffold (MTR-28)", () => {
     expect(formato4Module.label).toBe("Formato 4")
     expect(formato4Module.navItems).toEqual([{ path: "/formato4", label: "Formato 4" }])
     expect(formato4Module.routes.map((r) => r.path)).toEqual(["/formato4"])
-    expect(formato4Module.requiredRoles).toContain("formato4_specialist")
+    expect(formato4Module.requiredRoles).toEqual(["admin"])
   })
 
   it("is registered in the central registry (ac2)", () => {

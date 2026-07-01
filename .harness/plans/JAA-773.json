@@ -1,0 +1,20 @@
+{
+  "ticket": "JAA-773",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-773/restringir-pestanas-a-usuarios-admin-excepto-pesaje-calibracion",
+  "branch": "feat/JAA-773-admin-tab-gating",
+  "archetype": "webapp",
+  "goal": "Restrict every module tab except Pesaje, Calibracion and Overview to admin-only, since Azure AD role assignment isn't wired up yet and admin is the only role the team can reliably assign today.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "precios, elegibilidad, qmstr, mtr, formato4, trazabilidad, macrocac each declare requiredRoles: [\"admin\"]", "how_to_verify": "grep requiredRoles in each src/modules/<id>/index.ts"},
+    {"id": "ac2", "criterion": "hasModuleAccess returns false for those 7 modules with no roles or an unrelated role, true with admin", "how_to_verify": "vitest src/__tests__/moduleRoleGating.test.ts"},
+    {"id": "ac3", "criterion": "pesaje and calibracion are unaffected — still gated by their own specialist roles, not admin-only", "how_to_verify": "vitest assertion: hasModuleAccess(pesajeModule, ['pesaje_specialist']) === true and hasModuleAccess(pesajeModule, []) === false"},
+    {"id": "ac4", "criterion": "overview stays public (no requiredRoles)", "how_to_verify": "vitest assertion: hasModuleAccess(overviewModule, []) === true"},
+    {"id": "ac5", "criterion": "sync and parametros-elegibilidad remain admin-only (no regression)", "how_to_verify": "grep requiredRoles unchanged"},
+    {"id": "ac6", "criterion": "full verify gate green", "how_to_verify": "npm test && npm run lint && npx tsc -b"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Set requiredRoles: [\"admin\"] on precios, elegibilidad, qmstr, mtr, formato4, trazabilidad, macrocac module definitions", "status": "complete"},
+    {"id": "t2", "desc": "Update moduleRoleGating.test.ts and Formato4Module.test.tsx to assert admin-only gating (formato4 no longer uses formato4_specialist) plus regression coverage for pesaje/calibracion/overview", "status": "incomplete"},
+    {"id": "t3", "desc": "Run VERIFY_CMD (vitest + eslint + tsc -b)", "status": "incomplete"}
+  ]
+}

@@ -7,8 +7,7 @@ export const trazabilidadModule: ModuleDefinition = {
   // "analysis" group: Traceability is a cross-cutting data inspection tool,
   // not a pipeline stage. It reads outputs from all pipeline modules.
   group: "analysis",
-  // Cross-cutting read-only inspection: analysts (admins see it via override).
-  requiredRoles: ["analyst"],
+  requiredRoles: ["admin"],
   navItems: [{ path: "/trazabilidad", label: "Trazabilidad" }],
   routes: [
     {

@@ -7,7 +7,7 @@ export const qmstrModule: ModuleDefinition = {
   id: "qmstr",
   label: "QMS-TR",
   group: "pipeline",
-  requiredRoles: ["mtr_specialist"],
+  requiredRoles: ["admin"],
   navItems: [{ path: "/qms-tr", label: "QMS-TR" }],
   routes: [{ path: "/qms-tr", component: lazy(() => import("./pages/QmsTrPage").then(m => ({ default: m.QmsTrPage }))) }],
 }

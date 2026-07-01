@@ -5,7 +5,7 @@ export const formato4Module: ModuleDefinition = {
   id: "formato4",
   label: "Formato 4",
   group: "pipeline",
-  requiredRoles: ["formato4_specialist"],
+  requiredRoles: ["admin"],
   navItems: [{ path: "/formato4", label: "Formato 4" }],
   routes: [
     {
