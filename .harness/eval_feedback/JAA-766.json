@@ -1,0 +1,6 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "WeightingCountryListRow.test.tsx adds 4 new tests asserting 'Ejecutar' shows with no runs, 'Re-ejecutar' shows after a completed run, clicking Ejecutar opens the detail dialog ('Configurar Pesaje'), and the button is hidden while processing. `npx vitest run WeightingCountryListRow.test.tsx --no-file-parallelism` -> 8 passed (8)."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "onClick calls e.stopPropagation() before openDetail() (WeightingCountryListRow.tsx:124-127). Test 'clicking Ejecutar opens the detail dialog without also opening history' passed: dialog present, no 'Historial de Pesaje' text."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "git diff ado/develop -- WeightingCountryCard.tsx and its test file both empty. 17/17 existing WeightingCountryCard tests still pass unmodified."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "Full vitest 419/419 passed (--no-file-parallelism); eslint clean; tsc -b clean; Playwright smoke (Weighting) 4 passed including the new list-view test."}
+]

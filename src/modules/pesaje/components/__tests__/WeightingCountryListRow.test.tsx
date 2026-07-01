@@ -141,4 +141,40 @@ describe("WeightingCountryListRow — parity with WeightingCountryCard", () => {
     await user.click(within(dialog).getByRole("button", { name: "Detener" }))
     await waitFor(() => expect(mockCancelWeighting).toHaveBeenCalledWith("run-1"))
   })
+
+  // --- JAA-766: explicit Ejecutar/Re-ejecutar action button in Acciones -----
+
+  it("shows an 'Ejecutar' button in Acciones when there are no prior runs (JAA-766)", async () => {
+    renderRow()
+    await waitFor(() => expect(getRow()).toBeInTheDocument())
+    expect(screen.getByRole("button", { name: "Ejecutar" })).toBeInTheDocument()
+  })
+
+  it("shows a 'Re-ejecutar' button in Acciones once a run has completed (JAA-766)", async () => {
+    mockGetWeightingRuns.mockResolvedValue([
+      { ...runningRun(), status: "completed", completed_at: "2026-01-01T00:05:00Z" },
+    ])
+    renderRow()
+    expect(await screen.findByRole("button", { name: "Re-ejecutar" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Ejecutar" })).not.toBeInTheDocument()
+  })
+
+  it("clicking Ejecutar opens the detail dialog without also opening history (JAA-766)", async () => {
+    const user = userEvent.setup()
+    renderRow()
+    await waitFor(() => expect(getRow()).toBeInTheDocument())
+
+    await user.click(screen.getByRole("button", { name: "Ejecutar" }))
+    expect(await screen.findByRole("dialog")).toBeInTheDocument()
+    expect(screen.getByText("Configurar Pesaje")).toBeInTheDocument()
+    expect(screen.queryByText(/Historial de Pesaje/)).not.toBeInTheDocument()
+  })
+
+  it("does not show Ejecutar/Re-ejecutar while a run is processing (Procesando/Detener already occupy that slot)", async () => {
+    mockGetWeightingRuns.mockResolvedValue([runningRun()])
+    renderRow()
+    await screen.findByText("Detener")
+    expect(screen.queryByRole("button", { name: "Ejecutar" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Re-ejecutar" })).not.toBeInTheDocument()
+  })
 })

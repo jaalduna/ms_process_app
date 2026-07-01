@@ -98,4 +98,29 @@ test.describe("Weighting Module E2E", () => {
       expect(box!.x + box!.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1)
     }
   })
+
+  // JAA-766: the Lista view's Acciones column must carry a visible run trigger —
+  // the card relies on a whole-card click + hint text, but the list row had
+  // neither, leaving no discoverable way to launch a run.
+  test("Lista view shows an Ejecutar button per row that opens the config dialog", { tag: "@smoke" }, async ({ page }) => {
+    await navigateTo(page, "Pesaje", /pesaje/)
+    await page.getByRole("button", { name: "Lista" }).click()
+
+    const table = page.getByRole("table")
+    await expect(table).toBeVisible({ timeout: 10_000 })
+
+    // The row itself has role="button" (whole-row click also opens the modal),
+    // so scope the query to it via its aria-label rather than role="row".
+    const chileRow = page.getByRole("button", { name: /Abrir detalle de Pesaje para Chile/i })
+    const ejecutar = chileRow.getByRole("button", { name: /^(Ejecutar|Re-ejecutar)$/ })
+    await expect(ejecutar).toBeVisible()
+
+    await ejecutar.click()
+    const modal = page.getByRole("dialog")
+    await expect(modal).toBeVisible({ timeout: 5_000 })
+    await expect(modal.getByText("Configurar Pesaje")).toBeVisible()
+
+    // Does not also open the history modal.
+    await expect(page.getByText(/Historial de Pesaje/i)).not.toBeVisible()
+  })
 })

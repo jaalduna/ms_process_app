@@ -1,0 +1,41 @@
+{
+  "ticket": "JAA-766",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-766/pesaje-vista-lista-falta-boton-de-accion-ejecutar-en-la-columna",
+  "branch": "fix/JAA-766-pesaje-list-ejecutar-button",
+  "archetype": "webapp",
+  "goal": "Add an explicit Ejecutar/Re-ejecutar button to WeightingCountryListRow's Acciones column, matching Calibraci\u00f3n's list-view Calibrar button pattern.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "The Pesaje list view shows an 'Ejecutar' button (no prior runs) or 'Re-ejecutar' button (has a completed run, not currently processing) in the Acciones cell for every row; clicking it opens WeightingDetailModal, same as clicking the row.",
+      "how_to_verify": "vitest: WeightingCountryListRow.test.tsx new cases asserting the button renders with the right label and opens the dialog. Playwright: e2e/weighting.spec.ts list-view case clicks the button and asserts the config dialog opens."
+    },
+    {
+      "id": "ac2",
+      "criterion": "Clicking the Ejecutar/Re-ejecutar button does not also trigger the history modal, and does not cause the row's own onClick to double-fire (single dialog open).",
+      "how_to_verify": "vitest: assert only one WeightingDetailModal open call / dialog instance after the click (stopPropagation correctness)."
+    },
+    {
+      "id": "ac3",
+      "criterion": "WeightingCountryCard.tsx (Tarjetas view) behavior is unchanged \u2014 no new button added there, hint text and existing action row untouched.",
+      "how_to_verify": "existing src/__tests__/WeightingCountryCard.test.tsx (17 tests) still pass unmodified."
+    },
+    {
+      "id": "ac4",
+      "criterion": "No regressions: full vitest suite, eslint, tsc -b green; e2e smoke green.",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b; MOCK_SERVER_PORT=<port> npx playwright test --project=smoke"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Add Ejecutar/Re-ejecutar Button to WeightingCountryListRow.tsx's Acciones TableCell, labeled 'Ejecutar' when no latestRun else 'Re-ejecutar' (hidden while isProcessing, since the Procesando/Detener pair already occupies that state), onClick stopPropagation + openDetail. Add/extend vitest coverage in WeightingCountryListRow.test.tsx.",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Extend e2e/weighting.spec.ts (or add a Pesaje list-view case) with a Playwright smoke assertion that the button opens the config dialog in list view.",
+      "status": "complete"
+    }
+  ]
+}

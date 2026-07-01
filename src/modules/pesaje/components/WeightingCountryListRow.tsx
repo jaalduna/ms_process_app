@@ -118,6 +118,18 @@ export function WeightingCountryListRow({ countryCode, period, lastFinalizedDate
               </>
             )}
 
+            {!isProcessing && (
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  openDetail()
+                }}
+              >
+                {latestRun ? "Re-ejecutar" : "Ejecutar"}
+              </Button>
+            )}
+
             {hasAnyRuns && (
               <Button
                 size="sm"
