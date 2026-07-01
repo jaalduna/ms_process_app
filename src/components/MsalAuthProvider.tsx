@@ -11,6 +11,33 @@ import type { UserInfo } from "@/types/api"
 const msalInstance = new PublicClientApplication(msalConfig)
 msalInstance.initialize()
 
+// STOPGAP (JAA-347): until SSO fase 2 grants the SPA→API delegated permission
+// there is no API access token, so the backend validates the ID token
+// (aud = SPA client id). acquireTokenSilent only checks the ACCESS token's
+// expiry (60–90 min, randomized) while the cached ID token expires at a fixed
+// ~1h, so it can hand back an already-expired ID token — force a refresh when
+// that happens. Revert to accessToken once fase 2 is applied and the build
+// sets VITE_AZURE_AD_API_SCOPE.
+function idTokenIsFresh(token: string): boolean {
+  try {
+    const { exp } = JSON.parse(atob(token.split(".")[1])) as { exp?: number }
+    return typeof exp === "number" && exp * 1000 > Date.now() + 60_000
+  } catch {
+    return false
+  }
+}
+
+async function acquireIdToken(
+  instance: PublicClientApplication | ReturnType<typeof useMsal>["instance"],
+  account: NonNullable<ReturnType<typeof useMsal>["accounts"][0]>,
+): Promise<string> {
+  let response = await instance.acquireTokenSilent({ ...loginRequest, account })
+  if (!idTokenIsFresh(response.idToken)) {
+    response = await instance.acquireTokenSilent({ ...loginRequest, account, forceRefresh: true })
+  }
+  return response.idToken
+}
+
 function MsalAuthInner({ children }: { children: React.ReactNode }) {
   const { instance, accounts, inProgress } = useMsal()
   const isAuthenticated = useIsAuthenticated()
@@ -35,14 +62,10 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
     let cancelled = false
     ;(async () => {
       try {
-        const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account })
-        // STOPGAP (JAA-347): until SSO fase 2 grants the SPA→API delegated
-        // permission there is no API access token, so the backend validates the
-        // ID token (aud = SPA client id). Revert to accessToken once fase 2 is
-        // applied and the build sets VITE_AZURE_AD_API_SCOPE.
+        const idToken = await acquireIdToken(instance, account)
         const info = await api
           .get<UserInfo>("/auth/me", {
-            headers: { Authorization: `Bearer ${tokenResponse.idToken}` },
+            headers: { Authorization: `Bearer ${idToken}` },
           })
           .then((r) => r.data)
         if (!cancelled) setUserInfo({ roles: info.roles, countries: info.countries })
@@ -69,9 +92,7 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
   const getAccessToken = useCallback(async (): Promise<string> => {
     if (!account) throw new Error("No authenticated account")
     try {
-      // STOPGAP (JAA-347): ID token instead of access token — see /auth/me above.
-      const response = await instance.acquireTokenSilent({ ...loginRequest, account })
-      return response.idToken
+      return await acquireIdToken(instance, account)
     } catch {
       const response = await instance.acquireTokenRedirect(loginRequest)
       return (response as unknown as { idToken: string })?.idToken ?? ""
