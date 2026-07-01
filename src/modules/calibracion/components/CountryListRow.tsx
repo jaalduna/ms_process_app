@@ -1,0 +1,188 @@
+import { memo, useState } from "react"
+import { TableCell, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Eye } from "lucide-react"
+import { toast } from "sonner"
+import { cn, formatRelativeTime } from "@/lib/utils"
+import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
+import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
+import { useProcessEntry } from "@/hooks/useProcessStatus"
+import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
+import { CalibrationDetailModal } from "./CalibrationDetailModal"
+import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
+import { CountryGroupByDialog } from "./CountryGroupByDialog"
+import { CalibrateButton } from "./CalibrateButton"
+import { StopCalibrationButton } from "./StopCalibrationButton"
+import { useCalibration } from "../hooks/useCalibration"
+import {
+  useCountryGroupBy,
+  useSaveCountryGroupBy,
+  resolveGroupBy,
+} from "../hooks/useCalibrationConfig"
+import type { CountryInfo } from "@/types/api"
+import type { DataAvailability, CalibrationConfig } from "../types"
+
+interface CountryListRowProps {
+  country: CountryInfo
+  period: string
+  availability: DataAvailability
+  availabilityLoading: boolean
+  calibrationConfig: CalibrationConfig
+  lastSyncDate: string | null
+  lastCalibrationDate: string | null
+}
+
+/** List/table row rendering of CountryCard's same data + actions (JAA-763). */
+export const CountryListRow = memo(function CountryListRow({
+  country,
+  period,
+  availability,
+  availabilityLoading,
+  calibrationConfig,
+  lastSyncDate,
+  lastCalibrationDate,
+}: CountryListRowProps) {
+  const [showDetail, setShowDetail] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion", period)
+
+  const isRunning = job?.status === "running" || job?.status === "pending"
+  const isCompleted = job?.status === "completed"
+  const isFailed = job?.status === "failed"
+  const isCancelled = job?.status === "cancelled"
+  const { isClosed } = useProcessEntry("calibracion", country.code)
+  const canTrigger = availability.elegibilidad !== false && !isRunning && !isPending && !isClosed
+
+  const { data: groupByConfig } = useCountryGroupBy(country.code)
+  const saveGroupBy = useSaveCountryGroupBy(country.code)
+  const groupBy = resolveGroupBy(groupByConfig?.config, country.code)
+  const groupByEditable = groupByConfig?.editable ?? false
+
+  const countryLabel = COUNTRY_LABELS[country.code] ?? country.code
+  const flag = COUNTRY_FLAGS[country.code] ?? ""
+
+  return (
+    <>
+      <TableRow
+        className="cursor-pointer"
+        role="button"
+        tabIndex={0}
+        aria-label={`View calibration history for ${countryLabel}`}
+        onClick={() => setShowHistory(true)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowHistory(true) } }}
+      >
+        <TableCell className="font-medium">
+          {flag && <span className="mr-2">{flag}</span>}
+          {countryLabel}
+        </TableCell>
+        <TableCell>
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-xs",
+              lastSyncDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
+            )}
+            title={lastSyncDate ? `Sync: ${lastSyncDate.replace("T", " ").slice(0, 16)}` : undefined}
+          >
+            Sync: {lastSyncDate ? formatRelativeTime(lastSyncDate) : "never"}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-xs",
+              lastCalibrationDate ? "text-muted-foreground" : "text-warning border-warning/30 bg-warning/15",
+            )}
+            title={lastCalibrationDate ? `Cal: ${lastCalibrationDate.replace("T", " ").slice(0, 16)}` : undefined}
+          >
+            Cal: {lastCalibrationDate ? formatRelativeTime(lastCalibrationDate) : "never"}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <ProcessStatusBadge stage="calibracion" country={country.code} countryLabel={countryLabel} showAttribution={false} />
+        </TableCell>
+        <TableCell>
+          <div className="flex gap-3">
+            <DataAvailabilityBadge label="Elegibilidad" available={availability.elegibilidad} loading={availabilityLoading} />
+            <DataAvailabilityBadge label="Pesaje" available={availability.pesaje} loading={availabilityLoading} />
+          </div>
+        </TableCell>
+        <TableCell>
+          {isCompleted && (
+            <Badge variant="default" className="bg-success">Completed</Badge>
+          )}
+          {isFailed && <Badge variant="destructive">Failed</Badge>}
+          {isCancelled && <Badge variant="secondary">Cancelled</Badge>}
+        </TableCell>
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-wrap gap-2 min-w-0">
+            <CalibrateButton
+              countryLabel={countryLabel}
+              period={period}
+              calibrationConfig={calibrationConfig}
+              groupBy={groupBy}
+              canTrigger={canTrigger}
+              isClosed={isClosed}
+              isPending={isPending}
+              isRunning={isRunning}
+              startCalibration={startCalibration}
+            />
+
+            {isRunning && (
+              <StopCalibrationButton
+                countryLabel={countryLabel}
+                isCancelling={isCancelling}
+                cancelCalibration={cancelCalibration}
+              />
+            )}
+
+            {job && (
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label="View calibration details"
+                onClick={() => setShowDetail(true)}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            )}
+
+            {groupByEditable && (
+              <CountryGroupByDialog
+                countryLabel={countryLabel}
+                value={groupBy}
+                saving={saveGroupBy.isPending}
+                onSave={async (gb) => {
+                  try {
+                    await saveGroupBy.mutateAsync(gb)
+                    toast.success(`Group by guardado para ${countryLabel}`)
+                  } catch (err) {
+                    toast.error(
+                      `No se pudo guardar group by: ${(err as Error).message ?? "error"}`,
+                    )
+                    throw err
+                  }
+                }}
+              />
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+
+      <CalibrationDetailModal
+        job={job}
+        open={showDetail}
+        onClose={() => setShowDetail(false)}
+      />
+      <CalibrationHistoryModal
+        country={country.code}
+        countryLabel={countryLabel}
+        countryFlag={flag}
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+      />
+    </>
+  )
+})

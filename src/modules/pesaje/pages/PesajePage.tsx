@@ -1,10 +1,14 @@
 import { useState } from "react"
 import { PeriodSelector } from "@/components/PeriodSelector"
 import { ProcessWorkspaceTabs } from "@/components/ProcessWorkspaceTabs"
+import { ViewToggle } from "@/components/ViewToggle"
 import { WeightingCountryCard } from "../components/WeightingCountryCard"
+import { WeightingCountryListRow } from "../components/WeightingCountryListRow"
 import { WeightingHistoryPanel } from "../components/WeightingHistoryPanel"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useCountries } from "@/hooks/useCountries"
+import { useViewMode } from "@/hooks/useViewMode"
 import { useLastWeighting } from "../hooks/useLastWeighting"
 import { PesajeParametrosTab } from "../components/PesajeParametrosTab"
 
@@ -18,12 +22,14 @@ function currentPeriod(): string {
 
 export function PesajePage() {
   const [period, setPeriod] = useState(currentPeriod)
+  const [viewMode, setViewMode] = useViewMode("pesaje")
   const { data, isLoading, error } = useCountries()
   const { data: lastWeighting } = useLastWeighting()
 
   const ejecutar = (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <ViewToggle value={viewMode} onChange={setViewMode} />
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
@@ -41,7 +47,7 @@ export function PesajePage() {
         </div>
       )}
 
-      {data && (
+      {data && viewMode === "cards" && (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data.countries.filter((c) => c.type === "country").map((c) => (
             <WeightingCountryCard
@@ -52,6 +58,30 @@ export function PesajePage() {
             />
           ))}
         </div>
+      )}
+
+      {data && viewMode === "list" && (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>País</TableHead>
+              <TableHead>Último</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Resultado</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.countries.filter((c) => c.type === "country").map((c) => (
+              <WeightingCountryListRow
+                key={c.code}
+                countryCode={c.code}
+                period={period}
+                lastFinalizedDate={lastWeighting?.[c.code]?.completed_at ?? null}
+              />
+            ))}
+          </TableBody>
+        </Table>
       )}
     </div>
   )

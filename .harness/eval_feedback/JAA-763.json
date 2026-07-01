@@ -1,0 +1,27 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "npx vitest run src/modules/calibracion/pages/__tests__/CalibrationPage.test.tsx --no-file-parallelism → 3 passed (3). Default card grid + visible group role='Cambiar vista' toggle; clicking 'Lista' renders role='table' with same country data, no reload; toggling back to 'Tarjetas' restores cards, table disappears."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "npx vitest run CountryCard.test.tsx CountryListRow.test.tsx → 2 files, 8 passed. Both share identical hooks (useCalibration, useProcessEntry, useCountryGroupBy), same Sync/Cal badges, ProcessStatusBadge, DataAvailabilityBadge x2, shared CalibrateButton/StopCalibrationButton components, same Eye detail button, same CountryGroupByDialog, identical aria-label 'View calibration history for {countryLabel}' wired to the same CalibrationHistoryModal. history-unify.spec.ts (unchanged) uses the same aria-label pattern."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "npx vitest run WeightingCountryListRow.test.tsx WeightingCountryCard.test.tsx PesajePage.test.tsx → 3 files, 31 passed. WeightingCountryListRow mirrors WeightingCountryCard: país+flag, last-finalized badge, ProcessStatusBadge, statusConfig badge, whole-row click → openDetail (same aria-label), shared StopWeightingButton while processing, History icon button opening WeightingHistoryModal when hasAnyRuns."
+  },
+  {
+    "id": "ac4",
+    "verdict": "PASS",
+    "evidence": "npx vitest run useViewMode.test.tsx → 4 passed. useViewMode.ts genuinely persists to localStorage under key `view-mode:${moduleKey}` (try/catch guarded), CalibrationPage uses 'calibracion' and PesajePage uses 'pesaje' — isolated per module, confirmed by test."
+  },
+  {
+    "id": "ac5",
+    "verdict": "PASS",
+    "evidence": "Full vitest (--no-file-parallelism): 59 files / 406 tests passed. `npm run lint`: no issues. `npx tsc -b`: no errors. `git diff ado/develop -- e2e/history-unify.spec.ts` empty (unchanged). `git diff ado/develop -- e2e/calibration.spec.ts` purely additive (+25/-0). Playwright smoke (calibración/Pesaje/Weighting): 5 passed, 3 skipped (weighting-real-api, requires live App Service — unrelated), 0 failed."
+  }
+]

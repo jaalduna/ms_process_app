@@ -1,19 +1,8 @@
 import { memo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Eye, Square } from "lucide-react"
+import { Eye } from "lucide-react"
 import { toast } from "sonner"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
@@ -24,6 +13,8 @@ import { CalibrationProgress } from "./CalibrationProgress"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
 import { CountryGroupByDialog } from "./CountryGroupByDialog"
+import { CalibrateButton } from "./CalibrateButton"
+import { StopCalibrationButton } from "./StopCalibrationButton"
 import { useCalibration } from "../hooks/useCalibration"
 import {
   useCountryGroupBy,
@@ -133,114 +124,25 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
           {/* Actions */}
           <div onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-wrap gap-2 min-w-0">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    disabled={!canTrigger}
-                    className="flex-1"
-                    title={isClosed ? "Proceso cerrado" : !canTrigger ? "Data not available or calibration already running" : undefined}
-                  >
-                    {isPending || isRunning ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isPending ? "Starting..." : "Running..."}
-                      </>
-                    ) : (
-                      "Calibrar"
-                    )}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirm Calibration</AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                      <div className="text-sm text-muted-foreground">
-                        <p>
-                          Start calibration for{" "}
-                          <strong>{countryLabel}</strong> period{" "}
-                          <strong>{period}</strong>?
-                        </p>
-                        {(calibrationConfig.aggregations.region || calibrationConfig.aggregations.nivel_2) && (
-                          <p className="mt-2">
-                            Aggregations:{" "}
-                            {[calibrationConfig.aggregations.region && "Region", calibrationConfig.aggregations.nivel_2 && "Canal"]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        )}
-                        <p className="mt-2">
-                          Group by:{" "}
-                          <code className="text-xs bg-muted px-1 rounded">
-                            {groupBy || "default"}
-                          </code>
-                        </p>
-                        <p className="mt-2">
-                          Overrides: {calibrationConfig.lookback_months} months lookback
-                        </p>
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => {
-                      startCalibration({
-                        period,
-                        aggregations: calibrationConfig.aggregations,
-                        lookback_months: calibrationConfig.lookback_months,
-                        skip_sync: true,
-                        table_suffix: "_full",
-                        group_by: groupBy,
-                      }).then(() => {
-                        toast.success(`Calibration started for ${countryLabel}`);
-                      }).catch((err: unknown) => {
-                        const message = (err as { message?: string })?.message ?? "Unknown error";
-                        toast.error(`Failed to start calibration for ${countryLabel}: ${message}`);
-                      });
-                    }}>
-                      Confirm
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <CalibrateButton
+                countryLabel={countryLabel}
+                period={period}
+                calibrationConfig={calibrationConfig}
+                groupBy={groupBy}
+                canTrigger={canTrigger}
+                isClosed={isClosed}
+                isPending={isPending}
+                isRunning={isRunning}
+                startCalibration={startCalibration}
+                className="flex-1"
+              />
 
               {isRunning && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      aria-label="Stop calibration"
-                      disabled={isCancelling}
-                    >
-                      {isCancelling ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Stop Calibration</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Stop the running calibration for <strong>{countryLabel}</strong>? This will cancel all pending steps.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Keep Running</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => {
-                          cancelCalibration()
-                          toast.info(`Calibration stopped for ${countryLabel}`)
-                        }}
-                      >
-                        Stop
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <StopCalibrationButton
+                  countryLabel={countryLabel}
+                  isCancelling={isCancelling}
+                  cancelCalibration={cancelCalibration}
+                />
               )}
 
               {job && (

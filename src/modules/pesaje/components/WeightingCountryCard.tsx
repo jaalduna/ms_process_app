@@ -2,18 +2,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { History, Loader2, Square } from "lucide-react"
+import { History, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
@@ -21,6 +10,7 @@ import { useWeightingRuns, useCreateWeightingRun, useExecuteWeighting, useCancel
 import { WeightingProgress } from "./WeightingProgress"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WeightingHistoryModal } from "./WeightingHistoryModal"
+import { StopWeightingButton } from "./StopWeightingButton"
 import { WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
 import { formatRelativeTime } from "@/lib/utils"
@@ -149,28 +139,12 @@ export function WeightingCountryCard({ countryCode, period, lastFinalizedDate }:
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Procesando...
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="destructive" disabled={cancelRun.isPending} onClick={(e) => e.stopPropagation()}>
-                      <Square className="mr-2 h-3.5 w-3.5" />
-                      Detener
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Detener ejecucion</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Detener el proceso para <strong>{countryLabel}</strong> periodo <strong>{period}</strong>?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Volver</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleCancel}>
-                        Detener
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <StopWeightingButton
+                  countryLabel={countryLabel}
+                  period={period}
+                  disabled={cancelRun.isPending}
+                  onConfirm={handleCancel}
+                />
               </>
             )}
 

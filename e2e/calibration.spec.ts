@@ -97,4 +97,29 @@ test.describe("Calibración Module E2E", () => {
     await eye.click()
     await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5_000 })
   })
+
+  // JAA-763: Tarjetas/Lista toggle — the list view must carry the exact same
+  // data/actions as the card grid (same row count, same Calibrar gating, same
+  // history aria-label used by history-unify.spec.ts).
+  test("Tarjetas/Lista toggle switches to a table with the same countries and working actions", { tag: "@smoke" }, async ({ page }) => {
+    await page.getByRole("button", { name: "Lista" }).click()
+
+    const table = page.getByRole("table")
+    await expect(table).toBeVisible({ timeout: 10_000 })
+    // Each row overrides its role to "button" (the whole row opens history, same as
+    // the card), so count by that aria-label pattern rather than role="row".
+    expect(await page.getByRole("button", { name: /view calibration history for/i }).count()).toBe(9)
+
+    await expect(page.getByLabel(/view calibration history for mexico/i).getByRole("button", { name: /^Calibrar$/ })).toBeEnabled()
+
+    // Whole-row click opens the same history modal as the card view.
+    await page.getByLabel(/view calibration history for argentina/i).click()
+    await expect(page.getByRole("dialog").filter({ hasText: "Historial de Calibracion" })).toBeVisible({ timeout: 10_000 })
+    await page.keyboard.press("Escape")
+
+    // Toggling back to Tarjetas restores the card grid without a reload.
+    await page.getByRole("button", { name: "Tarjetas" }).click()
+    await expect(page.locator('[data-slot="card"]').first()).toBeVisible({ timeout: 10_000 })
+    await expect(table).toBeHidden()
+  })
 })

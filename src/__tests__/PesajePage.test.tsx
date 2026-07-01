@@ -4,6 +4,23 @@ import { MemoryRouter } from "react-router-dom"
 import userEvent from "@testing-library/user-event"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
+// Map-backed localStorage stub (the test env does not provide one natively).
+function installLocalStorageStub() {
+  const store = new Map<string, string>()
+  const mock: Storage = {
+    getItem: (k) => (store.has(k) ? store.get(k)! : null),
+    setItem: (k, v) => void store.set(k, String(v)),
+    removeItem: (k) => void store.delete(k),
+    clear: () => store.clear(),
+    key: (i) => Array.from(store.keys())[i] ?? null,
+    get length() {
+      return store.size
+    },
+  }
+  vi.stubGlobal("localStorage", mock)
+}
+installLocalStorageStub()
+
 // Mock MSAL
 vi.mock("@azure/msal-react", () => ({
   useIsAuthenticated: vi.fn(() => true),
@@ -88,6 +105,7 @@ function renderWithProviders(ui: React.ReactElement, initialEntries: string[] = 
 describe("PesajePage", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     mockGetLastWeighting.mockResolvedValue({ countries: {} })
     mockGetWeightingRuns.mockResolvedValue([])
   })
@@ -211,5 +229,23 @@ describe("PesajePage", () => {
     await waitFor(() => {
       expect(screen.getByText("never")).toBeInTheDocument()
     })
+  })
+
+  it("Tarjetas/Lista toggle switches to a table with the same countries and preserves actions (JAA-763)", async () => {
+    const user = userEvent.setup()
+    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
+
+    const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
+    renderWithProviders(<PesajePage />)
+
+    await waitFor(() => expect(screen.getByText("Argentina")).toBeInTheDocument())
+    await user.click(screen.getByRole("button", { name: "Lista" }))
+
+    await waitFor(() => expect(screen.getByRole("table")).toBeInTheDocument())
+    expect(screen.getByText("Chile")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Abrir detalle de Pesaje para Chile/i })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Tarjetas" }))
+    await waitFor(() => expect(screen.queryByRole("table")).not.toBeInTheDocument())
   })
 })

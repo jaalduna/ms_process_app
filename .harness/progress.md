@@ -2,6 +2,38 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-07-01 — JAA-763 (Tarjetas/Lista view toggle for country grids — Calibración + Pesaje) — EVALUATOR PASS, PR armed
+
+**What:** Added a persisted Tarjetas/Lista toggle to the Calibración and Pesaje country grids (user
+opted for both modules in this ticket rather than Calibración-only).
+- `src/hooks/useViewMode.ts`: generic per-module localStorage-backed `'cards'|'list'` hook
+  (`view-mode:<module>` key, try/catch guarded).
+- `src/components/ViewToggle.tsx`: shared Tarjetas/Lista toggle control.
+- Calibración: extracted `CalibrateButton.tsx` + `StopCalibrationButton.tsx` out of `CountryCard.tsx`
+  (behavior-preserving refactor — no existing test on this branch, added
+  `CountryCard.test.tsx` as the regression baseline first). New `CountryListRow.tsx` reuses the same
+  shared buttons + hooks (`useCalibration`, `useProcessEntry`, `useCountryGroupBy`) in a `<Table>` row
+  layout; whole-row click opens the same history modal with the identical
+  `aria-label="View calibration history for {country}"` that `e2e/history-unify.spec.ts` already
+  asserts on. Wired into `CalibrationPage.tsx`.
+- Pesaje: extracted `StopWeightingButton.tsx` out of `WeightingCountryCard.tsx` (same
+  behavior-preserving pattern; existing `WeightingCountryCard.test.tsx` — 17 tests — still green
+  unmodified). New `WeightingCountryListRow.tsx` mirrors the card's row-click→detail-modal /
+  history-icon→history-modal interaction. Wired into `PesajePage.tsx`.
+- JAA-762 (separate, not-yet-started ticket about changing history-access UX) not blocking — the
+  list view intentionally preserves today's whole-row-click-opens-history interaction; both card and
+  list can be updated together when JAA-762 lands.
+**Verify:** vitest 406/406 passed (`--no-file-parallelism` — plain `npm test` flaked under thread-pool
+parallelism from concurrent agent load in this session, unrelated to the change; see FRICTION.md);
+eslint clean; tsc -b clean; Playwright smoke (calibración + Pesaje/Weighting) 5 passed / 3 skipped
+(weighting-real-api, gated on `REAL_BACKEND`) / 0 failed; `e2e/calibration.spec.ts` extended
+additively (+25/-0), `e2e/history-unify.spec.ts` untouched. Separate skeptical evaluator
+(ux-ui-reviewer, Sonnet, fresh ctx): ALL 5 ACs PASS → `eval_feedback/JAA-763.json`. No
+placeholder/stub code in any new file.
+**PR:** → develop (direct mode, ado remote), auto-complete to be armed at creation. Linear → In Review.
+**NEXT:** Build green → auto-complete merges; a later `/harness JAA-763` re-run (Orient → step 7)
+confirms merge + cleans worktree + sets Done.
+
 ## 2026-07-01 — JAA-755 (mark run as "final" + free-text label, exclusive per country/period) — EVALUATOR PASS, PR armed
 
 **What:** Added an exclusive "★ Final" toggle + free-text label per run to `CalibrationHistoryModal`

@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { PeriodSelector } from "@/components/PeriodSelector"
+import { ViewToggle } from "@/components/ViewToggle"
 import { CalibrationConfigDialog } from "../components/CalibrationConfigDialog"
 import { CountryCard } from "../components/CountryCard"
+import { CountryListRow } from "../components/CountryListRow"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useCountries } from "@/hooks/useCountries"
+import { useViewMode } from "@/hooks/useViewMode"
 // useDataAvailability intentionally not used for now — see UNKNOWN_AVAILABILITY (JAA-570).
 import { useLastSync } from "@/hooks/useLastSync"
 import { useLastCalibration } from "../hooks/useLastCalibration"
@@ -34,6 +38,7 @@ const UNKNOWN_AVAILABILITY: DataAvailability = { elegibilidad: null, pesaje: nul
 
 export function CalibrationPage() {
   const [period, setPeriod] = useState(currentPeriod)
+  const [viewMode, setViewMode] = useViewMode("calibracion")
 
   useEffect(() => {
     // Legacy per-browser key that tracked in-flight calibration job-ids. Run state
@@ -77,6 +82,7 @@ export function CalibrationPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ViewToggle value={viewMode} onChange={setViewMode} />
           <PeriodSelector value={period} onChange={setPeriod} />
           <CalibrationConfigDialog
             config={calibrationConfig}
@@ -102,7 +108,7 @@ export function CalibrationPage() {
         </div>
       )}
 
-      {data && (
+      {data && viewMode === "cards" && (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data.countries.filter((c) => c.type === "country").map((c) => (
             <CountryCard
@@ -117,6 +123,36 @@ export function CalibrationPage() {
             />
           ))}
         </div>
+      )}
+
+      {data && viewMode === "list" && (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>País</TableHead>
+              <TableHead>Sync</TableHead>
+              <TableHead>Cal</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Disponibilidad</TableHead>
+              <TableHead>Resultado</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.countries.filter((c) => c.type === "country").map((c) => (
+              <CountryListRow
+                key={c.code}
+                country={c}
+                period={period}
+                availability={UNKNOWN_AVAILABILITY}
+                availabilityLoading={false}
+                calibrationConfig={calibrationConfig}
+                lastSyncDate={lastSync?.[c.code]?.completed_at ?? null}
+                lastCalibrationDate={lastCalibration?.[c.code]?.completed_at ?? null}
+              />
+            ))}
+          </TableBody>
+        </Table>
       )}
     </div>
   )
