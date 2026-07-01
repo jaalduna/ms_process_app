@@ -1,8 +1,31 @@
 import { Router } from "express"
 import { jobs, enrichSummary } from "./sync.js"
 import { buildMockZip } from "../lib/zip.js"
+import { issueDownloadToken, validateDownloadToken } from "../lib/download-tokens.js"
 
 const router = Router()
+
+function findCalibrationJob(tag, country) {
+  return Array.from(jobs.values()).find(
+    j => j.tag === tag && (!country || j.country === country),
+  )
+}
+
+function buildCalibrationZip(job, tag) {
+  const tableNames = (job.results || [])
+    .filter(r => r.table_name)
+    .map(r => `${r.query_name}.csv`)
+  const zip = buildMockZip(
+    tableNames.length ? tableNames : ["report.csv"],
+    `calibration report ${job.country}/${job.stage}/${job.period ?? ""} (tag ${tag})`,
+  )
+  const filename = `calibration_${job.country}_${job.period ?? "no-period"}_${tag}.zip`
+  return { zip, filename }
+}
+
+function calibrationDownloadResource(country, tag) {
+  return `calibration:${country}:${tag}`
+}
 
 // ---------------------------------------------------------------------------
 // GET /calibration/runs?country=&period=&status=&limit=&offset=
@@ -42,21 +65,54 @@ router.get("/calibration/:tag/download", (req, res) => {
   const { country } = req.query
 
   // Match against seeded/triggered calibration jobs by tag (optionally country).
-  const job = Array.from(jobs.values()).find(
-    j => j.tag === tag && (!country || j.country === country),
-  )
+  const job = findCalibrationJob(tag, country)
   if (!job) {
     return res.status(404).json({ error: "not_found", message: `No calibration report found for tag "${tag}"` })
   }
 
-  const tableNames = (job.results || [])
-    .filter(r => r.table_name)
-    .map(r => `${r.query_name}.csv`)
-  const zip = buildMockZip(
-    tableNames.length ? tableNames : ["report.csv"],
-    `calibration report ${job.country}/${job.stage}/${job.period ?? ""} (tag ${tag})`,
-  )
-  const filename = `calibration_${job.country}_${job.period ?? "no-period"}_${tag}.zip`
+  const { zip, filename } = buildCalibrationZip(job, tag)
+  res.setHeader("Content-Type", "application/zip")
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
+  res.send(zip)
+})
+
+// ---------------------------------------------------------------------------
+// GET /calibration/:tag/download-url?country=   (JAA-757/758)
+// Issues a short-lived signed URL; the frontend navigates the browser to it
+// directly (native download, no Authorization header) instead of axios-blob.
+// ---------------------------------------------------------------------------
+
+router.get("/calibration/:tag/download-url", (req, res) => {
+  const { tag } = req.params
+  const { country } = req.query
+  const job = findCalibrationJob(tag, country)
+  if (!job) {
+    return res.status(404).json({ error: "not_found", message: `No calibration report found for tag "${tag}"` })
+  }
+  const { token, expiresIn } = issueDownloadToken(calibrationDownloadResource(country, tag))
+  res.json({
+    url: `/api/v1/calibration/${tag}/download-signed?country=${encodeURIComponent(country ?? "")}&token=${token}`,
+    expires_in: expiresIn,
+  })
+})
+
+// ---------------------------------------------------------------------------
+// GET /calibration/:tag/download-signed?country=&token=   (JAA-757/758)
+// No Authorization header required — access is gated by the signed token.
+// ---------------------------------------------------------------------------
+
+router.get("/calibration/:tag/download-signed", (req, res) => {
+  const { tag } = req.params
+  const { country, token } = req.query
+  const failure = validateDownloadToken(token, calibrationDownloadResource(country, tag))
+  if (failure) {
+    return res.status(failure.status).json({ error: failure.error, message: failure.message })
+  }
+  const job = findCalibrationJob(tag, country)
+  if (!job) {
+    return res.status(404).json({ error: "not_found", message: `No calibration report found for tag "${tag}"` })
+  }
+  const { zip, filename } = buildCalibrationZip(job, tag)
   res.setHeader("Content-Type", "application/zip")
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
   res.send(zip)

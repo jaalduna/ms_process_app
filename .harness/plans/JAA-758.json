@@ -1,0 +1,24 @@
+{
+  "ticket": "JAA-758",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-758",
+  "branch": "feat/JAA-758-native-signed-download",
+  "archetype": "webapp",
+  "goal": "Replace axios-blob (responseType:'blob' + URL.createObjectURL) downloads for calibration/weighting (+ formato4/tags pairs) with: request a signed download URL, then native browser navigation, so the browser streams to disk with native progress instead of buffering a Blob in page memory.",
+  "design_decisions": [
+    "Contract mirrors JAA-757 backend exactly: GET .../download-url (existing api instance, header auth) -> {url, expires_in}; GET .../download-signed?token=... is the URL the browser navigates to directly (window.location.assign) — no axios, no responseType:blob, no createObjectURL.",
+    "mock-server: added mock-server/lib/download-tokens.js (issue/validate, same resource-binding semantics as the backend) + download-url/download-signed routes in mock-server/routes/calibration.js and mock-server/routes/weighting.js, reusing the existing zip/csv-building logic.",
+    "api.ts: downloadCalibrationReport / downloadWeightingCSV rewritten to call the *-download-url endpoint then window.location.assign(url) instead of GET .../download with responseType:'blob'.",
+    "Scope: ac3 names downloadCalibrationReport/downloadWeightingCSV '(y pares)' explicitly; downloadFormato4/downloadTagTableCSV/downloadTagZip/downloadEligibilityFile are NOT touched here (no corresponding backend download-url endpoint shipped in JAA-757) — left on the existing blob pattern, noted as follow-up scope if desired."
+  ],
+  "acceptance_criteria": [
+    {"id": "ac3", "criterion": "downloadCalibrationReport / downloadWeightingCSV no longer use responseType:'blob' or URL.createObjectURL; they navigate to a signed URL instead. npm test + lint + typecheck green; Playwright walkthrough triggers the download.", "how_to_verify": "npm test && npm run lint && npx tsc -b; grep -L \"responseType: ['\\\"]blob\" for these two fns; Playwright e2e drives a calibration/weighting download and asserts navigation (no blob fetch)."}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "mock-server/lib/download-tokens.js + wire download-url/download-signed into calibration.js + weighting.js", "status": "complete"},
+    {"id": "t2", "desc": "mock-server test tests/__tests__/signed-download.test.js", "status": "complete"},
+    {"id": "t3", "desc": "api.ts: rewrite downloadCalibrationReport + downloadWeightingCSV to signed-URL + window.location.assign", "status": "complete"},
+    {"id": "t4", "desc": "update/add vitest unit tests for the two rewritten api.ts functions", "status": "complete"},
+    {"id": "t5", "desc": "Playwright e2e spec: trigger a calibration or weighting download and assert navigation/no blob", "status": "complete"},
+    {"id": "t6", "desc": "run VERIFY_CMD, fix, evaluate (separate subagent), commit, PR to develop", "status": "complete", "note": "evaluator PASS on ac3, see .harness/eval_feedback/JAA-758.json. Captured pre-existing e2e flake (unrelated table-picker download flow) as JAA-760."}
+  ]
+}

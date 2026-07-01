@@ -54,6 +54,19 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+/** Resolve a signed-download-url response's server-relative `url` (e.g.
+ * "/api/v1/calibration/tag1/download-signed?...") against the API's origin —
+ * NOT against `api`'s baseURL, which already includes the "/api/v1" prefix
+ * the backend's `url` also carries (JAA-757/758). */
+function resolveDownloadUrl(relativeUrl: string): string {
+  return new URL(relativeUrl, new URL(getBaseUrl(), window.location.origin).origin).toString()
+}
+
+interface SignedDownloadUrl {
+  url: string
+  expires_in: number
+}
+
 /** Set the MSAL token provider as a request interceptor. */
 export function setTokenProvider(provider: () => Promise<string>) {
   api.interceptors.request.use(async (config) => {
@@ -380,18 +393,14 @@ export function patchWeightingRun(runId: string, patch: { is_final?: boolean; la
   return api.patch<WeightingRun>(`/weighting/runs/${runId}`, patch).then((r) => r.data)
 }
 
+// JAA-757/758: native browser download via a short-lived signed URL, instead
+// of axios-blob (which buffers the whole file in page memory and shows no
+// native progress). We fetch the signed URL (authenticated as usual) then
+// navigate the browser to it directly — the download-signed endpoint needs
+// no Authorization header, which is what native navigation can't send.
 export async function downloadWeightingCSV(runId: string): Promise<void> {
-  const response = await api.get(`/weighting/runs/${runId}/download`, { responseType: "blob" })
-  const url = URL.createObjectURL(new Blob([response.data]))
-  const a = document.createElement("a")
-  a.href = url
-  const disposition = response.headers["content-disposition"] ?? ""
-  const match = disposition.match(/filename="?([^";\n]+)"?/)
-  a.download = match?.[1] ?? `weighting_${runId.slice(0, 8)}.csv`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+  const { data } = await api.get<SignedDownloadUrl>(`/weighting/runs/${runId}/download-url`)
+  window.location.assign(resolveDownloadUrl(data.url))
 }
 
 // -- MTR --
@@ -578,19 +587,11 @@ export function adminReload() {
 
 // -- Downloads --
 
+// JAA-757/758: native browser download via a short-lived signed URL — see
+// downloadWeightingCSV above for the rationale.
 export async function downloadCalibrationReport(tag: string, country: string): Promise<void> {
-  const response = await api.get(`/calibration/${encodeURIComponent(tag)}/download`, {
-    responseType: "blob",
+  const { data } = await api.get<SignedDownloadUrl>(`/calibration/${encodeURIComponent(tag)}/download-url`, {
     params: { country },
   })
-  const url = URL.createObjectURL(new Blob([response.data]))
-  const a = document.createElement("a")
-  a.href = url
-  const disposition = response.headers["content-disposition"] ?? ""
-  const match = disposition.match(/filename="?([^";\n]+)"?/)
-  a.download = match?.[1] ?? `${tag}.zip`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+  window.location.assign(resolveDownloadUrl(data.url))
 }
