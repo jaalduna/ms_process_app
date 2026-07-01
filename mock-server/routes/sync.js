@@ -269,6 +269,27 @@ router.get("/events/:jobId", (req, res) => {
   res.json({ ...enrichSummary(job), results: job.results })
 })
 
+// PATCH /events/:jobId — mark a run as the "final" one for its (country, stage,
+// period), exclusive: setting is_final=true unsets it on every sibling job in
+// that same scope. label is a free-text note, independent of is_final.
+router.patch("/events/:jobId", (req, res) => {
+  const job = jobs.get(req.params.jobId)
+  if (!job) return res.status(404).json({ error: "not_found", message: `Job ${req.params.jobId} not found` })
+  const { is_final, label } = req.body || {}
+  if (is_final === true) {
+    for (const other of jobs.values()) {
+      if (other.job_id !== job.job_id && other.country === job.country && other.stage === job.stage && other.period === job.period) {
+        other.is_final = false
+      }
+    }
+    job.is_final = true
+  } else if (is_final === false) {
+    job.is_final = false
+  }
+  if (label !== undefined) job.label = label
+  res.json({ ...enrichSummary(job), results: job.results })
+})
+
 // GET /events/:jobId/tables → TablesResponse { job_id, country, tables: TableInfo[] }
 // Derived from the job's completed query results (table_name = catalog.schema.table).
 router.get("/events/:jobId/tables", (req, res) => {

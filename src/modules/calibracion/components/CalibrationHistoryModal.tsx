@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Download, Eye, Loader2, FileText } from "lucide-react"
-import { downloadCalibrationReport, getEvent } from "@/lib/api"
+import { Input } from "@/components/ui/input"
+import { Download, Eye, Loader2, FileText, Star } from "lucide-react"
+import { downloadCalibrationReport, getEvent, patchEvent } from "@/lib/api"
 import { useCalibrationHistory } from "../hooks/useCalibrationHistory"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import type { EventSummary, JobStatus } from "@/types/api"
@@ -79,7 +80,7 @@ function getStatusConfig(status: JobStatus): StatusBadgeConfig {
   }
 }
 
-const GRID = "grid grid-cols-[minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_auto] gap-2"
+const GRID = "grid grid-cols-[minmax(28px,auto)_minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_minmax(100px,auto)_auto] gap-2"
 
 export function CalibrationHistoryModal({
   country,
@@ -91,7 +92,30 @@ export function CalibrationHistoryModal({
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set())
   const [detailJobId, setDetailJobId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({})
   const { data, isLoading, isError } = useCalibrationHistory(country, open)
+  const queryClient = useQueryClient()
+
+  const patchMutation = useMutation({
+    mutationFn: ({ jobId, patch }: { jobId: string; patch: { is_final?: boolean; label?: string } }) =>
+      patchEvent(jobId, patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["calibration-history", country] })
+    },
+    onError: () => {
+      toast.error("No se pudo actualizar la corrida")
+    },
+  })
+
+  function handleToggleFinal(event: EventSummary) {
+    patchMutation.mutate({ jobId: event.job_id, patch: { is_final: !event.is_final } })
+  }
+
+  function handleLabelBlur(event: EventSummary) {
+    const draft = labelDrafts[event.job_id]
+    if (draft === undefined || draft === (event.label ?? "")) return
+    patchMutation.mutate({ jobId: event.job_id, patch: { label: draft } })
+  }
 
   // The history list returns EventSummary; the detail modal needs the full
   // EventDetail, so fetch it on demand when a row's eye is clicked.
@@ -169,11 +193,13 @@ export function CalibrationHistoryModal({
             <div className="space-y-1">
               {/* Table header */}
               <div className={`${GRID} px-2 py-1.5 text-xs font-medium text-muted-foreground border-b`}>
+                <span>Final</span>
                 <span>Periodo</span>
                 <span>Estado</span>
                 <span>Fecha</span>
                 <span>Duracion</span>
                 <span>Resumen</span>
+                <span>Etiqueta</span>
                 <span>Acciones</span>
               </div>
 
@@ -185,6 +211,20 @@ export function CalibrationHistoryModal({
                 return (
                   <div key={event.job_id} className="rounded">
                     <div className={`${GRID} items-center px-2 py-1.5 text-xs hover:bg-muted/50`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        disabled={patchMutation.isPending}
+                        onClick={() => handleToggleFinal(event)}
+                        aria-label={event.is_final ? "Quitar marca de final" : "Marcar como final"}
+                        aria-pressed={!!event.is_final}
+                        title={event.is_final ? "Corrida final" : "Marcar como final"}
+                      >
+                        <Star
+                          className={`h-3.5 w-3.5 ${event.is_final ? "fill-warning text-warning" : "text-muted-foreground"}`}
+                        />
+                      </Button>
                       <span className="font-mono">{event.period ?? "-"}</span>
                       <Badge variant="outline" className={`${statusConfig.className} text-[10px] px-1.5 py-0 w-fit`}>
                         {statusConfig.label}
@@ -198,6 +238,16 @@ export function CalibrationHistoryModal({
                           ? `Error: ${event.error}`
                           : `${event.total_rows_extracted.toLocaleString()} filas`}
                       </span>
+                      <Input
+                        value={labelDrafts[event.job_id] ?? event.label ?? ""}
+                        onChange={(e) =>
+                          setLabelDrafts((prev) => ({ ...prev, [event.job_id]: e.target.value }))
+                        }
+                        onBlur={() => handleLabelBlur(event)}
+                        placeholder="Nota..."
+                        aria-label={`Etiqueta para la calibracion de ${formatDate(event.created_at)}`}
+                        className="h-7 text-xs"
+                      />
                       <div className="flex gap-1">
                         {isCompleted && (
                           <Button

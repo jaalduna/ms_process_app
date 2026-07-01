@@ -155,6 +155,31 @@ export class RunStore {
   }
 
   /**
+   * Patch is_final / label on a run. Setting is_final=true unsets it on every
+   * sibling run for the same (country, period), exclusive.
+   * @param {string} runId
+   * @param {{ is_final?: boolean, label?: string }} patch
+   */
+  update(runId, patch) {
+    const run = this.runs.get(runId)
+    if (!run) return null
+    const { is_final, label } = patch || {}
+    if (is_final === true) {
+      for (const other of this.runs.values()) {
+        if (other.run_id !== run.run_id && other.country === run.country && String(other.period) === String(run.period)) {
+          other.is_final = false
+        }
+      }
+      run.is_final = true
+    } else if (is_final === false) {
+      run.is_final = false
+    }
+    if (label !== undefined) run.label = label
+    run.updated_at = new Date().toISOString()
+    return run
+  }
+
+  /**
    * Create a pre-seeded completed run.
    * @param {string} country
    * @param {number} period

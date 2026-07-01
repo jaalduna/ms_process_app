@@ -174,6 +174,11 @@ export function cancelJob(jobId: string) {
   return api.post<EventDetail>(`/events/${jobId}/cancel`).then((r) => r.data)
 }
 
+/** JAA-755: mark/unmark a run as final and/or set its free-text label */
+export function patchEvent(jobId: string, patch: { is_final?: boolean; label?: string }) {
+  return api.patch<EventDetail>(`/events/${jobId}`, patch).then((r) => r.data)
+}
+
 // -- Metadata --
 
 export function getCountries() {
@@ -368,6 +373,11 @@ export function executeWeighting(runId: string) {
 
 export function cancelWeighting(runId: string) {
   return api.post<WeightingRun>(`/weighting/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+/** JAA-755: mark/unmark a run as final and/or set its free-text label */
+export function patchWeightingRun(runId: string, patch: { is_final?: boolean; label?: string }) {
+  return api.patch<WeightingRun>(`/weighting/runs/${runId}`, patch).then((r) => r.data)
 }
 
 export async function downloadWeightingCSV(runId: string): Promise<void> {

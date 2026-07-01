@@ -43,6 +43,12 @@ router.get("/weighting/runs/:runId", (req, res) => {
   res.json(run)
 })
 
+router.patch("/weighting/runs/:runId", (req, res) => {
+  const run = weightingStore.get(req.params.runId)
+  if (!run) return res.status(404).json({ error: "not_found", message: `Run ${req.params.runId} not found` })
+  res.json(weightingStore.update(req.params.runId, req.body || {}))
+})
+
 router.post("/weighting/runs/:runId/execute", (req, res) => {
   const run = weightingStore.get(req.params.runId)
   if (!run) return res.status(404).json({ error: "not_found", message: `Run ${req.params.runId} not found` })

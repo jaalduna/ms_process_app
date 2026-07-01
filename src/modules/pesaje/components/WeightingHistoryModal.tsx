@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -9,13 +10,16 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Download, Eye, Loader2 } from "lucide-react"
-import { downloadWeightingCSV } from "@/lib/api"
+import { Input } from "@/components/ui/input"
+import { Download, Eye, Loader2, Star } from "lucide-react"
+import { downloadWeightingCSV, patchWeightingRun } from "@/lib/api"
 import { useWeightingRuns } from "../hooks/useWeighting"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WEIGHTING_STATUS_CONFIG } from "../types"
 import { COUNTRY_LABELS } from "@/lib/countries"
 import type { WeightingRun } from "../types"
+
+const GRID = "grid grid-cols-[minmax(28px,auto)_minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_minmax(100px,auto)_auto] gap-2"
 
 interface WeightingHistoryModalProps {
   countryCode: string
@@ -50,6 +54,29 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
   const [selectedRun, setSelectedRun] = useState<WeightingRun | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({})
+  const queryClient = useQueryClient()
+
+  const patchMutation = useMutation({
+    mutationFn: ({ runId, patch }: { runId: string; patch: { is_final?: boolean; label?: string } }) =>
+      patchWeightingRun(runId, patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["weighting-runs", countryCode, undefined] })
+    },
+    onError: () => {
+      toast.error("No se pudo actualizar la corrida")
+    },
+  })
+
+  const handleToggleFinal = (run: WeightingRun) => {
+    patchMutation.mutate({ runId: run.run_id, patch: { is_final: !run.is_final } })
+  }
+
+  const handleLabelBlur = (run: WeightingRun) => {
+    const draft = labelDrafts[run.run_id]
+    if (draft === undefined || draft === (run.label ?? "")) return
+    patchMutation.mutate({ runId: run.run_id, patch: { label: draft } })
+  }
 
   const handleDownload = async (run: WeightingRun) => {
     setDownloadingId(run.run_id)
@@ -92,12 +119,14 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
           {!isLoading && runs && runs.length > 0 && (
             <div className="space-y-1">
               {/* Table header */}
-              <div className="grid grid-cols-[minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_auto] gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground border-b">
+              <div className={`${GRID} px-2 py-1.5 text-xs font-medium text-muted-foreground border-b`}>
+                <span>Final</span>
                 <span>Periodo</span>
                 <span>Estado</span>
                 <span>Fecha</span>
                 <span>Duracion</span>
                 <span>Resumen</span>
+                <span>Etiqueta</span>
                 <span>Acciones</span>
               </div>
 
@@ -110,8 +139,20 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
                 return (
                   <div
                     key={run.run_id}
-                    className="grid grid-cols-[minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_auto] gap-2 items-center px-2 py-1.5 text-xs rounded hover:bg-muted/50"
+                    className={`${GRID} items-center px-2 py-1.5 text-xs rounded hover:bg-muted/50`}
                   >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      disabled={patchMutation.isPending}
+                      onClick={() => handleToggleFinal(run)}
+                      aria-label={run.is_final ? "Quitar marca de final" : "Marcar como final"}
+                      aria-pressed={!!run.is_final}
+                      title={run.is_final ? "Corrida final" : "Marcar como final"}
+                    >
+                      <Star className={`h-3.5 w-3.5 ${run.is_final ? "fill-warning text-warning" : "text-muted-foreground"}`} />
+                    </Button>
                     <span className="font-mono">{run.period}</span>
                     <Badge variant={statusConfig.variant} className={`${statusConfig.className} text-[10px] px-1.5 py-0 w-fit`}>
                       {statusConfig.label}
@@ -125,6 +166,14 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
                     <span className="text-muted-foreground truncate">
                       {summary ?? (run.error_message ? `Error: ${run.error_message}` : "-")}
                     </span>
+                    <Input
+                      value={labelDrafts[run.run_id] ?? run.label ?? ""}
+                      onChange={(e) => setLabelDrafts((prev) => ({ ...prev, [run.run_id]: e.target.value }))}
+                      onBlur={() => handleLabelBlur(run)}
+                      placeholder="Nota..."
+                      aria-label={`Etiqueta para el pesaje del periodo ${run.period}`}
+                      className="h-7 text-xs"
+                    />
                     <div className="flex gap-1">
                       {run.status === "completed" && (
                         <Button

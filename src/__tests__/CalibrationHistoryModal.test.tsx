@@ -15,9 +15,11 @@ vi.mock("sonner", () => ({
 
 const mockGetEvent = vi.fn()
 const mockDownloadCalibrationReport = vi.fn()
+const mockPatchEvent = vi.fn()
 vi.mock("@/lib/api", () => ({
   getEvent: (...a: unknown[]) => mockGetEvent(...a),
   downloadCalibrationReport: (...a: unknown[]) => mockDownloadCalibrationReport(...a),
+  patchEvent: (...a: unknown[]) => mockPatchEvent(...a),
 }))
 
 let historyState: { data: unknown; isLoading: boolean; isError: boolean }
@@ -69,6 +71,7 @@ describe("CalibrationHistoryModal (JAA-424 unified history grid)", () => {
     vi.clearAllMocks()
     mockGetEvent.mockResolvedValue({ ...completedEvent } as EventDetail)
     mockDownloadCalibrationReport.mockResolvedValue(undefined)
+    mockPatchEvent.mockResolvedValue({ ...completedEvent })
     historyState = { data: { items: [completedEvent], total: 1, limit: 20, offset: 0 }, isLoading: false, isError: false }
   })
 
@@ -115,5 +118,70 @@ describe("CalibrationHistoryModal (JAA-424 unified history grid)", () => {
     renderModal()
     expect(screen.queryByTitle("Descargar resultados")).not.toBeInTheDocument()
     expect(screen.getByTitle("Ver detalle")).toBeInTheDocument()
+  })
+})
+
+describe("CalibrationHistoryModal final toggle + label (JAA-755)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetEvent.mockResolvedValue({ ...completedEvent } as EventDetail)
+    mockDownloadCalibrationReport.mockResolvedValue(undefined)
+    mockPatchEvent.mockResolvedValue({ ...completedEvent, is_final: true })
+  })
+
+  it("clicking the star marks the row final via patchEvent(jobId, { is_final: true })", async () => {
+    historyState = { data: { items: [completedEvent], total: 1, limit: 20, offset: 0 }, isLoading: false, isError: false }
+    const user = userEvent.setup()
+    renderModal()
+    await user.click(screen.getByTitle("Marcar como final"))
+    await waitFor(() => {
+      expect(mockPatchEvent).toHaveBeenCalledWith("job-1", { is_final: true })
+    })
+  })
+
+  it("un-marks a row that is currently final via patchEvent(jobId, { is_final: false })", async () => {
+    historyState = {
+      data: { items: [{ ...completedEvent, is_final: true }], total: 1, limit: 20, offset: 0 },
+      isLoading: false,
+      isError: false,
+    }
+    const user = userEvent.setup()
+    renderModal()
+    await user.click(screen.getByTitle("Corrida final"))
+    await waitFor(() => {
+      expect(mockPatchEvent).toHaveBeenCalledWith("job-1", { is_final: false })
+    })
+  })
+
+  it("only one row shows as final when a sibling was already marked (exclusive after refetch)", () => {
+    historyState = {
+      data: {
+        items: [
+          { ...completedEvent, job_id: "job-1", is_final: false },
+          { ...completedEvent, job_id: "job-2", is_final: true },
+        ],
+        total: 2,
+        limit: 20,
+        offset: 0,
+      },
+      isLoading: false,
+      isError: false,
+    }
+    renderModal()
+    const finalButtons = screen.getAllByRole("button", { name: /marcar como final|quitar marca de final/i })
+    expect(finalButtons[0]).toHaveAttribute("aria-pressed", "false")
+    expect(finalButtons[1]).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("editing the label and blurring calls patchEvent with the new label", async () => {
+    historyState = { data: { items: [completedEvent], total: 1, limit: 20, offset: 0 }, isLoading: false, isError: false }
+    const user = userEvent.setup()
+    renderModal()
+    const input = screen.getByLabelText(/Etiqueta para la calibracion/i)
+    await user.type(input, "aprobada por X")
+    await user.tab()
+    await waitFor(() => {
+      expect(mockPatchEvent).toHaveBeenCalledWith("job-1", { label: "aprobada por X" })
+    })
   })
 })

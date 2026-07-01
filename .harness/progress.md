@@ -2,6 +2,32 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-07-01 — JAA-755 (mark run as "final" + free-text label, exclusive per country/period) — EVALUATOR PASS, PR armed
+
+**What:** Added an exclusive "★ Final" toggle + free-text label per run to `CalibrationHistoryModal`
+and `WeightingHistoryModal`. Marking a run final unsets it on any sibling run sharing the same
+scope (country+stage+period for calibration; country+period for weighting).
+- mock-server: `PATCH /events/:jobId` (sync.js) and `PATCH /weighting/runs/:runId` (weighting.js,
+  backed by new `RunStore.update`), both with exclusivity + independent label; new
+  `mock-server/__tests__/run-final-label.test.js` (8 tests).
+- Frontend: `is_final?`/`label?` added to `EventSummary` and `WeightingRun`; `patchEvent` +
+  `patchWeightingRun` added to `src/lib/api.ts`; both history modals wired via react-query
+  mutation + `invalidateQueries`. New/updated vitest coverage (`CalibrationHistoryModal.test.tsx`,
+  `WeightingHistoryModal.test.tsx`).
+- Scope: UI + mock-server contract only (per AGENTS.md cross-repo convention) — real
+  `ms-process-api` implementation captured as **JAA-759** (sub-issue, related-to JAA-755).
+**Verify:** vitest 377/377, eslint clean, `tsc -b` clean, build OK. Separate skeptical evaluator
+(general-purpose, Sonnet, fresh ctx) ran a live Playwright walkthrough of BOTH modals (toggle
+star final on/off, edit label, close+reopen to confirm persistence) against the running mock →
+ALL 6 ACs PASS → `eval_feedback/JAA-755.json`.
+**Note for testing on dev remote:** `msproc-dev` currently runs the mock backend (see memory
+`project-backend-swap-dev-prd`), so `scripts/deploy-spa.sh dev` after merge makes this testable
+live with no extra toggle needed; the real-backend path activates once JAA-759 lands and dev is
+re-pointed at the real API.
+**PR:** → develop (direct mode), auto-complete armed at creation. Linear → In Review.
+**NEXT:** Build green → auto-complete merges; a later `/harness JAA-755` re-run (Orient → step 7)
+confirms merge + cleans worktree + sets Done. JAA-759 (backend) can proceed independently.
+
 ## 2026-06-25 — JAA-583 (UI carga Excel Universo: subir→validar→diff→publicar) — EVALUATOR PASS, PR armed
 **What:** Excel-upload wizard in the Pesaje "Parametros → Universo" tab. New
 `UniversoUploadWizard.tsx` (drop zone adapted from MordomUploadZone, accept .xlsx) drives

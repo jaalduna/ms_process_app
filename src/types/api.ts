@@ -108,6 +108,10 @@ export interface EventSummary {
   total_rows_extracted: number
   steps?: CalibrationStep[]
   current_step?: string | null
+  /** JAA-755: exclusive per (country, stage, period) — marks the run used for that scope */
+  is_final?: boolean
+  /** JAA-755: free-text note, e.g. "aprobada por X" */
+  label?: string | null
 }
 
 /** Detailed job info including per-query results */
