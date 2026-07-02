@@ -108,6 +108,23 @@ describe("WeightingHistoryModal final toggle + label (JAA-755)", () => {
     expect(finalButtons[1]).toHaveAttribute("aria-pressed", "true")
   })
 
+  it("renders '—' (no crash) for a summary_stats object with null fields", () => {
+    // Regression: the real API can serve a summary whose fields are null (job
+    // summary JSON with unexpected keys); this crashed the whole Pesaje page.
+    runsState = {
+      data: [{
+        ...completedRun,
+        summary_stats: {
+          total_households: null, weighted_households: null, min_weight: null,
+          max_weight: null, mean_weight: null, median_weight: null, std_dev: null,
+        },
+      }],
+      isLoading: false,
+    }
+    renderModal()
+    expect(screen.getByText(/— hogares, peso medio —/)).toBeInTheDocument()
+  })
+
   it("editing the label and blurring calls patchWeightingRun with the new label", async () => {
     const user = userEvent.setup()
     renderModal()

@@ -48,7 +48,7 @@ import {
   useWeightingRun,
   useCancelWeighting,
 } from "../hooks/useWeighting"
-import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
+import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG, fmtSummaryFloat, fmtSummaryInt } from "../types"
 import type { WeightingRun, WeightingStep } from "../types"
 import { DEFAULT_WEIGHTING_PARAMS, EXECUTION_PARAM_KEYS, WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
 import { COUNTRY_NAME_TO_CODE } from "../params/types"
@@ -418,31 +418,31 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
                 <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Total hogares</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.total_households.toLocaleString()}</span>
+                    <span className="font-medium font-mono">{fmtSummaryInt(run!.summary_stats.total_households)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Hogares pesados</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.weighted_households.toLocaleString()}</span>
+                    <span className="font-medium font-mono">{fmtSummaryInt(run!.summary_stats.weighted_households)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso min</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.min_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.min_weight)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso max</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.max_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.max_weight)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso medio</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.mean_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.mean_weight)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso mediana</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.median_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.median_weight)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Std dev</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.std_dev.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.std_dev)}</span>
                   </div>
                 </div>
               </div>

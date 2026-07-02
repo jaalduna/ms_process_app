@@ -15,7 +15,7 @@ import { Download, Eye, Loader2, Star } from "lucide-react"
 import { downloadWeightingCSV, patchWeightingRun } from "@/lib/api"
 import { useWeightingRuns } from "../hooks/useWeighting"
 import { WeightingDetailModal } from "./WeightingDetailModal"
-import { WEIGHTING_STATUS_CONFIG } from "../types"
+import { WEIGHTING_STATUS_CONFIG, fmtSummaryFloat, fmtSummaryInt } from "../types"
 import { COUNTRY_LABELS } from "@/lib/countries"
 import type { WeightingRun } from "../types"
 
@@ -133,7 +133,7 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
               {runs.map((run) => {
                 const statusConfig = WEIGHTING_STATUS_CONFIG[run.status]
                 const summary = run.summary_stats
-                  ? `${run.summary_stats.total_households.toLocaleString()} hogares, peso medio ${run.summary_stats.mean_weight.toFixed(2)}`
+                  ? `${fmtSummaryInt(run.summary_stats.total_households)} hogares, peso medio ${fmtSummaryFloat(run.summary_stats.mean_weight)}`
                   : null
 
                 return (
