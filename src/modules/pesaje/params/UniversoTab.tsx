@@ -1,7 +1,10 @@
 import { useState } from "react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, Lock, Info, Upload } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Loader2, Lock, Info, Upload, Download } from "lucide-react"
+import { downloadUniversoExcel } from "./api"
 import { useUniverso } from "./hooks"
 import { UNIVERSO_PERIODS } from "./types"
 import { UniversoUploadWizard } from "./UniversoUploadWizard"
@@ -14,6 +17,24 @@ import { UniversoUploadWizard } from "./UniversoUploadWizard"
 export function UniversoTab({ pais, country }: { pais: string; country: string }) {
   const query = useUniverso(pais)
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [template, setTemplate] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      await downloadUniversoExcel(pais, template)
+      toast.success(
+        template ? `Template vacío descargado (${country})` : `Excel con valores actuales descargado (${country})`,
+      )
+    } catch (err) {
+      toast.error(`No se pudo descargar el Excel de Universo · ${country}`, {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   if (query.isLoading)
     return (
@@ -42,6 +63,25 @@ export function UniversoTab({ pais, country }: { pais: string; country: string }
           <Badge variant="outline" className="gap-1 font-mono text-muted-foreground" data-testid="universo-version">
             v·{data.version.hash.slice(0, 8)} · {data.version.row_count} filas
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownload}
+            disabled={downloading}
+            data-testid="download-excel-btn"
+          >
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Descargar Excel
+          </Button>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
+            <Switch
+              checked={template}
+              onCheckedChange={setTemplate}
+              data-testid="download-template-toggle"
+              aria-label="Descargar template vacío"
+            />
+            <span data-testid="download-mode-label">{template ? "Template vacío" : "Valores actuales"}</span>
+          </label>
           <Button size="sm" data-testid="universo-upload-open" onClick={() => setWizardOpen(true)}>
             <Upload className="h-4 w-4" />
             Actualizar desde Excel
@@ -51,8 +91,10 @@ export function UniversoTab({ pais, country }: { pais: string; country: string }
 
       <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
         <Info className="h-3.5 w-3.5 shrink-0" />
-        La edición del Universo se hace cargando un Excel: subir, validar, previsualizar el diff y
-        publicar una versión nueva. Usa <span className="font-medium">«Actualizar desde Excel»</span>.
+        ¿No conoces el formato? Usa <span className="font-medium">«Descargar Excel»</span> para bajar la
+        plantilla o los valores actuales, complétalo y súbelo con{" "}
+        <span className="font-medium">«Actualizar desde Excel»</span> — subir, validar, previsualizar el
+        diff y publicar una versión nueva.
       </div>
 
       <UniversoUploadWizard pais={pais} country={country} open={wizardOpen} onOpenChange={setWizardOpen} />

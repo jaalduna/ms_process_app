@@ -73,3 +73,25 @@ export async function publishUniverso(pais: string, uploadToken: string): Promis
   )
   return data
 }
+
+/** Download the Universo workbook for `pais` — the currently published values,
+ *  or an empty `template=true` (headers only) — in the same shape the upload
+ *  flow (JAA-580/583) expects, so it can be edited and re-uploaded. Streams
+ *  the server blob and anchor-clicks it (same pattern as downloadParamsExcel /
+ *  downloadFormato4). */
+export async function downloadUniversoExcel(pais: string, template = false): Promise<void> {
+  const response = await api.get(`/weighting/params/${pais}/universo/export.xlsx`, {
+    responseType: "blob",
+    params: { template },
+  })
+  const url = URL.createObjectURL(new Blob([response.data]))
+  const a = document.createElement("a")
+  a.href = url
+  const disposition = response.headers["content-disposition"] ?? ""
+  const match = disposition.match(/filename="?([^";\n]+)"?/)
+  a.download = match?.[1] ?? `universo_${pais}${template ? "_template" : ""}.xlsx`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}

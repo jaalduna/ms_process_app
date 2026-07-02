@@ -8,6 +8,7 @@ import { Router } from "express"
 //   GET  /weighting/params/{pais}/idpeso-config         -> {country, rows}
 //   GET  /weighting/params/{pais}/variables             -> {country, q_vars, m_vars}
 //   GET  /weighting/params/{pais}/universo              -> {country, rows, version}
+//   GET  /weighting/params/{pais}/universo/export.xlsx  -> xlsx blob (JAA-789/790, ?template=true)
 //   POST /weighting/params/{pais}/{tabla}/validate       -> {valid, errors:[{row,field,message}]}
 //   POST /weighting/params/{pais}/{tabla}/publish        -> publish result | 422 {error,errors}
 //   GET  /weighting/params/{pais}/{tabla}/history        -> [{version,author,published_at,hash,row_count}]
@@ -262,6 +263,26 @@ router.get("/weighting/params/:pais/universo", (req, res) => {
       row_count: entry.rows.length,
     },
   })
+})
+
+// ---------------------------------------------------------------------------
+// Universo Excel download (JAA-789 backend / JAA-790 frontend): descargar la
+// versión publicada o un template vacío, en el mismo formato que espera el
+// upload de arriba. The mock has no xlsx writer (mirrors the params.js
+// export.xlsx precedent, JAA-628/614) — the UI only needs a real download
+// (correct content-type + filename); byte-level round-trip is verified
+// against the real backend in JAA-789.
+// ---------------------------------------------------------------------------
+
+router.get("/weighting/params/:pais/universo/export.xlsx", (req, res) => {
+  const { pais } = req.params
+  if (!isKnownCountry(pais)) return notFoundCountry(res, pais)
+  const template = req.query.template === "true" || req.query.template === "1"
+  const name = `universo_${pais}${template ? "_template" : ""}.xlsx`
+  const body = Buffer.from(`mock universo xlsx for ${pais} (${template ? "template" : "values"})`)
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+  res.setHeader("Content-Disposition", `attachment; filename="${name}"`)
+  res.send(body)
 })
 
 // ---------------------------------------------------------------------------
