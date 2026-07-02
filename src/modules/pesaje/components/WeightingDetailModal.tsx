@@ -50,7 +50,9 @@ import {
 } from "../hooks/useWeighting"
 import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
 import type { WeightingRun, WeightingStep } from "../types"
-import { DEFAULT_WEIGHTING_PARAMS, WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
+import { DEFAULT_WEIGHTING_PARAMS, EXECUTION_PARAM_KEYS, WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
+import { COUNTRY_NAME_TO_CODE } from "../params/types"
+import { useExecutionParams } from "../params/hooks"
 import { COUNTRY_LABELS } from "@/lib/countries"
 
 interface WeightingDetailModalProps {
@@ -168,9 +170,15 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
   )
 }
 
+/** Reduce a full params dict to the launch-editable subset ("De ejecución"). */
+const pickExecutionParams = (params: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(EXECUTION_PARAM_KEYS.map((k) => [k, params[k]]))
+
 export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRun, countryCode, period }: WeightingDetailModalProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
-  const [editableParams, setEditableParams] = useState<Record<string, unknown>>({ ...DEFAULT_WEIGHTING_PARAMS })
+  const [editableParams, setEditableParams] = useState<Record<string, unknown>>(
+    pickExecutionParams({ ...DEFAULT_WEIGHTING_PARAMS }),
+  )
   const [isDownloading, setIsDownloading] = useState(false)
 
   const { data: liveRun } = useWeightingRun(open && initialRun ? initialRun.run_id : null)
@@ -178,17 +186,23 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
 
   const cancel = useCancelWeighting()
 
-  // Seed the editable params when the modal opens or the run changes: from the run's
-  // stored params (merged over defaults so every field is present), or from defaults
-  // for a first run with no prior execution.
+  // Published per-country defaults (Parametros tab, persisted across periods).
+  const paisCode = COUNTRY_NAME_TO_CODE[run?.country ?? countryCode ?? ""] ?? null
+  const { data: publishedParams } = useExecutionParams(open ? paisCode : null)
+
+  // Seed the launch-editable params ("De ejecución" only) when the modal opens or the
+  // run changes: run's stored params win, then the published per-country defaults,
+  // then the F-001 defaults while the published ones load.
   useEffect(() => {
-    if (run?.parameters_json && Object.keys(run.parameters_json).length > 0) {
-      setEditableParams({ ...DEFAULT_WEIGHTING_PARAMS, ...run.parameters_json })
-    } else {
-      setEditableParams({ ...DEFAULT_WEIGHTING_PARAMS })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed only on run/open change
-  }, [run?.run_id, open])
+    setEditableParams(
+      pickExecutionParams({
+        ...DEFAULT_WEIGHTING_PARAMS,
+        ...publishedParams?.params,
+        ...run?.parameters_json,
+      }),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed only on run/open/published change
+  }, [run?.run_id, open, publishedParams])
 
   const isProcessing = run ? WEIGHTING_ACTIVE_STATUSES.includes(run.status) : false
   const isPending = run?.status === "pending"

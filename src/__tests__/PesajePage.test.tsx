@@ -63,7 +63,7 @@ vi.mock("@/lib/api", () => ({
   // this axios instance; stub get/post so the tab can mount in this test.
   api: {
     get: vi.fn().mockResolvedValue({
-      data: { country: "chile", rows: [], q_vars: [], m_vars: [], version: { hash: "0", modified_at: "", row_count: 0 } },
+      data: { country: "chile", rows: [], q_vars: [], m_vars: [], params: {}, version: { hash: "0", modified_at: "", row_count: 0 } },
     }),
     post: vi.fn().mockResolvedValue({ data: { valid: true, errors: [] } }),
     interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },

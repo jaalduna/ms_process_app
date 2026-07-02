@@ -8,6 +8,7 @@ import { Router } from "express"
 //   GET  /weighting/params/{pais}/idpeso-config         -> {country, rows}
 //   GET  /weighting/params/{pais}/variables             -> {country, q_vars, m_vars}
 //   GET  /weighting/params/{pais}/universo              -> {country, rows, version}
+//   GET  /weighting/params/{pais}/execution-params      -> {country, params, version|null}
 //   POST /weighting/params/{pais}/{tabla}/validate       -> {valid, errors:[{row,field,message}]}
 //   POST /weighting/params/{pais}/{tabla}/publish        -> publish result | 422 {error,errors}
 //   GET  /weighting/params/{pais}/{tabla}/history        -> [{version,author,published_at,hash,row_count}]
@@ -49,6 +50,23 @@ export const VARIABLE_VOCAB = [
 ]
 
 const UNIVERSO_PERIODS = ["Q3-25", "Q4-25", "Q1-26", "Q2-26"]
+
+// The 10 F-001 weighting hyperparameters and their defaults — mirrors the real
+// API's HYPERPARAM_DEFAULTS (weighting_validators.py). The `idpeso-config`
+// validate/publish endpoints operate on THIS dict (JAA-670), not on the rows
+// the same-named GET returns.
+export const HYPERPARAM_DEFAULTS = {
+  N_PERIODOS_OUTLIERS: 12,
+  MAX_ROUNDS_COLAPSO: 50,
+  JERARQUIA_MIN_COLAPSO: 1,
+  MANUAL_COLLAPSES: [],
+  CORRECAO_BOUNDS: true,
+  METODO_BOUNDS: "percentile",
+  P_BOUNDS: 2,
+  F_BOUNDS: 1.1,
+  AGREGACAO_BOUNDS: "union",
+  MAX_ERR_RATIO_BOUNDS: 2.0,
+}
 
 // ---------------------------------------------------------------------------
 // Seed data (per country). Shapes mirror the JAA-576 Pydantic responses.
@@ -115,7 +133,9 @@ let uploadCounter = 0
 function ensureCountry(pais) {
   if (!state[pais]) {
     state[pais] = {
-      "idpeso-config": { rows: seedIdPeso(), history: [] },
+      // `rows` feeds the read-only rows GET; `params` is the published
+      // hyperparams draft (null = nothing published, GET serves defaults).
+      "idpeso-config": { rows: seedIdPeso(), params: null, history: [] },
       variables: { rows: VARIABLES_SEED[pais] ?? { q_vars: [], m_vars: [] }, history: [] },
       universo: { rows: seedUniverso(), history: [] },
     }
@@ -157,18 +177,40 @@ function canonicalJSON(value) {
 // ---------------------------------------------------------------------------
 
 const isInt = (v) => typeof v === "number" && Number.isInteger(v)
+const isReal = (v) => typeof v === "number" && Number.isFinite(v)
 
-function validateIdPeso(rows) {
+// F-001 hyperparams validation — mirrors the real API's `validate_hyperparams`
+// (ms-process-api weighting_validators.py): per-field type/range/enum rules,
+// unknown keys rejected, absent keys take their default (not an error).
+function validateHyperparams(params) {
+  if (params == null || typeof params !== "object" || Array.isArray(params))
+    return [{ row: null, field: "params", message: "Se esperaba un dict de hiperparámetros." }]
   const errors = []
-  if (!Array.isArray(rows)) return [{ row: null, field: "rows", message: "Se esperaba una lista de filas." }]
-  const seen = new Set()
-  rows.forEach((r, i) => {
-    if (seen.has(r.idpeso)) errors.push({ row: i, field: "idpeso", message: `IdPeso ${r.idpeso} duplicado — debe ser único.` })
-    seen.add(r.idpeso)
-    if (!r.nombre || !String(r.nombre).trim()) errors.push({ row: i, field: "nombre", message: "Nombre vacío." })
-    if (!isInt(r.periodos) || r.periodos < 1) errors.push({ row: i, field: "periodos", message: "Periodos debe ser un entero ≥ 1." })
-    if (!isInt(r.per_min) || r.per_min < 0) errors.push({ row: i, field: "per_min", message: "Per_Min debe ser un entero ≥ 0." })
-  })
+  const err = (field, message) => errors.push({ row: null, field, message })
+  for (const key of Object.keys(params)) {
+    if (!(key in HYPERPARAM_DEFAULTS)) err(key, `Parámetro desconocido: ${key}.`)
+  }
+  const p = params
+  if ("N_PERIODOS_OUTLIERS" in p && (!isInt(p.N_PERIODOS_OUTLIERS) || p.N_PERIODOS_OUTLIERS <= 0))
+    err("N_PERIODOS_OUTLIERS", "Debe ser un entero > 0.")
+  if ("MAX_ROUNDS_COLAPSO" in p && (!isInt(p.MAX_ROUNDS_COLAPSO) || p.MAX_ROUNDS_COLAPSO < 0))
+    err("MAX_ROUNDS_COLAPSO", "Debe ser un entero ≥ 0.")
+  if ("JERARQUIA_MIN_COLAPSO" in p && p.JERARQUIA_MIN_COLAPSO !== null && (!isInt(p.JERARQUIA_MIN_COLAPSO) || p.JERARQUIA_MIN_COLAPSO < 1))
+    err("JERARQUIA_MIN_COLAPSO", "Debe ser None o un entero ≥ 1.")
+  if ("CORRECAO_BOUNDS" in p && typeof p.CORRECAO_BOUNDS !== "boolean")
+    err("CORRECAO_BOUNDS", "Debe ser booleano (true/false).")
+  if ("METODO_BOUNDS" in p && !["percentile", "iqr", "log"].includes(p.METODO_BOUNDS))
+    err("METODO_BOUNDS", "Debe ser uno de: percentile, iqr, log.")
+  if ("P_BOUNDS" in p && (!isInt(p.P_BOUNDS) || !(p.P_BOUNDS > 0 && p.P_BOUNDS < 50)))
+    err("P_BOUNDS", "Debe ser un entero con 0 < P_BOUNDS < 50.")
+  if ("F_BOUNDS" in p && (!isReal(p.F_BOUNDS) || p.F_BOUNDS <= 0))
+    err("F_BOUNDS", "Debe ser un número > 0.")
+  if ("AGREGACAO_BOUNDS" in p && !["union", "intersection"].includes(p.AGREGACAO_BOUNDS))
+    err("AGREGACAO_BOUNDS", "Debe ser uno de: union, intersection.")
+  if ("MAX_ERR_RATIO_BOUNDS" in p && (!isReal(p.MAX_ERR_RATIO_BOUNDS) || p.MAX_ERR_RATIO_BOUNDS <= 0))
+    err("MAX_ERR_RATIO_BOUNDS", "Debe ser un número > 0.")
+  if ("MANUAL_COLLAPSES" in p && !Array.isArray(p.MANUAL_COLLAPSES))
+    err("MANUAL_COLLAPSES", "Debe ser una lista de pares (keep, remove).")
   return errors
 }
 
@@ -214,7 +256,7 @@ function validateUniverso(rows) {
 }
 
 function validatePayload(tabla, body) {
-  if (tabla === "idpeso-config") return validateIdPeso(body?.rows)
+  if (tabla === "idpeso-config") return validateHyperparams(body?.params)
   if (tabla === "variables") return validateVariables(body)
   if (tabla === "universo") return validateUniverso(body?.rows)
   return null
@@ -223,12 +265,8 @@ function validatePayload(tabla, body) {
 // Extract the canonical, hashable content from a publish/validate body.
 function contentOf(tabla, body) {
   if (tabla === "variables") return { q_vars: body?.q_vars ?? [], m_vars: body?.m_vars ?? [] }
+  if (tabla === "idpeso-config") return { params: body?.params ?? {} }
   return { rows: body?.rows ?? [] }
-}
-
-function rowCountOf(tabla, content) {
-  if (tabla === "variables") return (content.q_vars?.length ?? 0) + (content.m_vars?.length ?? 0)
-  return content.rows?.length ?? 0
 }
 
 // ---------------------------------------------------------------------------
@@ -398,44 +436,39 @@ router.post("/weighting/params/:pais/:tabla/publish", (req, res) => {
   const hash = contentHash(content)
   const last = entry.history[entry.history.length - 1]
 
+  // Mirror the real JAA-579 WeightingPublishResponse: `version` is the nested
+  // WeightingParamsVersion object (NOT a flat number).
   if (last && last.hash === hash) {
-    return res.json({
-      country: pais,
-      table: tabla,
-      version: last.version,
-      unchanged: true,
-      author: last.author,
-      published_at: last.published_at,
-      hash,
-      diff: { added_count: 0, removed_count: 0, changed_count: 0 },
-    })
+    return res.json({ country: pais, table: tabla, unchanged: true, version: last })
   }
 
-  const prevCount = last ? last.row_count : rowCountOf(tabla, contentOf(tabla, normalizeStored(tabla, entry.rows)))
-  const nextCount = rowCountOf(tabla, content)
   const version = {
     version: entry.history.length + 1,
-    author: "dev@local",
-    published_at: "2026-06-25T12:00:00Z",
+    version_id: `wv_${tabla}_${pais}_${entry.history.length + 1}`,
     hash,
-    row_count: nextCount,
+    published_by: "dev@local",
+    published_at: "2026-06-25T12:00:00Z",
+    diff: {},
   }
   entry.history.push(version)
-  entry.rows = tabla === "variables" ? { q_vars: content.q_vars, m_vars: content.m_vars } : content.rows
+  if (tabla === "variables") entry.rows = { q_vars: content.q_vars, m_vars: content.m_vars }
+  else entry.params = content.params // hyperparams — the rows GET stays untouched (JAA-670)
 
+  res.json({ country: pais, table: tabla, unchanged: false, version })
+})
+
+// Effective hyperparameters: latest published draft merged over the F-001
+// defaults; version null when nothing has been published yet. Mirrors the real
+// GET /weighting/params/{pais}/execution-params.
+router.get("/weighting/params/:pais/execution-params", (req, res) => {
+  const { pais } = req.params
+  if (!isKnownCountry(pais)) return notFoundCountry(res, pais)
+  const entry = ensureCountry(pais)["idpeso-config"]
+  const last = entry.history[entry.history.length - 1] ?? null
   res.json({
     country: pais,
-    table: tabla,
-    version: version.version,
-    unchanged: false,
-    author: version.author,
-    published_at: version.published_at,
-    hash,
-    diff: {
-      added_count: Math.max(0, nextCount - prevCount),
-      removed_count: Math.max(0, prevCount - nextCount),
-      changed_count: Math.min(prevCount, nextCount),
-    },
+    params: { ...HYPERPARAM_DEFAULTS, ...(entry.params ?? {}) },
+    version: entry.params ? last : null,
   })
 })
 
@@ -446,10 +479,6 @@ router.get("/weighting/params/:pais/:tabla/history", (req, res) => {
   const entry = ensureCountry(pais)[tabla]
   res.json([...entry.history].reverse())
 })
-
-function normalizeStored(tabla, rows) {
-  return tabla === "variables" ? rows : { rows }
-}
 
 // Reset all weighting-params state (re-seeded lazily per country on next GET)
 // and drop any pending Universo uploads — keeps e2e runs deterministic.

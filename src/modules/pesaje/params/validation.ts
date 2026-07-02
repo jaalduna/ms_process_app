@@ -87,6 +87,49 @@ export function validateUniverso(rows: UniversoRow[]): ValidationIssue[] {
   return issues
 }
 
+/** Live validation of the F-001 weighting hyperparameters draft — mirrors the
+ *  server rules (ms-process-api `weighting_validators._validate_hyperparam`,
+ *  vendor-ported from KWP-pesaje param_configs_validation.py). */
+export function validateHyperparams(params: Record<string, unknown>): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+  const err = (location: string, message: string) =>
+    issues.push({ severity: "error", location, message })
+  const isInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v)
+  const isReal = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v)
+
+  const p = params
+  if ("N_PERIODOS_OUTLIERS" in p && (!isInt(p.N_PERIODOS_OUTLIERS) || p.N_PERIODOS_OUTLIERS <= 0))
+    err("N_PERIODOS_OUTLIERS", "Debe ser un entero > 0.")
+  if ("MAX_ROUNDS_COLAPSO" in p && (!isInt(p.MAX_ROUNDS_COLAPSO) || p.MAX_ROUNDS_COLAPSO < 0))
+    err("MAX_ROUNDS_COLAPSO", "Debe ser un entero ≥ 0 (0 = una sola pasada de IPF sin colapso automático).")
+  if ("JERARQUIA_MIN_COLAPSO" in p && p.JERARQUIA_MIN_COLAPSO !== null && (!isInt(p.JERARQUIA_MIN_COLAPSO) || p.JERARQUIA_MIN_COLAPSO < 1))
+    err("JERARQUIA_MIN_COLAPSO", "Debe ser vacío (None) o un entero ≥ 1.")
+  if ("CORRECAO_BOUNDS" in p && typeof p.CORRECAO_BOUNDS !== "boolean")
+    err("CORRECAO_BOUNDS", "Debe ser booleano (true/false).")
+  if ("METODO_BOUNDS" in p && !["percentile", "iqr", "log"].includes(String(p.METODO_BOUNDS)))
+    err("METODO_BOUNDS", "Debe ser uno de: percentile, iqr, log.")
+  if ("P_BOUNDS" in p && (!isInt(p.P_BOUNDS) || !(Number(p.P_BOUNDS) > 0 && Number(p.P_BOUNDS) < 50)))
+    err("P_BOUNDS", "Debe ser un entero con 0 < P_BOUNDS < 50 (percentil inferior).")
+  if ("F_BOUNDS" in p && (!isReal(p.F_BOUNDS) || Number(p.F_BOUNDS) <= 0))
+    err("F_BOUNDS", "Debe ser un número > 0.")
+  if ("AGREGACAO_BOUNDS" in p && !["union", "intersection"].includes(String(p.AGREGACAO_BOUNDS)))
+    err("AGREGACAO_BOUNDS", "Debe ser uno de: union, intersection.")
+  if ("MAX_ERR_RATIO_BOUNDS" in p && (!isReal(p.MAX_ERR_RATIO_BOUNDS) || Number(p.MAX_ERR_RATIO_BOUNDS) <= 0))
+    err("MAX_ERR_RATIO_BOUNDS", "Debe ser un número > 0.")
+  return issues
+}
+
+export function diffHyperparams(
+  base: Record<string, unknown>,
+  next: Record<string, unknown>,
+): DiffEntry[] {
+  const out: DiffEntry[] = []
+  for (const key of Object.keys(next))
+    if (JSON.stringify(base[key] ?? null) !== JSON.stringify(next[key] ?? null))
+      out.push({ location: key, before: fmt(base[key]), after: fmt(next[key]) })
+  return out
+}
+
 /** Map server validate errors (row/field/message) into the dialog's issue shape. */
 export function serverErrorsToIssues(errors: ServerValidationError[]): ValidationIssue[] {
   return errors.map((e) => ({

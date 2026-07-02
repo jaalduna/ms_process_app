@@ -19,6 +19,21 @@ export const COUNTRIES = [
 
 export type CountryCode = (typeof COUNTRIES)[number]["code"]
 
+/** Lowercase country NAME (as used by /weighting/runs, e.g. "bolivia") → the
+ *  país CODE the weighting-params API is keyed by. */
+export const COUNTRY_NAME_TO_CODE: Record<string, CountryCode> = {
+  argentina: "AR",
+  bolivia: "BO",
+  brasil: "BR",
+  brazil: "BR",
+  cam: "CAM",
+  chile: "CL",
+  colombia: "CO",
+  ecuador: "EC",
+  mexico: "MX",
+  peru: "PE",
+}
+
 /** Controlled vocabulary for the Q/M variable selectors — selecting from this
  *  set makes "typed a column name that doesn't exist" impossible. MUST stay in
  *  sync with mock-server/routes/weighting-params.js VARIABLE_VOCAB. */
@@ -101,21 +116,35 @@ export interface ValidateResponse {
   errors: ServerValidationError[]
 }
 
+/** POST /weighting/params/{pais}/{tabla}/publish — mirrors the real JAA-579
+ *  `WeightingPublishResponse`: `version` is the nested version object (NOT a
+ *  flat number). */
 export interface PublishResponse {
   country: string
   table: string
-  version: number
   unchanged: boolean
-  author: string
-  published_at: string
-  hash: string
-  diff: { added_count: number; removed_count: number; changed_count: number }
+  version: WeightingParamsVersion
 }
 
-/** Request bodies for validate/publish, by table. */
-export type IdPesoPayload = { rows: IdPesoConfigRow[] }
+/** Request bodies for validate/publish, by table.
+ *
+ *  NOTE (JAA-670): the `idpeso-config` validate/publish endpoints operate on the
+ *  weighting HYPERPARAMETERS (`{params: {...}}` — the F-001 dict), NOT on
+ *  IdPesoConfigRow rows. The rows GET under the same URL segment is a separate,
+ *  read-only resource (parquet-backed). */
+export type HyperparamsPayload = { params: Record<string, unknown> }
 export type VariablesPayload = { q_vars: string[]; m_vars: string[] }
-export type WeightingParamsPayload = IdPesoPayload | VariablesPayload
+export type WeightingParamsPayload = HyperparamsPayload | VariablesPayload
+
+// ---- GET /weighting/params/{pais}/execution-params -------------------------
+
+/** Effective weighting hyperparameters: latest published draft merged over the
+ *  F-001 defaults. `version` is null when nothing has been published yet. */
+export interface ExecutionParamsResponse {
+  country: string
+  params: Record<string, unknown>
+  version: WeightingParamsVersion | null
+}
 
 // ---- Universo Excel upload flow (JAA-580 / JAA-583) -----------------------
 
