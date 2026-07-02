@@ -37,6 +37,30 @@ export const DEFAULT_WEIGHTING_PARAMS: WeightingParams = {
   MAX_ERR_RATIO_BOUNDS: 2.0,
 }
 
+/** Params tunable per-run in the launch/re-run editor ("De ejecución"). The rest
+ *  of the F-001 set is static/advanced: edited (and persisted) only in the
+ *  Parametros tab, never at launch. */
+export const EXECUTION_PARAM_KEYS = [
+  "MAX_ROUNDS_COLAPSO",
+  "CORRECAO_BOUNDS",
+  "P_BOUNDS",
+  "F_BOUNDS",
+] as const satisfies readonly (keyof WeightingParams)[]
+
+/** Static/advanced F-001 params ("Estáticos / Avanzados"): persisted defaults,
+ *  not editable at launch. MANUAL_COLLAPSES is part of the F-001 set but still
+ *  has no editor (needs a repeatable pair control — follow-up ticket). */
+export const ADVANCED_PARAM_KEYS = [
+  "N_PERIODOS_OUTLIERS",
+  "JERARQUIA_MIN_COLAPSO",
+  "METODO_BOUNDS",
+  "AGREGACAO_BOUNDS",
+  "MAX_ERR_RATIO_BOUNDS",
+] as const satisfies readonly (keyof WeightingParams)[]
+
+export const isExecutionParamKey = (key: string): boolean =>
+  (EXECUTION_PARAM_KEYS as readonly string[]).includes(key)
+
 type SelectOption = { value: string; label: string }
 
 export type WeightingFieldDescriptor =

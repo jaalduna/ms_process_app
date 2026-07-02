@@ -45,7 +45,7 @@ export function VariablesTab({ pais, country }: { pais: string; country: string 
       toast.success(`Publicado: Q/M_Variables · ${country}`, {
         description: result.unchanged
           ? "Sin cambios respecto a la versión publicada."
-          : `Versión ${result.version} publicada.`,
+          : `Versión ${result.version.version} publicada.`,
       })
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Error al publicar"

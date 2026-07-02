@@ -4,6 +4,7 @@
 
 import { api } from "@/lib/api"
 import type {
+  ExecutionParamsResponse,
   IdPesoConfigResponse,
   PublishableTable,
   PublishResponse,
@@ -27,6 +28,13 @@ export async function getWeightingVariables(pais: string): Promise<WeightingVari
 
 export async function getUniverso(pais: string): Promise<UniversoResponse> {
   const { data } = await api.get<UniversoResponse>(`/weighting/params/${pais}/universo`)
+  return data
+}
+
+/** Effective weighting hyperparameters (F-001): latest published draft merged
+ *  over the defaults; `version` null when nothing has been published yet. */
+export async function getExecutionParams(pais: string): Promise<ExecutionParamsResponse> {
+  const { data } = await api.get<ExecutionParamsResponse>(`/weighting/params/${pais}/execution-params`)
   return data
 }
 

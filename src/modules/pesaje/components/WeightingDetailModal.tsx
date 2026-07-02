@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -21,15 +21,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import {
   CheckCircle2,
@@ -48,9 +39,11 @@ import {
   useWeightingRun,
   useCancelWeighting,
 } from "../hooks/useWeighting"
-import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
+import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG, fmtSummaryFloat, fmtSummaryInt } from "../types"
 import type { WeightingRun, WeightingStep } from "../types"
-import { DEFAULT_WEIGHTING_PARAMS, WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
+import { DEFAULT_WEIGHTING_PARAMS, EXECUTION_PARAM_KEYS } from "../weightingParams"
+import { COUNTRY_NAME_TO_CODE } from "../params/types"
+import { useExecutionParams } from "../params/hooks"
 import { COUNTRY_LABELS } from "@/lib/countries"
 import { LiveDuration, parseUTC } from "@/lib/duration"
 
@@ -59,10 +52,11 @@ interface WeightingDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   /**
-   * Launch/relaunch the pipeline with the params shown in the editor. When provided,
-   * the dialog renders an editable params section + a run button ("Ejecutar" the first
-   * time, "Re-ejecutar" after a completed/failed run). When omitted (process closed, or
-   * the read-only history view) params are display-only and no run button is shown.
+   * Launch/relaunch the pipeline with the currently published "De ejecución" params
+   * (read-only here — edit them from the Parametros tab). When provided, the dialog
+   * renders a run button ("Ejecutar" the first time, "Re-ejecutar" after a
+   * completed/failed run). When omitted (process closed, or the read-only history
+   * view) no run button is shown.
    */
   onRun?: (params: Record<string, unknown>) => void
   /** Country/period for the first-run (no prior run) header; falls back to the run's own values. */
@@ -149,9 +143,12 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
   )
 }
 
+/** Reduce a full params dict to the launch-editable subset ("De ejecución"). */
+const pickExecutionParams = (params: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(EXECUTION_PARAM_KEYS.map((k) => [k, params[k]]))
+
 export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRun, countryCode, period }: WeightingDetailModalProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
-  const [editableParams, setEditableParams] = useState<Record<string, unknown>>({ ...DEFAULT_WEIGHTING_PARAMS })
   const [isDownloading, setIsDownloading] = useState(false)
 
   const { data: liveRun } = useWeightingRun(open && initialRun ? initialRun.run_id : null)
@@ -159,17 +156,15 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
 
   const cancel = useCancelWeighting()
 
-  // Seed the editable params when the modal opens or the run changes: from the run's
-  // stored params (merged over defaults so every field is present), or from defaults
-  // for a first run with no prior execution.
-  useEffect(() => {
-    if (run?.parameters_json && Object.keys(run.parameters_json).length > 0) {
-      setEditableParams({ ...DEFAULT_WEIGHTING_PARAMS, ...run.parameters_json })
-    } else {
-      setEditableParams({ ...DEFAULT_WEIGHTING_PARAMS })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed only on run/open change
-  }, [run?.run_id, open])
+  // Published per-country defaults (Parametros tab, persisted across periods) — the
+  // only place "De ejecución" params are edited now; the launch modal just displays
+  // whatever is currently published and launches with it.
+  const paisCode = COUNTRY_NAME_TO_CODE[run?.country ?? countryCode ?? ""] ?? null
+  const { data: publishedParams } = useExecutionParams(open ? paisCode : null)
+  const launchParams = pickExecutionParams({
+    ...DEFAULT_WEIGHTING_PARAMS,
+    ...publishedParams?.params,
+  })
 
   const isProcessing = run ? WEIGHTING_ACTIVE_STATUSES.includes(run.status) : false
   const isPending = run?.status === "pending"
@@ -237,7 +232,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
           <DialogDescription>
             {run
               ? "Detalle del proceso de pesaje, progreso y resultados."
-              : "Configura los parametros y ejecuta el pipeline de pesaje."}
+              : "Revisa los parametros publicados (editables en la pestaña Parametros) y ejecuta el pipeline de pesaje."}
           </DialogDescription>
         </DialogHeader>
 
@@ -275,58 +270,14 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
             <>
               <Separator />
               <div>
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  Parametros
-                  {canRun && (
-                    <span className="text-[10px] text-warning font-normal">(editables)</span>
-                  )}
-                </span>
+                <span className="text-muted-foreground">Parametros</span>
                 <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
-                  {Object.entries(canRun ? editableParams : run!.parameters_json!).map(([key, value]) => {
-                    const field = WEIGHTING_PARAM_FIELD_BY_KEY[key]
-                    const setParam = (next: unknown) =>
-                      setEditableParams((prev) => ({ ...prev, [key]: next }))
-                    return (
-                      <div key={key} className="flex items-center justify-between text-xs gap-2">
-                        <span className="text-muted-foreground font-mono truncate">{key}</span>
-                        {!canRun ? (
-                          <span className="font-medium font-mono">{String(value)}</span>
-                        ) : field?.control === "switch" || typeof value === "boolean" ? (
-                          <Switch
-                            aria-label={key}
-                            checked={Boolean(value)}
-                            onCheckedChange={(checked) => setParam(checked)}
-                          />
-                        ) : field?.control === "select" ? (
-                          <Select value={String(value)} onValueChange={(v) => setParam(v)}>
-                            <SelectTrigger aria-label={key} className="h-6 w-28 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {field.options.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            type="number"
-                            aria-label={key}
-                            step={field?.control === "number" ? (field.step ?? "any") : "any"}
-                            className="h-6 w-20 text-xs font-mono text-right px-1.5"
-                            value={value === null || value === undefined ? "" : String(value)}
-                            onChange={(e) => {
-                              const raw = e.target.value
-                              const nullable = field?.control === "number" && field.nullable
-                              setParam(raw === "" ? (nullable ? null : 0) : parseFloat(raw))
-                            }}
-                          />
-                        )}
-                      </div>
-                    )
-                  })}
+                  {Object.entries(canRun ? launchParams : run!.parameters_json!).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between text-xs gap-2">
+                      <span className="text-muted-foreground font-mono truncate">{key}</span>
+                      <span className="font-medium font-mono">{String(value)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </>
@@ -385,31 +336,31 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
                 <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Total hogares</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.total_households.toLocaleString()}</span>
+                    <span className="font-medium font-mono">{fmtSummaryInt(run!.summary_stats.total_households)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Hogares pesados</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.weighted_households.toLocaleString()}</span>
+                    <span className="font-medium font-mono">{fmtSummaryInt(run!.summary_stats.weighted_households)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso min</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.min_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.min_weight)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso max</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.max_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.max_weight)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso medio</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.mean_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.mean_weight)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Peso mediana</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.median_weight.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.median_weight)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Std dev</span>
-                    <span className="font-medium font-mono">{run!.summary_stats.std_dev.toFixed(2)}</span>
+                    <span className="font-medium font-mono">{fmtSummaryFloat(run!.summary_stats.std_dev)}</span>
                   </div>
                 </div>
               </div>
@@ -476,7 +427,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={() => {
-                      onRun!(editableParams)
+                      onRun!(launchParams)
                       onOpenChange(false)
                     }}
                   >

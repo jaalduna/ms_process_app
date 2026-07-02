@@ -16,15 +16,25 @@ export interface WeightingStep {
   error?: string | null
 }
 
+/** Mirrors the API WeightingSummary: every field is nullable (the job's summary
+ *  JSON may carry a partial set) — format with a per-field guard, never bare
+ *  `.toLocaleString()`/`.toFixed()`. */
 export interface WeightingSummary {
-  total_households: number
-  weighted_households: number
-  min_weight: number
-  max_weight: number
-  mean_weight: number
-  median_weight: number
-  std_dev: number
+  total_households: number | null
+  weighted_households: number | null
+  min_weight: number | null
+  max_weight: number | null
+  mean_weight: number | null
+  median_weight: number | null
+  std_dev: number | null
 }
+
+/** Format a nullable summary metric ("—" when absent). */
+export const fmtSummaryInt = (v: number | null): string =>
+  v == null ? "—" : v.toLocaleString()
+
+export const fmtSummaryFloat = (v: number | null): string =>
+  v == null ? "—" : v.toFixed(2)
 
 export interface WeightingRun {
   run_id: string

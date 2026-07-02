@@ -40,16 +40,15 @@ test.describe("Weighting Module E2E", () => {
     expect(await cards.count()).toBe(9)
   })
 
-  test("card opens the detail modal with editable params (JAA-425)", { tag: "@smoke" }, async ({ page }) => {
+  test("card opens the detail modal with read-only params (JAA-425)", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
 
     // JAA-425: clicking the card (no per-card buttons anymore) opens the modal,
-    // which exposes editable param fields (labelled by key); change a numeric one.
+    // which shows the published "De ejecución" params read-only (editing is
+    // exclusive to the Parametros tab, JAA-793) — not an editable field.
     const modal = await openCardModal(page, "Chile")
-    const maxRounds = modal.getByLabel("MAX_ROUNDS_COLAPSO")
-    await expect(maxRounds).toBeVisible()
-    await maxRounds.fill("80")
-    await expect(maxRounds).toHaveValue("80")
+    await expect(modal.getByText("MAX_ROUNDS_COLAPSO")).toBeVisible()
+    await expect(modal.getByLabel("MAX_ROUNDS_COLAPSO")).toHaveCount(0)
 
     // Closing the dialog dismisses it.
     await page.keyboard.press("Escape")

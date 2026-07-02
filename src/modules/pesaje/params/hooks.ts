@@ -3,6 +3,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+  getExecutionParams,
   getIdPesoConfig,
   getUniverso,
   getWeightingVariables,
@@ -37,11 +38,28 @@ export function useUniverso(pais: string) {
   })
 }
 
+/** Effective weighting hyperparameters (F-001) for the país — published draft
+ *  merged over defaults. Seeds both the Parametros editor and the run modal. */
+export function useExecutionParams(pais: string | null) {
+  return useQuery({
+    queryKey: ["weighting-params", "execution-params", pais],
+    queryFn: () => getExecutionParams(pais!),
+    enabled: pais != null,
+    staleTime: 30_000,
+  })
+}
+
 export function usePublishWeightingParams(pais: string, tabla: PublishableTable) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: WeightingParamsPayload) => publishWeightingParams(pais, tabla, payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["weighting-params", tabla, pais] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["weighting-params", tabla, pais] })
+      // Hyperparams publish under the `idpeso-config` table (JAA-670) feeds the
+      // execution-params GET — keep that cache in sync too.
+      if (tabla === "idpeso-config")
+        qc.invalidateQueries({ queryKey: ["weighting-params", "execution-params", pais] })
+    },
   })
 }
 
