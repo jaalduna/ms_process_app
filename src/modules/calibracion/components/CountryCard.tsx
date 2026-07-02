@@ -105,23 +105,22 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
           {/* Actions */}
           <div onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-wrap gap-2 min-w-0">
-              <CalibrateButton
-                countryLabel={countryLabel}
-                period={period}
-                calibrationConfig={calibrationConfig}
-                canTrigger={canTrigger}
-                isClosed={isClosed}
-                isPending={isPending}
-                isRunning={isRunning}
-                startCalibration={startCalibration}
-                className="flex-1"
-              />
-
-              {isRunning && (
+              {isRunning ? (
                 <StopCalibrationButton
                   countryLabel={countryLabel}
                   isCancelling={isCancelling}
                   cancelCalibration={cancelCalibration}
+                />
+              ) : (
+                <CalibrateButton
+                  countryLabel={countryLabel}
+                  period={period}
+                  calibrationConfig={calibrationConfig}
+                  canTrigger={canTrigger}
+                  isClosed={isClosed}
+                  isPending={isPending}
+                  isRunning={isRunning}
+                  startCalibration={startCalibration}
                 />
               )}
 

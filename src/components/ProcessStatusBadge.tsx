@@ -86,10 +86,11 @@ export function ProcessStatusBadge({
 
   return (
     // Cards in some views open modals on click — keep badge clicks local.
-    <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+    <div className="flex flex-col gap-0.5">
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <button
+            onClick={(e) => e.stopPropagation()}
             disabled={setStatus.isPending}
             title={
               attribution
@@ -133,7 +134,12 @@ export function ProcessStatusBadge({
         </AlertDialogContent>
       </AlertDialog>
       {showAttribution && attribution && (
-        <span className="text-[10px] leading-tight text-muted-foreground">{attribution}</span>
+        <span
+          className="text-[10px] leading-tight text-muted-foreground"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {attribution}
+        </span>
       )}
     </div>
   )

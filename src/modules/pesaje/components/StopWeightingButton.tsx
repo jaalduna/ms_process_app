@@ -24,9 +24,15 @@ export function StopWeightingButton({ countryLabel, period, disabled, onConfirm 
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button size="sm" variant="destructive" disabled={disabled} onClick={(e) => e.stopPropagation()}>
-          <Square className="mr-2 h-3.5 w-3.5" />
-          Detener
+        <Button
+          size="sm"
+          variant="destructive"
+          disabled={disabled}
+          aria-label="Detener pesaje"
+          title="Detener pesaje"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Square className="h-3.5 w-3.5" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent onClick={(e) => e.stopPropagation()}>

@@ -1,0 +1,13 @@
+{
+  "ticket": "JAA-778",
+  "attempt": 1,
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "vitest CountryListRow/CountryCard tests PASS(14); CalibrateButton/StopCalibrationButton render icon-only via aria-label; CountryCard.tsx:108-125 / CountryListRow.tsx:103-120 render isRunning ? StopCalibrationButton : CalibrateButton (true XOR)."},
+    {"id": "ac2", "verdict": "PASS", "evidence": "vitest WeightingCountryListRow/WeightingCountryCard tests PASS(25); new WeightingRunButton (aria-label 'Iniciar pesaje') launches directly via its own AlertDialog, no separate config modal; WeightingCountryListRow.tsx:110-127 / WeightingCountryCard.tsx:140-157 render isProcessing ? StopWeightingButton : (!isClosed && WeightingRunButton)."},
+    {"id": "ac3", "verdict": "PASS", "evidence": "Same slot XOR confirmed; e2e calibration.spec.ts asserts calibrar toBeHidden() once Stop visible; weighting.spec.ts asserts Iniciar pesaje toBeHidden() once Detener pesaje visible. Both passed."},
+    {"id": "ac4", "verdict": "PASS", "evidence": "All four buttons gate their mutation call inside AlertDialogAction onClick; e2e weighting.spec.ts confirms an alertdialog appears before the run starts."},
+    {"id": "ac5", "verdict": "PASS", "evidence": "npm test -- --no-file-parallelism: 474/474 passed (64 files). npm run lint: no issues. npx tsc -b: no errors. Playwright smoke (calibration.spec.ts + weighting.spec.ts): 6/6 passed. Full smoke project (60 tests): 60/60 passed."}
+  ],
+  "outcome": "PASS",
+  "notes": "Root-caused and fixed a regression surfaced (not introduced) by narrowing the Calibración action column: src/components/ProcessStatusBadge.tsx had a wrapping <div onClick=stopPropagation> around its badge+attribution, which shrinking the actions column shifted the default row-click coordinate into — swallowing the whole-row-click-opens-history interaction. Fixed by moving stopPropagation onto the actual interactive button + attribution span, removing a pre-existing dead click-zone without weakening any test or changing the deliberate 'keep badge clicks local' behavior."
+}

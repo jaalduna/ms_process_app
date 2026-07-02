@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { History, Loader2 } from "lucide-react"
+import { History } from "lucide-react"
 import { toast } from "sonner"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
@@ -10,8 +10,10 @@ import { useWeightingRuns, useCreateWeightingRun, useExecuteWeighting, useCancel
 import { WeightingProgress } from "./WeightingProgress"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WeightingHistoryModal } from "./WeightingHistoryModal"
+import { WeightingRunButton } from "./WeightingRunButton"
 import { StopWeightingButton } from "./StopWeightingButton"
 import { WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
+import { DEFAULT_WEIGHTING_PARAMS } from "../weightingParams"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
 import { formatRelativeTime } from "@/lib/utils"
 
@@ -68,6 +70,8 @@ export function WeightingCountryCard({ countryCode, period, lastFinalizedDate }:
   }
 
   const openDetail = () => setDetailModalOpen(true)
+
+  const isStarting = createRun.isPending || executeRun.isPending
 
   return (
     <>
@@ -132,20 +136,24 @@ export function WeightingCountryCard({ countryCode, period, lastFinalizedDate }:
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            {/* Processing: spinner + Detener (clicks must not bubble to the card open handler) */}
-            {isProcessing && (
-              <>
-                <Button size="sm" disabled className="flex-1">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
-                </Button>
-                <StopWeightingButton
+            {/* Play/Stop toggle (clicks must not bubble to the card open handler) */}
+            {isProcessing ? (
+              <StopWeightingButton
+                countryLabel={countryLabel}
+                period={period}
+                disabled={cancelRun.isPending}
+                onConfirm={handleCancel}
+              />
+            ) : (
+              !isClosed && (
+                <WeightingRunButton
                   countryLabel={countryLabel}
                   period={period}
-                  disabled={cancelRun.isPending}
-                  onConfirm={handleCancel}
+                  disabled={isStarting}
+                  isStarting={isStarting}
+                  onConfirm={() => handleRun({ ...DEFAULT_WEIGHTING_PARAMS })}
                 />
-              </>
+              )
             )}
 
             {/* History button */}

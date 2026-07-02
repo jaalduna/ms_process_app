@@ -116,6 +116,7 @@ describe("CountryCard", () => {
     )
     renderCard()
     expect(screen.getByRole("button", { name: "Stop calibration" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Calibrar" })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /View calibration details for chile/i })).toBeInTheDocument()
   })
 })

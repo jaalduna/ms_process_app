@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
-import { Loader2 } from "lucide-react"
+import { Loader2, Play } from "lucide-react"
 import { toast } from "sonner"
 import type { CalibrationConfig } from "../types"
 
@@ -57,15 +57,21 @@ export function CalibrateButton({
           size="sm"
           disabled={!canTrigger}
           className={className}
-          title={isClosed ? "Proceso cerrado" : !canTrigger ? "Data not available or calibration already running" : undefined}
+          aria-label="Calibrar"
+          title={
+            isClosed
+              ? "Proceso cerrado"
+              : !canTrigger
+                ? "Data not available or calibration already running"
+                : isPending
+                  ? "Starting..."
+                  : "Calibrar"
+          }
         >
           {isPending || isRunning ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {isPending ? "Starting..." : "Running..."}
-            </>
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            "Calibrar"
+            <Play className="h-4 w-4" />
           )}
         </Button>
       </AlertDialogTrigger>

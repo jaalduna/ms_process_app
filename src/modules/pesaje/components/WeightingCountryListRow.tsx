@@ -2,15 +2,17 @@ import { useState } from "react"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { History, Loader2 } from "lucide-react"
+import { History } from "lucide-react"
 import { toast } from "sonner"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { useWeightingRuns, useCreateWeightingRun, useExecuteWeighting, useCancelWeighting } from "../hooks/useWeighting"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WeightingHistoryModal } from "./WeightingHistoryModal"
+import { WeightingRunButton } from "./WeightingRunButton"
 import { StopWeightingButton } from "./StopWeightingButton"
 import { WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG } from "../types"
+import { DEFAULT_WEIGHTING_PARAMS } from "../weightingParams"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
 import { formatRelativeTime } from "@/lib/utils"
 
@@ -67,6 +69,8 @@ export function WeightingCountryListRow({ countryCode, period, lastFinalizedDate
 
   const openDetail = () => setDetailModalOpen(true)
 
+  const isStarting = createRun.isPending || executeRun.isPending
+
   return (
     <>
       <TableRow
@@ -103,31 +107,23 @@ export function WeightingCountryListRow({ countryCode, period, lastFinalizedDate
         </TableCell>
         <TableCell onClick={(e) => e.stopPropagation()}>
           <div className="flex flex-wrap gap-2">
-            {isProcessing && (
-              <>
-                <Button size="sm" disabled>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
-                </Button>
-                <StopWeightingButton
+            {isProcessing ? (
+              <StopWeightingButton
+                countryLabel={countryLabel}
+                period={period}
+                disabled={cancelRun.isPending}
+                onConfirm={handleCancel}
+              />
+            ) : (
+              !isClosed && (
+                <WeightingRunButton
                   countryLabel={countryLabel}
                   period={period}
-                  disabled={cancelRun.isPending}
-                  onConfirm={handleCancel}
+                  disabled={isStarting}
+                  isStarting={isStarting}
+                  onConfirm={() => handleRun({ ...DEFAULT_WEIGHTING_PARAMS })}
                 />
-              </>
-            )}
-
-            {!isProcessing && (
-              <Button
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  openDetail()
-                }}
-              >
-                {latestRun ? "Re-ejecutar" : "Ejecutar"}
-              </Button>
+              )
             )}
 
             {hasAnyRuns && (

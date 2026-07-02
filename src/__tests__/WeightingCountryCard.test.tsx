@@ -297,20 +297,23 @@ describe("WeightingCountryCard", () => {
     await waitFor(() => expect(screen.getByText("Ejecutando...")).toBeInTheDocument())
   })
 
-  it("shows Detener button when run is processing", async () => {
+  it("shows an icon-only Stop button (no 'Detener'/'Procesando...' text) when run is processing", async () => {
     mockGetWeightingRuns.mockResolvedValue([runningRun()])
     renderCard()
-    await waitFor(() => expect(screen.getByText("Detener")).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole("button", { name: "Detener pesaje" })).toBeInTheDocument())
+    expect(screen.queryByText("Detener")).not.toBeInTheDocument()
+    expect(screen.queryByText("Procesando...")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Iniciar pesaje" })).not.toBeInTheDocument()
   })
 
-  it("confirming Detener cancels the running run", async () => {
+  it("confirming Stop cancels the running run", async () => {
     const user = userEvent.setup()
     mockGetWeightingRuns.mockResolvedValue([runningRun()])
     mockCancelWeighting.mockResolvedValue({ run_id: "run-1", status: "cancelled" })
 
     renderCard()
 
-    await user.click(await screen.findByText("Detener"))
+    await user.click(await screen.findByRole("button", { name: "Detener pesaje" }))
     const dialog = await screen.findByRole("alertdialog")
     expect(within(dialog).getByText("Detener ejecucion")).toBeInTheDocument()
 
@@ -318,12 +321,12 @@ describe("WeightingCountryCard", () => {
     await waitFor(() => expect(mockCancelWeighting).toHaveBeenCalledWith("run-1"))
   })
 
-  it("action row wraps so Detener does not clip off the card while processing", async () => {
+  it("action row wraps so Stop does not clip off the card while processing", async () => {
     mockGetWeightingRuns.mockResolvedValue([runningRun()])
     renderCard()
 
-    const detener = await screen.findByText("Detener")
-    const actionRow = detener.closest("div.flex")
+    const stopButton = await screen.findByRole("button", { name: "Detener pesaje" })
+    const actionRow = stopButton.closest("div.flex")
     expect(actionRow).not.toBeNull()
     expect(actionRow).toHaveClass("flex-wrap")
   })

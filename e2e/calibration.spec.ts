@@ -8,9 +8,10 @@ import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
  * Calibración module E2E — exercises the deliberate per-country mock spread
  * (full / partial / no availability, seeded sync+calibration history) and the
  * deterministic trigger outcomes (DEMO_CALIBRATION_OUTCOMES in sync.js), and
- * guards the action-row layout: while a job runs the row holds three controls
- * (Running + Stop + Ver detalle) which must wrap instead of clipping the eye
- * button against the card border.
+ * guards the action-row layout: while a job runs, Play (Calibrar) is replaced
+ * by Stop (JAA-778 — the two are mutually exclusive), and the row holds Stop +
+ * Ver detalle, which must wrap instead of clipping the eye button against the
+ * card border.
  */
 
 /**
@@ -61,6 +62,15 @@ test.describe("Calibración Module E2E", () => {
     await expect(countryCard(page, "Ecuador").getByRole("button", { name: /^Calibrar$/ })).toBeEnabled()
   })
 
+  // JAA-778: action buttons are icon-only — "Calibrar"/"Stop" are the
+  // accessible name (aria-label/title), never visible text content.
+  test("action buttons render no visible text ('Calibrar'/'Stop')", { tag: "@smoke" }, async ({ page }) => {
+    const card = countryCard(page, "Mexico")
+    await expect(card.getByRole("button", { name: /^Calibrar$/ })).toBeVisible()
+    await expect(card.getByText("Calibrar", { exact: true })).toHaveCount(0)
+    await expect(card.getByText("Stop", { exact: true })).toHaveCount(0)
+  })
+
   // @flow (not @smoke): this triggers a run AND opens the detail modal — the
   // heaviest interaction here. Under full-suite load a cold vite route-compile can
   // reload the SPA (dropping the in-memory dev auth), which @smoke's retries:0
@@ -80,9 +90,11 @@ test.describe("Calibración Module E2E", () => {
     await expect(calibrar).toBeEnabled()
     await confirmAction(page, calibrar, /^Confirm$/).catch(() => {})
 
-    // Eye (Ver detalle) and Stop both appear once the job is running.
+    // Eye (Ver detalle) and Stop both appear once the job is running; Calibrar
+    // (Play) is replaced by Stop in the same slot (JAA-778 — never both at once).
     await expect(eye).toBeVisible({ timeout: 15_000 })
     await expect(stop).toBeVisible({ timeout: 15_000 })
+    await expect(calibrar).toBeHidden()
 
     // The eye button must lie fully within the card's right edge — i.e. the
     // action row wrapped instead of overflowing/clipping it. (1px tolerance.)

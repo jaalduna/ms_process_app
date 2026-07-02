@@ -2,6 +2,36 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-07-02 — JAA-778 (Icon-only actions + Play/Stop toggle in Calibración and Pesaje) — EVALUATOR PASS
+
+**What:** Calibración and Pesaje action cells (list rows + cards) are now icon-only (no visible
+button text), with a Play icon that toggles to Stop while a process runs.
+- Calibración: `CalibrateButton.tsx` icon-only (Play/Loader2, `aria-label="Calibrar"`);
+  `CountryCard.tsx`/`CountryListRow.tsx` render `isRunning ? StopCalibrationButton :
+  CalibrateButton` (true XOR, never both mounted).
+- Pesaje: new `WeightingRunButton.tsx` (icon-only Play + its own confirm AlertDialog, launches
+  `handleRun(DEFAULT_WEIGHTING_PARAMS)` directly — no detail modal); `StopWeightingButton.tsx`
+  dropped its "Detener" text. `WeightingCountryListRow.tsx`/`WeightingCountryCard.tsx` render
+  `isProcessing ? StopWeightingButton : (!isClosed && WeightingRunButton)`, dropped the disabled
+  "Procesando..." button and the old modal-opening "Ejecutar" button.
+- Updated `e2e/calibration.spec.ts` + `e2e/weighting.spec.ts` and the vitest suites for both modules
+  to assert icon-only (no visible "Calibrar"/"Stop"/"Detener"/"Procesando..." text) and Play/Stop
+  mutual exclusivity.
+- **Root-caused a regression this change surfaced** (not introduced) in
+  `src/components/ProcessStatusBadge.tsx`: its wrapping `<div onClick={stopPropagation}>` around the
+  Abierto/Cerrado badge + attribution was a pre-existing dead click-zone (deliberate "keep badge
+  clicks local" behavior, but applied to the whole div's bounding box, not just its interactive
+  children). Narrowing the Calibración actions column shifted the Lista view's default row-click
+  coordinate (Playwright's bounding-box center, and by extension any click landing in that same
+  spot) into that dead zone, silently swallowing the whole-row-click-opens-history interaction.
+  Fixed by moving `stopPropagation` onto the actual `<button>` and the attribution `<span>` instead
+  of the wrapping div — preserves "keep badge clicks local" for real content, removes the dead zone.
+**Verify:** vitest 474/474 (`--no-file-parallelism`), lint clean, `tsc -b` clean, Playwright smoke
+project full run 60/60 passed (mock on :5000, dev on :5173, `VITE_AUTH_BYPASS=true`).
+**Evaluator:** separate `ux-ui-reviewer` subagent (Sonnet) — PASS on all 5 ACs, ran every command
+itself rather than trusting the diff. See `.harness/eval_feedback/JAA-778.json`.
+**Next:** PR to `develop` (ADO), auto-complete on green policies.
+
 ## 2026-07-01 — JAA-775 (Duration counters must tick live — shared LiveDuration) — EVALUATOR PASS (2nd attempt)
 
 **What:** Root cause was 14 component-local `formatDuration(start, end)` copies each resolving

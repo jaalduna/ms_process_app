@@ -128,13 +128,18 @@ describe("WeightingCountryListRow — parity with WeightingCountryCard", () => {
     expect(screen.queryByText("Detalle Pesaje")).not.toBeInTheDocument()
   })
 
-  it("shows Detener button when run is processing and confirming cancels it", async () => {
+  it("shows an icon-only Stop button (no 'Detener'/'Procesando...' text) when run is processing and confirming cancels it", async () => {
     const user = userEvent.setup()
     mockGetWeightingRuns.mockResolvedValue([runningRun()])
     mockCancelWeighting.mockResolvedValue({ run_id: "run-1", status: "cancelled" })
     renderRow()
 
-    await user.click(await screen.findByText("Detener"))
+    const stopButton = await screen.findByRole("button", { name: "Detener pesaje" })
+    expect(screen.queryByText("Detener")).not.toBeInTheDocument()
+    expect(screen.queryByText("Procesando...")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Iniciar pesaje" })).not.toBeInTheDocument()
+
+    await user.click(stopButton)
     const dialog = await screen.findByRole("alertdialog")
     expect(within(dialog).getByText("Detener ejecucion")).toBeInTheDocument()
 
@@ -142,39 +147,43 @@ describe("WeightingCountryListRow — parity with WeightingCountryCard", () => {
     await waitFor(() => expect(mockCancelWeighting).toHaveBeenCalledWith("run-1"))
   })
 
-  // --- JAA-766: explicit Ejecutar/Re-ejecutar action button in Acciones -----
+  // --- JAA-778: icon-only Play button launches directly, no modal -----
 
-  it("shows an 'Ejecutar' button in Acciones when there are no prior runs (JAA-766)", async () => {
+  it("shows an icon-only Play button in Acciones when there are no prior runs", async () => {
     renderRow()
     await waitFor(() => expect(getRow()).toBeInTheDocument())
-    expect(screen.getByRole("button", { name: "Ejecutar" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Iniciar pesaje" })).toBeInTheDocument()
+    expect(screen.queryByText("Ejecutar")).not.toBeInTheDocument()
   })
 
-  it("shows a 'Re-ejecutar' button in Acciones once a run has completed (JAA-766)", async () => {
+  it("still shows the icon-only Play button once a run has completed (re-run)", async () => {
     mockGetWeightingRuns.mockResolvedValue([
       { ...runningRun(), status: "completed", completed_at: "2026-01-01T00:05:00Z" },
     ])
     renderRow()
-    expect(await screen.findByRole("button", { name: "Re-ejecutar" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Ejecutar" })).not.toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Iniciar pesaje" })).toBeInTheDocument()
   })
 
-  it("clicking Ejecutar opens the detail dialog without also opening history (JAA-766)", async () => {
+  it("clicking Play launches the pipeline directly without opening the detail dialog", async () => {
     const user = userEvent.setup()
+    mockCreateWeightingRun.mockResolvedValue({ run_id: "run-1" })
+    mockExecuteWeighting.mockResolvedValue({ run_id: "run-1", status: "running" })
     renderRow()
     await waitFor(() => expect(getRow()).toBeInTheDocument())
 
-    await user.click(screen.getByRole("button", { name: "Ejecutar" }))
-    expect(await screen.findByRole("dialog")).toBeInTheDocument()
-    expect(screen.getByText("Configurar Pesaje")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Iniciar pesaje" }))
+    const dialog = await screen.findByRole("alertdialog")
+    await user.click(within(dialog).getByRole("button", { name: "Iniciar" }))
+
+    await waitFor(() => expect(mockCreateWeightingRun).toHaveBeenCalled())
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     expect(screen.queryByText(/Historial de Pesaje/)).not.toBeInTheDocument()
   })
 
-  it("does not show Ejecutar/Re-ejecutar while a run is processing (Procesando/Detener already occupy that slot)", async () => {
+  it("does not show the Play button while a run is processing (Stop occupies that slot)", async () => {
     mockGetWeightingRuns.mockResolvedValue([runningRun()])
     renderRow()
-    await screen.findByText("Detener")
-    expect(screen.queryByRole("button", { name: "Ejecutar" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Re-ejecutar" })).not.toBeInTheDocument()
+    await screen.findByRole("button", { name: "Detener pesaje" })
+    expect(screen.queryByRole("button", { name: "Iniciar pesaje" })).not.toBeInTheDocument()
   })
 })

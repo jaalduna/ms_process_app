@@ -100,22 +100,22 @@ export const CountryListRow = memo(function CountryListRow({
         </TableCell>
         <TableCell onClick={(e) => e.stopPropagation()}>
           <div className="flex flex-wrap gap-2 min-w-0">
-            <CalibrateButton
-              countryLabel={countryLabel}
-              period={period}
-              calibrationConfig={calibrationConfig}
-              canTrigger={canTrigger}
-              isClosed={isClosed}
-              isPending={isPending}
-              isRunning={isRunning}
-              startCalibration={startCalibration}
-            />
-
-            {isRunning && (
+            {isRunning ? (
               <StopCalibrationButton
                 countryLabel={countryLabel}
                 isCancelling={isCancelling}
                 cancelCalibration={cancelCalibration}
+              />
+            ) : (
+              <CalibrateButton
+                countryLabel={countryLabel}
+                period={period}
+                calibrationConfig={calibrationConfig}
+                canTrigger={canTrigger}
+                isClosed={isClosed}
+                isPending={isPending}
+                isRunning={isRunning}
+                startCalibration={startCalibration}
               />
             )}
 

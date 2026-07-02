@@ -99,10 +99,10 @@ test.describe("Weighting Module E2E", () => {
     }
   })
 
-  // JAA-766: the Lista view's Acciones column must carry a visible run trigger —
-  // the card relies on a whole-card click + hint text, but the list row had
-  // neither, leaving no discoverable way to launch a run.
-  test("Lista view shows an Ejecutar button per row that opens the config dialog", { tag: "@smoke" }, async ({ page }) => {
+  // JAA-778: the Lista view's Acciones column carries an icon-only Play button
+  // that launches the pipeline directly (confirm dialog, no modal) — no visible
+  // "Ejecutar"/"Detener"/"Procesando..." text, and Play/Stop are mutually exclusive.
+  test("Lista view shows an icon-only Play button per row that launches directly", { tag: "@smoke" }, async ({ page }) => {
     await navigateTo(page, "Pesaje", /pesaje/)
     await page.getByRole("button", { name: "Lista" }).click()
 
@@ -112,15 +112,21 @@ test.describe("Weighting Module E2E", () => {
     // The row itself has role="button" (whole-row click also opens the modal),
     // so scope the query to it via its aria-label rather than role="row".
     const chileRow = page.getByRole("button", { name: /Abrir detalle de Pesaje para Chile/i })
-    const ejecutar = chileRow.getByRole("button", { name: /^(Ejecutar|Re-ejecutar)$/ })
-    await expect(ejecutar).toBeVisible()
+    const play = chileRow.getByRole("button", { name: "Iniciar pesaje" })
+    await expect(play).toBeVisible()
+    await expect(chileRow.getByText(/^(Ejecutar|Re-ejecutar|Detener|Procesando\.\.\.)$/)).toHaveCount(0)
 
-    await ejecutar.click()
-    const modal = page.getByRole("dialog")
-    await expect(modal).toBeVisible({ timeout: 5_000 })
-    await expect(modal.getByText("Configurar Pesaje")).toBeVisible()
+    await play.click()
+    const dialog = page.getByRole("alertdialog")
+    await expect(dialog).toBeVisible({ timeout: 5_000 })
+    await dialog.getByRole("button", { name: "Iniciar" }).click()
 
-    // Does not also open the history modal.
+    // Launches directly — no config/detail dialog opens.
+    await expect(page.getByRole("dialog")).not.toBeVisible()
     await expect(page.getByText(/Historial de Pesaje/i)).not.toBeVisible()
+
+    // Play is replaced by Stop in the same slot while the run is active.
+    await expect(chileRow.getByRole("button", { name: "Detener pesaje" })).toBeVisible({ timeout: 15_000 })
+    await expect(chileRow.getByRole("button", { name: "Iniciar pesaje" })).toBeHidden()
   })
 })

@@ -1,0 +1,12 @@
+{
+  "ticket": "JAA-778",
+  "archetype": "webapp",
+  "retry_count": 0,
+  "escalated_to_opus": false,
+  "eval_verdicts": [
+    {"attempt": 1, "result": "PASS", "parity_distance": null}
+  ],
+  "outcome": "in_review",
+  "false_pass": false,
+  "false_fail": false
+}
