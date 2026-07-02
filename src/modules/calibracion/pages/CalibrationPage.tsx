@@ -5,6 +5,7 @@ import { ViewToggle } from "@/components/ViewToggle"
 import { CalibrationConfigDialog } from "../components/CalibrationConfigDialog"
 import { CountryCard } from "../components/CountryCard"
 import { CountryListRow } from "../components/CountryListRow"
+import { RunningCountriesChip } from "../components/RunningCountriesChip"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useCountries } from "@/hooks/useCountries"
@@ -82,6 +83,7 @@ export function CalibrationPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <RunningCountriesChip period={period} />
           <ViewToggle value={viewMode} onChange={setViewMode} />
           <PeriodSelector value={period} onChange={setPeriod} />
           <CalibrationConfigDialog

@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ac1",
+    "verdict": "PASS",
+    "evidence": "npx vitest run RunStatusBadge.test.tsx -> PASS (6/6). RunStatusBadge.tsx renders Loader2 with animate-spin for status 'running'/'pending' (Ejecutándose badge), and unchanged Completed/Failed/Cancelled badges for terminal states, null otherwise. Test file explicitly asserts .animate-spin presence for running/pending and absence for completed/failed/cancelled/undefined."
+  },
+  {
+    "id": "ac2",
+    "verdict": "PASS",
+    "evidence": "git diff ado/develop on CountryCard.tsx and CountryListRow.tsx shows the old inline Completed/Failed/Cancelled JSX blocks were fully removed and replaced with <RunStatusBadge status={job?.status} /> in the same slot — no leftover dead code. e2e run: MOCK_SERVER_PORT=8000 npx playwright test --project=smoke e2e/calibration-run-status.spec.ts -> PASS (2/2), confirming the badge renders in both card view and list view (Resultado column) for a seeded running Mexico job."
+  },
+  {
+    "id": "ac3",
+    "verdict": "PASS",
+    "evidence": "RunningCountriesChip.tsx reads useRunningCalibrations(period), returns null when 0 running, otherwise renders 'N en ejecución' + flags with a spinning Loader2. useCalibration.ts adds useRunningCalibrations querying getCalibrationRuns({ period }) (no country filter) filtered to ACTIVE_STATUSES; trigger/cancel mutations invalidate the [\"calibration-runs\"] prefix so the chip's cache invalidates too. CalibrationPage.tsx wires <RunningCountriesChip period={period} /> into the header. All 3 e2e scenarios pass (smoke: chip shows count+flag, chip absent with 0 running; flow: chip disappears after stopping the seeded run)."
+  },
+  {
+    "id": "ac4",
+    "verdict": "PASS",
+    "evidence": "npx vitest run -> 63 test files / 466 tests all passed. npm run lint -> clean. npx tsc -b -> no errors. Independently confirmed the JAA-779 pre-existing-failure claim: git diff ado/develop -- e2e/calibration.spec.ts e2e/calibration-runs.spec.ts e2e/calibration-download.spec.ts is empty (JAA-776 touched zero lines in those files) — those 4 flow-project failures are out of scope, filed as JAA-779. Full --project=smoke suite (59 tests) green."
+  }
+]

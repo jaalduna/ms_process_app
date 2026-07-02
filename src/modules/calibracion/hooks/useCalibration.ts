@@ -18,7 +18,7 @@ export interface CalibrationOverrides {
   skip_simulation?: boolean
 }
 
-const ACTIVE_STATUSES = ["pending", "running"]
+export const ACTIVE_STATUSES = ["pending", "running"]
 
 /**
  * Calibration run state is server-authoritative (JAA-648). The active run for a
@@ -45,7 +45,9 @@ export function useCalibration(country: string, stage: string, period?: string) 
   const trigger = useMutation({
     mutationFn: (body: TriggerRequest) => triggerCalibration(body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["calibration-runs", country, period] })
+      // Prefix match invalidates both this country's cache and the page-level
+      // "all countries" cache used by RunningCountriesChip.
+      queryClient.invalidateQueries({ queryKey: ["calibration-runs"] })
     },
   })
 
@@ -83,7 +85,7 @@ export function useCalibration(country: string, stage: string, period?: string) 
   const cancel = useMutation({
     mutationFn: (jobId: string) => cancelJob(jobId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["calibration-runs", country, period] })
+      queryClient.invalidateQueries({ queryKey: ["calibration-runs"] })
       queryClient.invalidateQueries({ queryKey: ["calibration-job", activeJobId] })
     },
   })
@@ -104,4 +106,23 @@ export function useCalibration(country: string, stage: string, period?: string) 
     startCalibration,
     cancelCalibration,
   }
+}
+
+/**
+ * Page-level view over `GET /calibration/runs` (no country filter) for the
+ * header's "N en ejecución" chip (JAA-776). Same endpoint the per-country
+ * `useCalibration` polls; kept as a separate query key so the page doesn't
+ * need to know which countries exist.
+ */
+export function useRunningCalibrations(period?: string) {
+  return useQuery({
+    queryKey: ["calibration-runs", "all", period],
+    queryFn: () => getCalibrationRuns({ period }),
+    select: (data) => data.items.filter((r) => ACTIVE_STATUSES.includes(r.status)),
+    refetchInterval: (query) => {
+      const items = query.state.data?.items
+      if (!items) return false
+      return items.some((r) => ACTIVE_STATUSES.includes(r.status)) ? 3000 : false
+    },
+  })
 }

@@ -838,3 +838,36 @@ ALL 5 ACs PASS → eval_feedback/JAA-581.json.
 **PR:** → develop (direct mode), auto-complete to be armed at creation. Linear → In Review.
 **NEXT:** Build green → auto-complete merges; a later /harness JAA-581 re-run (Orient → step 7)
 confirms merge + cleans worktree + sets Done. Unblocks JAA-583 (UI carga Excel Universo / JAA-582).
+
+## 2026-07-01 — JAA-776 (Calibración: running badge + header chip) — IN REVIEW
+
+**What:** Visual per-country execution feedback for the Calibración module (no backend change).
+- New `RunStatusBadge` (`src/modules/calibracion/components/RunStatusBadge.tsx`): animated
+  "Ejecutándose" (Loader2 spinner) for running/pending, else the existing Completed/Failed/Cancelled
+  badges, else null. Reusable — depends only on the generic `JobStatus` type + shadcn `Badge`.
+- Wired into `CountryCard` (replaced the inline Completed/Failed/Cancelled JSX block) and
+  `CountryListRow`'s "Resultado" column (also dropped its now-unused isCompleted/isFailed/isCancelled
+  locals; CountryCard kept them since they still gate `CalibrationProgress`).
+- New `useRunningCalibrations(period)` hook in `useCalibration.ts`: queries `GET /calibration/runs`
+  (no country filter) and filters to pending/running. Exported `ACTIVE_STATUSES`. Broadened the
+  trigger/cancel mutations' invalidation to the `["calibration-runs"]` prefix so both the per-country
+  and page-level caches refresh together.
+- New `RunningCountriesChip` in `CalibrationPage`'s header (next to `ViewToggle`): "N en ejecución"
+  + flags, hidden at N=0.
+- New `e2e/calibration-run-status.spec.ts` (3 specs): seeded-running badge in card+list view (smoke),
+  chip absent at rest (smoke), chip disappears after Stop (flow — deterministic via seed+cancel
+  rather than a live trigger, since the fast 150ms mock step interval races the confirm-dialog
+  helper and made "still running" assertions flaky against a natural trigger→completion).
+**Verify:** vitest 466 passed (+9 new: RunStatusBadge ×6, RunningCountriesChip ×3); eslint clean;
+tsc -b clean; full `--project=smoke` e2e (59 tests) green. Separate skeptical evaluator
+(ux-ui-reviewer, Sonnet, fresh ctx, ran every check itself incl. re-running the new e2e spec and
+independently confirming the JAA-779 out-of-scope claim via `git diff`): ALL 4 ACs PASS →
+eval_feedback/JAA-776.json.
+**Captured (not chased):** JAA-779 — 4 pre-existing `--project=flow` failures (calibration.spec.ts,
+calibration-runs.spec.ts, calibration-download.spec.ts) all on the same
+`card.getByRole("button", {name: /view calibration details/i})` locator; confirmed via git-stash
+bisection to reproduce identically against unmodified `ado/develop` — unrelated to JAA-776, zero
+lines touched in those 3 files.
+**PR:** → develop (direct mode), auto-complete to be armed at creation. Linear → In Review.
+**NEXT:** Build green → auto-complete merges; a later /harness JAA-776 re-run (Orient → step 7)
+confirms merge + cleans worktree + sets Done.

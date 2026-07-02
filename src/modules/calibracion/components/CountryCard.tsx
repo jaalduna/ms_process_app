@@ -9,6 +9,7 @@ import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
 import { CalibrationProgress } from "./CalibrationProgress"
+import { RunStatusBadge } from "./RunStatusBadge"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
 import { CalibrateButton } from "./CalibrateButton"
@@ -98,14 +99,8 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
             <CalibrationProgress job={job} />
           )}
 
-          {/* Status badges */}
-          {isCompleted && (
-            <Badge variant="default" className="bg-success">
-              Completed
-            </Badge>
-          )}
-          {isFailed && <Badge variant="destructive">Failed</Badge>}
-          {isCancelled && <Badge variant="secondary">Cancelled</Badge>}
+          {/* Status badge */}
+          <RunStatusBadge status={job?.status} />
 
           {/* Actions */}
           <div onClick={(e) => e.stopPropagation()}>

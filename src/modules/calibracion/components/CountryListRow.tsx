@@ -8,6 +8,7 @@ import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { DataAvailabilityBadge } from "./DataAvailabilityBadge"
+import { RunStatusBadge } from "./RunStatusBadge"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import { CalibrationHistoryModal } from "./CalibrationHistoryModal"
 import { CalibrateButton } from "./CalibrateButton"
@@ -41,9 +42,6 @@ export const CountryListRow = memo(function CountryListRow({
   const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion", period)
 
   const isRunning = job?.status === "running" || job?.status === "pending"
-  const isCompleted = job?.status === "completed"
-  const isFailed = job?.status === "failed"
-  const isCancelled = job?.status === "cancelled"
   const { isClosed } = useProcessEntry("calibracion", country.code)
   const canTrigger = availability.elegibilidad !== false && !isRunning && !isPending && !isClosed
 
@@ -98,11 +96,7 @@ export const CountryListRow = memo(function CountryListRow({
           </div>
         </TableCell>
         <TableCell>
-          {isCompleted && (
-            <Badge variant="default" className="bg-success">Completed</Badge>
-          )}
-          {isFailed && <Badge variant="destructive">Failed</Badge>}
-          {isCancelled && <Badge variant="secondary">Cancelled</Badge>}
+          <RunStatusBadge status={job?.status} />
         </TableCell>
         <TableCell onClick={(e) => e.stopPropagation()}>
           <div className="flex flex-wrap gap-2 min-w-0">
