@@ -40,6 +40,7 @@ import { EligibilityProgress } from "./EligibilityProgress"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
 import { downloadEligibilityFile } from "@/lib/api"
+import { LiveDuration, parseUTC } from "@/lib/duration"
 import {
   useEligibilityRun,
   useApproveEligibility,
@@ -56,27 +57,6 @@ interface EligibilityDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onRerun?: (params: Record<string, unknown>) => void
-}
-
-function parseUTC(ts: string): number {
-  return new Date(ts).getTime()
-}
-
-function formatDuration(start?: string | null, end?: string | null): string {
-  if (!start) return "-"
-  const s = parseUTC(start)
-  const e = end ? parseUTC(end) : Date.now()
-  const totalSeconds = Math.max(0, Math.round((e - s) / 1000))
-  if (totalSeconds < 60) return `${totalSeconds}s`
-  if (totalSeconds < 3600) {
-    const m = Math.floor(totalSeconds / 60)
-    const sec = totalSeconds % 60
-    return `${m}m ${sec}s`
-  }
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  const sec = totalSeconds % 60
-  return `${h}h ${m}m ${sec}s`
 }
 
 function StepIcon({ status }: { status: string }) {
@@ -319,7 +299,7 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
             <div>
               <span className="text-muted-foreground">Duración</span>
               <p className="font-medium">
-                {formatDuration(run.started_at, run.completed_at)}
+                <LiveDuration start={run.started_at} end={run.completed_at} />
               </p>
             </div>
             {run.approved_by && (
@@ -627,7 +607,6 @@ interface StepRowProps {
 
 function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProps) {
   const label = STEP_LABELS[step.name as keyof typeof STEP_LABELS] ?? step.name
-  const duration = formatDuration(step.started_at, step.completed_at)
 
   return (
     <div>
@@ -659,7 +638,9 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
         </div>
         <div className="flex items-center gap-3 shrink-0 ml-2">
           {step.status !== "pending" && (
-            <span className="text-muted-foreground">{duration}</span>
+            <span className="text-muted-foreground">
+              <LiveDuration start={step.started_at} end={step.completed_at} />
+            </span>
           )}
           <Badge
             variant={

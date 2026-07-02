@@ -52,6 +52,7 @@ import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES,
 import type { WeightingRun, WeightingStep } from "../types"
 import { DEFAULT_WEIGHTING_PARAMS, WEIGHTING_PARAM_FIELD_BY_KEY } from "../weightingParams"
 import { COUNTRY_LABELS } from "@/lib/countries"
+import { LiveDuration, parseUTC } from "@/lib/duration"
 
 interface WeightingDetailModalProps {
   run: WeightingRun | null
@@ -67,27 +68,6 @@ interface WeightingDetailModalProps {
   /** Country/period for the first-run (no prior run) header; falls back to the run's own values. */
   countryCode?: string
   period?: string | number
-}
-
-function parseUTC(ts: string): number {
-  return new Date(ts).getTime()
-}
-
-function formatDuration(start?: string | null, end?: string | null): string {
-  if (!start) return "-"
-  const s = parseUTC(start)
-  const e = end ? parseUTC(end) : Date.now()
-  const totalSeconds = Math.max(0, Math.round((e - s) / 1000))
-  if (totalSeconds < 60) return `${totalSeconds}s`
-  if (totalSeconds < 3600) {
-    const m = Math.floor(totalSeconds / 60)
-    const sec = totalSeconds % 60
-    return `${m}m ${sec}s`
-  }
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  const sec = totalSeconds % 60
-  return `${h}h ${m}m ${sec}s`
 }
 
 function StepIcon({ status }: { status: string }) {
@@ -113,7 +93,6 @@ interface StepRowProps {
 
 function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProps) {
   const label = WEIGHTING_STEP_LABELS[step.name as keyof typeof WEIGHTING_STEP_LABELS] ?? step.name
-  const duration = formatDuration(step.started_at, step.completed_at)
 
   return (
     <div>
@@ -145,7 +124,9 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
         </div>
         <div className="flex items-center gap-3 shrink-0 ml-2">
           {step.status !== "pending" && (
-            <span className="text-muted-foreground">{duration}</span>
+            <span className="text-muted-foreground">
+              <LiveDuration start={step.started_at} end={step.completed_at} />
+            </span>
           )}
           <Badge
             variant={
@@ -282,7 +263,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
                 <div>
                   <span className="text-muted-foreground">Duracion</span>
                   <p className="font-medium">
-                    {formatDuration(run.started_at, run.completed_at)}
+                    <LiveDuration start={run.started_at} end={run.completed_at} />
                   </p>
                 </div>
               </>

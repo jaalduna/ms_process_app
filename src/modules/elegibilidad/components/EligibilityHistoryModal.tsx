@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Download, Eye, Loader2 } from "lucide-react"
 import { downloadEligibilityFile } from "@/lib/api"
+import { LiveDuration, parseUTC } from "@/lib/duration"
 import { useEligibilityHistory } from "../hooks/useEligibility"
 import { EligibilityDetailModal } from "./EligibilityDetailModal"
 import { STATUS_CONFIG } from "../types"
@@ -24,30 +25,10 @@ interface EligibilityHistoryModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-function parseUTC(ts: string): number {
-  return new Date(/([zZ]|[+-]\d{2}:?\d{2})$/.test(ts) ? ts : ts + "Z").getTime()
-}
-
 function formatDate(isoDate: string): string {
   const d = new Date(parseUTC(isoDate))
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
     " " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
-}
-
-function formatDuration(start?: string | null, end?: string | null): string {
-  if (!start) return "-"
-  const s = parseUTC(start)
-  const e = end ? parseUTC(end) : Date.now()
-  const totalSeconds = Math.max(0, Math.round((e - s) / 1000))
-  if (totalSeconds < 60) return `${totalSeconds}s`
-  if (totalSeconds < 3600) {
-    const m = Math.floor(totalSeconds / 60)
-    const sec = totalSeconds % 60
-    return `${m}m ${sec}s`
-  }
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  return `${h}h ${m}m`
 }
 
 /** The Phase A results file is the stage-1 download file. */
@@ -153,7 +134,7 @@ export function EligibilityHistoryModal({
                       {run.started_at ? formatDate(run.started_at) : formatDate(run.created_at)}
                     </span>
                     <span className="text-muted-foreground">
-                      {formatDuration(run.started_at, run.completed_at)}
+                      <LiveDuration start={run.started_at} end={run.completed_at} />
                     </span>
                     <span className="text-muted-foreground truncate">{summary}</span>
                     <div className="flex gap-1">

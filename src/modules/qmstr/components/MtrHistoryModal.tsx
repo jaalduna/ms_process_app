@@ -16,10 +16,7 @@ import { useMtrHistory } from "../hooks/useMtrHistory"
 import { MTR_STATUS_CONFIG } from "../types"
 import type { MtrRun } from "../types"
 import { downloadMtrCsv } from "../utils/downloadMtrCsv"
-
-function parseUTC(ts: string): number {
-  return new Date(ts).getTime()
-}
+import { LiveDuration, parseUTC } from "@/lib/duration"
 
 function formatDate(isoDate: string): string {
   const d = new Date(parseUTC(isoDate))
@@ -32,22 +29,6 @@ function formatDate(isoDate: string): string {
     minute: "2-digit",
     hour12: false,
   })
-}
-
-function formatDuration(start: string | null | undefined, end: string | null | undefined): string {
-  if (!start) return "-"
-  const s = parseUTC(start)
-  const e = end ? parseUTC(end) : Date.now()
-  const totalSeconds = Math.max(0, Math.round((e - s) / 1000))
-  if (totalSeconds < 60) return `${totalSeconds}s`
-  if (totalSeconds < 3600) {
-    const m = Math.floor(totalSeconds / 60)
-    const sec = totalSeconds % 60
-    return `${m}m ${sec}s`
-  }
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  return `${h}h ${m}m`
 }
 
 function HistoryEntrySkeleton() {
@@ -78,7 +59,6 @@ function HistoryEntry({ run, isDownloading, onDownload }: HistoryEntryProps) {
   const isCompleted = run.status === "completed"
   const canDownload = isCompleted && run.results_summary != null
   const dateStr = formatDate(run.created_at)
-  const duration = formatDuration(run.started_at, run.completed_at)
 
   return (
     <div className="flex items-center justify-between py-3 px-1 group">
@@ -110,7 +90,7 @@ function HistoryEntry({ run, isDownloading, onDownload }: HistoryEntryProps) {
 
         <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-[50px] justify-end">
           <Clock className="h-3 w-3 shrink-0" />
-          <span>{duration}</span>
+          <LiveDuration start={run.started_at} end={run.completed_at} />
         </div>
 
         <Button

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Download, Eye, Loader2, FileText, Star } from "lucide-react"
 import { downloadCalibrationReport, getEvent, patchEvent } from "@/lib/api"
+import { LiveDuration, parseUTC } from "@/lib/duration"
 import { useCalibrationHistory } from "../hooks/useCalibrationHistory"
 import { CalibrationDetailModal } from "./CalibrationDetailModal"
 import type { EventSummary, JobStatus } from "@/types/api"
@@ -23,10 +24,6 @@ interface CalibrationHistoryModalProps {
   countryFlag: string
   open: boolean
   onClose: () => void
-}
-
-function parseUTC(ts: string): number {
-  return new Date(/([zZ]|[+-]\d{2}:?\d{2})$/.test(ts) ? ts : ts + "Z").getTime()
 }
 
 function formatDate(isoDate: string): string {
@@ -40,22 +37,6 @@ function formatDate(isoDate: string): string {
     minute: "2-digit",
     hour12: false,
   })
-}
-
-function formatDuration(start: string | null, end: string | null): string {
-  if (!start) return "-"
-  const s = parseUTC(start)
-  const e = end ? parseUTC(end) : Date.now()
-  const totalSeconds = Math.max(0, Math.round((e - s) / 1000))
-  if (totalSeconds < 60) return `${totalSeconds}s`
-  if (totalSeconds < 3600) {
-    const m = Math.floor(totalSeconds / 60)
-    const sec = totalSeconds % 60
-    return `${m}m ${sec}s`
-  }
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  return `${h}h ${m}m`
 }
 
 interface StatusBadgeConfig {
@@ -231,7 +212,7 @@ export function CalibrationHistoryModal({
                       </Badge>
                       <span className="text-muted-foreground">{formatDate(event.created_at)}</span>
                       <span className="text-muted-foreground">
-                        {formatDuration(event.started_at, event.completed_at)}
+                        <LiveDuration start={event.started_at} end={event.completed_at} />
                       </span>
                       <span className="text-muted-foreground truncate">
                         {event.error

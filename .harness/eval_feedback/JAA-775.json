@@ -1,0 +1,36 @@
+{
+  "ticket": "JAA-775",
+  "attempts": [
+    {
+      "attempt": 1,
+      "result": "FAIL",
+      "verdicts": [
+        { "id": "ac1", "verdict": "PASS" },
+        {
+          "id": "ac2",
+          "verdict": "FAIL",
+          "evidence": "src/modules/sync/pages/EventDetailPage.tsx still had its own local LiveDuration React component with its own useState+useRef+setInterval ticking mechanism, duplicating the shared useNow ticking primitive even though the formatDuration name collision was already resolved (renamed to formatElapsedSeconds)."
+        },
+        { "id": "ac3", "verdict": "PASS" },
+        {
+          "id": "ac4",
+          "verdict": "PASS",
+          "evidence": "e2e/live-duration.spec.ts CLI run fails on a pre-existing, unrelated infra flake (15s timeout on the Mexico 'view calibration details' locator), reproduced identically against unmodified baseline code and in a pre-existing spec (calibration-runs.spec.ts, JAA-648). Feature independently verified via manual Playwright-MCP walkthrough: Duration text advanced 58s -> 1m 5s over a real ~7s wait with zero interaction. Captured as non-blocking follow-up JAA-780."
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "result": "PASS",
+      "fix": "EventDetailPage.tsx's local LiveDuration component now delegates ticking to the shared useNow(1_000, !!startedAt) hook from src/lib/duration.tsx instead of maintaining its own setInterval/useEffect/useRef. It keeps its own distinct formatElapsedSeconds/liveDuration formatter (ms-precision, seconds-based) per the plan's intent -- only the duplicated ticking mechanism was removed.",
+      "verdicts": [
+        { "id": "ac1", "verdict": "PASS", "evidence": "EventDetailPage.tsx LiveDuration delegates ticking solely to shared useNow hook; no local setInterval/useEffect/useRef remains." },
+        { "id": "ac2", "verdict": "PASS", "evidence": "grep -rn \"function formatDuration\" src/modules src/components src/lib -> exactly one hit: src/lib/duration.tsx:20." },
+        { "id": "ac3", "verdict": "PASS", "evidence": "npm test: 465/465 passed (62 files). npm run lint: clean. npx tsc -b: no errors. npm run build: succeeded." },
+        { "id": "ac4", "verdict": "PASS", "evidence": "Carried over from attempt 1 (no regression from the ac2 fix); dual verification (baseline-flake reproduction + manual MCP walkthrough) stands." }
+      ]
+    }
+  ],
+  "final_verdict": "PASS",
+  "follow_up_tickets": ["JAA-780"]
+}

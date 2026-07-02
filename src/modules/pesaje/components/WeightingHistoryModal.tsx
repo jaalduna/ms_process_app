@@ -17,6 +17,7 @@ import { useWeightingRuns } from "../hooks/useWeighting"
 import { WeightingDetailModal } from "./WeightingDetailModal"
 import { WEIGHTING_STATUS_CONFIG } from "../types"
 import { COUNTRY_LABELS } from "@/lib/countries"
+import { LiveDuration } from "@/lib/duration"
 import type { WeightingRun } from "../types"
 
 const GRID = "grid grid-cols-[minmax(28px,auto)_minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_minmax(100px,auto)_auto] gap-2"
@@ -35,17 +36,6 @@ function formatDate(isoDate: string): string {
     hour: "2-digit",
     minute: "2-digit",
   })
-}
-
-function formatDuration(start?: string | null, end?: string | null): string {
-  if (!start) return "-"
-  const s = new Date(start).getTime()
-  const e = end ? new Date(end).getTime() : Date.now()
-  const totalSeconds = Math.max(0, Math.round((e - s) / 1000))
-  if (totalSeconds < 60) return `${totalSeconds}s`
-  const m = Math.floor(totalSeconds / 60)
-  const sec = totalSeconds % 60
-  return `${m}m ${sec}s`
 }
 
 export function WeightingHistoryModal({ countryCode, open, onOpenChange }: WeightingHistoryModalProps) {
@@ -161,7 +151,7 @@ export function WeightingHistoryModal({ countryCode, open, onOpenChange }: Weigh
                       {run.started_at ? formatDate(run.started_at) : "-"}
                     </span>
                     <span className="text-muted-foreground">
-                      {formatDuration(run.started_at, run.completed_at)}
+                      <LiveDuration start={run.started_at} end={run.completed_at} />
                     </span>
                     <span className="text-muted-foreground truncate">
                       {summary ?? (run.error_message ? `Error: ${run.error_message}` : "-")}

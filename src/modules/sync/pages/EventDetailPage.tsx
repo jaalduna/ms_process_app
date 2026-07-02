@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react"
+import { useMemo, useState } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Loader2, CheckCircle2, XCircle, Clock, Database, FileText, AlertTriangle, RotateCcw, Layers, Ban } from "lucide-react"
+import { useNow } from "@/lib/duration"
 
 function formatRows(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -38,7 +39,7 @@ function formatRows(n: number): string {
   return n.toLocaleString()
 }
 
-function formatDuration(seconds: number): string {
+function formatElapsedSeconds(seconds: number): string {
   if (seconds < 0) seconds = 0
   if (seconds < 1) return `${(seconds * 1000).toFixed(0)}ms`
   if (seconds < 60) return `${seconds.toFixed(1)}s`
@@ -75,7 +76,7 @@ function computeDuration(started: string | null, completed: string | null): stri
   const start = parseUTC(started).getTime()
   const end = completed ? parseUTC(completed).getTime() : Date.now()
   const seconds = (end - start) / 1000
-  return formatDuration(seconds)
+  return formatElapsedSeconds(seconds)
 }
 
 /** Compute a live elapsed duration from a started_at timestamp to now. */
@@ -83,11 +84,11 @@ function liveDuration(startedAt: string | null): string {
   if (!startedAt) return "--"
   const start = parseUTC(startedAt).getTime()
   const seconds = (Date.now() - start) / 1000
-  return formatDuration(seconds)
+  return formatElapsedSeconds(seconds)
 }
 
 /** Leaf component that ticks every second to show a live elapsed duration.
- *  Only this component re-renders on each tick. */
+ *  Only this component re-renders on each tick (shared ticking via useNow). */
 function LiveDuration({
   startedAt,
   className,
@@ -95,17 +96,7 @@ function LiveDuration({
   startedAt: string | null
   className?: string
 }) {
-  const [, setTick] = useState(0)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    if (!startedAt) return
-    intervalRef.current = setInterval(() => setTick((t) => t + 1), 1_000)
-    return () => {
-      if (intervalRef.current !== null) clearInterval(intervalRef.current)
-    }
-  }, [startedAt])
-
+  useNow(1_000, !!startedAt)
   return <span className={className}>{liveDuration(startedAt)}</span>
 }
 
@@ -197,7 +188,7 @@ const queryResultColumns: ColumnDef<QueryResult, unknown>[] = [
       }
       return (
         <span className="flex justify-end text-muted-foreground">
-          {seconds > 0 ? formatDuration(seconds) : "--"}
+          {seconds > 0 ? formatElapsedSeconds(seconds) : "--"}
         </span>
       )
     },
@@ -265,7 +256,7 @@ function QueryDetailDialog({
                 <Clock className="h-4 w-4" /> Duration
               </dt>
               <dd className="font-mono">
-                {query.duration_seconds > 0 ? formatDuration(query.duration_seconds) : "--"}
+                {query.duration_seconds > 0 ? formatElapsedSeconds(query.duration_seconds) : "--"}
               </dd>
 
               {query.rows_extracted > 0 && query.duration_seconds > 0 && (

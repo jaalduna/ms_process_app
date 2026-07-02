@@ -16,6 +16,7 @@ import type { EventDetail } from "@/types/api"
 import type { CalibrationStep } from "../types"
 import { stepLabel } from "../types"
 import { COUNTRY_LABELS } from "@/lib/countries"
+import { LiveDuration, parseUTC } from "@/lib/duration"
 
 interface CalibrationDetailModalProps {
   job: EventDetail | undefined
@@ -34,31 +35,6 @@ function statusVariant(status: string) {
     default:
       return "outline" as const
   }
-}
-
-function parseUTC(ts: string): number {
-  // Backend sends ISO 8601 timestamps that may already carry a timezone
-  // (e.g. "+00:00" or "Z") or none at all. Only assume UTC by appending "Z"
-  // when there is no timezone designator — otherwise the string is valid as-is.
-  const hasTz = /([zZ]|[+-]\d{2}:?\d{2})$/.test(ts)
-  return new Date(hasTz ? ts : ts + "Z").getTime()
-}
-
-function formatDuration(start: string | null, end: string | null): string {
-  if (!start) return "-"
-  const s = parseUTC(start)
-  const e = end ? parseUTC(end) : Date.now()
-  const totalSeconds = Math.max(0, Math.round((e - s) / 1000))
-  if (totalSeconds < 60) return `${totalSeconds}s`
-  if (totalSeconds < 3600) {
-    const m = Math.floor(totalSeconds / 60)
-    const sec = totalSeconds % 60
-    return `${m}m ${sec}s`
-  }
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  const sec = totalSeconds % 60
-  return `${h}h ${m}m ${sec}s`
 }
 
 function StepIcon({ status }: { status: string }) {
@@ -84,7 +60,6 @@ interface StepRowProps {
 
 function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProps) {
   const label = stepLabel(step.name)
-  const duration = formatDuration(step.started_at, step.completed_at)
 
   return (
     <div>
@@ -112,7 +87,7 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
         </div>
         <div className="flex items-center gap-3 shrink-0 ml-2">
           {step.status !== "pending" && (
-            <span className="text-muted-foreground">{duration}</span>
+            <LiveDuration start={step.started_at} end={step.completed_at} className="text-muted-foreground" />
           )}
           <Badge
             variant={statusVariant(step.status)}
@@ -198,7 +173,7 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
             <div>
               <span className="text-muted-foreground">Duration</span>
               <p className="font-medium">
-                {formatDuration(job.started_at, job.completed_at)}
+                <LiveDuration start={job.started_at} end={job.completed_at} />
               </p>
             </div>
             <div>
@@ -275,7 +250,7 @@ export function CalibrationDetailModal({ job, open, onClose }: CalibrationDetail
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0 ml-2 text-muted-foreground">
                                     {t.status !== "pending" && (
-                                      <span>{formatDuration(t.started_at, t.completed_at)}</span>
+                                      <LiveDuration start={t.started_at} end={t.completed_at} />
                                     )}
                                     <Badge
                                       variant={statusVariant(t.status)}

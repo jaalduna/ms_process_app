@@ -2,6 +2,44 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-07-01 — JAA-775 (Duration counters must tick live — shared LiveDuration) — EVALUATOR PASS (2nd attempt)
+
+**What:** Root cause was 14 component-local `formatDuration(start, end)` copies each resolving
+`end ?? Date.now()` at RENDER time, so the value froze until an unrelated re-render. Added
+`src/lib/duration.tsx`: `parseUTC`, `formatDuration(start, end, now)`, `useNow(intervalMs, enabled)`
+hook (ticks ~1s only while `enabled`), and `<LiveDuration start end />` (self-ticks only while
+`end` is null). Replaced 13 timestamp-based duplicates (calibracion, elegibilidad, pesaje, precios,
+mtr, qmstr, formato4) with the shared component. `sync/EventDetailPage.tsx` keeps a genuinely
+distinct ms-precision, seconds-based formatter (`formatElapsedSeconds`) per plan intent, but its
+local `LiveDuration` now delegates ticking to the shared `useNow` hook instead of its own
+`setInterval`/`useRef` — single ticking mechanism repo-wide.
+
+**Attempt 1 (FAIL):** separate evaluator (Sonnet, fresh ctx) caught that `EventDetailPage.tsx` still
+had a fully duplicated local `LiveDuration` component (own `setState`+`useRef`+`setInterval`) even
+though the `formatDuration` name collision was already resolved — the AC2 grep check only looks for
+the function name, not the ticking mechanism, so it evaded the mechanical check. Fixed by wiring that
+component's timer to the shared `useNow` hook (see above). Re-ran full VERIFY_CMD green, re-ran
+evaluator → PASS.
+
+**ac4 (Playwright) infra note:** `e2e/live-duration.spec.ts`'s CLI run and a pre-existing, unrelated
+spec (`e2e/calibration-runs.spec.ts`, JAA-648) both fail identically on a 15s timeout waiting for the
+seeded Mexico calibration card's eye button — reproduced against **unmodified baseline code**
+(JAA-775 diff fully `git stash`ed), so confirmed pre-existing sandbox flakiness (cold vite compile
+under heavy concurrent-worktree load), not a regression. Feature verified working via a direct
+Playwright-MCP manual walkthrough: Duration text advanced 58s → 1m 5s over a real ~7s wait with zero
+interaction. Captured as non-blocking follow-up **JAA-780** (`related to` JAA-775).
+
+**Verify:** vitest 465/465 passed (incl. new `duration.test.tsx`: static format at s/m/h boundaries,
+ticking, stop-on-end, unmount cleanup); `grep -rn "function formatDuration" src/modules src/components
+src/lib` → 1 hit (`src/lib/duration.tsx`); eslint clean; `tsc -b` clean; `npm run build` exit 0.
+Separate skeptical evaluator (general-purpose, Sonnet, fresh ctx, 2 passes): ALL 4 ACs PASS →
+`eval_feedback/JAA-775.json`.
+
+**PR:** → develop (direct mode), auto-complete armed at creation. Linear → In Review.
+**NEXT:** Build green → auto-complete merges; a later `/harness JAA-775` re-run (Orient → step 7)
+confirms merge + cleans worktree + sets Done. JAA-780 (e2e sandbox flakiness) is a separate,
+non-blocking follow-up ticket for a future session.
+
 ## 2026-07-01 — JAA-763 (Tarjetas/Lista view toggle for country grids — Calibración + Pesaje) — EVALUATOR PASS, PR armed
 
 **What:** Added a persisted Tarjetas/Lista toggle to the Calibración and Pesaje country grids (user

@@ -15,6 +15,7 @@ import { PricesDetailModal } from "./PricesDetailModal"
 import { downloadOutliersCSV } from "../outliersCsv"
 import { PRICES_STATUS_CONFIG } from "../types"
 import type { PricesRun } from "../types"
+import { LiveDuration, parseUTC } from "@/lib/duration"
 
 interface PricesHistoryModalProps {
   country: string
@@ -24,30 +25,10 @@ interface PricesHistoryModalProps {
   onClose: () => void
 }
 
-function parseUTC(ts: string): number {
-  return new Date(/([zZ]|[+-]\d{2}:?\d{2})$/.test(ts) ? ts : ts + "Z").getTime()
-}
-
 function formatDate(isoDate: string): string {
   const d = new Date(parseUTC(isoDate))
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
     " " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
-}
-
-function formatDuration(start: string | null, end: string | null): string {
-  if (!start) return "-"
-  const s = parseUTC(start)
-  const e = end ? parseUTC(end) : Date.now()
-  const totalSeconds = Math.max(0, Math.round((e - s) / 1000))
-  if (totalSeconds < 60) return `${totalSeconds}s`
-  if (totalSeconds < 3600) {
-    const m = Math.floor(totalSeconds / 60)
-    const sec = totalSeconds % 60
-    return `${m}m ${sec}s`
-  }
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  return `${h}h ${m}m`
 }
 
 const GRID = "grid grid-cols-[minmax(64px,auto)_minmax(80px,auto)_minmax(110px,auto)_minmax(48px,auto)_minmax(0,1fr)_auto] gap-2"
@@ -139,7 +120,7 @@ export function PricesHistoryModal({ country, countryLabel, countryFlag, open, o
                       {run.started_at ? formatDate(run.started_at) : formatDate(run.created_at)}
                     </span>
                     <span className="text-muted-foreground">
-                      {formatDuration(run.started_at ?? null, run.completed_at ?? null)}
+                      <LiveDuration start={run.started_at} end={run.completed_at} />
                     </span>
                     <span className="text-muted-foreground truncate">{summary}</span>
                     <div className="flex gap-1">
