@@ -1,0 +1,35 @@
+{
+  "ticket": "JAA-776",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-776/calibracion-feedback-visual-de-ejecucion-por-pais-badge-animado",
+  "branch": "feat/JAA-776-run-status-badge",
+  "archetype": "webapp",
+  "goal": "Visual per-country execution feedback in Calibración: animated 'Ejecutándose' badge on card + list row, and a page-header chip counting running countries.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "A reusable RunStatusBadge component renders an 'Ejecutándose' badge with a spinning Loader2 icon when job status is 'running' or 'pending', and renders the existing Completed/Failed/Cancelled badges for those statuses (visual parity with today).",
+      "how_to_verify": "vitest unit test: render RunStatusBadge for each status ('pending','running','completed','failed','cancelled', undefined) and assert badge text + presence/absence of animate-spin class. npm test passes."
+    },
+    {
+      "id": "ac2",
+      "criterion": "CountryCard shows the running badge while a calibration job is running/pending, in the same status-badge slot; CountryListRow shows it in the Resultado column (which today is empty while running).",
+      "how_to_verify": "Playwright e2e: start mock (npm run mock:fast), trigger calibration for one country, assert badge with text 'Ejecutándose' is visible in both cards view and list view before the job completes; after completion assert 'Completed' badge appears."
+    },
+    {
+      "id": "ac3",
+      "criterion": "CalibrationPage header shows a chip '<N> en ejecución' with the flags of the running countries when at least one job is running/pending, and the chip is absent when none are running.",
+      "how_to_verify": "Playwright e2e: before triggering, assert chip not present; trigger calibration for a country, assert chip visible with count 1 and that country's flag; after job completes, assert chip disappears."
+    },
+    {
+      "id": "ac4",
+      "criterion": "No regressions: full VERIFY_CMD green.",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b, then MOCK_SERVER_PORT=8000 npm run test:e2e:fast against mock:fast + dev:e2e."
+    }
+  ],
+  "tasks": [
+    { "id": "t1", "desc": "Create shared RunStatusBadge component (src/modules/calibracion/components/RunStatusBadge.tsx or src/components if trivially generic) with unit tests; covers pending/running (spinner) + completed/failed/cancelled (current visuals).", "status": "incomplete" },
+    { "id": "t2", "desc": "Wire RunStatusBadge into CountryCard (replace the three inline status badges) and CountryListRow (Resultado column).", "status": "incomplete" },
+    { "id": "t3", "desc": "Add RunningCountriesChip in CalibrationPage header next to ViewToggle: derives running countries from the same /calibration/runs query data; hidden when zero.", "status": "incomplete" },
+    { "id": "t4", "desc": "Playwright e2e specs for ac2 + ac3 (smoke project, using mock:fast + dev:e2e), then full VERIFY_CMD.", "status": "incomplete" }
+  ]
+}

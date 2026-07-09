@@ -2,6 +2,34 @@
 
 _Session notes: what / why / next. Newest on top._
 
+## 2026-07-02 — JAA-790 (Descargar Excel template/actual en UniversoTab) — EVALUATOR PASS, PR armed
+
+**What/why:** Ad-hoc user feedback ("el formato del excel para subir universo no es necesariamente
+conocido") triaged into a cross-repo feature (**JAA-788** parent): add a download button so users
+can grab a blank template or the current published values before editing + re-uploading via the
+existing wizard (JAA-583). Found an exact precedent already in-repo — JAA-628's
+`ParamsExcelToolbar`/`downloadParamsExcel` for the eligibility-params module — and mirrored it
+instead of designing from scratch.
+
+**Split:** JAA-789 (backend, `ms-process-api`, `GET .../universo/export.xlsx?template=`, separate
+repo/session) + **JAA-790** (this session, frontend). Contract-first via mock-server so JAA-790
+doesn't block on JAA-789.
+
+**Done (JAA-790):** `downloadUniversoExcel(pais, template)` in `src/modules/pesaje/params/api.ts`
+(same blob+anchor-click pattern as `downloadParamsExcel`/`downloadFormato4`); "Descargar Excel"
+button + valores-actuales/template `Switch` in `UniversoTab.tsx` next to the existing "Actualizar
+desde Excel"; mock-server route `GET /weighting/params/:pais/universo/export.xlsx` (+
+`?template=true`, correct content-type/disposition, mirrors the params.js JAA-628 precedent — no
+real xlsx writer needed in the mock, byte-level round-trip deferred to JAA-789); new
+`UniversoTab.test.tsx`.
+**Verify:** `npm run test` 476/476, lint clean, `tsc -b` clean, `npm run build` OK; live curl against
+mock-server confirmed both export.xlsx and ?template=true responses. Separate evaluator
+(general-purpose, sonnet, fresh ctx) → ALL 4 ACs PASS → `eval_feedback/JAA-790.json`.
+**PR:** 520350 → develop, auto-complete armed. Linear → In Review.
+**Next:** once JAA-789 (backend) lands, an integration check (`npm run mock:hybrid` or point
+`VITE_BRIDGE_API_URL` at the real API) confirms the exported file round-trips through the real
+`POST .../universo/upload` parser — captured as JAA-789's own AC, not a JAA-790 follow-up.
+
 ## 2026-07-01 — JAA-763 (Tarjetas/Lista view toggle for country grids — Calibración + Pesaje) — EVALUATOR PASS, PR armed
 
 **What:** Added a persisted Tarjetas/Lista toggle to the Calibración and Pesaje country grids (user

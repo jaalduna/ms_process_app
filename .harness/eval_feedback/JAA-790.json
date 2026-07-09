@@ -1,0 +1,12 @@
+{
+  "ticket": "JAA-790",
+  "evaluator": "general-purpose (sonnet, fresh ctx)",
+  "verdict": "PASS",
+  "criteria": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "npx vitest run UniversoTab -> PASS (2) FAIL (0); testids download-excel-btn / download-template-toggle / download-mode-label wired to real state, sit before universo-upload-open."},
+    {"id": "ac2", "verdict": "PASS", "evidence": "downloadUniversoExcel matches downloadParamsExcel/downloadFormato4 blob+anchor-click pattern; toggle test confirms template param flips true/false."},
+    {"id": "ac3", "verdict": "PASS", "evidence": "curl against live mock-server on :8199 for export.xlsx and ?template=true both return correct Content-Type + Content-Disposition (universo_CL.xlsx / universo_CL_template.xlsx)."},
+    {"id": "ac4", "verdict": "PASS", "evidence": "npm run test: 476/476 passed; lint clean; tsc -b clean; npm run build succeeded."}
+  ],
+  "notes": "No stubs/TODOs; diff scope tight (mock route, api.ts fn, UniversoTab.tsx, new test file); mock xlsx body is an honestly-documented placeholder (byte-level round-trip deferred to real backend JAA-789)."
+}

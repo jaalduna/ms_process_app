@@ -1,0 +1,51 @@
+{
+  "ticket": "JAA-775",
+  "linear_url": "https://linear.app/kwp/issue/JAA-775",
+  "branch": "fix/JAA-775-shared-duration",
+  "archetype": "webapp",
+  "goal": "Duration counters for in-progress runs must tick live (every ~1s) instead of freezing until an unrelated re-render, by consolidating the 14 duplicated formatDuration implementations into one shared source of truth with a self-ticking LiveDuration component.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "vitest with fake timers: <LiveDuration start=... end={null}> updates its rendered text when the clock advances 3s, with no external re-render forcing it.",
+      "how_to_verify": "npx vitest run src/__tests__/duration.test.tsx"
+    },
+    {
+      "id": "ac2",
+      "criterion": "Exactly one definition of formatDuration in the whole src tree (src/lib/duration.ts); all 14 previously-duplicated component-local copies removed.",
+      "how_to_verify": "grep -rn \"function formatDuration\" src/modules src/components | wc -l   # must be 0"
+    },
+    {
+      "id": "ac3",
+      "criterion": "Full VERIFY_CMD is green: unit tests, lint, typecheck, build.",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b && npm run build"
+    },
+    {
+      "id": "ac4",
+      "criterion": "Playwright vs mock server: with an in-progress run visible (MOCK_STEP_INTERVAL_MS set high to keep it running), the rendered duration text changes within <=2s with zero user interaction.",
+      "how_to_verify": "MOCK_STEP_INTERVAL_MS=15000 MOCK_SERVER_PORT=8000 npm run mock:fast (or npm run mock) + npm run dev:e2e, then a Playwright spec that snapshots the duration text twice 2s apart and asserts they differ"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Create src/lib/duration.ts: parseUTC, formatDuration(start, end, now = Date.now()) [canonical format Xs / Xm Ys / Xh Ym, no seconds at hour level per ticket note], useNow(intervalMs, enabled) hook, <LiveDuration start end className? /> component that self-ticks only while end is null/undefined and cleans up its interval on unmount/end-set.",
+      "status": "incomplete"
+    },
+    {
+      "id": "t2",
+      "desc": "Add src/__tests__/duration.test.tsx with vitest fake timers covering: static formatDuration output at s/m/h boundaries, LiveDuration ticking every ~1s while running, LiveDuration NOT ticking (no interval) once end is set, interval cleanup on unmount.",
+      "status": "incomplete"
+    },
+    {
+      "id": "t3",
+      "desc": "Replace all 14 component-local formatDuration definitions (calibracion x2, formato4 x2, pesaje x2, elegibilidad x2, precios x1, mtr x2, qmstr x2, sync/EventDetailPage) with the shared lib. For the 13 timestamp-based ones: import formatDuration/LiveDuration from @/lib/duration and use <LiveDuration start end /> wherever the row/step is potentially in-progress. For sync/EventDetailPage.tsx (distinct seconds-based formatter with ms precision, not one of the timestamp duplicates): rename its local function off the name 'formatDuration' (e.g. formatElapsedSeconds) to resolve the AC2 name collision without changing its distinct output format or behavior.",
+      "status": "incomplete"
+    },
+    {
+      "id": "t4",
+      "desc": "Add/extend an e2e Playwright spec asserting a running job's duration text changes without user interaction within 2s (ac4), using MOCK_STEP_INTERVAL_MS to keep a run in-progress long enough to observe.",
+      "status": "incomplete"
+    }
+  ]
+}

@@ -1,0 +1,936 @@
+<title>PyCac — Mock-up de flujo de solicitud y aprobación</title>
+<style>
+  :root {
+    --bg: #F4F6F3;
+    --surface: #FFFFFF;
+    --surface-2: #EDF1EC;
+    --ink: #1B211D;
+    --ink-muted: #5B655D;
+    --ink-faint: #8A9490;
+    --line: #DCE3DB;
+    --line-strong: #C3CDC0;
+    --accent: #146B63;
+    --accent-strong: #0E504A;
+    --accent-soft: #E1F0EC;
+    --st-open-bg: #E7E9E5;   --st-open-fg: #4B534E;
+    --st-progress-bg: #E1EBF6; --st-progress-fg: #2B5F94;
+    --st-warning-bg: #F7ECD6; --st-warning-fg: #93630C;
+    --st-error-bg: #F6E0DE;  --st-error-fg: #9B342E;
+    --st-success-bg: #E1F0E6; --st-success-fg: #276B48;
+    --st-closed-bg: #E9EDEA; --st-closed-fg: #6B756F;
+    --shadow-drawer: -24px 0 48px -20px rgba(20, 30, 25, 0.28);
+    --shadow-card: 0 1px 2px rgba(20,30,25,0.05), 0 1px 1px rgba(20,30,25,0.03);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101613;
+      --surface: #161D19;
+      --surface-2: #1C2521;
+      --ink: #E7EFEA;
+      --ink-muted: #9AABA3;
+      --ink-faint: #6D7A75;
+      --line: #283330;
+      --line-strong: #34423E;
+      --accent: #4FBDAF;
+      --accent-strong: #6FD3C6;
+      --accent-soft: #1B2E2A;
+      --st-open-bg: #232B27;   --st-open-fg: #AEB9B3;
+      --st-progress-bg: #1D2C3A; --st-progress-fg: #8FBBE8;
+      --st-warning-bg: #33290F; --st-warning-fg: #E3B45C;
+      --st-error-bg: #351D1B;  --st-error-fg: #E5978F;
+      --st-success-bg: #163326; --st-success-fg: #86CBA5;
+      --st-closed-bg: #1E2724; --st-closed-fg: #8B9691;
+      --shadow-drawer: -24px 0 48px -20px rgba(0,0,0,0.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101613; --surface: #161D19; --surface-2: #1C2521;
+    --ink: #E7EFEA; --ink-muted: #9AABA3; --ink-faint: #6D7A75;
+    --line: #283330; --line-strong: #34423E;
+    --accent: #4FBDAF; --accent-strong: #6FD3C6; --accent-soft: #1B2E2A;
+    --st-open-bg: #232B27;   --st-open-fg: #AEB9B3;
+    --st-progress-bg: #1D2C3A; --st-progress-fg: #8FBBE8;
+    --st-warning-bg: #33290F; --st-warning-fg: #E3B45C;
+    --st-error-bg: #351D1B;  --st-error-fg: #E5978F;
+    --st-success-bg: #163326; --st-success-fg: #86CBA5;
+    --st-closed-bg: #1E2724; --st-closed-fg: #8B9691;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #F4F6F3; --surface: #FFFFFF; --surface-2: #EDF1EC;
+    --ink: #1B211D; --ink-muted: #5B655D; --ink-faint: #8A9490;
+    --line: #DCE3DB; --line-strong: #C3CDC0;
+    --accent: #146B63; --accent-strong: #0E504A; --accent-soft: #E1F0EC;
+    --st-open-bg: #E7E9E5;   --st-open-fg: #4B534E;
+    --st-progress-bg: #E1EBF6; --st-progress-fg: #2B5F94;
+    --st-warning-bg: #F7ECD6; --st-warning-fg: #93630C;
+    --st-error-bg: #F6E0DE;  --st-error-fg: #9B342E;
+    --st-success-bg: #E1F0E6; --st-success-fg: #276B48;
+    --st-closed-bg: #E9EDEA; --st-closed-fg: #6B756F;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-sans-serif, "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+  button { font: inherit; }
+  ::selection { background: var(--accent-soft); color: var(--accent-strong); }
+
+  .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ---- Topbar ---- */
+  .topbar {
+    display: flex; align-items: center; gap: 28px;
+    padding: 0 28px; height: 60px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 19px; height: 19px; }
+  .brand-name { font-weight: 700; font-size: 15px; }
+  .brand-sub { color: var(--ink-faint); font-size: 12px; }
+
+  .tabs { display: flex; gap: 4px; margin-left: 8px; }
+  .tab {
+    border: none; background: transparent; color: var(--ink-muted);
+    padding: 10px 14px; border-radius: 8px; cursor: pointer;
+    font-weight: 600; font-size: 13.5px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .tab:hover { background: var(--surface-2); color: var(--ink); }
+  .tab[aria-selected="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .theme-toggle {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .theme-toggle:hover { background: var(--surface-2); color: var(--ink); }
+  .theme-toggle svg { width: 17px; height: 17px; }
+  .theme-toggle .icon-moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: none; }
+    :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: block; }
+  }
+  .role-pill {
+    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--accent-strong); background: var(--accent-soft);
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .user-chip { display: flex; align-items: center; gap: 8px; color: var(--ink-muted); font-size: 13px; }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2);
+    border: 1px solid var(--line); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--ink-muted);
+  }
+
+  main { flex: 1; padding: 32px 28px 64px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+  .eyebrow {
+    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-faint); margin-bottom: 6px; display: block;
+  }
+  .page-head h1 { font-size: 22px; }
+  .page-desc { color: var(--ink-muted); font-size: 13.5px; margin-top: 4px; max-width: 60ch; }
+
+  /* ---- shared bits ---- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+    border-radius: 8px; padding: 9px 16px; font-weight: 650; font-size: 13.5px;
+    cursor: pointer; border: 1px solid transparent; transition: all .15s ease;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-strong); }
+  .btn-primary:disabled { background: var(--line-strong); color: var(--surface); cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-ghost:hover { background: var(--surface-2); }
+  .btn-danger { background: transparent; color: var(--st-error-fg); border-color: var(--st-error-bg); }
+  .btn-danger:hover { background: var(--st-error-bg); }
+  .btn-sm { padding: 6px 11px; font-size: 12.5px; border-radius: 7px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.st-abierto     { background: var(--st-open-bg);     color: var(--st-open-fg); }
+  .pill.st-proceso     { background: var(--st-progress-bg); color: var(--st-progress-fg); }
+  .pill.st-warning     { background: var(--st-warning-bg);  color: var(--st-warning-fg); }
+  .pill.st-error       { background: var(--st-error-bg);    color: var(--st-error-fg); }
+  .pill.st-exito       { background: var(--st-success-bg);  color: var(--st-success-fg); }
+  .pill.st-cerrado     { background: var(--st-closed-bg);   color: var(--st-closed-fg); }
+
+  .flag-tag {
+    font-size: 11.5px; font-weight: 650; color: var(--ink-muted);
+    background: var(--surface-2); border: 1px solid var(--line);
+    padding: 2px 8px; border-radius: 6px;
+  }
+
+  /* ================= Nueva solicitud (wizard) ================= */
+  .wizard { max-width: 760px; }
+  .steps { display: flex; gap: 8px; margin-bottom: 24px; }
+  .step {
+    flex: 1; display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line);
+  }
+  .step .num {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2);
+    color: var(--ink-faint); font-size: 11px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step.done { border-color: var(--accent); background: var(--accent-soft); }
+  .step.done .num { background: var(--accent); color: #fff; }
+  .step.current { border-color: var(--line-strong); }
+  .step.current .num { background: var(--ink); color: var(--surface); }
+  .step .label { font-size: 12.5px; font-weight: 650; color: var(--ink-muted); }
+  .step.done .label, .step.current .label { color: var(--ink); }
+
+  .panel { padding: 24px; margin-bottom: 18px; }
+  .panel h3 { font-size: 15px; margin-bottom: 4px; }
+  .panel .hint { color: var(--ink-muted); font-size: 12.5px; margin-bottom: 18px; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12.5px; font-weight: 650; color: var(--ink-muted); }
+  .field select, .field input[type="text"] {
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px;
+    background: var(--surface); color: var(--ink); font: inherit; font-size: 13.5px;
+  }
+  .field select:focus, .field input:focus, button:focus-visible, .tab:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+
+  .flag-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .flag-opt {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+    padding: 8px 12px; font-size: 12.5px; font-weight: 650; color: var(--ink-muted); cursor: pointer;
+  }
+  .flag-opt.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
+
+  .dropzone {
+    border: 1.5px dashed var(--line-strong); border-radius: 10px; padding: 28px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+    background: var(--surface-2);
+  }
+  .dropzone .file-icon {
+    width: 38px; height: 38px; border-radius: 9px; background: var(--surface);
+    border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 17px;
+  }
+  .dropzone strong { font-size: 13.5px; }
+  .dropzone .formats { color: var(--ink-faint); font-size: 12px; }
+  .template-link {
+    margin-top: 4px; font-size: 12.5px; color: var(--accent); font-weight: 650;
+    text-decoration: none; border-bottom: 1px solid transparent;
+  }
+  .template-link:hover { border-color: var(--accent); }
+
+  .file-chosen {
+    display: flex; align-items: center; gap: 10px; margin-top: 14px;
+    border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; background: var(--surface);
+  }
+  .file-chosen .file-icon { width: 30px; height: 30px; font-size: 14px; }
+  .file-chosen .name { font-weight: 650; font-size: 13px; }
+  .file-chosen .meta { color: var(--ink-faint); font-size: 12px; }
+  .file-chosen .remove { margin-left: auto; background: none; border: none; color: var(--ink-faint); cursor: pointer; font-size: 16px; }
+
+  .actions-row { display: flex; justify-content: flex-end; gap: 10px; }
+
+  .val-summary { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .val-stat { flex: 1; min-width: 120px; border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; background: var(--surface); }
+  .val-stat .n { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .val-stat .l { font-size: 11.5px; color: var(--ink-muted); font-weight: 650; }
+  .val-stat.ok .n { color: var(--st-success-fg); }
+  .val-stat.warn .n { color: var(--st-warning-fg); }
+  .val-stat.err .n { color: var(--st-error-fg); }
+  .val-stat.zero .n { color: var(--ink-faint); }
+  .val-stat.zero.has-err { border-color: var(--st-error-fg); }
+  .val-stat.zero.has-err .n { color: var(--st-error-fg); }
+
+  .val-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .val-row { display: flex; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .val-row:last-child { border-bottom: none; }
+  .val-row .sev { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+  .val-row.err .sev { background: var(--st-error-bg); color: var(--st-error-fg); }
+  .val-row.warn .sev { background: var(--st-warning-bg); color: var(--st-warning-fg); }
+  .val-row .loc { font-size: 11.5px; color: var(--ink-faint); margin-bottom: 2px; }
+  .val-row .msg { font-size: 13px; }
+  .val-row .fix { font-size: 12px; color: var(--accent); margin-top: 3px; }
+
+  .confirm-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 24px; }
+  .confirm-summary dt { font-size: 11.5px; font-weight: 650; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .03em; }
+  .confirm-summary dd { margin: 3px 0 0; font-size: 13.5px; }
+
+  /* ================= Tickets (approver dashboard) ================= */
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .chip {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+    padding: 6px 13px; font-size: 12.5px; font-weight: 650; color: var(--ink-muted); cursor: pointer;
+  }
+  .chip.active { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .filters .search {
+    margin-left: auto; border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px;
+    background: var(--surface); color: var(--ink); font-size: 13px; width: 220px;
+  }
+
+  table.tickets { width: 100%; border-collapse: collapse; }
+  table.tickets thead th {
+    text-align: left; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+    color: var(--ink-faint); padding: 10px 14px; border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  table.tickets tbody tr { cursor: pointer; transition: background .1s ease; }
+  table.tickets tbody tr:hover { background: var(--surface-2); }
+  table.tickets tbody tr.selected { background: var(--accent-soft); }
+  table.tickets td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 13.3px; vertical-align: middle; }
+  table.tickets td.id { font-weight: 700; }
+  table.tickets td .table-name { font-size: 12px; }
+  table.tickets td .muted { color: var(--ink-faint); font-size: 12.3px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+
+  /* ================= Drawer ================= */
+  .scrim {
+    position: fixed; inset: 0; background: rgba(15, 20, 17, 0.35); z-index: 30;
+    opacity: 0; pointer-events: none; transition: opacity .18s ease;
+  }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; height: 100vh; width: min(480px, 92vw);
+    background: var(--surface); z-index: 31; box-shadow: var(--shadow-drawer);
+    transform: translateX(100%); transition: transform .2s ease;
+    display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { padding: 20px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .drawer-head .id { font-size: 17px; font-weight: 800; }
+  .drawer-close { background: none; border: none; color: var(--ink-faint); font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+  .drawer-body { padding: 20px 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 22px; }
+  .drawer-section .h { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); margin-bottom: 10px; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+  .meta-grid dt { font-size: 11.5px; color: var(--ink-faint); font-weight: 650; }
+  .meta-grid dd { margin: 2px 0 0; font-size: 13.3px; }
+
+  .diff-table { width: 100%; border-collapse: collapse; font-size: 12.6px; }
+  .diff-table th { text-align: left; font-weight: 700; color: var(--ink-faint); padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; }
+  .diff-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .diff-table .old { color: var(--st-error-fg); text-decoration: line-through; }
+  .diff-table .new { color: var(--st-success-fg); font-weight: 650; }
+
+  .exec-track { display: flex; align-items: center; gap: 0; margin-top: 4px; }
+  .exec-node { display: flex; align-items: center; gap: 8px; }
+  .exec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); flex-shrink: 0; }
+  .exec-dot.on { background: var(--accent); }
+  .exec-line { width: 34px; height: 2px; background: var(--line-strong); }
+  .exec-line.on { background: var(--accent); }
+  .exec-label { font-size: 11.5px; color: var(--ink-muted); font-weight: 650; }
+
+  .drawer-foot { padding: 16px 22px; border-top: 1px solid var(--line); display: flex; gap: 10px; }
+  .drawer-foot .btn { flex: 1; }
+
+  /* ================= Close ticket dialog ================= */
+  dialog#closeDialog {
+    border: none; border-radius: 14px; padding: 0; width: min(440px, 92vw);
+    background: var(--surface); color: var(--ink);
+    box-shadow: 0 24px 60px rgba(10,15,12,0.35);
+  }
+  dialog#closeDialog::backdrop { background: rgba(15,20,17,0.4); }
+  .dialog-pad { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+  .dialog-pad h3 { font-size: 15.5px; }
+  .radio-row { display: flex; gap: 8px; }
+  .radio-opt { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 9px; text-align: center; font-size: 12.5px; font-weight: 650; cursor: pointer; color: var(--ink-muted); }
+  .radio-opt.selected.ok { border-color: var(--st-success-fg); background: var(--st-success-bg); color: var(--st-success-fg); }
+  .radio-opt.selected.bad { border-color: var(--st-error-fg); background: var(--st-error-bg); color: var(--st-error-fg); }
+  textarea {
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: inherit; font-size: 13px;
+    background: var(--surface); color: var(--ink); resize: vertical; min-height: 76px;
+  }
+
+  .footnote { color: var(--ink-faint); font-size: 12px; margin-top: 22px; max-width: 62ch; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .drawer, .scrim, .tab, .btn { transition: none; }
+  }
+
+  @media (max-width: 760px) {
+    .field-row, .confirm-summary, .meta-grid { grid-template-columns: 1fr; }
+    .tabs { display: none; }
+  }
+</style>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6.5" y="7.5" width="11" height="13" rx="5.5" fill="#fff"/>
+          <path d="M9 10v9M12 9.3v10M15 10v9" stroke="#0E504A" stroke-width="1.1" stroke-linecap="round"/>
+          <path d="M6.5 11.5l-2 -1M6.5 14.5l-2.2 .4M17.5 11.5l2 -1M17.5 14.5l2.2 .4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>
+          <circle cx="12" cy="6" r="1.6" fill="#FF9D74"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">PyCac</div>
+        <div class="brand-sub">Correcciones a tablas de compras</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Secciones de PyCac">
+      <button class="tab" role="tab" aria-selected="false" data-view="nueva">Nueva solicitud</button>
+      <button class="tab" role="tab" aria-selected="true" data-view="tickets">Tickets</button>
+    </nav>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro" aria-pressed="false">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M20 14.2A8.3 8.3 0 1 1 9.8 4a6.6 6.6 0 0 0 10.2 10.2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="role-pill" id="rolePill">Aprobador</span>
+      <div class="user-chip">
+        <div class="avatar">MP</div>
+        <span>M. Pérez</span>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- ===================== VIEW: Nueva solicitud ===================== -->
+    <section class="view" id="view-nueva">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">Analista · Solicitud de cambio</span>
+          <h1>Actualizar una tabla productiva</h1>
+          <p class="page-desc">Subí un archivo con las correcciones. Lo validamos antes de crear el ticket, así llega a aprobación sin errores lógicos pendientes.</p>
+        </div>
+      </div>
+
+      <div class="wizard">
+        <div class="steps">
+          <div class="step done" data-step="1"><span class="num">✓</span><span class="label">Archivo y contexto</span></div>
+          <div class="step current" data-step="2"><span class="num">2</span><span class="label">Validación</span></div>
+          <div class="step" data-step="3"><span class="num">3</span><span class="label">Confirmar y enviar</span></div>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="panel card" id="step1" style="display:none">
+          <h3>¿Qué tabla vas a corregir?</h3>
+          <p class="hint">El formato esperado depende de la tabla elegida. Descargá la plantilla antes de llenar tu archivo.</p>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="tabla">Tabla productiva</label>
+              <select id="tabla">
+                <option>j_atoscompra_new</option>
+                <option>j_atoscompra_new_test</option>
+                <option>hato_cabecalho_ooh</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="pais">País</label>
+              <select id="pais">
+                <option>Bolivia</option>
+                <option>Chile</option>
+                <option>México</option>
+                <option>Colombia</option>
+                <option>Ecuador</option>
+                <option>Perú</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom:16px">
+            <label>Motivo del cambio</label>
+            <div class="flag-grid">
+              <div class="flag-opt selected">Cuestionamientos</div>
+              <div class="flag-opt">Reprocesos</div>
+              <div class="flag-opt">Críticas</div>
+              <div class="flag-opt">Código de precios</div>
+              <div class="flag-opt">Otros</div>
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom:6px">
+            <label>Archivo</label>
+            <div class="dropzone">
+              <div class="file-icon">📄</div>
+              <strong>Arrastrá tu archivo o hacé clic para elegirlo</strong>
+              <span class="formats">.xlsx · .csv · .parquet — máx. 25&nbsp;MB</span>
+              <a class="template-link" href="#">Descargar plantilla de j_atoscompra_new ↓</a>
+            </div>
+            <div class="file-chosen">
+              <div class="file-icon">📊</div>
+              <div>
+                <div class="name">correcciones_bo_julio.xlsx</div>
+                <div class="meta">312 filas · 8 columnas · subido hace unos segundos</div>
+              </div>
+              <button class="remove" aria-label="Quitar archivo">×</button>
+            </div>
+          </div>
+
+          <div class="actions-row" style="margin-top:18px">
+            <button class="btn btn-primary" data-goto="2">Validar archivo →</button>
+          </div>
+        </div>
+
+        <!-- Step 2: validation -->
+        <div class="panel card" id="step2">
+          <h3>Resultado de la validación</h3>
+          <p class="hint"><span class="mono">correcciones_bo_julio.xlsx</span> contra <strong>j_atoscompra_new</strong> · Bolivia</p>
+
+          <div class="val-summary">
+            <div class="val-stat ok"><div class="n">298</div><div class="l">Filas OK</div></div>
+            <div class="val-stat warn"><div class="n">11</div><div class="l">Advertencias</div></div>
+            <div class="val-stat err"><div class="n">3</div><div class="l">Errores — bloquean el envío</div></div>
+          </div>
+
+          <div class="val-list">
+            <div class="val-row err">
+              <div class="sev">!</div>
+              <div>
+                <div class="loc">Fila 14 · columna Cantidad</div>
+                <div class="msg">Cantidad negativa (-4) no permitida para IdAto 88231.</div>
+                <div class="fix">Corregí el valor a un entero ≥ 0 y volvé a subir el archivo.</div>
+              </div>
+            </div>
+            <div class="val-row err">
+              <div class="sev">!</div>
+              <div>
+                <div class="loc">Fila 61 · columna IdProducto</div>
+                <div class="msg">IdProducto 4821093 no existe en el catálogo vigente de Bolivia.</div>
+                <div class="fix">Verificá el código o usá la plantilla de búsqueda de productos.</div>
+              </div>
+            </div>
+            <div class="val-row err">
+              <div class="sev">!</div>
+              <div>
+                <div class="loc">Fila 205 · fila duplicada</div>
+                <div class="msg">IdAto 91007 aparece dos veces con valores distintos.</div>
+                <div class="fix">Dejá una sola fila por IdAto antes de reenviar.</div>
+              </div>
+            </div>
+            <div class="val-row warn">
+              <div class="sev">△</div>
+              <div>
+                <div class="loc">Fila 27 · columna Precio</div>
+                <div class="msg">Precio 35% por encima de la mediana esperada para el producto.</div>
+                <div class="fix">No bloquea el envío — quedará marcada para el aprobador.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions-row" style="margin-top:16px">
+            <button class="btn btn-ghost" data-goto="1">← Volver y corregir archivo</button>
+            <button class="btn btn-primary" disabled title="Resolvé los 3 errores antes de continuar">Continuar con 3 errores</button>
+          </div>
+        </div>
+
+        <!-- Step 3: confirm -->
+        <div class="panel card" id="step3" style="display:none">
+          <h3>Confirmar solicitud</h3>
+          <p class="hint">Se creará un ticket con esta información. El aprobador lo revisará antes de aplicar los cambios.</p>
+          <dl class="confirm-summary">
+            <div><dt>Tabla</dt><dd>j_atoscompra_new</dd></div>
+            <div><dt>País</dt><dd>Bolivia</dd></div>
+            <div><dt>Motivo</dt><dd>Cuestionamientos</dd></div>
+            <div><dt>Archivo</dt><dd class="mono">correcciones_bo_julio.xlsx</dd></div>
+            <div><dt>Filas a aplicar</dt><dd>298 de 312</dd></div>
+            <div><dt>Solicitante</dt><dd>J. Aldunate</dd></div>
+          </dl>
+          <div class="actions-row" style="margin-top:20px">
+            <button class="btn btn-ghost" data-goto="2">← Volver</button>
+            <button class="btn btn-primary" id="submitTicket">Crear ticket MCC-1058</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="footnote">La plantilla y el motor de validación son específicos por tabla — PyCac valida tipos, catálogos y duplicados antes de dejarte avanzar. Las advertencias no bloquean, pero quedan visibles para quien apruebe.</p>
+    </section>
+
+    <!-- ===================== VIEW: Tickets ===================== -->
+    <section class="view active" id="view-tickets">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">Aprobador · Cola de solicitudes</span>
+          <h1>Tickets de PyCac</h1>
+          <p class="page-desc">Revisá, aprobá o cerrá solicitudes de corrección. Un clic para aprobar lo que ya está validado; el resto pide un motivo de cierre.</p>
+        </div>
+      </div>
+
+      <div class="filters">
+        <button class="chip active" data-filter="todos">Todos · 8</button>
+        <button class="chip" data-filter="abierto">Abierto · 2</button>
+        <button class="chip" data-filter="proceso">En proceso · 1</button>
+        <button class="chip" data-filter="warning">Warning · 1</button>
+        <button class="chip" data-filter="error">Error · 1</button>
+        <button class="chip" data-filter="exito">Éxito · 1</button>
+        <button class="chip" data-filter="cerrado">Cerrado · 2</button>
+        <input class="search" type="text" placeholder="Buscar por ticket, tabla o solicitante…">
+      </div>
+
+      <div class="table-wrap">
+        <table class="tickets">
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Tabla / País</th>
+              <th>Solicitante</th>
+              <th>Motivo</th>
+              <th>Estado</th>
+              <th>Ejecución</th>
+              <th>Actualizado</th>
+            </tr>
+          </thead>
+          <tbody id="ticketRows">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div>
+      <div class="id mono" id="drawerId">MCC-1042</div>
+      <span class="pill st-proceso" id="drawerStatus"><span class="dot"></span>En proceso</span>
+    </div>
+    <button class="drawer-close" id="drawerClose" aria-label="Cerrar panel">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <div class="h">Solicitud</div>
+      <div class="meta-grid">
+        <div><dt>Tabla</dt><dd class="mono" id="dTabla">j_atoscompra_new</dd></div>
+        <div><dt>País</dt><dd id="dPais">Bolivia</dd></div>
+        <div><dt>Solicitante</dt><dd id="dSolicitante">J. Aldunate</dd></div>
+        <div><dt>Motivo</dt><dd><span class="flag-tag" id="dMotivo">Cuestionamientos</span></dd></div>
+        <div><dt>Filas afectadas</dt><dd id="dFilas">298</dd></div>
+        <div><dt>Creado</dt><dd id="dCreado">08 jul, 14:02</dd></div>
+      </div>
+    </div>
+
+    <div class="drawer-section" id="validationSection">
+      <div class="h">Resultado de validación</div>
+      <div class="val-summary" style="margin-bottom:12px">
+        <div class="val-stat ok"><div class="n" id="vOk">298</div><div class="l">Filas OK</div></div>
+        <div class="val-stat warn"><div class="n" id="vWarn">11</div><div class="l">Advertencias</div></div>
+        <div class="val-stat zero" id="vErrStat"><div class="n" id="vErr">0</div><div class="l">Errores</div></div>
+      </div>
+      <p class="hint" id="vNote" style="margin-bottom:10px">Sin errores: el paso de validación del analista bloquea el envío si quedara alguno pendiente. Las advertencias no bloquean, pero conviene revisarlas antes de aprobar.</p>
+      <button class="btn btn-ghost btn-sm" id="toggleWarnings" aria-expanded="false">Revisar 11 advertencias ▾</button>
+      <div class="val-list" id="warningList" style="display:none; margin-top:10px"></div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="h">Vista previa de cambios (3 de 298)</div>
+      <table class="diff-table">
+        <thead><tr><th>IdAto</th><th>Campo</th><th>Antes</th><th>Después</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">88231</td><td>Cantidad</td><td class="old">12</td><td class="new">8</td></tr>
+          <tr><td class="mono">88240</td><td>PrecioUnit</td><td class="old">4.20</td><td class="new">3.95</td></tr>
+          <tr><td class="mono">88255</td><td>IdCanal</td><td class="old">3</td><td class="new">5</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="drawer-section">
+      <div class="h">Estado de ejecución</div>
+      <div class="exec-track">
+        <div class="exec-node"><div class="exec-dot on"></div></div>
+        <div class="exec-line on"></div>
+        <div class="exec-node"><div class="exec-dot on"></div></div>
+        <div class="exec-line"></div>
+        <div class="exec-node"><div class="exec-dot"></div></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-top:6px">
+        <span class="exec-label">Aprobado</span>
+        <span class="exec-label">Aplicando (36/298)</span>
+        <span class="exec-label">Finalizado</span>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-danger" id="btnCerrar">Cerrar ticket</button>
+    <button class="btn btn-ghost" id="btnModificar">Modificar</button>
+    <button class="btn btn-primary" id="btnAprobar">Aprobar</button>
+  </div>
+</aside>
+
+<dialog id="closeDialog">
+  <form method="dialog" class="dialog-pad">
+    <h3>Cerrar MCC-1042</h3>
+    <div>
+      <label style="font-size:12.5px; font-weight:650; color:var(--ink-muted); display:block; margin-bottom:8px;">Estado de resolución</label>
+      <div class="radio-row">
+        <div class="radio-opt selected ok" data-res="ok">Resuelto</div>
+        <div class="radio-opt bad" data-res="bad">Rechazado</div>
+      </div>
+    </div>
+    <div>
+      <label style="font-size:12.5px; font-weight:650; color:var(--ink-muted); display:block; margin-bottom:8px;">Comentario de cierre</label>
+      <textarea placeholder="Ej.: Se aplicaron 298 correcciones sobre j_atoscompra_new (Bolivia). Verificado contra reporte_bo.xlsx del 08/07.">Se aplicaron 298 correcciones sobre j_atoscompra_new (Bolivia). Verificado contra reporte_bo.xlsx del 08/07.</textarea>
+    </div>
+    <div class="actions-row">
+      <button class="btn btn-ghost" value="cancel">Cancelar</button>
+      <button class="btn btn-primary" value="default">Confirmar cierre</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  // ---- theme toggle ----
+  const root = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const THEME_KEY = 'pycac-theme';
+
+  function systemPrefersDark() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  function applyTheme(theme) {
+    if (theme) {
+      root.setAttribute('data-theme', theme);
+    } else {
+      root.removeAttribute('data-theme');
+    }
+    const isDark = theme ? theme === 'dark' : systemPrefersDark();
+    themeToggle.setAttribute('aria-pressed', String(isDark));
+    themeToggle.setAttribute('aria-label', isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+  }
+  applyTheme(localStorage.getItem(THEME_KEY));
+  themeToggle.addEventListener('click', () => {
+    const currentlyDark = root.getAttribute('data-theme') === 'dark' || (!root.getAttribute('data-theme') && systemPrefersDark());
+    const next = currentlyDark ? 'light' : 'dark';
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  });
+
+  // ---- tab switching ----
+  const tabs = document.querySelectorAll('.tab');
+  const views = document.querySelectorAll('.view');
+  const rolePill = document.getElementById('rolePill');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.setAttribute('aria-selected', 'false'));
+    t.setAttribute('aria-selected', 'true');
+    views.forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + t.dataset.view).classList.add('active');
+    rolePill.textContent = t.dataset.view === 'nueva' ? 'Analista' : 'Aprobador';
+  }));
+
+  // ---- wizard steps ----
+  const stepEls = { 1: document.getElementById('step1'), 2: document.getElementById('step2'), 3: document.getElementById('step3') };
+  const stepChips = document.querySelectorAll('.step');
+  function gotoStep(n) {
+    Object.entries(stepEls).forEach(([k, el]) => el.style.display = (Number(k) === n ? 'block' : 'none'));
+    stepChips.forEach(c => {
+      const s = Number(c.dataset.step);
+      c.classList.toggle('done', s < n);
+      c.classList.toggle('current', s === n);
+    });
+  }
+  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => gotoStep(Number(b.dataset.goto))));
+  gotoStep(2);
+
+  document.querySelectorAll('.flag-opt').forEach(f => f.addEventListener('click', () => {
+    f.parentElement.querySelectorAll('.flag-opt').forEach(x => x.classList.remove('selected'));
+    f.classList.add('selected');
+  }));
+
+  const submitBtn = document.getElementById('submitTicket');
+  if (submitBtn) submitBtn.addEventListener('click', () => {
+    tabs.forEach(x => x.setAttribute('aria-selected', String(x.dataset.view === 'tickets')));
+    views.forEach(v => v.classList.remove('active'));
+    document.getElementById('view-tickets').classList.add('active');
+    rolePill.textContent = 'Aprobador';
+  });
+
+  // ---- tickets data ----
+  const TICKETS = [
+    { id: 'MCC-1061', tabla: 'j_atoscompra_new', pais: 'México', solicitante: 'C. Ibarra', motivo: 'Reprocesos', estado: 'abierto', ejec: null, upd: 'hace 12 min',
+      val: { ok: 143, warn: 2, err: 0, warnings: [
+        { loc: 'Fila 9 · columna Precio', msg: 'Precio 18% por debajo de la mediana esperada para el producto.' },
+        { loc: 'Fila 88 · columna Cantidad', msg: 'Cantidad reportada 4x el promedio histórico del producto.' },
+      ]}},
+    { id: 'MCC-1058', tabla: 'j_atoscompra_new', pais: 'Bolivia', solicitante: 'J. Aldunate', motivo: 'Cuestionamientos', estado: 'abierto', ejec: null, upd: 'hace 40 min',
+      val: { ok: 298, warn: 11, err: 0, warnings: [
+        { loc: 'Fila 27 · columna Precio', msg: 'Precio 35% por encima de la mediana esperada para el producto.' },
+        { loc: 'Fila 63 · columna Cantidad', msg: 'Cantidad decimal inusual para una unidad no fraccionable.' },
+        { loc: 'Fila 140 · columna IdCanal', msg: 'Cambio de canal no coincide con el historial reciente del punto de venta.' },
+      ]}},
+    { id: 'MCC-1052', tabla: 'hato_cabecalho_ooh', pais: 'Chile', solicitante: 'R. Soto', motivo: 'Código de precios', estado: 'warning', ejec: null, upd: 'hace 2 h',
+      val: { ok: 78, warn: 9, err: 0, warnings: [
+        { loc: 'Fila 4 · columna PrecioUnit', msg: 'Código de precio actualizado no figura en la tabla de vigencias.' },
+        { loc: 'Fila 22 · columna PrecioUnit', msg: 'Variación de precio supera el 40% respecto al mes anterior.' },
+      ]}},
+    { id: 'MCC-1049', tabla: 'j_atoscompra_new_test', pais: 'Colombia', solicitante: 'M. Duarte', motivo: 'Críticas', estado: 'error', ejec: null, upd: 'hace 3 h',
+      val: { ok: 51, warn: 3, err: 0, warnings: [
+        { loc: 'Fila 11 · columna IdProducto', msg: 'Producto marcado como descontinuado en el catálogo vigente.' },
+        { loc: 'Fila 33 · columna Cantidad', msg: 'Cantidad en el límite superior permitido — revisar antes de aprobar.' },
+        { loc: 'Fila 40 · columna IdCanal', msg: 'Canal poco frecuente para este punto de venta.' },
+      ]}},
+    { id: 'MCC-1042', tabla: 'j_atoscompra_new', pais: 'Bolivia', solicitante: 'J. Aldunate', motivo: 'Cuestionamientos', estado: 'proceso', ejec: 'En curso · 36/298', upd: 'hace 6 h',
+      val: { ok: 301, warn: 11, err: 0, warnings: [
+        { loc: 'Fila 27 · columna Precio', msg: 'Precio 35% por encima de la mediana esperada para el producto.' },
+        { loc: 'Fila 84 · columna Cantidad', msg: 'Cantidad reportada 3x el promedio del producto.' },
+        { loc: 'Fila 199 · columna IdCanal', msg: 'Cambio de canal fuera del patrón habitual del punto de venta.' },
+      ]}},
+    { id: 'MCC-1037', tabla: 'j_atoscompra_new', pais: 'Ecuador', solicitante: 'L. Rocha', motivo: 'Otros', estado: 'exito', ejec: 'Finalizada', upd: 'ayer',
+      val: { ok: 205, warn: 5, err: 0, warnings: [
+        { loc: 'Fila 6 · columna PrecioUnit', msg: 'Precio por debajo del mínimo histórico registrado.' },
+        { loc: 'Fila 71 · columna Cantidad', msg: 'Cantidad reportada en cero para un acto no anulado.' },
+      ]}},
+    { id: 'MCC-1030', tabla: 'hato_cabecalho_ooh', pais: 'Perú', solicitante: 'C. Ibarra', motivo: 'Reprocesos', estado: 'cerrado', ejec: 'Finalizada', upd: 'hace 2 días',
+      val: { ok: 162, warn: 6, err: 0, warnings: [
+        { loc: 'Fila 15 · columna IdCanal', msg: 'Canal no habitual para el punto de venta reportado.' },
+        { loc: 'Fila 58 · columna Cantidad', msg: 'Cantidad reportada 2x el promedio histórico del producto.' },
+      ]}},
+    { id: 'MCC-1024', tabla: 'j_atoscompra_new_test', pais: 'Bolivia', solicitante: 'R. Soto', motivo: 'Cuestionamientos', estado: 'cerrado', ejec: 'Fallida', upd: 'hace 4 días',
+      val: { ok: 133, warn: 7, err: 0, warnings: [
+        { loc: 'Fila 3 · columna PrecioUnit', msg: 'Precio fuera de rango esperado (+28% vs. mediana).' },
+        { loc: 'Fila 96 · columna Cantidad', msg: 'Cantidad reportada en el límite superior permitido.' },
+      ]}},
+  ];
+  const STATUS_LABEL = { abierto: 'Abierto', proceso: 'En proceso', warning: 'Warning', error: 'Error', exito: 'Éxito', cerrado: 'Cerrado' };
+
+  const rowsEl = document.getElementById('ticketRows');
+  function renderRows(filter) {
+    rowsEl.innerHTML = '';
+    TICKETS.filter(t => filter === 'todos' || t.estado === filter).forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="id mono">${t.id}</td>
+        <td><div class="table-name mono">${t.tabla}</div><div class="muted">${t.pais}</div></td>
+        <td>${t.solicitante}</td>
+        <td><span class="flag-tag">${t.motivo}</span></td>
+        <td><span class="pill st-${t.estado}"><span class="dot"></span>${STATUS_LABEL[t.estado]}</span></td>
+        <td class="muted">${t.ejec || '—'}</td>
+        <td class="muted">${t.upd}</td>`;
+      tr.addEventListener('click', () => openDrawer(t));
+      rowsEl.appendChild(tr);
+    });
+  }
+  renderRows('todos');
+
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    renderRows(c.dataset.filter);
+  }));
+
+  // ---- drawer ----
+  const drawer = document.getElementById('drawer');
+  const scrim = document.getElementById('scrim');
+  const warningList = document.getElementById('warningList');
+  const toggleWarningsBtn = document.getElementById('toggleWarnings');
+
+  function renderValidation(t) {
+    const v = t.val;
+    document.getElementById('vOk').textContent = v.ok;
+    document.getElementById('vWarn').textContent = v.warn;
+    document.getElementById('vErr').textContent = v.err;
+    document.getElementById('dFilas').textContent = v.ok + v.warn;
+
+    const errStat = document.getElementById('vErrStat');
+    errStat.classList.toggle('has-err', v.err > 0);
+
+    const note = document.getElementById('vNote');
+    note.textContent = v.err > 0
+      ? 'Este ticket tiene errores de validación pendientes — no debería haber llegado a aprobación. Devolvé al analista antes de continuar.'
+      : 'Sin errores: el paso de validación del analista bloquea el envío si quedara alguno pendiente. Las advertencias no bloquean, pero conviene revisarlas antes de aprobar.';
+
+    if (v.warn === 0) {
+      toggleWarningsBtn.style.display = 'none';
+      warningList.style.display = 'none';
+    } else {
+      toggleWarningsBtn.style.display = 'inline-flex';
+      toggleWarningsBtn.textContent = `Revisar ${v.warn} advertencia${v.warn === 1 ? '' : 's'} ▾`;
+      toggleWarningsBtn.setAttribute('aria-expanded', 'false');
+      warningList.style.display = 'none';
+      warningList.innerHTML = v.warnings.map(w => `
+        <div class="val-row warn">
+          <div class="sev">△</div>
+          <div>
+            <div class="loc">${w.loc}</div>
+            <div class="msg">${w.msg}</div>
+          </div>
+        </div>`).join('') + (v.warn > v.warnings.length
+          ? `<div class="val-row warn"><div class="sev">△</div><div class="msg" style="color:var(--ink-faint)">+${v.warn - v.warnings.length} advertencias más con patrones similares.</div></div>`
+          : '');
+    }
+  }
+
+  function openDrawer(t) {
+    document.getElementById('drawerId').textContent = t.id;
+    const st = document.getElementById('drawerStatus');
+    st.className = 'pill st-' + t.estado;
+    st.innerHTML = '<span class="dot"></span>' + STATUS_LABEL[t.estado];
+    document.getElementById('dTabla').textContent = t.tabla;
+    document.getElementById('dPais').textContent = t.pais;
+    document.getElementById('dSolicitante').textContent = t.solicitante;
+    document.getElementById('dMotivo').textContent = t.motivo;
+    document.getElementById('dCreado').textContent = t.upd;
+    renderValidation(t);
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    scrim.classList.add('open');
+  }
+
+  toggleWarningsBtn.addEventListener('click', () => {
+    const willExpand = toggleWarningsBtn.getAttribute('aria-expanded') !== 'true';
+    toggleWarningsBtn.setAttribute('aria-expanded', String(willExpand));
+    warningList.style.display = willExpand ? 'flex' : 'none';
+    warningList.style.flexDirection = 'column';
+    toggleWarningsBtn.textContent = toggleWarningsBtn.textContent.replace(/[▾▴]$/, willExpand ? '▴' : '▾');
+  });
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+    scrim.classList.remove('open');
+  }
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  scrim.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+  // ---- close dialog ----
+  const closeDialog = document.getElementById('closeDialog');
+  document.getElementById('btnCerrar').addEventListener('click', () => closeDialog.showModal());
+  document.querySelectorAll('.radio-opt').forEach(r => r.addEventListener('click', () => {
+    document.querySelectorAll('.radio-opt').forEach(x => x.classList.remove('selected'));
+    r.classList.add('selected');
+  }));
+</script>

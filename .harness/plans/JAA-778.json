@@ -1,0 +1,39 @@
+{
+  "ticket": "JAA-778",
+  "linear_url": "https://linear.app/kwp/issue/JAA-778",
+  "branch": "fix/JAA-778-icon-only-actions",
+  "archetype": "webapp",
+  "goal": "In Calibración and Pesaje (list rows + cards), action cells show icon-only buttons (no visible text) with a Play icon that toggles to Stop while the process runs, keeping existing confirm dialogs.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "Calibración (list + card): no action button renders visible text ('Calibrar'/'Stop' as text); every action button is icon-only with aria-label/title. CalibrateButton (Play icon) and StopCalibrationButton (Square icon) are mutually exclusive — never both visible at once.",
+      "how_to_verify": "vitest CountryListRow.test.tsx / CountryCard.test.tsx assert getByRole('button', {name:'Calibrar'}) no longer matches text content (use aria-label instead); assert only one of Play/Stop is present depending on job status."
+    },
+    {
+      "id": "ac2",
+      "criterion": "Pesaje (list + card): an icon-only Play button launches the process directly (no modal), without rendering 'Detener' or 'Procesando...' as visible text.",
+      "how_to_verify": "vitest WeightingCountryListRow.test.tsx / WeightingCountryCard.test.tsx: query by aria-label for the run/stop icon buttons; assert no getByText('Detener') / getByText('Procesando...') matches."
+    },
+    {
+      "id": "ac3",
+      "criterion": "Launching a process swaps the Play icon for the Stop icon in the same slot in both views (Calibración + Pesaje); stopping or completion reverts to Play.",
+      "how_to_verify": "vitest: mock a running job/run and assert the Stop icon button is present while the Play icon button is absent, and vice versa when idle/completed."
+    },
+    {
+      "id": "ac4",
+      "criterion": "Existing launch/stop confirmation AlertDialogs still appear before the action executes.",
+      "how_to_verify": "vitest: clicking Play/Stop opens role='alertdialog' before the mutation fires; confirming triggers startCalibration/cancelCalibration or createWeightingRun+executeWeighting/cancelWeighting."
+    },
+    {
+      "id": "ac5",
+      "criterion": "Full verify suite green.",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b; Playwright smoke project via MOCK_SERVER_PORT=8000 npm run test:e2e:fast against npm run dev:e2e + npm run mock:fast."
+    }
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Calibración: CalibrateButton icon-only (Play/spinner), CountryListRow+CountryCard render CalibrateButton XOR StopCalibrationButton by isRunning. Update CountryListRow.test.tsx/CountryCard.test.tsx (both calibracion + top-level src/__tests__/CountryCard.test.tsx) + e2e/calibration.spec.ts selectors.", "status": "incomplete"},
+    {"id": "t2", "desc": "Pesaje: new WeightingRunButton (icon-only Play + confirm dialog, calls handleRun(DEFAULT_WEIGHTING_PARAMS)); StopWeightingButton icon-only (drop 'Detener' text). WeightingCountryListRow+WeightingCountryCard render WeightingRunButton XOR StopWeightingButton by isProcessing, drop 'Procesando...' text button. Update WeightingCountryListRow.test.tsx, src/__tests__/WeightingCountryCard.test.tsx selectors.", "status": "incomplete"},
+    {"id": "t3", "desc": "Run full VERIFY_CMD (vitest+lint+tsc) then Playwright smoke walkthrough against mock; fix fallout.", "status": "incomplete"}
+  ]
+}

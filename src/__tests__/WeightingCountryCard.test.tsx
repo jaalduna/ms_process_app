@@ -199,8 +199,10 @@ describe("WeightingCountryCard", () => {
     const dialog = await screen.findByRole("dialog")
     expect(within(dialog).getByRole("button", { name: "Ejecutar" })).toBeInTheDocument()
     expect(within(dialog).queryByRole("button", { name: "Re-ejecutar" })).not.toBeInTheDocument()
-    // Params are editable (keyed by the param constant name).
-    expect(within(dialog).getByLabelText("MAX_ROUNDS_COLAPSO")).toHaveValue(DEFAULT_PARAMS.MAX_ROUNDS_COLAPSO)
+    // Params are read-only here (editable only from the Parametros tab).
+    expect(within(dialog).getByText("MAX_ROUNDS_COLAPSO")).toBeInTheDocument()
+    expect(within(dialog).getByText(String(DEFAULT_PARAMS.MAX_ROUNDS_COLAPSO))).toBeInTheDocument()
+    expect(within(dialog).queryByLabelText("MAX_ROUNDS_COLAPSO")).not.toBeInTheDocument()
   })
 
   it("dialog shows 'Re-ejecutar' once the latest run is completed (ac3)", async () => {
@@ -214,20 +216,22 @@ describe("WeightingCountryCard", () => {
     expect(within(dialog).getByRole("button", { name: "Re-ejecutar" })).toBeInTheDocument()
   })
 
-  it("dialog seeds params from the country's last run parameters_json (ac3)", async () => {
+  it("re-run dialog shows the currently published defaults, not the prior run's params (ac3)", async () => {
     const user = userEvent.setup()
+    // The prior run was launched with an overridden value, but nothing has been
+    // (re)published since — the modal shows the F-001 default, not that override.
     mockGetWeightingRuns.mockResolvedValue([completedRun({ MAX_ROUNDS_COLAPSO: 99 })])
     renderCard()
     await waitFor(() => expect(getCard()).toBeInTheDocument())
 
     await user.click(getCard())
     const dialog = await screen.findByRole("dialog")
-    expect(within(dialog).getByLabelText("MAX_ROUNDS_COLAPSO")).toHaveValue(99)
+    expect(within(dialog).getByText(String(DEFAULT_PARAMS.MAX_ROUNDS_COLAPSO))).toBeInTheDocument()
   })
 
-  // --- Dialog: launch with edited params (ac4) -----------------------------
+  // --- Dialog: launch with the published params (ac4) ----------------------
 
-  it("running from the dialog posts the edited params via create + execute (ac4)", async () => {
+  it("running from the dialog posts the published params via create + execute (ac4)", async () => {
     const user = userEvent.setup()
     mockGetWeightingRuns.mockResolvedValue([])
     mockCreateWeightingRun.mockResolvedValue({ run_id: "r1", country: "chile", status: "pending" })
@@ -238,9 +242,6 @@ describe("WeightingCountryCard", () => {
 
     await user.click(getCard())
     const dialog = await screen.findByRole("dialog")
-    const field = within(dialog).getByLabelText("MAX_ROUNDS_COLAPSO")
-    await user.clear(field)
-    await user.type(field, "77")
 
     await user.click(within(dialog).getByRole("button", { name: "Ejecutar" }))
     const confirm = await screen.findByRole("alertdialog")
@@ -252,7 +253,7 @@ describe("WeightingCountryCard", () => {
         expect.objectContaining({
           country: "chile",
           period: 202602,
-          parameters: expect.objectContaining({ MAX_ROUNDS_COLAPSO: 77 }),
+          parameters: expect.objectContaining({ MAX_ROUNDS_COLAPSO: DEFAULT_PARAMS.MAX_ROUNDS_COLAPSO }),
         }),
       )
     })
