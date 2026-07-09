@@ -1,0 +1,10 @@
+{
+  "ticket": "JAA-894",
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "npx playwright test e2e/backend-contract-lock.spec.ts --project=smoke -> PASS (2) FAIL (0), mock server on port 5000 via MOCK_STEP_INTERVAL_MS=150 node mock-server/server.js"},
+    {"id": "ac2", "verdict": "PASS", "evidence": "npm test -> 66 files / 490 tests passed; npm run lint -> no issues; npx tsc -b -> no errors"},
+    {"id": "ac3", "verdict": "PASS", "evidence": "renamed mean_weight->mean_weight_RENAMED inside generateWeightSummary() in mock-server/routes/weighting.js -> smoke run PASS (1) FAIL (1) with legible toMatchObject diff at spec.ts:112:37; reverted via git checkout, re-ran clean PASS (2) FAIL (0)"}
+  ],
+  "scope_check": "git status confirms only e2e/backend-contract-lock.spec.ts (new) + harness bookkeeping changed; no product/UI code touched; no weakened assertions, no stubs",
+  "overall": "PASS"
+}
