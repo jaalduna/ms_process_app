@@ -1,0 +1,30 @@
+{
+  "ticket": "JAA-894",
+  "linear_url": "https://linear.app/kwp-latam/issue/JAA-894",
+  "branch": "feat/JAA-894-backend-contract-lock",
+  "archetype": "webapp",
+  "goal": "Add a Playwright spec that locks the execute->poll->download contract of the weighting and eligibility mock-server routes so a future backend swap (Databricks<->ACA) cannot silently change the response shape without a test failing.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "New spec e2e/backend-contract-lock.spec.ts passes in the smoke project",
+      "how_to_verify": "MOCK_SERVER_PORT=8000 npm run test:e2e:fast (with mock:fast + dev:e2e running) -- all tests in backend-contract-lock.spec.ts pass"
+    },
+    {
+      "id": "ac2",
+      "criterion": "No regressions in unit tests, lint, typecheck",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b all exit 0"
+    },
+    {
+      "id": "ac3",
+      "criterion": "The spec fails legibly if the state/field shape changes (e.g. a field is renamed in the mock)",
+      "how_to_verify": "manually comment out / rename a field in mock-server/routes/weighting.js or eligibility.js, re-run the spec, confirm it fails with a clear assertion error, then revert"
+    }
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Write e2e/backend-contract-lock.spec.ts exercising execute->poll->download for weighting via direct page.request calls against mock-server (no UI), asserting shape at each status (pending/running/completed) and CSV download", "status": "complete"},
+    {"id": "t2", "desc": "Extend the same spec with the equivalent eligibility cycle (pending->running->results_ready) and file download, asserting shape at each step", "status": "complete"},
+    {"id": "t3", "desc": "Run the spec against smoke project + full VERIFY_CMD, confirm green", "status": "complete"},
+    {"id": "t4", "desc": "Manually verify AC3: rename a field in the mock, confirm spec fails, revert", "status": "complete"}
+  ]
+}
