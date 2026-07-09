@@ -1,0 +1,16 @@
+{
+  "ticket": "JAA-769",
+  "attempt": 2,
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "e2e/feedback.spec.ts toast assertion /Tu ticket es FB-\\d{6}/; FeedbackDialog.tsx uses awaited response.ticket_number; mock returns FB-%06d, tested."},
+    {"id": "ac2", "verdict": "PASS", "evidence": "e2e/mis-tickets.spec.ts asserts created ticket + 'Por hacer' (todo) label visible after nav."},
+    {"id": "ac3", "verdict": "PASS", "evidence": "mock sorts desc by created_at (tie-break forced in test); e2e asserts DOM row order via tbody tr locator."},
+    {"id": "ac4", "verdict": "PASS", "evidence": "MisTicketsPage.tsx renders visible empty-state text; unit + e2e test both assert it."},
+    {"id": "ac5", "verdict": "PASS", "evidence": "getTelemetrySessionId() returns same state.sessionId used by baseEvent(); FeedbackDialog attaches it; FeedbackContext.sessionId required (non-optional); e2e asserts truthy string on POST body."},
+    {"id": "ac6", "verdict": "PASS", "evidence": "misTicketsModule registered in registry.ts allModules; navItems rendered via AuthenticatedLayout's existing flatMap; e2e navigates via navigateTo() nav-link helper, not page.goto."},
+    {"id": "ac7", "verdict": "PASS", "evidence": "1st retry: added 3 tests for GET /feedback/:ticket_number (owner 200 w/ no email/context leak, unknown 404, other-user's ticket 404) after 1st-pass evaluator found this endpoint untested. Confirmed by independent 2nd evaluator pass: 469/469 tests, 0 lint, 0 tsc errors, no regressions."}
+  ],
+  "overall": "PASS",
+  "retries": 1,
+  "escalated_to_opus": false
+}

@@ -5,6 +5,7 @@ import type {
   DataAvailabilityResponse,
   EventDetail,
   EventListResponse,
+  FeedbackMineResponse,
   FeedbackPayload,
   FeedbackResponse,
   LastElegibilidadResponse,
@@ -102,10 +103,15 @@ export function getMe() {
 
 // -- Feedback (JAA-427) --
 
-/** Submit in-app user feedback. Resolves with { id, createdAt } on 201;
+/** Submit in-app user feedback. Resolves with { ticket_number, status, created_at } on 201;
  * rejects with ApiError (e.g. 400 for an empty message). */
 export function submitFeedback(payload: FeedbackPayload) {
   return api.post<FeedbackResponse>("/feedback", payload).then((r) => r.data)
+}
+
+/** List the acting user's own feedback tickets, newest first. */
+export function getMyFeedback() {
+  return api.get<FeedbackMineResponse>("/feedback/mine").then((r) => r.data)
 }
 
 // -- Shared process config (JAA-642) --

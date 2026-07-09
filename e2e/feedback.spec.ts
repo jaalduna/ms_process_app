@@ -72,9 +72,11 @@ test.describe("Feedback dialog", () => {
     expect(body.context.path).toMatch(/overview/)
     expect(typeof body.context.appVersion).toBe("string")
     expect(body.context.appVersion.length).toBeGreaterThan(0)
+    expect(body.context.sessionId).toBeTruthy()
+    expect(typeof body.context.sessionId).toBe("string")
 
     // Confirmation toast + dialog closes.
-    await expect(page.getByText(/Tu feedback fue enviado/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/Tu ticket es FB-\d{6}/)).toBeVisible({ timeout: 10_000 })
     await expect(dialog).not.toBeVisible()
   })
 })

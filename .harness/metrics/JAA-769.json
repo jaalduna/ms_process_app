@@ -1,0 +1,13 @@
+{
+  "ticket": "JAA-769",
+  "archetype": "webapp",
+  "retry_count": 1,
+  "escalated_to_opus": false,
+  "eval_verdicts": [
+    {"attempt": 1, "result": "FAIL", "parity_distance": null},
+    {"attempt": 2, "result": "PASS", "parity_distance": null}
+  ],
+  "outcome": "merged",
+  "false_pass": false,
+  "false_fail": false
+}

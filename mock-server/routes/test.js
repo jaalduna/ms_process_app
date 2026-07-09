@@ -7,6 +7,7 @@ import { formato4Store, seedFormato4 } from "./formato4.js"
 import { eligibilityStore, seedEligibility } from "./eligibility.js"
 import { processStore, seedProcesses } from "./processes.js"
 import { tagStore, seedTraceability } from "./traceability.js"
+import { reset as resetFeedback } from "./feedback.js"
 import { seedParams } from "./params.js"
 import { resetWeightingParams } from "./weighting-params.js"
 import { seedProcessConfig } from "./process_config.js"
@@ -31,6 +32,7 @@ router.post("/test/reset", (_req, res) => {
   processStore.reset()
   tagStore.reset()
   resetWeightingParams()
+  resetFeedback()
 
   // Enable deterministic mode on all run stores so E2E happy-path tests
   // never fail due to the 5% random failure in _advanceStep().

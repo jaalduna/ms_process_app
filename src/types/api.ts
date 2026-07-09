@@ -227,12 +227,16 @@ export interface ApiError {
 /** In-app feedback (JAA-427 / parent JAA-426) */
 export type FeedbackCategory = "bug" | "idea" | "otro"
 
+/** Ticket lifecycle status (JAA-769). */
+export type FeedbackStatus = "todo" | "progreso" | "review" | "resuelto" | "cerrado"
+
 /** Context auto-attached to feedback so reports are actionable. */
 export interface FeedbackContext {
   module: string
   path: string
   appVersion: string
   user?: string
+  sessionId: string
 }
 
 /** Body of POST /feedback. */
@@ -245,8 +249,23 @@ export interface FeedbackPayload {
 
 /** Response from POST /feedback (201). */
 export interface FeedbackResponse {
-  id: string
-  createdAt: string
+  ticket_number: string
+  status: FeedbackStatus
+  created_at: string
+}
+
+/** A feedback ticket as returned by GET /feedback/mine. */
+export interface FeedbackTicket {
+  ticket_number: string
+  message: string
+  category: FeedbackCategory | null
+  status: FeedbackStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface FeedbackMineResponse {
+  tickets: FeedbackTicket[]
 }
 
 // -- Process open/close (per stage, per country) --

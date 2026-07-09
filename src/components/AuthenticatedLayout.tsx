@@ -31,6 +31,7 @@ import {
   Circle,
   ArrowDownToLine,
   ShieldCheck,
+  Ticket,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -51,6 +52,7 @@ const PATH_ICONS: Record<string, LucideIcon> = {
   "/history": Clock,
   "/trazabilidad": Network,
   "/admin": ShieldCheck,
+  "/mis-tickets": Ticket,
 }
 
 function initials(nameOrEmail: string | undefined): string {

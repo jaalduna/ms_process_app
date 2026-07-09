@@ -24,6 +24,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/hooks/useAuth"
 import { submitFeedback } from "@/lib/api"
+import { getTelemetrySessionId } from "@/lib/telemetry"
 import { cn } from "@/lib/utils"
 import type { ApiError, FeedbackCategory } from "@/types/api"
 
@@ -72,7 +73,7 @@ export function FeedbackDialog({ appVersion, collapsed = false }: FeedbackDialog
     setError(null)
     setSubmitting(true)
     try {
-      await submitFeedback({
+      const response = await submitFeedback({
         message: message.trim(),
         category,
         contact: contact.trim() || undefined,
@@ -81,9 +82,10 @@ export function FeedbackDialog({ appVersion, collapsed = false }: FeedbackDialog
           path: location.pathname,
           appVersion,
           user: user?.email ?? user?.name ?? undefined,
+          sessionId: getTelemetrySessionId(),
         },
       })
-      toast.success("¡Gracias! Tu feedback fue enviado.")
+      toast.success(`¡Gracias! Tu ticket es ${response.ticket_number}.`)
       setOpen(false)
       resetForm()
     } catch (err) {

@@ -1,0 +1,96 @@
+{
+  "ticket": "JAA-769",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-769",
+  "branch": "feat/JAA-769-mis-tickets",
+  "archetype": "webapp",
+  "goal": "Show the ticket_number after submitting feedback, attach telemetry sessionId to the feedback context, and add a 'Mis tickets' screen listing the user's own feedback tickets with status.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "Submitting feedback shows a confirmation with a ticket_number formatted FB-XXXXXX",
+      "how_to_verify": "e2e/feedback.spec.ts: after successful submit, toast text matches /FB-\\d{6}/"
+    },
+    {
+      "id": "ac2",
+      "criterion": "Navigating to 'Mis tickets' shows the just-created ticket with status 'todo'",
+      "how_to_verify": "e2e/mis-tickets.spec.ts: submit feedback, navigate to Mis tickets, assert row with the ticket_number and a 'todo' status badge"
+    },
+    {
+      "id": "ac3",
+      "criterion": "Submitting two feedbacks shows both in the list, ordered desc by created_at",
+      "how_to_verify": "e2e/mis-tickets.spec.ts: submit twice, assert order of rows matches reverse submission order"
+    },
+    {
+      "id": "ac4",
+      "criterion": "With no tickets submitted, the list shows a visible empty state (no crash, no blank list)",
+      "how_to_verify": "e2e/mis-tickets.spec.ts: reset mock store, navigate to Mis tickets with no prior submissions, assert empty-state text is visible"
+    },
+    {
+      "id": "ac5",
+      "criterion": "POST /feedback payload's context.sessionId matches telemetry.ts's sessionId for that session",
+      "how_to_verify": "e2e/feedback.spec.ts: intercept the POST /feedback request, read body.context.sessionId, compare against the value telemetry emits in /telemetry/events session_start (same session)"
+    },
+    {
+      "id": "ac6",
+      "criterion": "'Mis tickets' is reachable from existing navigation (no orphan route)",
+      "how_to_verify": "e2e/mis-tickets.spec.ts: navigate via the sidebar NavLink, not a raw page.goto"
+    },
+    {
+      "id": "ac7",
+      "criterion": "Unit/mock-server coverage: getTelemetrySessionId() getter, getMyFeedback() client, and mock GET /feedback/mine contract (ticket_number format, status default, sessionId stored, per-user filtering, desc order)",
+      "how_to_verify": "npm test -- src/__tests__/telemetry.test.ts src/__tests__/api-feedback.test.ts && (cd mock-server && npx vitest run __tests__/feedback.test.js)"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "telemetry.ts: add exported getTelemetrySessionId() getter; unit test",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "types/api.ts: FeedbackContext.sessionId, FeedbackResponse -> {ticket_number, status, created_at}, add FeedbackStatus, FeedbackTicket, FeedbackMineResponse",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "lib/api.ts: submitFeedback consumes new response type; add getMyFeedback() -> GET /feedback/mine",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "FeedbackDialog.tsx: attach context.sessionId via getTelemetrySessionId(); update success toast to show ticket_number (e.g. 'Tu ticket es {ticket_number}')",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "mock-server/routes/feedback.js: rewrite ticket_number as FB-%06d, stamp email via requestUser() pattern (mirror processes.js), default status 'todo', add GET /feedback/mine (filter by acting user email, sort desc by created_at) and GET /feedback/{ticket_number}; export reset(); wire feedbackStore.reset() into routes/test.js's /test/reset",
+      "status": "complete"
+    },
+    {
+      "id": "t6",
+      "desc": "mock-server/__tests__/feedback.test.js: extend for ticket_number format, status default, GET /feedback/mine per-user + order, sessionId persisted in context",
+      "status": "complete"
+    },
+    {
+      "id": "t7",
+      "desc": "New module src/modules/mis-tickets/ (index.ts + pages/MisTicketsPage.tsx + useMyTickets hook mirroring useCountries/react-query pattern): loading skeleton, error box, empty state, list sorted desc; register in registry.ts; add icon in AuthenticatedLayout.tsx PATH_ICONS",
+      "status": "complete"
+    },
+    {
+      "id": "t8",
+      "desc": "src/__tests__/api-feedback.test.ts: update submitFeedback expectations for new response shape; add getMyFeedback test",
+      "status": "complete"
+    },
+    {
+      "id": "t9",
+      "desc": "e2e/feedback.spec.ts: extend 'successful submit' test to assert ticket_number toast + sessionId in POST body",
+      "status": "complete"
+    },
+    {
+      "id": "t10",
+      "desc": "New e2e/mis-tickets.spec.ts covering ac2-ac4, ac6",
+      "status": "complete"
+    }
+  ]
+}

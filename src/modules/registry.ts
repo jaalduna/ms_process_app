@@ -11,6 +11,7 @@ import { trazabilidadModule } from "./trazabilidad"
 import { overviewModule } from "./overview"
 import { adminModule } from "./admin"
 import { parametrosElegibilidadModule } from "./parametros-elegibilidad"
+import { misTicketsModule } from "./mis-tickets"
 import type { ModuleDefinition } from "./types"
 
 /**
@@ -20,6 +21,7 @@ import type { ModuleDefinition } from "./types"
  */
 export const allModules: ModuleDefinition[] = [
   overviewModule,
+  misTicketsModule,
   syncModule,
   preciosModule,
   elegibilidadModule,

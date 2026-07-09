@@ -209,6 +209,11 @@ export function setTelemetryTokenProvider(provider: () => Promise<string>): void
   state.tokenProvider = provider
 }
 
+/** The current per-load session id (also carried on every emitted event). */
+export function getTelemetrySessionId(): string {
+  return state.sessionId
+}
+
 /** Record an explicit interaction (declarative `track("name")` wrapper). */
 export function track(name: string, props?: Record<string, unknown>): void {
   const ev = baseEvent("interaction")

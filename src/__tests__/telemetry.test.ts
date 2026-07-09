@@ -7,6 +7,7 @@ import {
   captureError,
   endSession,
   setTelemetryUser,
+  getTelemetrySessionId,
   __resetTelemetryForTests,
   __getTelemetryQueue,
 } from "@/lib/telemetry"
@@ -136,6 +137,18 @@ describe("telemetry client", () => {
     const { body } = lastFetch(fetchSpy)
     const names = (body as { events: { name?: string }[] }).events.map((e) => e.name).filter(Boolean)
     expect(names).toEqual(expect.arrayContaining(["a", "b", "c"]))
+  })
+
+  it("getTelemetrySessionId() returns a non-empty string matching the sessionId on emitted events", async () => {
+    const sessionId = getTelemetrySessionId()
+    expect(typeof sessionId).toBe("string")
+    expect(sessionId.length).toBeGreaterThan(0)
+
+    track("x")
+    await flush()
+
+    const { body } = lastFetch(fetchSpy)
+    expect((body as { events: { sessionId: string }[] }).events[0].sessionId).toBe(sessionId)
   })
 
   it("does NOT throw when the network fails, and re-queues the batch", async () => {

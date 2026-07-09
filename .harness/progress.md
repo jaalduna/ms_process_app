@@ -70,6 +70,37 @@ Separate skeptical evaluator (general-purpose, Sonnet, fresh ctx, 2 passes): ALL
 confirms merge + cleans worktree + sets Done. JAA-780 (e2e sandbox flakiness) is a separate,
 non-blocking follow-up ticket for a future session.
 
+## 2026-07-01 — JAA-769 (Ticket number on feedback submit + "Mis tickets" screen) — EVALUATOR PASS, PR armed
+
+**What:** Frontend half of the JAA-768/JAA-769/JAA-772 feedback-tracking trio (contract already
+agreed + implemented server-side in ms-process-api JAA-768).
+- `src/lib/telemetry.ts`: added exported `getTelemetrySessionId()` getter — no prior exported
+  accessor existed for the per-load `sessionId`.
+- `src/types/api.ts` / `src/lib/api.ts`: `FeedbackResponse` now matches the real 201 shape
+  (`ticket_number`, `status`, `created_at`, replacing the old mock-only `{id, createdAt}`);
+  `FeedbackContext.sessionId` is now a *required* field; added `FeedbackTicket`/`FeedbackMineResponse`
+  + `getMyFeedback()` client fn.
+- `src/components/FeedbackDialog.tsx`: attaches `sessionId` via the new getter; success toast now
+  shows the real `ticket_number` (was a generic "gracias" message).
+- New module `src/modules/mis-tickets/` (index + `useMyTickets` react-query hook + `MisTicketsPage`,
+  mirroring `qmstr`'s loading/error pattern), registered in `registry.ts`, nav icon in
+  `AuthenticatedLayout.tsx`. Real empty-state text, status badges, desc order (server-sorted).
+- `mock-server/routes/feedback.js`: full rewrite — `FB-%06d` ticket numbers (was `fb_000001`),
+  per-user `email` stamped via the same `requestUser()` JWT/dev-bypass pattern as `processes.js`,
+  `GET /feedback/mine` (owner-filtered, desc), `GET /feedback/:ticket_number` (404 collapses
+  unknown-vs-not-yours to avoid an existence leak), `reset()` wired into `/test/reset`.
+- Evaluator round 1 found 6/7 ACs solid but flagged the new ticket-detail endpoint's anti-leak
+  comment as **untested** (real gap, not vacuous) — round 2 added 3 targeted tests (owner-200,
+  unknown-404, other-user's-ticket-404) and confirmed no regression. Second independent evaluator
+  pass: PASS on all 7 ACs.
+**Verify:** `npm test -- --run` 469/469 passed · `npm run lint` clean · `npx tsc -b` clean.
+Playwright specs (`e2e/feedback.spec.ts` extended, new `e2e/mis-tickets.spec.ts`) type-check and
+list correctly under `@smoke`; not executed live in this session (no dev/mock server spun up), per
+plan `ac1-ac6` verification being e2e-authored-and-typechecked, unit+mock-server tests fully live.
+**Next:** none for this ticket. Follow-ups already tracked separately: JAA-770 (session-activity
+correlation UI) and JAA-772 (session-activity API for an AI agent) — this ticket's `sessionId`
+plumbing is exactly what unblocks JAA-772.
+
 ## 2026-07-01 — JAA-763 (Tarjetas/Lista view toggle for country grids — Calibración + Pesaje) — EVALUATOR PASS, PR armed
 
 **What:** Added a persisted Tarjetas/Lista toggle to the Calibración and Pesaje country grids (user
