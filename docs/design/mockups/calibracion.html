@@ -1,0 +1,1742 @@
+<meta charset="utf-8">
+<title>Calibración — Mock-up de revisión de targets</title>
+<style>
+  :root {
+    --bg: #F4F6F3;
+    --surface: #FFFFFF;
+    --surface-2: #EDF1EC;
+    --ink: #1B211D;
+    --ink-muted: #5B655D;
+    --ink-faint: #8A9490;
+    --line: #DCE3DB;
+    --line-strong: #C3CDC0;
+    --accent: #146B63;
+    --accent-strong: #0E504A;
+    --accent-soft: #E1F0EC;
+    --st-open-bg: #E7E9E5;   --st-open-fg: #4B534E;
+    --st-progress-bg: #E1EBF6; --st-progress-fg: #2B5F94;
+    --st-warning-bg: #F7ECD6; --st-warning-fg: #93630C;
+    --st-error-bg: #F6E0DE;  --st-error-fg: #9B342E;
+    --st-success-bg: #E1F0E6; --st-success-fg: #276B48;
+    --st-closed-bg: #E9EDEA; --st-closed-fg: #6B756F;
+    --shadow-drawer: -24px 0 48px -20px rgba(20, 30, 25, 0.28);
+    --shadow-card: 0 1px 2px rgba(20,30,25,0.05), 0 1px 1px rgba(20,30,25,0.03);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101613; --surface: #161D19; --surface-2: #1C2521;
+      --ink: #E7EFEA; --ink-muted: #9AABA3; --ink-faint: #6D7A75;
+      --line: #283330; --line-strong: #34423E;
+      --accent: #4FBDAF; --accent-strong: #6FD3C6; --accent-soft: #1B2E2A;
+      --st-open-bg: #232B27;   --st-open-fg: #AEB9B3;
+      --st-progress-bg: #1D2C3A; --st-progress-fg: #8FBBE8;
+      --st-warning-bg: #33290F; --st-warning-fg: #E3B45C;
+      --st-error-bg: #351D1B;  --st-error-fg: #E5978F;
+      --st-success-bg: #163326; --st-success-fg: #86CBA5;
+      --st-closed-bg: #1E2724; --st-closed-fg: #8B9691;
+      --shadow-drawer: -24px 0 48px -20px rgba(0,0,0,0.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101613; --surface: #161D19; --surface-2: #1C2521;
+    --ink: #E7EFEA; --ink-muted: #9AABA3; --ink-faint: #6D7A75;
+    --line: #283330; --line-strong: #34423E;
+    --accent: #4FBDAF; --accent-strong: #6FD3C6; --accent-soft: #1B2E2A;
+    --st-open-bg: #232B27;   --st-open-fg: #AEB9B3;
+    --st-progress-bg: #1D2C3A; --st-progress-fg: #8FBBE8;
+    --st-warning-bg: #33290F; --st-warning-fg: #E3B45C;
+    --st-error-bg: #351D1B;  --st-error-fg: #E5978F;
+    --st-success-bg: #163326; --st-success-fg: #86CBA5;
+    --st-closed-bg: #1E2724; --st-closed-fg: #8B9691;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #F4F6F3; --surface: #FFFFFF; --surface-2: #EDF1EC;
+    --ink: #1B211D; --ink-muted: #5B655D; --ink-faint: #8A9490;
+    --line: #DCE3DB; --line-strong: #C3CDC0;
+    --accent: #146B63; --accent-strong: #0E504A; --accent-soft: #E1F0EC;
+    --st-open-bg: #E7E9E5;   --st-open-fg: #4B534E;
+    --st-progress-bg: #E1EBF6; --st-progress-fg: #2B5F94;
+    --st-warning-bg: #F7ECD6; --st-warning-fg: #93630C;
+    --st-error-bg: #F6E0DE;  --st-error-fg: #9B342E;
+    --st-success-bg: #E1F0E6; --st-success-fg: #276B48;
+    --st-closed-bg: #E9EDEA; --st-closed-fg: #6B756F;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-sans-serif, "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+  button { font: inherit; }
+  ::selection { background: var(--accent-soft); color: var(--accent-strong); }
+
+  .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ---- Topbar ---- */
+  .topbar {
+    display: flex; align-items: center; gap: 28px;
+    padding: 0 28px; height: 60px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 19px; height: 19px; }
+  .brand-name { font-weight: 700; font-size: 15px; }
+  .brand-sub { color: var(--ink-faint); font-size: 12px; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .theme-toggle {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .theme-toggle:hover { background: var(--surface-2); color: var(--ink); }
+  .theme-toggle svg { width: 17px; height: 17px; }
+  .theme-toggle .icon-moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: none; }
+    :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: block; }
+  }
+  .role-pill {
+    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--accent-strong); background: var(--accent-soft);
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .user-chip { display: flex; align-items: center; gap: 8px; color: var(--ink-muted); font-size: 13px; }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2);
+    border: 1px solid var(--line); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--ink-muted);
+  }
+
+  main { flex: 1; padding: 28px 28px 64px; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+  .eyebrow {
+    font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-faint); margin-bottom: 6px; display: block;
+  }
+  .page-head h1 { font-size: 22px; }
+  .page-desc { color: var(--ink-muted); font-size: 13.5px; margin-top: 4px; max-width: 72ch; }
+  .context-chips { display: flex; gap: 8px; align-items: center; }
+  .ctx-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--line); background: var(--surface);
+    padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--ink-muted);
+  }
+  .ctx-chip b { color: var(--ink); font-weight: 700; }
+
+  /* ---- buttons / cards / pills ---- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+    border-radius: 8px; padding: 9px 16px; font-weight: 650; font-size: 13.5px;
+    cursor: pointer; border: 1px solid transparent; transition: all .15s ease;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-strong); }
+  .btn-primary:disabled { background: var(--line-strong); color: var(--surface); cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-ghost:hover { background: var(--surface-2); }
+  .btn-sm { padding: 6px 11px; font-size: 12.5px; border-radius: 7px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 650; white-space: nowrap;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .st-dentro   { background: var(--st-success-bg); color: var(--st-success-fg); }
+  .st-leve     { background: var(--st-warning-bg); color: var(--st-warning-fg); }
+  .st-severo   { background: var(--st-error-bg);   color: var(--st-error-fg); }
+  .st-pend     { background: var(--st-open-bg);    color: var(--st-open-fg); }
+  .st-aprobado { background: var(--st-success-bg); color: var(--st-success-fg); }
+  .st-override { background: var(--st-progress-bg); color: var(--st-progress-fg); }
+  .st-editado  { background: var(--st-progress-bg); color: var(--st-progress-fg); }
+  .urg-alta { background: var(--st-error-bg); color: var(--st-error-fg); }
+  .urg-baja { background: var(--st-open-bg); color: var(--st-open-fg); }
+
+  /* ---- stat cards ---- */
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .stat {
+    padding: 14px 16px; cursor: pointer; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-card);
+    transition: border-color .15s ease;
+  }
+  .stat:hover { border-color: var(--line-strong); }
+  .stat.active { border-color: var(--accent); background: var(--accent-soft); }
+  .stat .num { font-size: 24px; font-weight: 750; letter-spacing: -0.02em; }
+  .stat .lbl { font-size: 12px; color: var(--ink-muted); font-weight: 600; margin-top: 2px; }
+  .stat .num.ok   { color: var(--st-success-fg); }
+  .stat .num.warn { color: var(--st-warning-fg); }
+  .stat .num.err  { color: var(--st-error-fg); }
+
+  /* ---- toolbar ---- */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar .spacer { flex: 1; }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+    padding: 7px 12px; min-width: 240px;
+  }
+  .search input { border: none; outline: none; background: transparent; color: var(--ink); font: inherit; width: 100%; }
+  .search svg { width: 15px; height: 15px; color: var(--ink-faint); flex-shrink: 0; }
+  .chip-group { display: flex; gap: 6px; align-items: center; }
+  .chip-group .grp-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); font-weight: 700; margin-right: 2px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-muted);
+    border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: all .12s ease;
+  }
+  .chip:hover { border-color: var(--line-strong); color: var(--ink); }
+  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); }
+  .sort-select {
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+    background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer;
+  }
+
+  /* ---- L2 table ---- */
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table.targets { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.targets th {
+    text-align: left; padding: 10px 12px; font-size: 11.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .03em; color: var(--ink-faint);
+    border-bottom: 1px solid var(--line); white-space: nowrap; user-select: none;
+  }
+  table.targets th.sortable { cursor: pointer; }
+  table.targets th.sortable:hover { color: var(--ink); }
+  table.targets td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.targets tbody tr { cursor: pointer; transition: background .1s ease; }
+  table.targets tbody tr:hover { background: var(--surface-2); }
+  table.targets tbody tr.sel { background: var(--accent-soft); }
+  table.targets tbody tr:last-child td { border-bottom: none; }
+  .cell-main { font-weight: 650; }
+  .cell-sub { color: var(--ink-faint); font-size: 11.5px; }
+  .delta-up { color: var(--st-success-fg); }
+  .delta-dn { color: var(--st-error-fg); }
+  .range-lbl { color: var(--ink-faint); font-size: 11.5px; white-space: nowrap; }
+
+  .dev-cell { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+  .dev-bar { position: relative; width: 72px; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; flex-shrink: 0; }
+  .dev-bar i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 999px; }
+  .dev-bar i.ok  { background: var(--st-success-fg); opacity: .55; }
+  .dev-bar i.warn{ background: var(--st-warning-fg); }
+  .dev-bar i.err { background: var(--st-error-fg); }
+  .dev-txt { font-size: 12px; font-weight: 650; white-space: nowrap; }
+  .dev-txt.ok { color: var(--st-success-fg); }
+  .dev-txt.warn { color: var(--st-warning-fg); }
+  .dev-txt.err { color: var(--st-error-fg); }
+
+  .spark { display: block; }
+  .spark .hist { fill: none; stroke: var(--ink-faint); stroke-width: 1.4; }
+  .spark .band { fill: var(--accent); opacity: .14; }
+  .spark .tgt-ok  { fill: var(--st-success-fg); }
+  .spark .tgt-warn{ fill: var(--st-warning-fg); }
+  .spark .tgt-err { fill: var(--st-error-fg); }
+
+  .approve-btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-muted);
+    border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 650; cursor: pointer;
+    white-space: nowrap;
+  }
+  .approve-btn:hover { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+  .approve-btn.done { border-color: transparent; background: var(--st-success-bg); color: var(--st-success-fg); cursor: default; }
+
+  .results-note { color: var(--ink-faint); font-size: 12.5px; margin-top: 10px; }
+
+  /* ---- drawer ---- */
+  .scrim {
+    position: fixed; inset: 0; background: rgba(15, 22, 18, 0.35);
+    opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 30;
+  }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(840px, 96vw);
+    background: var(--surface); border-left: 1px solid var(--line);
+    box-shadow: var(--shadow-drawer);
+    transform: translateX(102%); transition: transform .25s ease; z-index: 40;
+    display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head {
+    padding: 18px 24px 14px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .drawer-head h2 { font-size: 17px; }
+  .drawer-head .sub { color: var(--ink-muted); font-size: 12.5px; margin-top: 3px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .drawer-close {
+    margin-left: auto; width: 30px; height: 30px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-muted);
+    cursor: pointer; font-size: 15px; line-height: 1; flex-shrink: 0;
+  }
+  .drawer-close:hover { background: var(--surface-2); color: var(--ink); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px 24px 28px; display: flex; flex-direction: column; gap: 22px; }
+  .drawer-foot {
+    border-top: 1px solid var(--line); padding: 14px 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .drawer-foot .foot-note { font-size: 12px; color: var(--st-warning-fg); margin-right: auto; max-width: 40ch; }
+
+  .dsec h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); margin-bottom: 10px; }
+  .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; }
+  .meta-grid .k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); font-weight: 700; }
+  .meta-grid .v { font-size: 13px; font-weight: 600; margin-top: 1px; }
+
+  .chart-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 10px; background: var(--surface); }
+  .chart-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .chart-head .t { font-weight: 700; font-size: 13.5px; }
+  .chart-legend { display: flex; gap: 14px; margin-left: auto; font-size: 11.5px; color: var(--ink-muted); }
+  .chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .lg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .lg-line { width: 14px; height: 2px; display: inline-block; background: var(--ink-faint); }
+  .lg-band { width: 14px; height: 8px; display: inline-block; background: var(--accent); opacity: .18; border-radius: 2px; }
+  .bigchart .hist { fill: none; stroke: var(--ink-muted); stroke-width: 1.8; }
+  .bigchart .grid { stroke: var(--line); stroke-width: 1; }
+  .bigchart .band { fill: var(--accent); opacity: .13; }
+  .bigchart .band-edge { stroke: var(--accent); stroke-width: 1; opacity: .5; stroke-dasharray: 3 3; }
+  .bigchart text { fill: var(--ink-faint); font-size: 10px; font-family: ui-monospace, Menlo, monospace; }
+  .bigchart .tgt-ok  { fill: var(--st-success-fg); }
+  .bigchart .tgt-warn{ fill: var(--st-warning-fg); }
+  .bigchart .tgt-err { fill: var(--st-error-fg); }
+  .bigchart .ovr { fill: var(--st-progress-fg); }
+  .bigchart .tgt-link { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+  .bigchart .ci { fill: var(--ink-faint); opacity: .14; }
+  .bigchart .hover-line { stroke: var(--ink-muted); stroke-width: 1; stroke-dasharray: 3 3; }
+  .bigchart .hover-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }
+  .bigchart .hover-zone { fill: transparent; cursor: crosshair; }
+  .lg-ci { width: 14px; height: 8px; display: inline-block; background: var(--ink-faint); opacity: .3; border-radius: 2px; }
+  .chart-tip {
+    position: absolute; top: 8px; pointer-events: none; z-index: 5;
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px;
+    padding: 6px 10px; font-size: 11.5px; box-shadow: var(--shadow-card);
+    white-space: nowrap; display: none;
+  }
+  .chart-tip .m { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); }
+  .chart-tip .v { font-weight: 700; font-size: 13px; }
+  .chart-tip .ci-txt { color: var(--ink-muted); }
+
+  .value-strip { display: flex; gap: 0; margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; overflow-x: auto; }
+  .value-strip .vcell { flex: 1; min-width: 62px; text-align: center; padding: 2px 4px; }
+  .value-strip .vcell .m { font-size: 10px; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; }
+  .value-strip .vcell .n { font-size: 12.5px; font-weight: 650; }
+  .value-strip .vcell.tgt { border-left: 1px dashed var(--line); }
+  .value-strip .vcell.tgt .m { color: var(--accent-strong); }
+  .value-strip .vcell.tgt .n { color: var(--accent-strong); font-weight: 750; }
+
+  /* ---- override ---- */
+  .override-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); font-weight: 700; }
+  .field input, .field select {
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+    background: var(--surface); color: var(--ink); font: inherit; font-size: 13px;
+  }
+  .field input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .field input.num { width: 110px; text-align: right; font-variant-numeric: tabular-nums; }
+  .field input.motivo { width: 240px; }
+  .ovr-active {
+    margin-top: 10px; display: flex; gap: 8px; align-items: center;
+    background: var(--st-progress-bg); color: var(--st-progress-fg);
+    border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600;
+  }
+  .ovr-active button { border: none; background: transparent; color: inherit; cursor: pointer; font-weight: 700; margin-left: auto; }
+
+  /* ---- volumen L2 / algoritmo ---- */
+  .vol-summary { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .vol-big .n { font-size: 26px; font-weight: 750; letter-spacing: -0.02em; }
+  .vol-big .n.pulse { animation: pulse .5s ease; }
+  .vol-big .k { font-size: 11.5px; color: var(--ink-faint); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  @keyframes pulse { 0% { color: var(--accent); } 100% { color: inherit; } }
+  .algo-box { border: 1px dashed var(--line-strong); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+  .algo-box .algo-head { font-size: 12.5px; font-weight: 700; margin-bottom: 8px; }
+  .algo-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .algo-result { margin-top: 12px; }
+  .algo-warning {
+    display: flex; gap: 8px; align-items: flex-start;
+    background: var(--st-warning-bg); color: var(--st-warning-fg);
+    border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; margin-bottom: 10px;
+  }
+  table.diff { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.diff th { text-align: left; padding: 6px 8px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-faint); border-bottom: 1px solid var(--line); }
+  table.diff td { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.diff tr:last-child td { border-bottom: none; }
+  .diff-arrow { color: var(--ink-faint); padding: 0 4px; }
+  .clamped { font-size: 10.5px; font-weight: 700; color: var(--st-warning-fg); }
+  .algo-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* ---- L1 table ---- */
+  .l1-head-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .l1-live { margin-left: auto; font-size: 12.5px; color: var(--ink-muted); }
+  .l1-live b { font-size: 14px; }
+  table.l1 { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.l1 th {
+    text-align: left; padding: 7px 8px; font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .03em; color: var(--ink-faint);
+    border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  table.l1 td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+  table.l1 td.attrs { font-size: 11px; color: var(--ink-faint); max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+  .l1-wrap { overflow-x: auto; border-radius: 12px; }
+  table.l1 tr:last-child td { border-bottom: none; }
+  table.l1 tfoot td { border-top: 2px solid var(--line-strong); border-bottom: none; font-weight: 700; padding-top: 8px; }
+  .l1-input {
+    width: 78px; text-align: right; font-variant-numeric: tabular-nums;
+    border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px;
+    background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px;
+  }
+  .l1-input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .l1-input.out-warn { border-color: var(--st-warning-fg); background: var(--st-warning-bg); }
+  .l1-input.out-err  { border-color: var(--st-error-fg); background: var(--st-error-bg); }
+  .l1-input.changed  { border-color: var(--st-progress-fg); }
+
+  /* ---- L3 info ---- */
+  details.l3 { border: 1px solid var(--line); border-radius: 10px; padding: 0; overflow: hidden; }
+  details.l3 summary {
+    cursor: pointer; padding: 10px 14px; font-weight: 650; font-size: 12.5px;
+    color: var(--ink-muted); background: var(--surface-2); list-style: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  details.l3 summary::-webkit-details-marker { display: none; }
+  details.l3 summary .badge-info {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    background: var(--st-open-bg); color: var(--st-open-fg); padding: 2px 8px; border-radius: 999px;
+  }
+  details.l3 .l3-body { padding: 10px 14px; }
+  table.l3t { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--ink-muted); }
+  table.l3t th { text-align: left; font-size: 10px; text-transform: uppercase; color: var(--ink-faint); padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  table.l3t td { padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  table.l3t tr:last-child td { border-bottom: none; }
+
+  .hint { font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
+
+  @media (max-width: 900px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .meta-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ---- chat IA ---- */
+  .chat-fab {
+    position: fixed; bottom: 22px; right: 22px; z-index: 60;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px -6px rgba(20,30,25,0.45);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .chat-fab:hover { background: var(--accent-strong); transform: translateY(-2px); }
+  .chat-fab svg { width: 24px; height: 24px; }
+  .chat-fab .badge {
+    position: absolute; top: -2px; right: -2px; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--st-warning-fg); border: 2px solid var(--bg);
+  }
+  .chat-panel {
+    position: fixed; bottom: 86px; right: 22px; z-index: 60;
+    width: min(400px, calc(100vw - 44px)); height: min(600px, calc(100vh - 120px));
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: 0 24px 60px -18px rgba(20,30,25,0.35);
+    display: flex; flex-direction: column; overflow: hidden;
+    opacity: 0; transform: translateY(12px) scale(.98); pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .chat-panel.open { opacity: 1; transform: none; pointer-events: auto; }
+  .chat-head {
+    padding: 12px 16px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px; background: var(--surface-2);
+  }
+  .chat-head .ai-dot {
+    width: 28px; height: 28px; border-radius: 8px; background: var(--accent);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .chat-head .ai-dot svg { width: 16px; height: 16px; }
+  .chat-head .t { font-weight: 700; font-size: 13.5px; }
+  .chat-head .s { font-size: 11px; color: var(--ink-faint); }
+  .chat-head .demo-tag {
+    margin-left: auto; font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; background: var(--st-warning-bg); color: var(--st-warning-fg);
+    padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .chat-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 88%; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.45; }
+  .msg.ai { background: var(--surface-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; align-self: flex-start; }
+  .msg.user { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+  .msg b { font-weight: 700; }
+  .msg ul { margin: 6px 0 2px; padding-left: 18px; }
+  .msg li { margin: 2px 0; }
+  .msg table.chat-diff { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 8px 0 4px; }
+  .msg table.chat-diff th { text-align: left; font-size: 9.5px; text-transform: uppercase; color: var(--ink-faint); padding: 3px 6px; border-bottom: 1px solid var(--line); }
+  .msg table.chat-diff td { padding: 3px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .msg table.chat-diff tr:last-child td { border-bottom: none; }
+  .chat-acts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .chat-act {
+    border: 1px solid var(--accent); background: transparent; color: var(--accent-strong);
+    border-radius: 7px; padding: 5px 10px; font-size: 12px; font-weight: 650; cursor: pointer;
+  }
+  .chat-act:hover { background: var(--accent-soft); }
+  .chat-act.ghost { border-color: var(--line); color: var(--ink-muted); }
+  .chat-act.ghost:hover { background: var(--surface-2); }
+  .chat-act:disabled { opacity: .5; cursor: default; }
+  .typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .2s; }
+  .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
+  .chat-chips { display: flex; gap: 6px; padding: 8px 14px; flex-wrap: wrap; border-top: 1px solid var(--line); }
+  .chat-chip {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-muted);
+    border-radius: 999px; padding: 4px 11px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  }
+  .chat-chip:hover { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+  .chat-input-row { display: flex; gap: 8px; padding: 10px 14px 12px; border-top: 1px solid var(--line); }
+  .chat-input-row input {
+    flex: 1; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px;
+    background: var(--surface); color: var(--ink); font: inherit; font-size: 13px;
+  }
+  .chat-input-row input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .chat-send {
+    width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .chat-send:hover { background: var(--accent-strong); }
+  .chat-send svg { width: 16px; height: 16px; }
+</style>
+
+<div class="app">
+  <!-- ===================== TOPBAR ===================== -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <!-- target / dial icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.5"/>
+          <circle cx="12" cy="12" r="4.5"/>
+          <circle cx="12" cy="12" r="0.8" fill="#fff"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Calibración</div>
+        <div class="brand-sub">Revisión de targets · mock-up</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" title="Cambiar tema">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+        </svg>
+      </button>
+      <span class="role-pill">Calibradora</span>
+      <div class="user-chip"><div class="avatar">EA</div><span>Erika A.</span></div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===================== PAGE HEAD ===================== -->
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Calibración · Targets propuestos</span>
+        <h1>Revisión y aprobación de targets L2</h1>
+        <p class="page-desc">
+          Cada fila es una combinación <b>categoría × región</b> (L2). Revisa la curva histórica,
+          ajusta a nivel canal (L1) si hace falta, haz override del target propuesto y aprueba línea por línea.
+          El volumen es aditivo: L2 = suma de los canales L1.
+        </p>
+      </div>
+      <div class="context-chips">
+        <span class="ctx-chip">País <b>Chile</b></span>
+        <span class="ctx-chip">Ciclo <b>2026-S2</b></span>
+        <span class="ctx-chip">Target <b>jul 2026</b></span>
+      </div>
+    </div>
+
+    <!-- ===================== STATS (clicables = filtro rápido) ===================== -->
+    <div class="stats" id="stats"></div>
+
+    <!-- ===================== TOOLBAR ===================== -->
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="text" placeholder="Buscar categoría o región…">
+      </div>
+      <div class="chip-group" id="fRango">
+        <span class="grp-lbl">Rango</span>
+        <button class="chip" data-v="dentro">Dentro</button>
+        <button class="chip" data-v="leve">Fuera · leve</button>
+        <button class="chip" data-v="severo">Fuera · severo</button>
+      </div>
+      <div class="chip-group" id="fUrg">
+        <span class="grp-lbl">Urgencia</span>
+        <button class="chip" data-v="alta">Alta</button>
+        <button class="chip" data-v="baja">Baja</button>
+      </div>
+      <div class="chip-group" id="fEstado">
+        <span class="grp-lbl">Estado</span>
+        <button class="chip" data-v="pendiente">Pendiente</button>
+        <button class="chip" data-v="aprobado">Aprobado</button>
+        <button class="chip" data-v="override">Con override</button>
+      </div>
+      <div class="spacer"></div>
+      <select class="sort-select" id="sortSel" title="Ordenar por">
+        <option value="dev">Orden: desviación ↓</option>
+        <option value="urg">Orden: urgencia</option>
+        <option value="vol">Orden: volumen ↓</option>
+        <option value="cat">Orden: categoría A→Z</option>
+      </select>
+    </div>
+
+    <!-- ===================== L2 TABLE ===================== -->
+    <div class="card table-wrap">
+      <table class="targets">
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th>Región</th>
+            <th>Urg.</th>
+            <th>Penetración<br><span style="font-weight:500;text-transform:none;letter-spacing:0">últ. real → target</span></th>
+            <th>Rango factible</th>
+            <th>Desviación</th>
+            <th>Volumen L2 (miles u.)</th>
+            <th>Serie 24m</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="results-note" id="resultsNote"></p>
+  </main>
+</div>
+
+<!-- ===================== DRAWER ===================== -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Detalle de target">
+  <div class="drawer-head">
+    <div>
+      <h2 id="dTitle">—</h2>
+      <div class="sub" id="dSub"></div>
+    </div>
+    <button class="drawer-close" id="dClose" title="Cerrar">✕</button>
+  </div>
+
+  <div class="drawer-body">
+
+    <!-- Atributos L2 -->
+    <section class="dsec">
+      <h3>Atributos L2</h3>
+      <div class="meta-grid" id="dMeta"></div>
+    </section>
+
+    <!-- Penetración: serie + target + override -->
+    <section class="dsec">
+      <h3>Penetración L2 — serie histórica y target</h3>
+      <div class="chart-card">
+        <div class="chart-head">
+          <span class="t">Penetración mensual (%)</span>
+          <div class="chart-legend">
+            <span><span class="lg-line"></span> histórico</span>
+            <span><span class="lg-ci"></span> IC 95%</span>
+            <span><span class="lg-band"></span> rango factible</span>
+            <span><span class="lg-dot" id="lgTgtDot"></span> target propuesto</span>
+            <span id="lgOvr" style="display:none"><span class="lg-dot" style="background:var(--st-progress-fg)"></span> override</span>
+          </div>
+        </div>
+        <div id="dChartP" style="position:relative"><div class="chart-tip" id="chartTip"></div></div>
+        <div class="value-strip" id="dValuesP"></div>
+      </div>
+      <div class="override-row">
+        <div class="field">
+          <label>Override target P (%)</label>
+          <input class="num" type="number" step="0.1" id="ovrInput" placeholder="—">
+        </div>
+        <div class="field">
+          <label>Motivo</label>
+          <input class="motivo" type="text" id="ovrMotivo" placeholder="ej: quiebre de stock jun-26 distorsiona la propuesta">
+        </div>
+        <button class="btn btn-ghost btn-sm" id="ovrApply">Aplicar override</button>
+      </div>
+      <div class="ovr-active" id="ovrActive" style="display:none"></div>
+      <p class="hint">El override reemplaza el target propuesto por el modelo. Queda registrado con motivo y autor.</p>
+    </section>
+
+    <!-- Volumen L2 + algoritmo de redistribución -->
+    <section class="dsec">
+      <h3>Volumen L2 — aditivo desde L1</h3>
+      <div class="vol-summary">
+        <div class="vol-big">
+          <div class="k">Volumen L2 actual</div>
+          <div class="n mono" id="dVolTotal">—</div>
+        </div>
+        <div class="vol-big">
+          <div class="k">Propuesta original</div>
+          <div class="n mono" id="dVolOrig" style="color:var(--ink-faint); font-size:18px">—</div>
+        </div>
+      </div>
+      <div class="algo-box">
+        <div class="algo-head">Cambiar volumen total L2 → repartir automáticamente en L1</div>
+        <div class="algo-row">
+          <div class="field">
+            <label>Nuevo volumen L2 (miles u.)</label>
+            <input class="num" type="number" step="1" id="algoInput">
+          </div>
+          <button class="btn btn-primary btn-sm" id="algoRun">Aplicar algoritmo</button>
+        </div>
+        <p class="hint">Reparte el delta proporcional al peso de cada canal, respetando los rangos factibles de L1. Si el total pedido no es alcanzable, se asigna el máximo/mínimo factible y se avisa.</p>
+        <div class="algo-result" id="algoResult" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- L1 -->
+    <section class="dsec">
+      <div class="l1-head-row">
+        <h3 style="margin-bottom:0">Targets L1 — por canal (editable)</h3>
+        <div class="l1-live">Volumen L2 resultante: <b class="mono" id="l1LiveTotal">—</b></div>
+      </div>
+      <div class="card l1-wrap" style="box-shadow:none">
+        <table class="l1">
+          <thead>
+            <tr>
+              <th>Canal</th>
+              <th>Atributos</th>
+              <th style="text-align:right">P target (%)</th>
+              <th>Rango P</th>
+              <th style="text-align:right">V target (miles u.)</th>
+              <th>Rango V</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="l1Body"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4">Total L2 (aditivo en volumen)</td>
+              <td class="mono" style="text-align:right" id="l1FootV">—</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="hint">Editar V de un canal recalcula el total L2 en tiempo real. Los valores fuera del rango factible se marcan en ámbar (leve) o rojo (severo).</p>
+    </section>
+
+    <!-- L3 informativo -->
+    <section class="dsec">
+      <details class="l3">
+        <summary>▸ Detalle L3 <span class="badge-info">solo informativo</span> <span style="font-weight:500;color:var(--ink-faint)">— apertura por marca, no editable</span></summary>
+        <div class="l3-body">
+          <table class="l3t" id="l3Table"></table>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <div class="drawer-foot">
+    <div class="foot-note" id="footNote"></div>
+    <button class="btn btn-ghost" id="dReset">Restablecer propuesta</button>
+    <button class="btn btn-primary" id="dApprove">Aprobar target</button>
+  </div>
+</aside>
+
+<!-- ===================== CHAT IA (demo simulada) ===================== -->
+<button class="chat-fab" id="chatFab" title="Asistente IA">
+  <span class="badge"></span>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3 8.9 8.9 0 0 1-3.2-.6L4 20.5l1.4-4A8 8 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3.2 8.4 8.4 0 0 1 21 11.5z"/>
+    <path d="M9 10.5h.01M12.5 10.5h.01M16 10.5h.01"/>
+  </svg>
+</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-head">
+    <div class="ai-dot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+        <path d="M12 3v3M12 18v3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M3 12h3M18 12h3M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+        <circle cx="12" cy="12" r="3.5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="t">Asistente de calibración</div>
+      <div class="s">claude-sonnet-5 · vía API</div>
+    </div>
+    <span class="demo-tag">demo simulada</span>
+  </div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-chips" id="chatChips">
+    <button class="chat-chip" data-q="Dame un resumen del ciclo y por dónde partir">Resumen del ciclo</button>
+    <button class="chat-chip" data-q="¿Por qué este target está fuera de rango?">¿Por qué está fuera de rango?</button>
+    <button class="chat-chip" data-q="Sugiéreme un motivo de override">Sugerir motivo de override</button>
+    <button class="chat-chip" data-q="Sube el volumen de Lácteos a 2.500 y reparte en L1">Sube Lácteos a 2.500</button>
+    <button class="chat-chip" data-q="Aprueba todos los que están dentro de rango">Aprobar los OK</button>
+  </div>
+  <div class="chat-input-row">
+    <input id="chatInput" type="text" placeholder="Pregunta o pide un cambio…">
+    <button class="chat-send" id="chatSend" title="Enviar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Tema (idéntico a pycac)
+========================================================= */
+(function () {
+  const saved = localStorage.getItem('calib-theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme ||
+      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('calib-theme', next);
+  });
+})();
+
+/* =========================================================
+   Datos ficticios — L2 = categoría × región; L1 = + canal
+========================================================= */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+const MONTHS = (() => {
+  const names = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const out = [];
+  // 24 meses: jul-24 … jun-26
+  let y = 24, m = 6;
+  for (let i = 0; i < 24; i++) {
+    out.push(names[m] + '-' + y);
+    m++; if (m === 12) { m = 0; y++; }
+  }
+  return out;
+})();
+const TARGET_LABEL = 'jul-26';
+
+function genSeries(seed, base, trend, season, noise) {
+  const rnd = mulberry32(seed);
+  const s = [];
+  for (let i = 0; i < 24; i++) {
+    const v = base + trend * i + season * Math.sin((i % 12) / 12 * 2 * Math.PI) + (rnd() - 0.5) * 2 * noise;
+    s.push(Math.max(0.5, +v.toFixed(1)));
+  }
+  return s;
+}
+
+// spec: [cat, región, urgencia, seed, baseP, trendP, target offset vs rango]
+// offset: 0 = centrado (dentro), ±0.5 apenas fuera (leve), ±1.5 muy fuera (severo)
+const SPEC = [
+  ['Lácteos',           'Metropolitana', 'alta', 11, 62, 0.10,  1.6],
+  ['Bebidas gaseosas',  'Centro',        'alta', 12, 71, -0.15, -2.1],
+  ['Detergentes',       'Sur',           'alta', 13, 55, 0.05,  0.6],
+  ['Cervezas',          'Norte',         'alta', 14, 38, 0.20, -0.5],
+  ['Snacks salados',    'Metropolitana', 'baja', 15, 47, 0.12,  0.0],
+  ['Galletas',          'Centro',        'baja', 16, 66, 0.02,  0.1],
+  ['Aguas envasadas',   'Norte',         'alta', 17, 44, 0.25,  2.2],
+  ['Cuidado capilar',   'Sur',           'baja', 18, 51, -0.05, -0.2],
+  ['Yogurt',            'Centro',        'baja', 19, 58, 0.08,  0.2],
+  ['Pan envasado',      'Metropolitana', 'baja', 20, 73, -0.02, -0.1],
+  ['Jugos y néctares',  'Sur',           'alta', 21, 41, -0.20, -1.5],
+  ['Café',              'Norte',         'baja', 22, 33, 0.15,  0.3],
+];
+
+const CANALES = ['Tradicional', 'Supermercados', 'Mayorista', 'E-commerce'];
+const MARCAS = ['Marca líder', 'Marca B', 'Marca C', 'Marcas propias', 'Resto'];
+
+const DATA = SPEC.map((sp, idx) => {
+  const [cat, region, urgencia, seed, baseP, trendP, off] = sp;
+  const rnd = mulberry32(seed * 97 + 3);
+  const hist = genSeries(seed, baseP, trendP, 2.2, 1.6);
+  // intervalo de confianza (error muestral de la estimación de penetración)
+  const ciR = mulberry32(seed * 7 + 11);
+  const ciHW = 1.1 + ciR() * 1.1;
+  const ciLo = hist.map(v => +(v - ciHW * (0.8 + ciR() * 0.4)).toFixed(1));
+  const ciHi = hist.map(v => +(v + ciHW * (0.8 + ciR() * 0.4)).toFixed(1));
+  const last = hist[hist.length - 1];
+  const halfW = +(2.0 + rnd() * 1.5).toFixed(1);            // semiancho del rango factible
+  const center = +(last + trendP * 1.5).toFixed(1);
+  const min = +(center - halfW).toFixed(1);
+  const max = +(center + halfW).toFixed(1);
+  const target = +(center + off * halfW).toFixed(1);        // off controla dentro/leve/severo
+
+  // L1: 4 canales con share de volumen
+  const shares = [0.42, 0.31, 0.19, 0.08];
+  const volL2 = Math.round(800 + rnd() * 5200);             // miles de unidades
+  const l1 = CANALES.map((canal, ci) => {
+    const r2 = mulberry32(seed * 31 + ci * 7 + 1);
+    const vProp = Math.round(volL2 * shares[ci] * (0.9 + r2() * 0.2));
+    const vMin = Math.round(vProp * 0.82);
+    const vMax = Math.round(vProp * 1.18);
+    const pBase = +(baseP * (0.75 + ci * 0.12) * (0.92 + r2() * 0.16)).toFixed(1);
+    const pMin = +(pBase - (1.5 + r2() * 1.5)).toFixed(1);
+    const pMax = +(pBase + (1.5 + r2() * 1.5)).toFixed(1);
+    // un canal deliberadamente fuera de rango en las filas "severo"
+    const pTgt = (Math.abs(off) > 1 && ci === 0) ? +(pMax + 1.2).toFixed(1) : pBase;
+    return {
+      canal, region, cat,
+      pProp: pTgt, p: pTgt, pMin, pMax,
+      vProp, v: vProp, vMin, vMax,
+      histP: genSeries(seed * 13 + ci, pBase, trendP * 0.8, 1.8, 1.4),
+    };
+  });
+
+  // L3 informativo: apertura por marca del volumen
+  const r3 = mulberry32(seed * 5 + 2);
+  let rem = 1; const l3 = MARCAS.map((mk, i) => {
+    const sh = i === MARCAS.length - 1 ? rem : +(rem * (0.25 + r3() * 0.25)).toFixed(2);
+    rem = +(rem - sh).toFixed(2);
+    return { marca: mk, share: sh };
+  });
+
+  return {
+    id: idx, cat, region, urgencia,
+    hist, ciLo, ciHi, pMin: min, pMax: max,
+    pProp: target,        // propuesta del modelo (fija)
+    pOverride: null, ovrMotivo: '',
+    l1, l3,
+    estado: 'pendiente',  // pendiente | aprobado
+  };
+});
+
+/* =========================================================
+   Helpers de estado / formato
+========================================================= */
+const fmtN = n => Math.round(n).toLocaleString('es-CL');
+const fmtP = n => n.toFixed(1).replace('.', ',') + '%';
+
+function effTarget(row) { return row.pOverride != null ? row.pOverride : row.pProp; }
+
+// desviación relativa al ancho del rango: 0 dentro; >0 fuera
+function devInfo(row) {
+  const t = effTarget(row), w = row.pMax - row.pMin;
+  let d = 0;
+  if (t < row.pMin) d = (row.pMin - t) / w;
+  else if (t > row.pMax) d = (t - row.pMax) / w;
+  const nivel = d === 0 ? 'dentro' : (d < 0.4 ? 'leve' : 'severo');
+  return { d, nivel };
+}
+function l1CellNivel(val, min, max) {
+  if (val >= min && val <= max) return 'dentro';
+  const w = max - min || 1;
+  const d = val < min ? (min - val) / w : (val - max) / w;
+  return d < 0.4 ? 'leve' : 'severo';
+}
+function volTotal(row) { return row.l1.reduce((a, c) => a + c.v, 0); }
+function volProp(row) { return row.l1.reduce((a, c) => a + c.vProp, 0); }
+function hasEdits(row) {
+  return row.l1.some(c => c.v !== c.vProp || c.p !== c.pProp);
+}
+
+const NIVEL_TXT = { dentro: 'Dentro de rango', leve: 'Fuera · leve', severo: 'Fuera · severo' };
+const NIVEL_CLS = { dentro: 'ok', leve: 'warn', severo: 'err' };
+
+/* =========================================================
+   Charts SVG (sin librerías)
+========================================================= */
+function sparkline(row) {
+  const W = 110, H = 30, PAD = 2;
+  const info = devInfo(row);
+  const t = effTarget(row);
+  const all = row.hist.concat([row.pMin, row.pMax, t]);
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const X = i => PAD + i / 24 * (W - 2 * PAD);
+  const Y = v => H - PAD - (v - lo) / (hi - lo || 1) * (H - 2 * PAD);
+  const pts = row.hist.map((v, i) => X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
+  const bx = X(23.4), bw = W - PAD - bx;
+  return `<svg class="spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect class="band" x="${bx}" y="${Y(row.pMax)}" width="${bw}" height="${Math.max(2, Y(row.pMin) - Y(row.pMax))}"/>
+    <polyline class="hist" points="${pts}"/>
+    <circle class="tgt-${NIVEL_CLS[info.nivel]}" cx="${X(24)}" cy="${Y(t)}" r="3"/>
+  </svg>`;
+}
+
+const CH = { W: 640, H: 210, L: 42, R: 54, T: 14, B: 26 };
+
+function bigChart(row) {
+  const { W, H, L, R, T, B } = CH;
+  const info = devInfo(row);
+  const t = effTarget(row);
+  const all = row.hist.concat(row.ciLo, row.ciHi, [row.pMin, row.pMax, row.pProp, t]);
+  const lo = Math.floor(Math.min(...all) - 1), hi = Math.ceil(Math.max(...all) + 1);
+  row._scale = { lo, hi };
+  const X = i => L + i / 24 * (W - L - R);
+  const Y = v => T + (hi - v) / (hi - lo || 1) * (H - T - B);
+  const pts = row.hist.map((v, i) => X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
+  const ciPts = row.ciHi.map((v, i) => X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ') + ' ' +
+    row.ciLo.slice().reverse().map((v, i) => X(23 - i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
+
+  // grid: 4 líneas horizontales con etiqueta
+  let grid = '';
+  for (let g = 0; g <= 4; g++) {
+    const v = lo + (hi - lo) * g / 4;
+    grid += `<line class="grid" x1="${L}" y1="${Y(v)}" x2="${W - R}" y2="${Y(v)}"/>
+             <text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${v.toFixed(0)}%</text>`;
+  }
+  // etiquetas de meses (cada 4)
+  let xlabels = '';
+  for (let i = 0; i < 24; i += 4) {
+    xlabels += `<text x="${X(i)}" y="${H - 8}" text-anchor="middle">${MONTHS[i]}</text>`;
+  }
+  xlabels += `<text x="${X(24)}" y="${H - 8}" text-anchor="middle" font-weight="700">${TARGET_LABEL}</text>`;
+
+  // banda factible en la zona target
+  const bx = X(23.5);
+  const band = `<rect class="band" x="${bx}" y="${Y(row.pMax)}" width="${W - R - bx}" height="${Math.max(2, Y(row.pMin) - Y(row.pMax))}"/>
+    <line class="band-edge" x1="${bx}" y1="${Y(row.pMax)}" x2="${W - R}" y2="${Y(row.pMax)}"/>
+    <line class="band-edge" x1="${bx}" y1="${Y(row.pMin)}" x2="${W - R}" y2="${Y(row.pMin)}"/>
+    <text x="${W - R + 4}" y="${Y(row.pMax) + 3}">${fmtP(row.pMax)}</text>
+    <text x="${W - R + 4}" y="${Y(row.pMin) + 3}">${fmtP(row.pMin)}</text>`;
+
+  // link línea histórica → target
+  const lastY = Y(row.hist[23]);
+  let marks = `<line class="tgt-link" x1="${X(23)}" y1="${lastY}" x2="${X(24)}" y2="${Y(t)}"/>`;
+  // propuesta (si hay override, se muestra atenuada)
+  if (row.pOverride != null) {
+    marks += `<circle class="tgt-${NIVEL_CLS[devNivelOf(row.pProp, row)]}" cx="${X(24)}" cy="${Y(row.pProp)}" r="4" opacity="0.35"/>`;
+    marks += `<circle class="ovr" cx="${X(24)}" cy="${Y(t)}" r="5"/>
+              <text x="${X(24)}" y="${Y(t) - 9}" text-anchor="middle" font-weight="700">${fmtP(t)}</text>`;
+  } else {
+    marks += `<circle class="tgt-${NIVEL_CLS[info.nivel]}" cx="${X(24)}" cy="${Y(t)}" r="5"/>
+              <text x="${X(24)}" y="${Y(t) - 9}" text-anchor="middle" font-weight="700">${fmtP(t)}</text>`;
+  }
+
+  return `<svg class="bigchart" width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    ${grid}<polygon class="ci" points="${ciPts}"/>${band}<polyline class="hist" points="${pts}"/>${marks}${xlabels}
+    <g class="hover-g" style="display:none">
+      <line class="hover-line" x1="0" y1="${T}" x2="0" y2="${H - B}"/>
+      <circle class="hover-dot" cx="0" cy="0" r="4"/>
+    </g>
+    <rect class="hover-zone" x="0" y="0" width="${W}" height="${H}"/>
+  </svg>`;
+}
+
+/* hover: línea guía + tooltip con valor e IC */
+function attachChartHover(container, row) {
+  const svg = container.querySelector('svg');
+  const tip = document.getElementById('chartTip');
+  const zone = svg.querySelector('.hover-zone');
+  const g = svg.querySelector('.hover-g');
+  const line = g.querySelector('.hover-line');
+  const dot = g.querySelector('.hover-dot');
+  const { W, H, L, R, T, B } = CH;
+  const X = i => L + i / 24 * (W - L - R);
+  const Yv = v => {
+    const { lo, hi } = row._scale;
+    return T + (hi - v) / (hi - lo || 1) * (H - T - B);
+  };
+  zone.addEventListener('mousemove', e => {
+    const rect = svg.getBoundingClientRect();
+    const fx = (e.clientX - rect.left) / rect.width * W;
+    const i = Math.max(0, Math.min(24, Math.round((fx - L) / (W - L - R) * 24)));
+    const t = effTarget(row);
+    const v = i === 24 ? t : row.hist[i];
+    g.style.display = '';
+    line.setAttribute('x1', X(i)); line.setAttribute('x2', X(i));
+    dot.setAttribute('cx', X(i)); dot.setAttribute('cy', Yv(v));
+    if (i === 24) {
+      tip.innerHTML = `<div class="m">${TARGET_LABEL} · target ${row.pOverride != null ? '(override)' : 'propuesto'}</div>
+        <div class="v">${fmtP(t)}</div>
+        <div class="ci-txt">rango factible ${fmtP(row.pMin)} – ${fmtP(row.pMax)}</div>
+        ${row.pOverride != null ? `<div class="ci-txt">propuesta modelo ${fmtP(row.pProp)}</div>` : ''}`;
+    } else {
+      tip.innerHTML = `<div class="m">${MONTHS[i]}</div>
+        <div class="v">${fmtP(v)}</div>
+        <div class="ci-txt">IC 95%: ${fmtP(row.ciLo[i])} – ${fmtP(row.ciHi[i])}</div>`;
+    }
+    tip.style.display = 'block';
+    const px = X(i) / W * rect.width;
+    const tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(rect.width - tw - 4, px - tw / 2)) + 'px';
+  });
+  zone.addEventListener('mouseleave', () => {
+    g.style.display = 'none';
+    tip.style.display = 'none';
+  });
+}
+function devNivelOf(t, row) {
+  const w = row.pMax - row.pMin;
+  if (t >= row.pMin && t <= row.pMax) return 'dentro';
+  const d = t < row.pMin ? (row.pMin - t) / w : (t - row.pMax) / w;
+  return d < 0.4 ? 'leve' : 'severo';
+}
+
+/* =========================================================
+   Filtros / orden / render tabla
+========================================================= */
+const filters = { rango: new Set(), urg: new Set(), estado: new Set(), q: '' };
+let sortBy = 'dev';
+let openId = null;
+
+function bindChips(groupId, key) {
+  document.querySelectorAll('#' + groupId + ' .chip').forEach(ch => {
+    ch.addEventListener('click', () => {
+      const v = ch.dataset.v;
+      if (filters[key].has(v)) { filters[key].delete(v); ch.classList.remove('on'); }
+      else { filters[key].add(v); ch.classList.add('on'); }
+      renderTable();
+    });
+  });
+}
+bindChips('fRango', 'rango');
+bindChips('fUrg', 'urg');
+bindChips('fEstado', 'estado');
+document.getElementById('q').addEventListener('input', e => { filters.q = e.target.value.toLowerCase(); renderTable(); });
+document.getElementById('sortSel').addEventListener('change', e => { sortBy = e.target.value; renderTable(); });
+
+function rowEstadoKey(row) {
+  if (row.estado === 'aprobado') return 'aprobado';
+  if (row.pOverride != null) return 'override';
+  return 'pendiente';
+}
+
+function visibleRows() {
+  let rows = DATA.filter(r => {
+    const info = devInfo(r);
+    if (filters.rango.size && !filters.rango.has(info.nivel)) return false;
+    if (filters.urg.size && !filters.urg.has(r.urgencia)) return false;
+    if (filters.estado.size && !filters.estado.has(rowEstadoKey(r))) return false;
+    if (filters.q && !(r.cat.toLowerCase().includes(filters.q) || r.region.toLowerCase().includes(filters.q))) return false;
+    return true;
+  });
+  rows.sort((a, b) => {
+    if (sortBy === 'dev') return devInfo(b).d - devInfo(a).d || (a.urgencia === 'alta' ? -1 : 1);
+    if (sortBy === 'urg') return (a.urgencia === b.urgencia) ? devInfo(b).d - devInfo(a).d : (a.urgencia === 'alta' ? -1 : 1);
+    if (sortBy === 'vol') return volTotal(b) - volTotal(a);
+    return a.cat.localeCompare(b.cat) || a.region.localeCompare(b.region);
+  });
+  return rows;
+}
+
+function renderStats() {
+  const counts = { total: DATA.length, dentro: 0, leve: 0, severo: 0, aprobados: 0 };
+  DATA.forEach(r => { counts[devInfo(r).nivel]++; if (r.estado === 'aprobado') counts.aprobados++; });
+  const defs = [
+    ['total',   counts.total, '', 'Targets L2', null],
+    ['dentro',  counts.dentro, 'ok', 'Dentro de rango', 'dentro'],
+    ['leve',    counts.leve, 'warn', 'Fuera · leve', 'leve'],
+    ['severo',  counts.severo, 'err', 'Fuera · severo', 'severo'],
+    ['aprob',   counts.aprobados + ' / ' + counts.total, 'ok', 'Aprobados', null],
+  ];
+  document.getElementById('stats').innerHTML = defs.map(([k, n, cls, lbl, fv]) =>
+    `<div class="stat ${fv && filters.rango.has(fv) && filters.rango.size === 1 ? 'active' : ''}" data-f="${fv || ''}">
+      <div class="num ${cls}">${n}</div><div class="lbl">${lbl}</div>
+    </div>`).join('');
+  document.querySelectorAll('#stats .stat').forEach(el => {
+    el.addEventListener('click', () => {
+      const fv = el.dataset.f;
+      filters.rango.clear();
+      document.querySelectorAll('#fRango .chip').forEach(c => c.classList.remove('on'));
+      if (fv && !el.classList.contains('active')) {
+        filters.rango.add(fv);
+        const chip = document.querySelector(`#fRango .chip[data-v="${fv}"]`);
+        if (chip) chip.classList.add('on');
+      }
+      renderTable();
+    });
+  });
+}
+
+function renderTable() {
+  renderStats();
+  const rows = visibleRows();
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = rows.map(r => {
+    const info = devInfo(r);
+    const t = effTarget(r);
+    const last = r.hist[23];
+    const delta = t - last;
+    const vt = volTotal(r), vp = volProp(r);
+    const estKey = rowEstadoKey(r);
+    const estPill = r.estado === 'aprobado'
+      ? '<span class="pill st-aprobado"><span class="dot"></span>Aprobado</span>'
+      : (r.pOverride != null
+        ? '<span class="pill st-override"><span class="dot"></span>Override</span>'
+        : (hasEdits(r) ? '<span class="pill st-editado"><span class="dot"></span>Editado L1</span>'
+                       : '<span class="pill st-pend"><span class="dot"></span>Pendiente</span>'));
+    return `<tr data-id="${r.id}" class="${openId === r.id ? 'sel' : ''}">
+      <td><div class="cell-main">${r.cat}</div><div class="cell-sub">L2 · producto × región</div></td>
+      <td>${r.region}</td>
+      <td><span class="pill urg-${r.urgencia}"><span class="dot"></span>${r.urgencia === 'alta' ? 'Alta' : 'Baja'}</span></td>
+      <td class="mono">${fmtP(last)} → <b>${fmtP(t)}</b>
+        <span class="${delta >= 0 ? 'delta-up' : 'delta-dn'}">(${delta >= 0 ? '+' : ''}${delta.toFixed(1).replace('.', ',')} pp)</span>
+        ${r.pOverride != null ? '<div class="cell-sub">override · propuesta ' + fmtP(r.pProp) + '</div>' : ''}
+      </td>
+      <td class="range-lbl mono">${fmtP(r.pMin)} – ${fmtP(r.pMax)}</td>
+      <td>
+        <div class="dev-cell">
+          <div class="dev-bar"><i class="${NIVEL_CLS[info.nivel]}" style="width:${info.nivel === 'dentro' ? 100 : Math.min(100, info.d * 100)}%"></i></div>
+          <span class="dev-txt ${NIVEL_CLS[info.nivel]}">${info.nivel === 'dentro' ? 'OK' : '+' + Math.round(info.d * 100) + '% fuera'}</span>
+        </div>
+      </td>
+      <td class="mono">${fmtN(vt)}${vt !== vp ? ` <span class="cell-sub">(prop. ${fmtN(vp)})</span>` : ''}</td>
+      <td>${sparkline(r)}</td>
+      <td>${estPill}</td>
+      <td>
+        <button class="approve-btn ${r.estado === 'aprobado' ? 'done' : ''}" data-approve="${r.id}">
+          ${r.estado === 'aprobado' ? '✓ Aprobado' : 'Aprobar'}
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('resultsNote').textContent =
+    rows.length + ' de ' + DATA.length + ' targets L2 · ordenado por ' +
+    ({ dev: 'desviación (mayor primero)', urg: 'urgencia', vol: 'volumen', cat: 'categoría' }[sortBy]);
+
+  tb.querySelectorAll('tr').forEach(tr => {
+    tr.addEventListener('click', e => {
+      if (e.target.closest('[data-approve]')) return;
+      openDrawer(+tr.dataset.id);
+    });
+  });
+  tb.querySelectorAll('[data-approve]').forEach(b => {
+    b.addEventListener('click', () => approveRow(+b.dataset.approve));
+  });
+}
+
+function approveRow(id) {
+  const r = DATA.find(x => x.id === id);
+  if (r.estado === 'aprobado') return;
+  const info = devInfo(r);
+  if (info.nivel === 'severo' &&
+      !confirm('El target sigue fuera de rango (severo). ¿Aprobar de todas formas?')) return;
+  r.estado = 'aprobado';
+  renderTable();
+  if (openId === id) refreshDrawer();
+}
+
+/* =========================================================
+   Drawer
+========================================================= */
+const drawer = document.getElementById('drawer');
+const scrim = document.getElementById('scrim');
+
+function openDrawer(id) {
+  openId = id;
+  refreshDrawer();
+  drawer.classList.add('open');
+  scrim.classList.add('open');
+  renderTable();
+}
+function closeDrawer() {
+  openId = null;
+  drawer.classList.remove('open');
+  scrim.classList.remove('open');
+  renderTable();
+}
+document.getElementById('dClose').addEventListener('click', closeDrawer);
+scrim.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+function refreshDrawer() {
+  const r = DATA.find(x => x.id === openId);
+  if (!r) return;
+  const info = devInfo(r);
+
+  document.getElementById('dTitle').textContent = r.cat + ' — ' + r.region;
+  document.getElementById('dSub').innerHTML =
+    `<span class="pill urg-${r.urgencia}"><span class="dot"></span>Urgencia ${r.urgencia}</span>
+     <span class="pill st-${info.nivel}"><span class="dot"></span>${NIVEL_TXT[info.nivel]}</span>
+     ${r.estado === 'aprobado' ? '<span class="pill st-aprobado"><span class="dot"></span>Aprobado</span>' : ''}`;
+
+  document.getElementById('dMeta').innerHTML = `
+    <div><div class="k">Nivel</div><div class="v">L2 — categoría × región</div></div>
+    <div><div class="k">Producto / categoría</div><div class="v">${r.cat}</div></div>
+    <div><div class="k">Región</div><div class="v">${r.region}</div></div>
+    <div><div class="k">Período target</div><div class="v">${TARGET_LABEL}</div></div>`;
+
+  // chart P + valores
+  const chartWrap = document.getElementById('dChartP');
+  chartWrap.innerHTML = bigChart(r) + '<div class="chart-tip" id="chartTip"></div>';
+  attachChartHover(chartWrap, r);
+  const lgDot = document.getElementById('lgTgtDot');
+  lgDot.style.background = `var(--st-${info.nivel === 'dentro' ? 'success' : info.nivel === 'leve' ? 'warning' : 'error'}-fg)`;
+  document.getElementById('lgOvr').style.display = r.pOverride != null ? '' : 'none';
+
+  const lastVals = r.hist.slice(-8);
+  document.getElementById('dValuesP').innerHTML =
+    lastVals.map((v, i) =>
+      `<div class="vcell"><div class="m">${MONTHS[16 + i]}</div><div class="n mono">${fmtP(v)}</div></div>`
+    ).join('') +
+    `<div class="vcell tgt"><div class="m">${TARGET_LABEL} · target</div><div class="n mono">${fmtP(effTarget(r))}</div></div>`;
+
+  // override
+  document.getElementById('ovrInput').value = r.pOverride != null ? r.pOverride : '';
+  document.getElementById('ovrMotivo').value = r.ovrMotivo || '';
+  const ovrBox = document.getElementById('ovrActive');
+  if (r.pOverride != null) {
+    ovrBox.style.display = '';
+    ovrBox.innerHTML = `<b>Override activo:</b> ${fmtP(r.pOverride)} (propuesta: ${fmtP(r.pProp)}) — “${r.ovrMotivo || 'sin motivo'}” · Erika A.
+      <button id="ovrRemove">Quitar</button>`;
+    document.getElementById('ovrRemove').addEventListener('click', () => {
+      r.pOverride = null; r.ovrMotivo = '';
+      refreshDrawer(); renderTable();
+    });
+  } else ovrBox.style.display = 'none';
+
+  // volumen
+  document.getElementById('dVolTotal').textContent = fmtN(volTotal(r));
+  document.getElementById('dVolOrig').textContent = fmtN(volProp(r));
+  document.getElementById('algoInput').value = '';
+  document.getElementById('algoResult').style.display = 'none';
+  document.getElementById('algoResult').innerHTML = '';
+
+  renderL1(r);
+  renderL3(r);
+
+  // foot
+  const foot = document.getElementById('footNote');
+  foot.textContent = info.nivel === 'severo'
+    ? 'Target fuera de rango (severo): considera un override o ajustar L1 antes de aprobar.'
+    : '';
+  const btn = document.getElementById('dApprove');
+  btn.textContent = r.estado === 'aprobado' ? '✓ Target aprobado' : 'Aprobar target';
+  btn.disabled = r.estado === 'aprobado';
+}
+
+/* ---- L1 editable ---- */
+function renderL1(r) {
+  const tb = document.getElementById('l1Body');
+  tb.innerHTML = r.l1.map((c, ci) => {
+    const pN = l1CellNivel(c.p, c.pMin, c.pMax);
+    const vN = l1CellNivel(c.v, c.vMin, c.vMax);
+    const worst = (pN === 'severo' || vN === 'severo') ? 'severo' : (pN === 'leve' || vN === 'leve') ? 'leve' : 'dentro';
+    return `<tr>
+      <td><b>${c.canal}</b></td>
+      <td class="attrs">${r.cat} · ${r.region} · ${c.canal}</td>
+      <td style="text-align:right">
+        <input class="l1-input ${pN !== 'dentro' ? (pN === 'leve' ? 'out-warn' : 'out-err') : ''} ${c.p !== c.pProp ? 'changed' : ''}"
+               type="number" step="0.1" value="${c.p}" data-ci="${ci}" data-k="p">
+      </td>
+      <td class="range-lbl mono">${fmtP(c.pMin)}–${fmtP(c.pMax)}</td>
+      <td style="text-align:right">
+        <input class="l1-input ${vN !== 'dentro' ? (vN === 'leve' ? 'out-warn' : 'out-err') : ''} ${c.v !== c.vProp ? 'changed' : ''}"
+               type="number" step="1" value="${c.v}" data-ci="${ci}" data-k="v">
+      </td>
+      <td class="range-lbl mono">${fmtN(c.vMin)}–${fmtN(c.vMax)}</td>
+      <td><span class="pill st-${worst}" title="${NIVEL_TXT[worst]}"><span class="dot"></span>${worst === 'dentro' ? 'OK' : worst === 'leve' ? 'Leve' : 'Severo'}</span></td>
+    </tr>`;
+  }).join('');
+  updateL1Totals(r, false);
+
+  tb.querySelectorAll('.l1-input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const c = r.l1[+inp.dataset.ci];
+      const val = parseFloat(inp.value);
+      if (isNaN(val)) return;
+      c[inp.dataset.k] = val;
+      // feedback inmediato de rango en el propio input
+      const k = inp.dataset.k;
+      const n = k === 'p' ? l1CellNivel(c.p, c.pMin, c.pMax) : l1CellNivel(c.v, c.vMin, c.vMax);
+      inp.classList.toggle('out-warn', n === 'leve');
+      inp.classList.toggle('out-err', n === 'severo');
+      inp.classList.toggle('changed', c[k] !== (k === 'p' ? c.pProp : c.vProp));
+      updateL1Totals(r, true);
+      renderTable(); // impacto en tiempo real también en la tabla L2
+    });
+  });
+}
+
+function updateL1Totals(r, pulse) {
+  const vt = volTotal(r);
+  const el1 = document.getElementById('l1LiveTotal');
+  const el2 = document.getElementById('l1FootV');
+  const el3 = document.getElementById('dVolTotal');
+  [el1, el2, el3].forEach(el => { el.textContent = fmtN(vt); });
+  if (pulse) {
+    [el1, el3].forEach(el => {
+      el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
+    });
+  }
+}
+
+/* ---- L3 informativo ---- */
+function renderL3(r) {
+  const vt = volTotal(r);
+  document.getElementById('l3Table').innerHTML =
+    '<tr><th>Marca</th><th>Atributos</th><th style="text-align:right">Volumen est. (miles u.)</th><th style="text-align:right">Share</th></tr>' +
+    r.l3.map(x =>
+      `<tr><td>${x.marca}</td><td>${r.cat} · ${r.region}</td>
+       <td class="mono" style="text-align:right">${fmtN(vt * x.share)}</td>
+       <td class="mono" style="text-align:right">${Math.round(x.share * 100)}%</td></tr>`
+    ).join('');
+}
+
+/* ---- override ---- */
+document.getElementById('ovrApply').addEventListener('click', () => {
+  const r = DATA.find(x => x.id === openId); if (!r) return;
+  const v = parseFloat(document.getElementById('ovrInput').value);
+  if (isNaN(v)) { alert('Ingresa un valor de penetración para el override.'); return; }
+  r.pOverride = +v.toFixed(1);
+  r.ovrMotivo = document.getElementById('ovrMotivo').value.trim();
+  refreshDrawer(); renderTable();
+});
+
+/* ---- algoritmo de redistribución L2 → L1 ---- */
+function redistribute(r, newTotal) {
+  // reparto proporcional al peso actual, con clamp a [vMin, vMax] e iteración del residuo
+  let vals = r.l1.map(c => c.v);
+  const mins = r.l1.map(c => c.vMin), maxs = r.l1.map(c => c.vMax);
+  const minSum = mins.reduce((a, b) => a + b, 0), maxSum = maxs.reduce((a, b) => a + b, 0);
+  let feasible = true, achieved = newTotal;
+  if (newTotal > maxSum) { feasible = false; achieved = maxSum; }
+  if (newTotal < minSum) { feasible = false; achieved = minSum; }
+
+  let out = vals.slice();
+  let free = out.map((_, i) => true);
+  let remaining = achieved - out.reduce((a, b) => a + b, 0);
+  for (let it = 0; it < 6 && Math.abs(remaining) > 0.5; it++) {
+    const freeIdx = out.map((_, i) => i).filter(i => free[i]);
+    if (!freeIdx.length) break;
+    const wSum = freeIdx.reduce((a, i) => a + vals[i], 0) || freeIdx.length;
+    let dist = 0;
+    freeIdx.forEach(i => {
+      const share = vals[i] / wSum || 1 / freeIdx.length;
+      let next = out[i] + remaining * share;
+      if (next < mins[i]) { next = mins[i]; free[i] = false; }
+      if (next > maxs[i]) { next = maxs[i]; free[i] = false; }
+      dist += next - out[i];
+      out[i] = next;
+    });
+    remaining -= dist;
+    if (dist === 0) break;
+  }
+  return { out: out.map(v => Math.round(v)), feasible, achieved: Math.round(out.reduce((a, b) => a + b, 0)), clamped: free.map(f => !f) };
+}
+
+document.getElementById('algoRun').addEventListener('click', () => {
+  const r = DATA.find(x => x.id === openId); if (!r) return;
+  const nt = parseFloat(document.getElementById('algoInput').value);
+  if (isNaN(nt) || nt <= 0) { alert('Ingresa el nuevo volumen total L2.'); return; }
+  const res = redistribute(r, nt);
+  const box = document.getElementById('algoResult');
+  box.style.display = '';
+  let html = '';
+  if (!res.feasible) {
+    html += `<div class="algo-warning">⚠ El volumen pedido (${fmtN(nt)}) no es alcanzable con los rangos factibles de L1.
+      Se asigna el ${nt > res.achieved ? 'máximo' : 'mínimo'} factible: <b>&nbsp;${fmtN(res.achieved)}</b>.</div>`;
+  }
+  html += `<table class="diff">
+    <tr><th>Canal</th><th style="text-align:right">V actual</th><th></th><th style="text-align:right">V propuesto</th><th style="text-align:right">Δ</th><th></th></tr>` +
+    r.l1.map((c, i) => {
+      const d = res.out[i] - c.v;
+      return `<tr>
+        <td>${c.canal}</td>
+        <td class="mono" style="text-align:right">${fmtN(c.v)}</td>
+        <td class="diff-arrow">→</td>
+        <td class="mono" style="text-align:right"><b>${fmtN(res.out[i])}</b></td>
+        <td class="mono ${d >= 0 ? 'delta-up' : 'delta-dn'}" style="text-align:right">${d >= 0 ? '+' : ''}${fmtN(d)}</td>
+        <td>${res.clamped[i] ? '<span class="clamped">tope de rango</span>' : ''}</td>
+      </tr>`;
+    }).join('') +
+    `</table>
+    <div class="algo-actions">
+      <button class="btn btn-primary btn-sm" id="algoAccept">Aceptar redistribución</button>
+      <button class="btn btn-ghost btn-sm" id="algoDiscard">Descartar</button>
+    </div>`;
+  box.innerHTML = html;
+  document.getElementById('algoAccept').addEventListener('click', () => {
+    r.l1.forEach((c, i) => { c.v = res.out[i]; });
+    refreshDrawer(); renderTable();
+  });
+  document.getElementById('algoDiscard').addEventListener('click', () => {
+    box.style.display = 'none'; box.innerHTML = '';
+  });
+});
+
+/* ---- reset / aprobar (drawer) ---- */
+document.getElementById('dReset').addEventListener('click', () => {
+  const r = DATA.find(x => x.id === openId); if (!r) return;
+  r.pOverride = null; r.ovrMotivo = '';
+  r.l1.forEach(c => { c.v = c.vProp; c.p = c.pProp; });
+  r.estado = 'pendiente';
+  refreshDrawer(); renderTable();
+});
+document.getElementById('dApprove').addEventListener('click', () => {
+  if (openId != null) approveRow(openId);
+});
+
+/* ===== init ===== */
+renderTable();
+
+/* =========================================================
+   Chat IA — demo simulada (las respuestas se generan
+   localmente a partir del estado real de la página; en la
+   versión real esto llama a claude-sonnet-5 con tool-use)
+========================================================= */
+const chatPanel = document.getElementById('chatPanel');
+const chatMsgs = document.getElementById('chatMsgs');
+const chatInput = document.getElementById('chatInput');
+let pendingAction = null;
+
+document.getElementById('chatFab').addEventListener('click', () => {
+  chatPanel.classList.toggle('open');
+  if (chatPanel.classList.contains('open') && !chatMsgs.children.length) {
+    aiSay(`Hola Erika 👋 Veo el ciclo <b>2026-S2 · Chile</b> con ${DATA.length} targets L2.
+      Puedo explicarte por qué un target quedó fuera de rango, proponer motivos de override,
+      aplicar cambios de volumen con redistribución en L1, o priorizar tu revisión.
+      Prueba con los accesos rápidos de abajo.`);
+  }
+  if (chatPanel.classList.contains('open')) chatInput.focus();
+});
+
+function scrollChat() { chatMsgs.scrollTop = chatMsgs.scrollHeight; }
+function userSay(html) {
+  const d = document.createElement('div');
+  d.className = 'msg user'; d.innerHTML = html;
+  chatMsgs.appendChild(d); scrollChat();
+}
+function aiSay(html, acts) {
+  const d = document.createElement('div');
+  d.className = 'msg ai'; d.innerHTML = html;
+  if (acts && acts.length) {
+    const row = document.createElement('div'); row.className = 'chat-acts';
+    acts.forEach(a => {
+      const b = document.createElement('button');
+      b.className = 'chat-act' + (a.ghost ? ' ghost' : '');
+      b.textContent = a.label;
+      b.addEventListener('click', () => {
+        row.querySelectorAll('button').forEach(x => x.disabled = true);
+        a.run();
+      });
+      row.appendChild(b);
+    });
+    d.appendChild(row);
+  }
+  chatMsgs.appendChild(d); scrollChat();
+}
+function aiThink(cb) {
+  const d = document.createElement('div');
+  d.className = 'msg ai';
+  d.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+  chatMsgs.appendChild(d); scrollChat();
+  setTimeout(() => { d.remove(); cb(); }, 700 + Math.random() * 500);
+}
+
+function currentRow() { return openId != null ? DATA.find(x => x.id === openId) : null; }
+
+function findRowByText(text) {
+  const t = text.toLowerCase();
+  let best = null, len = 0;
+  DATA.forEach(r => {
+    const cat = r.cat.toLowerCase();
+    const first = cat.split(' ')[0];
+    if (t.includes(cat) && cat.length > len) { best = r; len = cat.length; }
+    else if (first.length > 3 && t.includes(first) && first.length > len) { best = r; len = first.length; }
+  });
+  return best;
+}
+
+function parseNumber(text) {
+  // ignora dígitos pegados a letras ("L1", "L2") y se queda con el mayor valor mencionado
+  const m = text.match(/(?<![A-Za-z\d])(\d{1,3}(?:\.\d{3})+|\d+(?:,\d+)?)(?!\d)/g);
+  if (!m) return null;
+  const vals = m.map(x => parseFloat(x.replace(/\./g, '').replace(',', '.'))).filter(n => !isNaN(n));
+  return vals.length ? Math.max(...vals) : null;
+}
+
+/* --- intents --- */
+function intentResumen() {
+  const sev = DATA.filter(r => devInfo(r).nivel === 'severo' && r.estado !== 'aprobado');
+  const lev = DATA.filter(r => devInfo(r).nivel === 'leve' && r.estado !== 'aprobado');
+  const okPend = DATA.filter(r => devInfo(r).nivel === 'dentro' && r.estado === 'pendiente');
+  const apr = DATA.filter(r => r.estado === 'aprobado').length;
+  const li = r => {
+    const i = devInfo(r);
+    return `<li><b>${r.cat} — ${r.region}</b> (urgencia ${r.urgencia}): target ${fmtP(effTarget(r))},
+      ${Math.round(i.d * 100)}% fuera del rango ${fmtP(r.pMin)}–${fmtP(r.pMax)}</li>`;
+  };
+  aiSay(`Estado del ciclo: <b>${apr}/${DATA.length} aprobados</b>, ${sev.length} severos, ${lev.length} leves, ${okPend.length} dentro de rango pendientes.
+    ${sev.length ? `<br><br>Partiría por los <b>severos</b>:<ul>${sev.map(li).join('')}</ul>` : ''}
+    ${lev.length ? `Luego los <b>leves</b>:<ul>${lev.map(li).join('')}</ul>` : ''}
+    Los ${okPend.length} que están dentro de rango podrías aprobarlos en bloque y concentrarte en el resto.`,
+    okPend.length ? [{ label: `Aprobar los ${okPend.length} dentro de rango`, run: () => runBulkApprove() },
+                     { label: 'Ahora no', ghost: true, run: () => {} }] : null);
+}
+
+function explainHtml(r) {
+  const info = devInfo(r), t = effTarget(r), last = r.hist[23];
+  const avg6 = r.hist.slice(17, 23).reduce((a, b) => a + b, 0) / 6;
+  const trend6 = last - r.hist[17];
+  const dir = t > r.pMax ? 'sobre el máximo' : 'bajo el mínimo';
+  const gap = t > r.pMax ? (t - r.pMax) : (r.pMin - t);
+  const outL1 = r.l1.filter(c =>
+    l1CellNivel(c.p, c.pMin, c.pMax) !== 'dentro' || l1CellNivel(c.v, c.vMin, c.vMax) !== 'dentro');
+  let html = `<b>${r.cat} — ${r.region}</b>: el target propuesto (${fmtP(t)}) queda
+    <b>${gap.toFixed(1).replace('.', ',')} pp ${dir}</b> del rango factible (${fmtP(r.pMin)}–${fmtP(r.pMax)}),
+    una desviación ${info.nivel === 'severo' ? 'severa' : 'leve'} (${Math.round(info.d * 100)}% del ancho del rango).<br><br>
+    La serie no lo sustenta: el promedio de los últimos 6 meses es ${fmtP(avg6)} y la tendencia semestral es
+    ${trend6 >= 0 ? '+' : ''}${trend6.toFixed(1).replace('.', ',')} pp — el salto que propone el modelo
+    (${(t - last).toFixed(1).replace('.', ',')} pp vs jun-26) es mayor que cualquier variación mensual reciente.`;
+  if (outL1.length) {
+    html += `<br><br>A nivel L1, ${outL1.map(c => `<b>${c.canal}</b>`).join(' y ')}
+      también ${outL1.length > 1 ? 'quedan' : 'queda'} fuera de su rango — la distorsión viene de ahí,
+      no es un efecto de mezcla.`;
+  }
+  return html;
+}
+
+function intentExplain(text) {
+  const r = findRowByText(text) || currentRow();
+  if (!r) {
+    aiSay('¿De cuál target hablamos? Abre uno en la tabla o dime la categoría (ej: "¿por qué Aguas envasadas está fuera de rango?").');
+    return;
+  }
+  const info = devInfo(r);
+  if (info.nivel === 'dentro') {
+    aiSay(`<b>${r.cat} — ${r.region}</b> está <b>dentro del rango factible</b>
+      (target ${fmtP(effTarget(r))}, rango ${fmtP(r.pMin)}–${fmtP(r.pMax)}). No requiere ajuste; puedes aprobarlo.`,
+      r.estado !== 'aprobado' ? [{ label: 'Aprobar este target', run: () => { r.estado = 'aprobado'; renderTable(); if (openId === r.id) refreshDrawer(); aiSay(`Listo, <b>${r.cat} — ${r.region}</b> aprobado ✓`); } }] : null);
+    return;
+  }
+  const mid = +((r.pMin + r.pMax) / 2).toFixed(1);
+  const sugg = effTarget(r) > r.pMax ? r.pMax : r.pMin;
+  aiSay(explainHtml(r) + `<br><br>Sugerencia: override a <b>${fmtP(sugg)}</b> (borde factible) o
+    <b>${fmtP(mid)}</b> (centro del rango).`,
+    [{ label: `Override a ${fmtP(sugg)}`, run: () => runOverride(r, sugg) },
+     { label: `Override a ${fmtP(mid)}`, run: () => runOverride(r, mid) },
+     { label: 'Solo mirar', ghost: true, run: () => { openDrawer(r.id); } }]);
+}
+
+function motivoFor(r) {
+  const t = r.pProp, last = r.hist[23];
+  const avg6 = r.hist.slice(17, 23).reduce((a, b) => a + b, 0) / 6;
+  return t > r.pMax
+    ? `Propuesta del modelo (${fmtP(t)}) excede el máximo factible (${fmtP(r.pMax)}); ` +
+      `promedio 6m ${fmtP(avg6)} y último real ${fmtP(last)} no sustentan el salto. Se ajusta al borde del rango.`
+    : `Propuesta del modelo (${fmtP(t)}) cae bajo el mínimo factible (${fmtP(r.pMin)}); ` +
+      `la serie reciente (prom. 6m ${fmtP(avg6)}) se mantiene estable. Se ajusta al borde del rango.`;
+}
+
+function intentMotivo(text) {
+  const r = findRowByText(text) || currentRow();
+  if (!r) { aiSay('Abre el target al que quieres ponerle override (o dime la categoría) y te redacto el motivo.'); return; }
+  const info = devInfo(r);
+  if (info.nivel === 'dentro' && r.pOverride == null) {
+    aiSay(`<b>${r.cat} — ${r.region}</b> está dentro de rango; no necesita override. ¿Quieres que revise otro?`);
+    return;
+  }
+  const motivo = motivoFor(r);
+  const sugg = r.pProp > r.pMax ? r.pMax : r.pMin;
+  aiSay(`Motivo propuesto para <b>${r.cat} — ${r.region}</b>:<br><br>“${motivo}”`,
+    [{ label: `Usar con override a ${fmtP(sugg)}`, run: () => runOverride(r, sugg, motivo) },
+     { label: 'Solo copiar el motivo', ghost: true, run: () => {
+        if (openId !== r.id) openDrawer(r.id);
+        document.getElementById('ovrMotivo').value = motivo;
+        aiSay('Motivo cargado en el formulario de override. Ajusta el valor y aplica cuando quieras.');
+     } }]);
+}
+
+function runOverride(r, val, motivo) {
+  r.pOverride = +val.toFixed(1);
+  r.ovrMotivo = motivo || motivoFor(r);
+  if (openId === r.id) refreshDrawer(); else openDrawer(r.id);
+  renderTable();
+  const info = devInfo(r);
+  aiSay(`Override aplicado en <b>${r.cat} — ${r.region}</b>: ${fmtP(r.pOverride)} (propuesta era ${fmtP(r.pProp)}).
+    El target ahora queda <b>${NIVEL_TXT[info.nivel].toLowerCase()}</b>. Motivo registrado.`,
+    r.estado !== 'aprobado' ? [{ label: 'Aprobar ahora', run: () => { r.estado = 'aprobado'; renderTable(); refreshDrawer(); aiSay('Aprobado ✓'); } },
+                               { label: 'Después', ghost: true, run: () => {} }] : null);
+}
+
+function intentVolumen(text) {
+  const r = findRowByText(text) || currentRow();
+  const n = parseNumber(text);
+  if (!r || !n) {
+    aiSay('Dime el target y el volumen, ej: <i>"sube el volumen de Lácteos a 2.500"</i>.');
+    return;
+  }
+  const res = redistribute(r, n);
+  const rows = r.l1.map((c, i) => {
+    const d = res.out[i] - c.v;
+    return `<tr><td>${c.canal}</td><td class="mono">${fmtN(c.v)}</td><td>→</td>
+      <td class="mono"><b>${fmtN(res.out[i])}</b></td>
+      <td class="mono">${d >= 0 ? '+' : ''}${fmtN(d)}${res.clamped[i] ? ' ⚠' : ''}</td></tr>`;
+  }).join('');
+  let head = `Volumen L2 de <b>${r.cat} — ${r.region}</b>: ${fmtN(volTotal(r))} → <b>${fmtN(res.achieved)}</b> miles u.`;
+  if (!res.feasible) head += `<br>⚠ ${fmtN(n)} no es alcanzable con los rangos L1; el ${n > res.achieved ? 'máximo' : 'mínimo'} factible es ${fmtN(res.achieved)}.`;
+  aiSay(`${head}<br>Redistribución propuesta (proporcional, respetando rangos):
+    <table class="chat-diff"><tr><th>Canal</th><th>Actual</th><th></th><th>Nuevo</th><th>Δ</th></tr>${rows}</table>
+    <span style="font-size:11px;color:var(--ink-faint)">⚠ = canal en tope de rango</span>`,
+    [{ label: 'Aplicar', run: () => {
+        r.l1.forEach((c, i) => { c.v = res.out[i]; });
+        renderTable();
+        if (openId === r.id) refreshDrawer(); else openDrawer(r.id);
+        aiSay(`Aplicado. Volumen L2 de <b>${r.cat} — ${r.region}</b> ahora es ${fmtN(volTotal(r))} miles u. Puedes verlo en el detalle.`);
+      } },
+     { label: 'Descartar', ghost: true, run: () => aiSay('Descartado, no cambié nada.') }]);
+}
+
+function runBulkApprove() {
+  const ok = DATA.filter(r => devInfo(r).nivel === 'dentro' && r.estado === 'pendiente');
+  ok.forEach(r => { r.estado = 'aprobado'; });
+  renderTable(); if (openId != null) refreshDrawer();
+  aiSay(`Aprobé <b>${ok.length} targets</b> que estaban dentro de rango:<ul>${ok.map(r => `<li>${r.cat} — ${r.region}</li>`).join('')}</ul>
+    Los que tienen desviación siguen pendientes de tu revisión.`);
+}
+
+function intentBulkApprove() {
+  const ok = DATA.filter(r => devInfo(r).nivel === 'dentro' && r.estado === 'pendiente');
+  if (!ok.length) { aiSay('No hay targets dentro de rango pendientes de aprobar.'); return; }
+  aiSay(`Hay <b>${ok.length} targets dentro de rango</b> pendientes. Los que están fuera de rango no los toco — esos requieren tu revisión. ¿Confirmas?`,
+    [{ label: `Sí, aprobar ${ok.length}`, run: () => runBulkApprove() },
+     { label: 'Cancelar', ghost: true, run: () => aiSay('Ok, no aprobé nada.') }]);
+}
+
+function routeMessage(text) {
+  const t = text.toLowerCase();
+  if (/resumen|ciclo|prioriz|por d[oó]nde|partir/.test(t)) return intentResumen();
+  if (/aprueba|aprobar/.test(t) && /todos|dentro|ok|bloque/.test(t)) return intentBulkApprove();
+  if (/motivo|redacta/.test(t)) return intentMotivo(text);
+  if (/volumen|sube|baja|ajusta|cambia/.test(t) && parseNumber(text) != null) return intentVolumen(text);
+  if (/por ?qu[eé]|fuera de rango|desviaci|explica|analiza/.test(t)) return intentExplain(text);
+  const r = findRowByText(text);
+  if (r) return intentExplain(text);
+  aiSay(`Puedo ayudarte con:<ul>
+    <li><b>Priorizar</b>: "resumen del ciclo"</li>
+    <li><b>Explicar</b>: "¿por qué Lácteos está fuera de rango?"</li>
+    <li><b>Override</b>: "sugiéreme un motivo de override"</li>
+    <li><b>Volumen</b>: "sube el volumen de Cervezas a 5.500"</li>
+    <li><b>Aprobar</b>: "aprueba todos los que están dentro de rango"</li></ul>`);
+}
+
+function sendChat(text) {
+  if (!text.trim()) return;
+  userSay(text);
+  chatInput.value = '';
+  aiThink(() => routeMessage(text));
+}
+document.getElementById('chatSend').addEventListener('click', () => sendChat(chatInput.value));
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(chatInput.value); });
+document.querySelectorAll('.chat-chip').forEach(ch =>
+  ch.addEventListener('click', () => { chatPanel.classList.add('open'); sendChat(ch.dataset.q); }));
+</script>
