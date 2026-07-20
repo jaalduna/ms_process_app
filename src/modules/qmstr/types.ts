@@ -45,37 +45,13 @@ export interface QmsTrRun {
   error_message?: string | null
 }
 
-/** Request body for creating (and starting) a new QMS-TR job. */
+/** Request body for creating (and starting) a new QMS-TR job. `ano_base` is the
+ * only per-run parameter confirmed against the reference pipeline (v2.py) --
+ * see docs/design/mockups/qms-tr-historias-usuario.md. `parameters` is kept
+ * open-ended for the deferred "Avanzado" periodic-calibration section, not
+ * used by this iteration. */
 export interface QmsTrRunCreate {
   country: string
   ano_base: number
   parameters?: Record<string, unknown>
-}
-
-/** Placeholder QMS-TR parameters -- concrete fields TBD when the backend config
- * (JAA-990) is defined. Kept separate from MTR's params so the two can diverge. */
-export interface QmsTrParams {
-  target_threshold: number
-  imputation_method: string
-  quality_min: number
-}
-
-export const DEFAULT_QMSTR_PARAMS: QmsTrParams = {
-  target_threshold: 0.85,
-  imputation_method: "weighted_average",
-  quality_min: 0.80,
-}
-
-export const QMSTR_PARAM_META: Record<
-  keyof QmsTrParams,
-  { label: string; unit: string; step?: string; type?: "number" | "select"; options?: string[] }
-> = {
-  target_threshold: { label: "Target achievement threshold", unit: "ratio", step: "0.01" },
-  imputation_method: {
-    label: "Imputation method",
-    unit: "",
-    type: "select",
-    options: ["weighted_average", "nearest_neighbor", "regression"],
-  },
-  quality_min: { label: "Minimum quality score", unit: "ratio", step: "0.01" },
 }

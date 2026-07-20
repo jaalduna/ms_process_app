@@ -24,7 +24,10 @@ import weightingParamsRouter from "./routes/weighting-params.js"
 import { seedAll } from "./fixtures/seed.js"
 
 const app = express()
-app.use(cors())
+// Cross-origin downloads (frontend on :5173, mock on :8000/:8988) need this
+// exposed or the browser can't read Content-Disposition, so every download
+// falls back to a generic filename regardless of what the route sets.
+app.use(cors({ exposedHeaders: ["Content-Disposition"] }))
 app.use(express.json())
 
 // Never let browsers cache API/health/auth responses. Otherwise a stale entry

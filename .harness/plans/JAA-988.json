@@ -1,0 +1,73 @@
+{
+  "ticket": "JAA-988",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-988/qms-tr-frontend-reconstruir-qmstrpage-segun-mockup-prender-feature",
+  "branch": "feat/JAA-988-qmstr-page-rebuild",
+  "worktree": "../ms_process_app-JAA-988",
+  "archetype": "webapp",
+  "change_scope": "substantive",
+  "goal": "Rebuild QmsTrPage over the JAA-987 hooks/types to match the qms-tr.html mockup (only ano_base per-run param, API-driven step names, error+logs+retry, history, single-zip download) and flip the qmstr feature flag default to true.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "With mock-server running, opening /qms-tr lets the user pick Brasil, set ano_base, press Ejecutar, watch steps advance via polling, and download the zip on completion",
+      "how_to_verify": "Playwright walkthrough against npm run mock:fast + npm run dev:e2e"
+    },
+    {
+      "id": "ac2",
+      "criterion": "No UI text mentions copy_bridge/tag_run/run_stage/publish_gold or canal/region/marca/categoria/KPI fields; step labels come from the API's steps[].name",
+      "how_to_verify": "grep -rn 'copy_bridge\\|tag_run\\|run_stage\\|publish_gold' src/modules/qmstr/ returns nothing; read QmsTrProgress/QmsTrCountryCard for hardcoded step arrays"
+    },
+    {
+      "id": "ac3",
+      "criterion": "npm run typecheck (tsc -b) and vitest pass",
+      "how_to_verify": "npx tsc -b && npm test -- --run"
+    },
+    {
+      "id": "ac4",
+      "criterion": "qmstr feature flag defaults to true in useModuleConfig",
+      "how_to_verify": "read src/hooks/useModuleConfig.ts"
+    },
+    {
+      "id": "ac5",
+      "criterion": "Mtr*-named components under qmstr/ are renamed to Qms*Tr equivalents (no residual Mtr naming/imports) and MtrConfigDialog is deleted (no separate config dialog, single ano_base field on the card)",
+      "how_to_verify": "grep -rln 'Mtr' src/modules/qmstr/components/ (expect no matches); ls src/modules/qmstr/components/"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Drop QmsTrParams/DEFAULT_QMSTR_PARAMS/QMSTR_PARAM_META from types.ts (leftover MTR-shaped global params, not the real ano_base-only contract)",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Rename+rewrite MtrProgress.tsx -> QmsTrProgress.tsx (already API-step-driven, just rename)",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Rename+rewrite MtrCountryCard.tsx -> QmsTrCountryCard.tsx: drop mtrParams prop + ProcessStatusBadge(stage='mtr') (wrong stage, no qmstr ProcessStage exists - capture as follow-up), add local per-card ano_base number input feeding create, keep Ejecutar/Eye/history-on-click, add direct Descargar + Reintentar affordances on terminal states",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Rename+rewrite MtrDetailModal.tsx -> QmsTrDetailModal.tsx and MtrHistoryModal.tsx -> QmsTrHistoryModal.tsx (import/prop renames only, logic already ano_base/job_id based)",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Delete MtrConfigDialog.tsx; rewrite QmsTrPage.tsx to drop PeriodSelector+global config dialog, render QmsTrCountryCard grid keyed by country only",
+      "status": "complete"
+    },
+    {
+      "id": "t6",
+      "desc": "Flip qmstr default false->true in useModuleConfig.ts",
+      "status": "complete"
+    },
+    {
+      "id": "t7",
+      "desc": "Add QmsTrCountryCard.test.tsx (ano_base input, Ejecutar disabled/enabled, create payload, step render, download/retry on terminal states); update e2e/qmstr-macrocac.spec.ts if selectors moved; full VERIFY_CMD + Playwright walkthrough",
+      "status": "complete"
+    }
+  ]
+}

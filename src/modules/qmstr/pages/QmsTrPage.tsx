@@ -1,39 +1,18 @@
-import { useState } from "react"
-import { PeriodSelector } from "@/components/PeriodSelector"
-import { MtrConfigDialog } from "../components/MtrConfigDialog"
-import { MtrCountryCard } from "../components/MtrCountryCard"
+import { QmsTrCountryCard } from "../components/QmsTrCountryCard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCountries } from "@/hooks/useCountries"
-import type { QmsTrParams } from "../types"
-import { DEFAULT_QMSTR_PARAMS } from "../types"
-
-function currentPeriod(): string {
-  const now = new Date()
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const yyyy = prev.getFullYear()
-  const mm = String(prev.getMonth() + 1).padStart(2, "0")
-  return `${yyyy}${mm}`
-}
 
 export function QmsTrPage() {
-  const [period, setPeriod] = useState(currentPeriod)
-  const [mtrParams, setMtrParams] = useState<QmsTrParams>(DEFAULT_QMSTR_PARAMS)
   const { data, isLoading, error } = useCountries()
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">QMS-TR</h1>
-          <p className="text-sm text-muted-foreground">
-            Deeper calibration targets and imputations
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PeriodSelector value={period} onChange={setPeriod} />
-          <MtrConfigDialog params={mtrParams} onChange={setMtrParams} />
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">QMS-TR</h1>
+        <p className="text-sm text-muted-foreground">
+          Corridas de calibración QMS-TR por país. Cada país corre de forma independiente.
+        </p>
       </div>
 
       {/* Country grid */}
@@ -54,13 +33,7 @@ export function QmsTrPage() {
       {data && (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data.countries.filter((c) => c.type === "country").map((c) => (
-            <MtrCountryCard
-              key={c.code}
-              countryCode={c.code}
-              period={period}
-              mtrParams={mtrParams}
-              lastMtrDate={null}
-            />
+            <QmsTrCountryCard key={c.code} countryCode={c.code} />
           ))}
         </div>
       )}
