@@ -25,7 +25,7 @@ export function useModuleConfig(): ModuleConfig {
     weighting: config?.weighting ?? false,
     mtr: config?.mtr ?? false,
     formato4: config?.formato4 ?? false,
-    qmstr: config?.qmstr ?? false,
+    qmstr: config?.qmstr ?? true,
     macrocac: config?.macrocac ?? false,
     traceability: config?.traceability ?? false,
     // Enabled by default: the module is additionally gated by the admin role.

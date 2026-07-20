@@ -1013,3 +1013,44 @@ lines touched in those 3 files.
 **PR:** → develop (direct mode), auto-complete to be armed at creation. Linear → In Review.
 **NEXT:** Build green → auto-complete merges; a later /harness JAA-776 re-run (Orient → step 7)
 confirms merge + cleans worktree + sets Done.
+
+## 2026-07-20 — JAA-988 (QMS-TR frontend: reconstruir QmsTrPage según mockup + prender feature flag) — IN REVIEW
+
+**What:** Resumed a prior session's in-progress worktree (t1-t6 already done, t7 partially drafted)
+and finished it. Rebuilt `src/modules/qmstr/` over the JAA-987 types/hooks so the page matches
+`docs/design/mockups/qms-tr.html` + the user-stories doc instead of being an MTR clone:
+- Dropped the leftover MTR-shaped `QmsTrParams`/`DEFAULT_QMSTR_PARAMS`/`QMSTR_PARAM_META` from
+  `types.ts` (there is no global config — año_base is the only per-run param).
+- Renamed `Mtr*` → `Qms*Tr` across `components/` (Progress, CountryCard, DetailModal,
+  HistoryModal); `QmsTrCountryCard` now owns a local editable año_base input (no separate config
+  dialog) with Ejecutar/confirm/Reintentar/Descargar affordances gated by run status, and opens the
+  history modal on card click.
+- Deleted `MtrConfigDialog.tsx`; rewrote `QmsTrPage.tsx` to drop `PeriodSelector` + the global
+  config dialog, just a country grid.
+- Flipped `qmstr` default `false` → `true` in `useModuleConfig.ts`.
+- Added `QmsTrCountryCard.test.tsx` (8 cases: año_base default/edit, Ejecutar→confirm→create
+  payload has no `parameters`, API-driven step labels not the old MTR DAG names, Descargar only
+  when completed, Reintentar+logs on failure, history-modal-on-click) and `e2e/qmstr-flow.spec.ts`
+  (full Brasil lifecycle + a "no forbidden text" sweep).
+**Bug found + fixed (root cause, not scope creep):** the download e2e assertion kept failing with
+a generic fallback filename (`qms_tr_<tag>.zip` instead of the server-set
+`qms_tr_brasil_2025_<id>.zip`) — `mock-server`'s `cors()` wasn't exposing `Content-Disposition`, so
+the cross-origin browser fetch (mock on :8988, vite on :5173) couldn't read it and `downloadQmsTrTag`
+fell back to its default. Fixed with `cors({ exposedHeaders: ["Content-Disposition"] })` in
+`mock-server/server.js` — this is shared CORS config, so it also fixes the same latent bug for every
+other module's download (weighting/prices/mtr/formato4/calibration/traceability), though only qmstr's
+e2e spec asserts the exact filename closely enough to have caught it.
+**Verify:** vitest 518 passed (+8 new); eslint clean; `tsc -b` clean; mock-server vitest suite
+(`mock-server/__tests__/`) 90 passed. Playwright `@smoke` (`qmstr-flow.spec.ts` +
+`qmstr-macrocac.spec.ts`) 5/5 green. Separate skeptical evaluator (ux-ui-reviewer, Sonnet, fresh
+ctx, ran every check itself incl. its own live Playwright run): ALL 5 ACs PASS →
+`.harness/eval_feedback/JAA-988.json`.
+**Captured (not chased):** JAA-997 — the mock's per-step progression (`advanceJob`, same pattern as
+`sync.js`) has an unseeded ~5%-per-step random failure chance (~14% cumulative over 3 steps), so
+`@smoke` specs (retries:0) created via the UI without `force_outcome` risk an occasional flake; hit
+this once mid-session (re-ran clean). Filed with `needs-human` (design choice: deterministic seed
+vs. exposing `force_outcome` through the UI trigger path) since it's a cross-module mock pattern,
+not qmstr-specific.
+**PR:** → develop (direct mode), auto-complete to be armed at creation. Linear → In Review.
+**NEXT:** Build green → auto-complete merges; a later /harness JAA-988 re-run (Orient → step 7)
+confirms merge + cleans worktree + sets Done.

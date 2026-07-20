@@ -105,7 +105,7 @@ function HistoryEntry({ run, isDownloading, onDownload }: HistoryEntryProps) {
   )
 }
 
-interface MtrHistoryModalProps {
+interface QmsTrHistoryModalProps {
   country: string
   countryLabel: string
   countryFlag: string
@@ -113,13 +113,13 @@ interface MtrHistoryModalProps {
   onClose: () => void
 }
 
-export function MtrHistoryModal({
+export function QmsTrHistoryModal({
   country,
   countryLabel,
   countryFlag,
   open,
   onClose,
-}: MtrHistoryModalProps) {
+}: QmsTrHistoryModalProps) {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set())
   const { data, isLoading, isError } = useQmsTrHistory(country, open)
 

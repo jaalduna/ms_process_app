@@ -6,11 +6,11 @@ function stepLabel(name: string): string {
   return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-interface MtrProgressProps {
+interface QmsTrProgressProps {
   steps: QmsTrStep[]
 }
 
-export function MtrProgress({ steps }: MtrProgressProps) {
+export function QmsTrProgress({ steps }: QmsTrProgressProps) {
   const total = steps.length
   const completed = steps.filter((s) => s.status === "completed").length
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0

@@ -1,0 +1,33 @@
+{
+  "ticket": "JAA-988",
+  "evaluator": "ux-ui-reviewer (sonnet, fresh ctx)",
+  "verdicts": [
+    {
+      "id": "ac1",
+      "verdict": "PASS",
+      "evidence": "Ran mock-server (PORT=8988, MOCK_STEP_INTERVAL_MS=150) + vite (VITE_AUTH_BYPASS=true, :5173). MOCK_SERVER_PORT=8988 npx playwright test e2e/qmstr-flow.spec.ts e2e/qmstr-macrocac.spec.ts --project=smoke: 5/5 passed on first attempt (17.7s), full run-lifecycle covered incl. API-driven step label + zip download + filename assertion."
+    },
+    {
+      "id": "ac2",
+      "verdict": "PASS",
+      "evidence": "grep for copy_bridge|tag_run|run_stage|publish_gold only matches inside a test's negative assertion; zero matches in component/page source. No canal/region/marca/categoria/KPI mentions. QmsTrProgress renders step labels from the steps prop (API-driven), not a hardcoded array."
+    },
+    {
+      "id": "ac3",
+      "verdict": "PASS",
+      "evidence": "npm test -- --run: 70 files / 518 tests passed. npm run lint: no issues. npx tsc -b: no errors."
+    },
+    {
+      "id": "ac4",
+      "verdict": "PASS",
+      "evidence": "src/hooks/useModuleConfig.ts: config?.qmstr ?? true."
+    },
+    {
+      "id": "ac5",
+      "verdict": "PASS",
+      "evidence": "No 'Mtr' matches under src/modules/qmstr/components|pages. MtrConfigDialog.tsx deleted, no replacement config-dialog component; ano_base is an inline input on QmsTrCountryCard."
+    }
+  ],
+  "overall": "PASS",
+  "notes": "Root-cause CORS fix in mock-server/server.js (exposedHeaders: Content-Disposition) verified as legitimate, not scope creep -- it was blocking AC1's download-filename assertion cross-origin. Follow-up JAA-997 filed (unseeded ~14% random-failure flake in mock step progression, shared pattern with sync.js/weighting/prices/mtr/formato4) -- not a blocker for this ticket, flake-tolerance rule applied and not triggered (test passed clean)."
+}

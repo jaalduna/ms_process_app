@@ -3,8 +3,9 @@ import { login } from "./helpers/auth"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
 
 /**
- * Smoke coverage for the QMS-TR page (a copy of MTR at /qms-tr), the retained
- * MTR page (/mtr), and the Macrocac placeholder (/macrocac, on-demand publish to
+ * Smoke coverage for the QMS-TR page (its own /qms_tr backed model as of
+ * JAA-987/JAA-988, no longer an MTR clone) at /qms-tr, the retained MTR page
+ * (/mtr), and the Macrocac placeholder (/macrocac, on-demand publish to
  * productive SQL tables). Nav-click navigation is used instead of page.goto
  * because the dev auth state is in-memory and a hard reload logs the session out.
  */
@@ -23,13 +24,14 @@ test.describe("QMS-TR / MTR / Macrocac", () => {
     await expect(nav.getByRole("link", { name: "Macrocac", exact: true })).toBeVisible()
   })
 
-  test("QMS-TR page renders the MTR country grid under its own heading", { tag: "@smoke" }, async ({ page }) => {
+  test("QMS-TR page renders a country grid under its own heading", { tag: "@smoke" }, async ({ page }) => {
     const nav = page.getByRole("navigation", { name: /main navigation/i })
     await nav.getByRole("link", { name: "QMS-TR", exact: true }).click()
     await expect(page).toHaveURL(/\/qms-tr$/, { timeout: 10_000 })
     await expect(page.getByRole("heading", { name: "QMS-TR", exact: true })).toBeVisible({ timeout: 10_000 })
-    // Same content as MTR: at least one country card with the trigger button.
+    // At least one country card with its own ano_base input + trigger button.
     await expect(page.getByRole("button", { name: /^Ejecutar$/ }).first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByLabel("Año base").first()).toBeVisible()
   })
 
   test("MTR page is still reachable at /mtr with its own heading", { tag: "@smoke" }, async ({ page }) => {

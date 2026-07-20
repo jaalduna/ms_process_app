@@ -32,7 +32,7 @@ import {
   RefreshCcw,
   XCircle,
 } from "lucide-react"
-import { MtrProgress } from "./MtrProgress"
+import { QmsTrProgress } from "./QmsTrProgress"
 import { useQmsTrRun, useCreateQmsTrRun } from "../hooks/useQmsTr"
 import { QMSTR_ACTIVE_STATUSES, QMSTR_STATUS_CONFIG } from "../types"
 import type { QmsTrStep } from "../types"
@@ -123,13 +123,13 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
   )
 }
 
-interface MtrDetailModalProps {
+interface QmsTrDetailModalProps {
   jobId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function MtrDetailModal({ jobId, open, onOpenChange }: MtrDetailModalProps) {
+export function QmsTrDetailModal({ jobId, open, onOpenChange }: QmsTrDetailModalProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
   const [isDownloading, setIsDownloading] = useState(false)
 
@@ -231,7 +231,7 @@ export function MtrDetailModal({ jobId, open, onOpenChange }: MtrDetailModalProp
               <div>
                 <span className="text-muted-foreground">Pipeline</span>
                 <div className="mt-2">
-                  <MtrProgress steps={steps} />
+                  <QmsTrProgress steps={steps} />
                 </div>
                 <div className="mt-3 space-y-1">
                   {steps.map((step) => {
