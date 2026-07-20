@@ -1,0 +1,24 @@
+{
+  "ticket": "JAA-986",
+  "evaluator_model": "sonnet",
+  "attempt": 1,
+  "overall_verdict": "PASS",
+  "criteria": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "POST /qms_tr/runs validates country/ano_base (400 if missing), creates job_id, steps=[silver_builder,kpis_batch,export_zip], starts progression, 201. Verified live curl + vitest."},
+    {"id": "ac2", "verdict": "PASS", "evidence": "GET /qms_tr/runs/:id 404s unknown id; progression via setInterval keyed off MOCK_STEP_INTERVAL_MS (2000ms default), same mechanism as sync.js; reaches completed with all steps completed."},
+    {"id": "ac3", "verdict": "PASS", "evidence": "GET /qms_tr/:tagOrId/download resolves by job_id or tag; 409 job_not_finished before completion; 200 + Content-Disposition attachment after. Verified live curl."},
+    {"id": "ac4", "verdict": "PASS", "evidence": "GET /qms_tr/runs?country=... filters correctly, verified via 2-country test."},
+    {"id": "ac5", "verdict": "PASS", "evidence": "force_outcome='fail' deterministically fails at _failAtStep (default kpis_batch), distinct from the 5% random fallback; job.status/job.error/step.error all set correctly."},
+    {"id": "ac6", "verdict": "PASS", "evidence": "server.js imports qmsTrRouter and mounts app.use('/api/v1', qmsTrRouter) alongside sync/mtr; reachable live."},
+    {"id": "ac7", "verdict": "PASS", "evidence": "git diff numerator/develop -- sync.js mtr.js is empty; full mock-server suite 12/12 files, 90/90 tests green."}
+  ],
+  "test_evidence": {
+    "targeted": "npx vitest run mock-server/__tests__/qms_tr.test.js -> 7 passed (7)",
+    "full_mock_server": "npx vitest run mock-server -> 12 passed, 90 passed",
+    "full_suite": "npx vitest run -> 67 passed, 497 passed",
+    "lint": "npx eslint mock-server/routes/qms_tr.js mock-server/__tests__/qms_tr.test.js mock-server/server.js -> clean",
+    "typecheck": "npx tsc -b -> clean"
+  },
+  "no_weakening_check": "New test file only; sync.js/mtr.js byte-for-byte untouched vs numerator/develop; no skip()/xdescribe/trivial assertions.",
+  "no_stub_check": "No TODO/FIXME/NotImplementedError/placeholder in qms_tr.js."
+}

@@ -1,0 +1,51 @@
+{
+  "ticket": "JAA-986",
+  "linear_url": "https://linear.app/kwp/issue/JAA-986",
+  "branch": "feat/JAA-986-qms-tr-mock-route",
+  "archetype": "webapp",
+  "change_scope": "substantive",
+  "goal": "Add a new mock-server route mock-server/routes/qms_tr.js modeled on sync.js's job_id/steps/download pattern (not mtr.js's run_id pattern), covering create/poll/download/list + an error-path simulation, and register it in server.js.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "POST /qms_tr/runs creates a run for a country (brasil) + ano_base, returns 201 with a synthetic job_id, and starts step progression (steps default pending/running).",
+      "how_to_verify": "vitest: POST /qms_tr/runs with {country:'brasil', ano_base:2025} -> 201, body has job_id, country, ano_base, steps array with names [silver_builder, kpis_batch, export_zip]."
+    },
+    {
+      "id": "ac2",
+      "criterion": "GET /qms_tr/runs/{id} returns status + steps, and steps advance as time passes (same interval mechanism as sync.js, MOCK_STEP_INTERVAL_MS-driven), eventually reaching status completed.",
+      "how_to_verify": "vitest with a short MOCK_STEP_INTERVAL_MS: create run, poll GET /qms_tr/runs/{id} repeatedly (with waits) until status === 'completed'; assert all steps completed in order."
+    },
+    {
+      "id": "ac3",
+      "criterion": "GET /qms_tr/{tag_or_id}/download returns a downloadable file (zip or csv) once the run is completed, and 409s if not yet finished.",
+      "how_to_verify": "vitest: call download before completion -> 409/job_not_finished; after completion -> 200 with Content-Disposition attachment header, resolvable by either job_id or tag."
+    },
+    {
+      "id": "ac4",
+      "criterion": "GET /qms_tr/runs?country=... lists/filters runs for history use.",
+      "how_to_verify": "vitest: create 2 runs (different countries), GET /qms_tr/runs?country=brasil returns only the brasil one(s)."
+    },
+    {
+      "id": "ac5",
+      "criterion": "An error path is simulable: a run can be forced to fail at a step (deterministic, not just 5% random) so the frontend error handling can be tested.",
+      "how_to_verify": "vitest: create a run with a force-fail flag (e.g. force_outcome:'fail' in POST body), poll until status === 'failed', assert the failed step has status failed + error message, and job.status/job.error reflect the failure."
+    },
+    {
+      "id": "ac6",
+      "criterion": "New route is registered in mock-server/server.js the same way sync.js/mtr.js are, reachable under /api/v1/qms_tr/*.",
+      "how_to_verify": "grep server.js for qms_tr import + app.use; vitest hits the route mounted the same way trigger-fields.test.js does for sync.js."
+    },
+    {
+      "id": "ac7",
+      "criterion": "mock-server/routes/sync.js and mock-server/routes/mtr.js are untouched (read-only reference); existing mock-server tests keep passing.",
+      "how_to_verify": "git diff numerator/develop -- mock-server/routes/sync.js mock-server/routes/mtr.js is empty; npm test (vitest run) full suite green."
+    }
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Write failing vitest for qms_tr.js route (create/poll/download/list/error path) against a fresh express app mounting only qms_tr router", "status": "incomplete"},
+    {"id": "t2", "desc": "Implement mock-server/routes/qms_tr.js: in-memory job store keyed by job_id, steps [silver_builder, kpis_batch, export_zip] with a comment that names must sync with the real backend later, setInterval-driven progression mirroring sync.js, force_outcome fail/pass override", "status": "incomplete"},
+    {"id": "t3", "desc": "Register qms_tr router in mock-server/server.js next to sync/mtr imports", "status": "incomplete"},
+    {"id": "t4", "desc": "Run full VERIFY_CMD (npm test && npm run lint && npx tsc -b) and confirm mock-server suite green", "status": "incomplete"}
+  ]
+}
