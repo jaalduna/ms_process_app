@@ -1,0 +1,16 @@
+{
+  "ticket": "JAA-989",
+  "evaluator": "ux-ui-reviewer (sonnet, fresh ctx)",
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "Brasil card visible via accessible name; passed in live run."},
+    {"id": "ac2", "verdict": "PASS", "evidence": "ano_base fill + Ejecutar/Confirmar + step progress to Completado; green 3x consecutive."},
+    {"id": "ac3", "verdict": "PASS", "evidence": "download event asserted against exact filename pattern matching mock's real filename format."},
+    {"id": "ac4", "verdict": "PASS", "evidence": "Error text + Reintentar button + Ver logs modal all asserted with specific (non-loose) matchers."},
+    {"id": "ac5", "verdict": "PASS", "evidence": "History modal opened via status badge click, scoped assertion on the seeded run's own year."},
+    {"id": "ac6", "verdict": "PASS", "evidence": "3 consecutive full-file runs green against the same mock-server process; only e2e/qms-tr.spec.ts touched under e2e/."},
+    {"id": "ac7", "verdict": "PASS", "evidence": "error -> error_message rename confirmed at both write sites; step-level .error left intact; test + types aligned."},
+    {"id": "ac8", "verdict": "PASS", "evidence": "resetQmsTrJobs() wired into POST /test/reset; empirically prevents cross-run job accumulation (3x back-to-back runs all green with strict single-match assertions)."}
+  ],
+  "overall": "ALL PASS (ac1-ac8)",
+  "supporting": "npm test -- --run 518/518; npx tsc -b clean; npm run lint clean; diff scope confirmed as exactly e2e/qms-tr.spec.ts (new) + mock-server/routes/qms_tr.js + mock-server/routes/test.js + mock-server/__tests__/qms_tr.test.js."
+}

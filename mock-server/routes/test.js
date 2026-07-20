@@ -3,6 +3,7 @@ import { resetJobs, seedRunningJob } from "./sync.js"
 import { pricesStore, seedPrices } from "./prices.js"
 import { weightingStore, seedWeighting } from "./weighting.js"
 import { mtrStore, seedMtr } from "./mtr.js"
+import { resetQmsTrJobs } from "./qms_tr.js"
 import { formato4Store, seedFormato4 } from "./formato4.js"
 import { eligibilityStore, seedEligibility } from "./eligibility.js"
 import { processStore, seedProcesses } from "./processes.js"
@@ -27,6 +28,7 @@ router.post("/test/reset", (_req, res) => {
   pricesStore.reset()
   weightingStore.reset()
   mtrStore.reset()
+  resetQmsTrJobs()
   formato4Store.reset()
   eligibilityStore.reset()
   processStore.reset()

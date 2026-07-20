@@ -60,7 +60,7 @@ function advanceJob(jobId) {
       job.status = "failed"
       job.completed_at = isoNow()
       job.current_step = null
-      job.error = `Pipeline failed at step: ${step.name}`
+      job.error_message = `Pipeline failed at step: ${step.name}`
       return
     }
 
@@ -122,7 +122,7 @@ router.post("/qms_tr/runs", (req, res) => {
     completed_at: null,
     triggered_by: "qms-tr-mock",
     current_step: steps[0].name,
-    error: null,
+    error_message: null,
     steps,
     _stepIndex: 0,
     _forceOutcome: force_outcome ?? null,
