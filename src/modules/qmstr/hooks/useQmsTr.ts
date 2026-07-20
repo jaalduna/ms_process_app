@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { getQmsTrRuns, getQmsTrRun, createQmsTrRun } from "@/lib/api"
+import { getQmsTrRuns, getQmsTrRun, createQmsTrRun, executeQmsTrRun } from "@/lib/api"
 import { QMSTR_POLL_STATUSES } from "../types"
 import type { QmsTrRunCreate } from "../types"
 
@@ -41,8 +41,11 @@ export function useQmsTrRun(jobId: string | null) {
   })
 }
 
-/** Creates AND starts a QMS-TR job in one call (job_id model, unlike MTR's
- * separate create+execute steps). */
+/** Creates a QMS-TR run in "pending" status. Does NOT start it — callers
+ * must chain useExecuteQmsTrRun().mutate(run.run_id) on success (same
+ * create-pending -> execute-triggers model as calibración/mtr; JAA-992's
+ * 2-Databricks-job orchestration lives entirely server-side behind
+ * execute + polling). */
 export function useCreateQmsTrRun() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -50,6 +53,19 @@ export function useCreateQmsTrRun() {
     onSuccess: (run) => {
       queryClient.invalidateQueries({ queryKey: ["qmstr-runs", run.country] })
       queryClient.invalidateQueries({ queryKey: ["qmstr-history", run.country] })
+    },
+  })
+}
+
+/** Triggers a previously-created (pending) run. See useCreateQmsTrRun. */
+export function useExecuteQmsTrRun() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (runId: string) => executeQmsTrRun(runId),
+    onSuccess: (run) => {
+      queryClient.invalidateQueries({ queryKey: ["qmstr-runs", run.country] })
+      queryClient.invalidateQueries({ queryKey: ["qmstr-history", run.country] })
+      queryClient.invalidateQueries({ queryKey: ["qmstr-run", run.job_id] })
     },
   })
 }

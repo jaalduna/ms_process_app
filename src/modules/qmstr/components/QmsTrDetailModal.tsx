@@ -33,7 +33,7 @@ import {
   XCircle,
 } from "lucide-react"
 import { QmsTrProgress } from "./QmsTrProgress"
-import { useQmsTrRun, useCreateQmsTrRun } from "../hooks/useQmsTr"
+import { useQmsTrRun, useCreateQmsTrRun, useExecuteQmsTrRun } from "../hooks/useQmsTr"
 import { QMSTR_ACTIVE_STATUSES, QMSTR_STATUS_CONFIG } from "../types"
 import type { QmsTrStep } from "../types"
 import { downloadQmsTrTag } from "@/lib/api"
@@ -135,6 +135,7 @@ export function QmsTrDetailModal({ jobId, open, onOpenChange }: QmsTrDetailModal
 
   const { data: run } = useQmsTrRun(open ? jobId : null)
   const createRun = useCreateQmsTrRun()
+  const executeRun = useExecuteQmsTrRun()
 
   if (!run) return null
 
@@ -162,9 +163,14 @@ export function QmsTrDetailModal({ jobId, open, onOpenChange }: QmsTrDetailModal
         ano_base: run.ano_base,
       },
       {
-        onSuccess: () => {
-          toast.success(`Retry started for ${countryLabel}`)
-          onOpenChange(false)
+        onSuccess: (newRun) => {
+          executeRun.mutate(newRun.job_id, {
+            onSuccess: () => {
+              toast.success(`Retry started for ${countryLabel}`)
+              onOpenChange(false)
+            },
+            onError: () => toast.error(`Failed to start retry job for ${countryLabel}`),
+          })
         },
         onError: () => toast.error(`Failed to create retry job for ${countryLabel}`),
       },
@@ -175,7 +181,7 @@ export function QmsTrDetailModal({ jobId, open, onOpenChange }: QmsTrDetailModal
     if (!run.tag) return
     setIsDownloading(true)
     try {
-      await downloadQmsTrTag(run.tag)
+      await downloadQmsTrTag(run.tag, run.country)
       toast.success("Download started")
     } catch {
       toast.error("Download failed")
@@ -291,8 +297,8 @@ export function QmsTrDetailModal({ jobId, open, onOpenChange }: QmsTrDetailModal
           {isFailed && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" disabled={createRun.isPending}>
-                  {createRun.isPending && (
+                <Button variant="outline" disabled={createRun.isPending || executeRun.isPending}>
+                  {(createRun.isPending || executeRun.isPending) && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   <RefreshCcw className="mr-2 h-4 w-4" />

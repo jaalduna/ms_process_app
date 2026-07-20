@@ -19,7 +19,7 @@ import { toast } from "sonner"
 import { QmsTrProgress } from "./QmsTrProgress"
 import { QmsTrDetailModal } from "./QmsTrDetailModal"
 import { QmsTrHistoryModal } from "./QmsTrHistoryModal"
-import { useQmsTrRuns, useCreateQmsTrRun } from "../hooks/useQmsTr"
+import { useQmsTrRuns, useCreateQmsTrRun, useExecuteQmsTrRun } from "../hooks/useQmsTr"
 import { QMSTR_ACTIVE_STATUSES, QMSTR_STATUS_CONFIG } from "../types"
 import { downloadQmsTrTag } from "@/lib/api"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
@@ -43,6 +43,7 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
 
   const { data: runs, isLoading } = useQmsTrRuns(countryCode)
   const createRun = useCreateQmsTrRun()
+  const executeRun = useExecuteQmsTrRun()
 
   const latestRun = runs?.[0] ?? null
   const countryLabel = COUNTRY_LABELS[countryCode] ?? countryCode
@@ -52,7 +53,9 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
   const isPending = latestRun?.status === "pending"
   const isCompleted = latestRun?.status === "completed"
   const isFailed = latestRun?.status === "failed"
-  const canExecute = !isProcessing && !isPending && !createRun.isPending && Number.isInteger(anoBase) && anoBase > 0
+  const canExecute =
+    !isProcessing && !isPending && !createRun.isPending && !executeRun.isPending &&
+    Number.isInteger(anoBase) && anoBase > 0
   const canDownload = isCompleted && !!latestRun?.tag
 
   const statusConfig = latestRun ? QMSTR_STATUS_CONFIG[latestRun.status] : null
@@ -61,7 +64,12 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
     createRun.mutate(
       { country: countryCode, ano_base: anoBase },
       {
-        onSuccess: () => toast.success(`QMS-TR iniciado para ${countryLabel}`),
+        onSuccess: (run) => {
+          executeRun.mutate(run.job_id, {
+            onSuccess: () => toast.success(`QMS-TR iniciado para ${countryLabel}`),
+            onError: () => toast.error(`No se pudo iniciar QMS-TR para ${countryLabel}`),
+          })
+        },
         onError: () => toast.error(`No se pudo iniciar QMS-TR para ${countryLabel}`),
       },
     )
@@ -72,7 +80,12 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
     createRun.mutate(
       { country: countryCode, ano_base: latestRun.ano_base },
       {
-        onSuccess: () => toast.success(`Reintento iniciado para ${countryLabel}`),
+        onSuccess: (run) => {
+          executeRun.mutate(run.job_id, {
+            onSuccess: () => toast.success(`Reintento iniciado para ${countryLabel}`),
+            onError: () => toast.error(`No se pudo reintentar QMS-TR para ${countryLabel}`),
+          })
+        },
         onError: () => toast.error(`No se pudo reintentar QMS-TR para ${countryLabel}`),
       },
     )
@@ -82,7 +95,7 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
     if (!latestRun?.tag) return
     setIsDownloading(true)
     try {
-      await downloadQmsTrTag(latestRun.tag)
+      await downloadQmsTrTag(latestRun.tag, latestRun.country)
       toast.success("Descarga iniciada")
     } catch {
       toast.error("Error al descargar")
@@ -161,7 +174,7 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button size="sm" disabled={!canExecute} className="flex-1">
-                    {createRun.isPending ? (
+                    {createRun.isPending || executeRun.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Iniciando...
@@ -192,11 +205,11 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={createRun.isPending}
+                disabled={createRun.isPending || executeRun.isPending}
                 onClick={handleRetry}
                 aria-label={`Reintentar QMS-TR para ${countryLabel}`}
               >
-                {createRun.isPending ? (
+                {createRun.isPending || executeRun.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCcw className="h-4 w-4" />

@@ -67,9 +67,12 @@ describe("qmstr api fns", () => {
         headers: { "content-disposition": 'attachment; filename="qms_tr_brasil_2026.zip"' },
       })
 
-      await downloadQmsTrTag("tag-123")
+      await downloadQmsTrTag("tag-123", "brasil")
 
-      expect(getSpy).toHaveBeenCalledWith("/qms_tr/tag-123/download", { responseType: "blob" })
+      expect(getSpy).toHaveBeenCalledWith("/qms_tr/tag-123/download", {
+        params: { country: "brasil" },
+        responseType: "blob",
+      })
       expect(createObjectURL).toHaveBeenCalledTimes(1)
       expect(clickSpy).toHaveBeenCalledTimes(1)
       expect(revokeObjectURL).toHaveBeenCalledWith("blob:qmstr")
@@ -85,7 +88,7 @@ describe("qmstr api fns", () => {
         })
       getSpy.mockResolvedValueOnce({ data: new Blob(["zipbytes"]), headers: {} })
 
-      await downloadQmsTrTag("tag-456")
+      await downloadQmsTrTag("tag-456", "brasil")
 
       expect(appended).toHaveLength(1)
       expect(appended[0].download).toBe("qms_tr_tag-456.zip")

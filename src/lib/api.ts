@@ -454,15 +454,26 @@ export function getQmsTrRun(jobId: string) {
   return api.get<QmsTrRun>(`/qms_tr/runs/${jobId}`).then((r) => r.data)
 }
 
-/** Creates a QMS-TR job; unlike MTR there is no separate execute step -- the
- * job_id model (like calibración/sync) starts running immediately on create. */
+/** Creates a QMS-TR run in "pending" status -- does NOT start it (matches
+ * calibración's create-pending -> execute-triggers model; see
+ * executeQmsTrRun). Callers must chain executeQmsTrRun(run.run_id) on
+ * success, same as the calibración/mtr create+execute pattern. */
 export function createQmsTrRun(data: QmsTrRunCreate) {
   return api.post<QmsTrRun>("/qms_tr/runs", data).then((r) => r.data)
 }
 
+/** Triggers the just-created run's first Databricks job (silver_builder);
+ * polling later auto-advances to kpis_batch once silver succeeds (JAA-992). */
+export function executeQmsTrRun(runId: string) {
+  return api.post<QmsTrRun>(`/qms_tr/runs/${runId}/execute`).then((r) => r.data)
+}
+
 // Blob GET + anchor-click + revokeObjectURL, mirroring downloadTagZip below.
-export async function downloadQmsTrTag(tag: string): Promise<void> {
-  const response = await api.get(`/qms_tr/${tag}/download`, { responseType: "blob" })
+export async function downloadQmsTrTag(tag: string, country: string): Promise<void> {
+  const response = await api.get(`/qms_tr/${tag}/download`, {
+    params: { country },
+    responseType: "blob",
+  })
   const url = URL.createObjectURL(new Blob([response.data]))
   const a = document.createElement("a")
   a.href = url

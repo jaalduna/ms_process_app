@@ -159,6 +159,20 @@ router.get("/qms_tr/runs/:jobId", (req, res) => {
   res.json(serializeJob(job))
 })
 
+// POST /qms_tr/runs/{id}/execute — contract parity with the real backend
+// (ms-process-api routes/qms_tr.py), which DOES require a separate execute
+// call after create (calibración-style create-pending -> execute-triggers,
+// not the single-call model this mock's POST /runs originally assumed).
+// Here the run is already progressing (started in create above), so this is
+// an idempotent no-op that just returns current state -- it exists so the
+// frontend can always chain create->execute unconditionally and behave
+// correctly against both mock and real.
+router.post("/qms_tr/runs/:jobId/execute", (req, res) => {
+  const job = qmsTrJobs.get(req.params.jobId)
+  if (!job) return res.status(404).json({ error: "not_found", message: `Run ${req.params.jobId} not found` })
+  res.json(serializeJob(job))
+})
+
 function findJobByIdOrTag(idOrTag) {
   return qmsTrJobs.get(idOrTag) ?? Array.from(qmsTrJobs.values()).find((j) => j.tag === idOrTag) ?? null
 }

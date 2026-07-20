@@ -127,7 +127,7 @@ export function QmsTrHistoryModal({
     if (!run.tag) return
     setDownloadingIds((prev) => new Set(prev).add(run.job_id))
     try {
-      await downloadQmsTrTag(run.tag)
+      await downloadQmsTrTag(run.tag, run.country)
       toast.success("Download started")
     } catch {
       toast.error("Failed to download")

@@ -1,0 +1,8 @@
+[
+  {"id":"ac1","verdict":"PASS","evidence":"Diff scoped to 9 files, no drive-by changes."},
+  {"id":"ac2","verdict":"PASS","evidence":"execute always chained on create success, never on failure, both error paths toast. Latent double-click gap noted, captured as JAA-999 (non-blocking, pre-existing pattern)."},
+  {"id":"ac3","verdict":"PASS","evidence":"mock-server create handler untouched (+14/-0, purely additive execute no-op endpoint)."},
+  {"id":"ac4","verdict":"PASS","evidence":"519/519 vitest passed."},
+  {"id":"ac5","verdict":"PASS","evidence":"tsc + eslint clean."},
+  {"id":"ac6","verdict":"PASS","evidence":"6/6 qms-tr-scoped Playwright smoke specs pass (independently re-run by evaluator on alternate ports)."}
+]

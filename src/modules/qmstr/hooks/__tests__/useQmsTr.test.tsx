@@ -6,14 +6,22 @@ import type { ReactNode } from "react"
 const mockGetQmsTrRuns = vi.fn()
 const mockGetQmsTrRun = vi.fn()
 const mockCreateQmsTrRun = vi.fn()
+const mockExecuteQmsTrRun = vi.fn()
 
 vi.mock("@/lib/api", () => ({
   getQmsTrRuns: (...a: unknown[]) => mockGetQmsTrRuns(...a),
   getQmsTrRun: (...a: unknown[]) => mockGetQmsTrRun(...a),
   createQmsTrRun: (...a: unknown[]) => mockCreateQmsTrRun(...a),
+  executeQmsTrRun: (...a: unknown[]) => mockExecuteQmsTrRun(...a),
 }))
 
-import { useQmsTrRuns, useQmsTrHistory, useQmsTrRun, useCreateQmsTrRun } from "../useQmsTr"
+import {
+  useQmsTrRuns,
+  useQmsTrHistory,
+  useQmsTrRun,
+  useCreateQmsTrRun,
+  useExecuteQmsTrRun,
+} from "../useQmsTr"
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -101,12 +109,23 @@ describe("useQmsTrRun", () => {
 })
 
 describe("useCreateQmsTrRun", () => {
-  it("calls createQmsTrRun with the body (create == start, no separate execute call)", async () => {
-    mockCreateQmsTrRun.mockResolvedValue(RUN("running"))
+  it("calls createQmsTrRun with the body (creates a PENDING run, does not start it)", async () => {
+    mockCreateQmsTrRun.mockResolvedValue(RUN("pending"))
     const { result } = renderHook(() => useCreateQmsTrRun(), { wrapper: createWrapper() })
     await act(async () => {
       await result.current.mutateAsync({ country: "brasil", ano_base: 2026 })
     })
     expect(mockCreateQmsTrRun).toHaveBeenCalledWith({ country: "brasil", ano_base: 2026 })
+  })
+})
+
+describe("useExecuteQmsTrRun", () => {
+  it("calls executeQmsTrRun with the run's job_id (JAA-998: must be chained after create)", async () => {
+    mockExecuteQmsTrRun.mockResolvedValue(RUN("running"))
+    const { result } = renderHook(() => useExecuteQmsTrRun(), { wrapper: createWrapper() })
+    await act(async () => {
+      await result.current.mutateAsync("j1")
+    })
+    expect(mockExecuteQmsTrRun).toHaveBeenCalledWith("j1")
   })
 })

@@ -15,12 +15,14 @@ vi.mock("sonner", () => ({
 const mockGetQmsTrRuns = vi.fn()
 const mockGetQmsTrRun = vi.fn()
 const mockCreateQmsTrRun = vi.fn()
+const mockExecuteQmsTrRun = vi.fn()
 const mockDownloadQmsTrTag = vi.fn()
 
 vi.mock("@/lib/api", () => ({
   getQmsTrRuns: (...a: unknown[]) => mockGetQmsTrRuns(...a),
   getQmsTrRun: (...a: unknown[]) => mockGetQmsTrRun(...a),
   createQmsTrRun: (...a: unknown[]) => mockCreateQmsTrRun(...a),
+  executeQmsTrRun: (...a: unknown[]) => mockExecuteQmsTrRun(...a),
   downloadQmsTrTag: (...a: unknown[]) => mockDownloadQmsTrTag(...a),
 }))
 
@@ -78,9 +80,10 @@ describe("QmsTrCountryCard", () => {
     expect(screen.queryByRole("button", { name: /Reintentar/ })).not.toBeInTheDocument()
   })
 
-  it("Ejecutar -> confirm -> creates a run with {country, ano_base} (no parameters field)", async () => {
+  it("Ejecutar -> confirm -> creates a run with {country, ano_base} (no parameters field), then executes it", async () => {
     const user = userEvent.setup()
     mockCreateQmsTrRun.mockResolvedValue(baseRun("pending"))
+    mockExecuteQmsTrRun.mockResolvedValue(baseRun("running"))
 
     renderCard()
     await user.click(await screen.findByRole("button", { name: "Ejecutar" }))
@@ -97,6 +100,9 @@ describe("QmsTrCountryCard", () => {
     )
     const arg = mockCreateQmsTrRun.mock.calls[0][0]
     expect(arg).not.toHaveProperty("parameters")
+    // The decisive fix (JAA-998): create alone must NOT be enough -- execute
+    // has to be chained on create's success, using the created run's job_id.
+    await waitFor(() => expect(mockExecuteQmsTrRun).toHaveBeenCalledWith("job-1"))
     await waitFor(() => expect(mockToastSuccess).toHaveBeenCalled())
   })
 
@@ -128,7 +134,7 @@ describe("QmsTrCountryCard", () => {
     const downloadBtn = await screen.findByRole("button", { name: /Descargar/ })
     await user.click(downloadBtn)
 
-    await waitFor(() => expect(mockDownloadQmsTrTag).toHaveBeenCalledWith("tag-1"))
+    await waitFor(() => expect(mockDownloadQmsTrTag).toHaveBeenCalledWith("tag-1", "brasil"))
     await waitFor(() => expect(mockToastSuccess).toHaveBeenCalled())
   })
 
