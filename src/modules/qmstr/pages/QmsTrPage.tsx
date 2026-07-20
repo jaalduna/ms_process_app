@@ -4,9 +4,8 @@ import { MtrConfigDialog } from "../components/MtrConfigDialog"
 import { MtrCountryCard } from "../components/MtrCountryCard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCountries } from "@/hooks/useCountries"
-import { useLastMtr } from "../hooks/useLastMtr"
-import type { MtrParams } from "../types"
-import { DEFAULT_MTR_PARAMS } from "../types"
+import type { QmsTrParams } from "../types"
+import { DEFAULT_QMSTR_PARAMS } from "../types"
 
 function currentPeriod(): string {
   const now = new Date()
@@ -18,9 +17,8 @@ function currentPeriod(): string {
 
 export function QmsTrPage() {
   const [period, setPeriod] = useState(currentPeriod)
-  const [mtrParams, setMtrParams] = useState<MtrParams>(DEFAULT_MTR_PARAMS)
+  const [mtrParams, setMtrParams] = useState<QmsTrParams>(DEFAULT_QMSTR_PARAMS)
   const { data, isLoading, error } = useCountries()
-  const { data: lastMtr } = useLastMtr()
 
   return (
     <div className="space-y-6">
@@ -61,7 +59,7 @@ export function QmsTrPage() {
               countryCode={c.code}
               period={period}
               mtrParams={mtrParams}
-              lastMtrDate={lastMtr?.[c.code]?.completed_at ?? null}
+              lastMtrDate={null}
             />
           ))}
         </div>

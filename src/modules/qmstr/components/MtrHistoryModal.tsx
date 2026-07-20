@@ -12,10 +12,10 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Download, FileText, Clock, Calendar, Loader2 } from "lucide-react"
-import { useMtrHistory } from "../hooks/useMtrHistory"
-import { MTR_STATUS_CONFIG } from "../types"
-import type { MtrRun } from "../types"
-import { downloadMtrCsv } from "../utils/downloadMtrCsv"
+import { useQmsTrHistory } from "../hooks/useQmsTr"
+import { QMSTR_STATUS_CONFIG } from "../types"
+import type { QmsTrRun } from "../types"
+import { downloadQmsTrTag } from "@/lib/api"
 import { LiveDuration, parseUTC } from "@/lib/duration"
 
 function formatDate(isoDate: string): string {
@@ -49,20 +49,20 @@ function HistoryEntrySkeleton() {
 }
 
 interface HistoryEntryProps {
-  run: MtrRun
+  run: QmsTrRun
   isDownloading: boolean
-  onDownload: (run: MtrRun) => void
+  onDownload: (run: QmsTrRun) => void
 }
 
 function HistoryEntry({ run, isDownloading, onDownload }: HistoryEntryProps) {
-  const statusConfig = MTR_STATUS_CONFIG[run.status]
+  const statusConfig = QMSTR_STATUS_CONFIG[run.status]
   const isCompleted = run.status === "completed"
-  const canDownload = isCompleted && run.results_summary != null
+  const canDownload = isCompleted && !!run.tag
   const dateStr = formatDate(run.created_at)
 
   return (
     <div className="flex items-center justify-between py-3 px-1 group">
-      {/* Left: date, period, results summary */}
+      {/* Left: date, year */}
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
           <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -70,16 +70,8 @@ function HistoryEntry({ run, isDownloading, onDownload }: HistoryEntryProps) {
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <FileText className="h-3 w-3 shrink-0" />
-          <span>Period: <span className="font-mono font-medium text-foreground">{run.period}</span></span>
+          <span>Year: <span className="font-mono font-medium text-foreground">{run.ano_base}</span></span>
         </div>
-        {run.results_summary && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>
-              {run.results_summary.targets_achieved}/{run.results_summary.total_targets} targets,{" "}
-              {run.results_summary.total_imputations.toLocaleString()} imputations
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Right: status badge, duration, download */}
@@ -98,9 +90,9 @@ function HistoryEntry({ run, isDownloading, onDownload }: HistoryEntryProps) {
           variant={canDownload ? "default" : "ghost"}
           className={`h-8 w-8 p-0 ${!canDownload ? "opacity-30 cursor-not-allowed" : ""}`}
           disabled={!canDownload || isDownloading}
-          aria-label={`Download CSV for ${dateStr}`}
+          aria-label={`Download result for ${dateStr}`}
           onClick={() => onDownload(run)}
-          title={canDownload ? "Download CSV" : "Download only available for completed runs with results"}
+          title={canDownload ? "Download" : "Download only available for completed runs"}
         >
           {isDownloading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -129,19 +121,20 @@ export function MtrHistoryModal({
   onClose,
 }: MtrHistoryModalProps) {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set())
-  const { data, isLoading, isError } = useMtrHistory(country, open)
+  const { data, isLoading, isError } = useQmsTrHistory(country, open)
 
-  function handleDownload(run: MtrRun) {
-    setDownloadingIds((prev) => new Set(prev).add(run.run_id))
+  async function handleDownload(run: QmsTrRun) {
+    if (!run.tag) return
+    setDownloadingIds((prev) => new Set(prev).add(run.job_id))
     try {
-      downloadMtrCsv(run)
-      toast.success("CSV downloaded successfully")
+      await downloadQmsTrTag(run.tag)
+      toast.success("Download started")
     } catch {
-      toast.error("Failed to download CSV")
+      toast.error("Failed to download")
     } finally {
       setDownloadingIds((prev) => {
         const next = new Set(prev)
-        next.delete(run.run_id)
+        next.delete(run.job_id)
         return next
       })
     }
@@ -156,10 +149,10 @@ export function MtrHistoryModal({
           <DialogTitle className="flex items-center gap-2 text-lg">
             {countryFlag && <span>{countryFlag}</span>}
             <span>{countryLabel}</span>
-            <span className="text-muted-foreground font-normal">&mdash; MTR History</span>
+            <span className="text-muted-foreground font-normal">&mdash; QMS-TR History</span>
           </DialogTitle>
           <DialogDescription>
-            Past MTR runs for {countryLabel}. Download CSV files for completed runs.
+            Past QMS-TR runs for {countryLabel}. Download results for completed runs.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,7 +168,7 @@ export function MtrHistoryModal({
           {!isLoading && isError && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FileText className="h-10 w-10 text-destructive/40 mb-3" />
-              <p className="text-sm font-medium text-destructive">Failed to load MTR history</p>
+              <p className="text-sm font-medium text-destructive">Failed to load QMS-TR history</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Please try again later or check your connection.
               </p>
@@ -185,9 +178,9 @@ export function MtrHistoryModal({
           {!isLoading && !isError && items.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">No MTR runs found for this country</p>
+              <p className="text-sm font-medium text-muted-foreground">No QMS-TR runs found for this country</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                MTR history will appear here once runs have been triggered.
+                QMS-TR history will appear here once runs have been triggered.
               </p>
             </div>
           )}
@@ -195,14 +188,14 @@ export function MtrHistoryModal({
           {!isLoading && !isError && items.length > 0 && (
             <>
               <div className="text-xs text-muted-foreground mb-3">
-                Showing {items.length} most recent MTR run{items.length !== 1 ? "s" : ""}
+                Showing {items.length} most recent QMS-TR run{items.length !== 1 ? "s" : ""}
               </div>
               <div className="divide-y divide-border rounded-lg border">
                 {items.map((run, idx) => (
-                  <div key={run.run_id} className={`px-3 ${idx % 2 === 0 ? "bg-background" : "bg-muted/40"}`}>
+                  <div key={run.job_id} className={`px-3 ${idx % 2 === 0 ? "bg-background" : "bg-muted/40"}`}>
                     <HistoryEntry
                       run={run}
-                      isDownloading={downloadingIds.has(run.run_id)}
+                      isDownloading={downloadingIds.has(run.job_id)}
                       onDownload={handleDownload}
                     />
                   </div>
@@ -213,7 +206,7 @@ export function MtrHistoryModal({
                 <>
                   <Separator className="mt-4" />
                   <p className="text-xs text-muted-foreground text-center mt-3">
-                    Showing {items.length} of {data.total} total MTR runs
+                    Showing {items.length} of {data.total} total QMS-TR runs
                   </p>
                 </>
               )}

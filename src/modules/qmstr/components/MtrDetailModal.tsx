@@ -33,12 +33,16 @@ import {
   XCircle,
 } from "lucide-react"
 import { MtrProgress } from "./MtrProgress"
-import { useMtrRun, useCreateMtrRun, useExecuteMtr, useCancelMtr } from "../hooks/useMtr"
-import { MTR_STEPS, MTR_STEP_LABELS, MTR_ACTIVE_STATUSES, MTR_STATUS_CONFIG } from "../types"
-import type { MtrStep } from "../types"
-import { downloadMtrCsv } from "../utils/downloadMtrCsv"
+import { useQmsTrRun, useCreateQmsTrRun } from "../hooks/useQmsTr"
+import { QMSTR_ACTIVE_STATUSES, QMSTR_STATUS_CONFIG } from "../types"
+import type { QmsTrStep } from "../types"
+import { downloadQmsTrTag } from "@/lib/api"
 import { COUNTRY_LABELS } from "@/lib/countries"
 import { LiveDuration, parseUTC } from "@/lib/duration"
+
+function stepLabel(name: string): string {
+  return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 function StepIcon({ status }: { status: string }) {
   switch (status) {
@@ -54,7 +58,7 @@ function StepIcon({ status }: { status: string }) {
 }
 
 interface StepRowProps {
-  step: MtrStep
+  step: QmsTrStep
   expanded: boolean
   onToggle: () => void
   hasDetails: boolean
@@ -62,7 +66,7 @@ interface StepRowProps {
 }
 
 function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProps) {
-  const label = MTR_STEP_LABELS[step.name] ?? step.name
+  const label = stepLabel(step.name)
 
   return (
     <div>
@@ -120,30 +124,27 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
 }
 
 interface MtrDetailModalProps {
-  runId: string | null
+  jobId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProps) {
+export function MtrDetailModal({ jobId, open, onOpenChange }: MtrDetailModalProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
   const [isDownloading, setIsDownloading] = useState(false)
 
-  const { data: run } = useMtrRun(open ? runId : null)
-  const createRun = useCreateMtrRun()
-  const executeRun = useExecuteMtr()
-  const cancelRunMutation = useCancelMtr()
+  const { data: run } = useQmsTrRun(open ? jobId : null)
+  const createRun = useCreateQmsTrRun()
 
   if (!run) return null
 
   const steps = run.steps ?? []
-  const statusConfig = MTR_STATUS_CONFIG[run.status]
+  const statusConfig = QMSTR_STATUS_CONFIG[run.status]
   const countryLabel = COUNTRY_LABELS[run.country] ?? run.country
-  const isProcessing = MTR_ACTIVE_STATUSES.includes(run.status)
-  const canCancel = run.status === "running" || run.status === "pending"
+  const isProcessing = QMSTR_ACTIVE_STATUSES.includes(run.status)
   const isCompleted = run.status === "completed"
   const isFailed = run.status === "failed"
-  const hasResults = isCompleted && run.results_summary != null
+  const canDownload = isCompleted && !!run.tag
 
   function toggleStep(stepName: string) {
     setExpandedSteps((prev) => {
@@ -158,36 +159,24 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
     createRun.mutate(
       {
         country: run.country,
-        period: run.period,
-        parameters: run.parameters_json,
+        ano_base: run.ano_base,
       },
       {
-        onSuccess: (newRun) => {
-          executeRun.mutate(newRun.run_id, {
-            onSuccess: () => {
-              toast.success(`Retry started for ${countryLabel}`)
-              onOpenChange(false)
-            },
-            onError: () => toast.error(`Failed to execute retry for ${countryLabel}`),
-          })
+        onSuccess: () => {
+          toast.success(`Retry started for ${countryLabel}`)
+          onOpenChange(false)
         },
-        onError: () => toast.error(`Failed to create retry run for ${countryLabel}`),
+        onError: () => toast.error(`Failed to create retry job for ${countryLabel}`),
       },
     )
   }
 
-  const handleCancel = () => {
-    cancelRunMutation.mutate(run.run_id, {
-      onSuccess: () => toast.info(`MTR cancelled for ${countryLabel}`),
-      onError: () => toast.error(`Failed to cancel MTR for ${countryLabel}`),
-    })
-  }
-
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    if (!run.tag) return
     setIsDownloading(true)
     try {
-      downloadMtrCsv(run)
-      toast.success("CSV downloaded")
+      await downloadQmsTrTag(run.tag)
+      toast.success("Download started")
     } catch {
       toast.error("Download failed")
     } finally {
@@ -200,13 +189,13 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            MTR Detail
+            QMS-TR Detail
             <Badge variant={statusConfig.variant} className={statusConfig.className}>
               {statusConfig.label}
             </Badge>
           </DialogTitle>
           <DialogDescription>
-            Pipeline details, step progress, and imputation results.
+            Pipeline details and step progress.
           </DialogDescription>
         </DialogHeader>
 
@@ -218,8 +207,8 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
               <p className="font-medium">{countryLabel}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Period</span>
-              <p className="font-medium font-mono text-xs">{run.period}</p>
+              <span className="text-muted-foreground">Year</span>
+              <p className="font-medium font-mono text-xs">{run.ano_base}</p>
             </div>
             <div>
               <span className="text-muted-foreground">Started</span>
@@ -235,24 +224,6 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
             </div>
           </div>
 
-          {/* Parameters */}
-          {run.parameters_json && Object.keys(run.parameters_json).length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <span className="text-muted-foreground">Parameters</span>
-                <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
-                  {Object.entries(run.parameters_json).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between text-xs gap-2">
-                      <span className="text-muted-foreground font-mono truncate">{key}</span>
-                      <span className="font-medium font-mono">{String(value)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
           {/* Pipeline steps */}
           {steps.length > 0 && (
             <>
@@ -260,21 +231,19 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
               <div>
                 <span className="text-muted-foreground">Pipeline</span>
                 <div className="mt-2">
-                  <MtrProgress steps={steps} currentStep={run.current_step} />
+                  <MtrProgress steps={steps} />
                 </div>
                 <div className="mt-3 space-y-1">
-                  {MTR_STEPS.map((stepName) => {
-                    const step = steps.find((s) => s.name === stepName)
-                    if (!step) return null
-                    const isExpanded = expandedSteps.has(stepName)
+                  {steps.map((step) => {
+                    const isExpanded = expandedSteps.has(step.name)
                     const hasDetails = step.started_at != null
 
                     return (
                       <StepRow
-                        key={stepName}
+                        key={step.name}
                         step={step}
                         expanded={isExpanded}
-                        onToggle={() => toggleStep(stepName)}
+                        onToggle={() => toggleStep(step.name)}
                         hasDetails={hasDetails}
                       >
                         {step.started_at && (
@@ -302,51 +271,6 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
             </>
           )}
 
-          {/* Results summary */}
-          {isCompleted && (
-            <>
-              <Separator />
-              <div>
-                <span className="text-muted-foreground">Imputation Results</span>
-                {hasResults ? (
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <div className="rounded bg-muted/50 p-2">
-                      <p className="text-xs text-muted-foreground">Total Targets</p>
-                      <p className="text-lg font-bold">{run.results_summary!.total_targets}</p>
-                    </div>
-                    <div className="rounded bg-muted/50 p-2">
-                      <p className="text-xs text-muted-foreground">Targets Achieved</p>
-                      <p className="text-lg font-bold text-success">
-                        {run.results_summary!.targets_achieved}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">
-                          ({run.results_summary!.total_targets > 0
-                            ? (run.results_summary!.targets_achieved / run.results_summary!.total_targets * 100).toFixed(1)
-                            : 0}%)
-                        </span>
-                      </p>
-                    </div>
-                    <div className="rounded bg-muted/50 p-2">
-                      <p className="text-xs text-muted-foreground">Total Imputations</p>
-                      <p className="text-lg font-bold">{run.results_summary!.total_imputations.toLocaleString()}</p>
-                    </div>
-                    {run.results_summary!.quality_score != null && (
-                      <div className="rounded bg-muted/50 p-2">
-                        <p className="text-xs text-muted-foreground">Quality Score</p>
-                        <p className="text-lg font-bold">
-                          {(run.results_summary!.quality_score * 100).toFixed(1)}%
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="mt-2 text-xs text-muted-foreground italic">
-                    Results unavailable
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-
           {/* Error */}
           {run.error_message && (
             <>
@@ -367,8 +291,8 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
           {isFailed && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" disabled={createRun.isPending || executeRun.isPending}>
-                  {(createRun.isPending || executeRun.isPending) && (
+                <Button variant="outline" disabled={createRun.isPending}>
+                  {createRun.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   <RefreshCcw className="mr-2 h-4 w-4" />
@@ -377,10 +301,10 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Retry MTR</AlertDialogTitle>
+                  <AlertDialogTitle>Retry QMS-TR</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Create a new MTR run for{" "}
-                    <strong>{countryLabel}</strong> period <strong>{run.period}</strong> with the same parameters?
+                    Create a new QMS-TR job for{" "}
+                    <strong>{countryLabel}</strong> year <strong>{run.ano_base}</strong>?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -391,8 +315,8 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
             </AlertDialog>
           )}
 
-          {/* Download CSV */}
-          {hasResults && (
+          {/* Download result */}
+          {canDownload && (
             <Button
               variant="outline"
               disabled={isDownloading}
@@ -403,7 +327,7 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
               ) : (
                 <Download className="mr-2 h-4 w-4" />
               )}
-              Download CSV
+              Download
             </Button>
           )}
 
@@ -413,36 +337,6 @@ export function MtrDetailModal({ runId, open, onOpenChange }: MtrDetailModalProp
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Processing...
             </Button>
-          )}
-
-          {/* Cancel */}
-          {canCancel && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={cancelRunMutation.isPending}>
-                  {cancelRunMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Cancel
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Cancel MTR</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Cancel the MTR pipeline for{" "}
-                    <strong>{countryLabel}</strong> period <strong>{run.period}</strong>?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Keep Running</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={handleCancel}
-                  >
-                    Cancel
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           )}
         </DialogFooter>
       </DialogContent>

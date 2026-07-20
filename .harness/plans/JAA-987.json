@@ -1,0 +1,63 @@
+{
+  "ticket": "JAA-987",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-987/qms-tr-frontend-desacoplar-modulo-qmstr-de-mtr-tipos-y-cliente-api",
+  "branch": "fix/JAA-987-qmstr-decouple-from-mtr",
+  "worktree": "../ms_process_app-JAA-987",
+  "archetype": "webapp",
+  "change_scope": "substantive",
+  "goal": "Decouple src/modules/qmstr/ from mtr: own types (job_id/ano_base model, not run_id), own API client functions for /qms_tr/* endpoints, and a renamed hook file, so QMS-TR no longer creates real MTR records.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "qmstr/ imports nothing from mtr/types and calls no /mtr/runs* endpoint",
+      "how_to_verify": "grep -rn 'mtr/types\\|/mtr/runs' src/modules/qmstr/ returns nothing (except unrelated substrings like 'qms_tr' - verify manually)"
+    },
+    {
+      "id": "ac2",
+      "criterion": "typecheck passes",
+      "how_to_verify": "npx tsc -b"
+    },
+    {
+      "id": "ac3",
+      "criterion": "vitest unit tests stay green, including new tests for the qmstr api client + hook",
+      "how_to_verify": "npm test -- --run"
+    },
+    {
+      "id": "ac4",
+      "criterion": "new qmstr types model job_id/country/ano_base/status/steps (free-form step names), not run_id/period",
+      "how_to_verify": "read src/modules/qmstr/types.ts"
+    },
+    {
+      "id": "ac5",
+      "criterion": "new api client functions target /qms_tr/runs (list+create), /qms_tr/runs/{id} (get), /qms_tr/{tag}/download (blob download)",
+      "how_to_verify": "read the added functions + their unit tests"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Rewrite src/modules/qmstr/types.ts with QmsTrRun/QmsTrStep/QmsTrRunCreate (job_id, ano_base, free-form step names), drop Mtr* copy",
+      "status": "complete"
+    },
+    {
+      "id": "t2",
+      "desc": "Add getQmsTrRuns/getQmsTrRun/createQmsTrRun/downloadQmsTrTag to src/lib/api.ts following the mtr*/downloadTagZip style + unit tests",
+      "status": "complete"
+    },
+    {
+      "id": "t3",
+      "desc": "Rewrite hooks/useMtr.ts -> hooks/useQmsTr.ts (useQmsTrRuns/useQmsTrRun/useCreateQmsTrRun), delete useLastMtr.ts + useMtrHistory.ts merge into useQmsTrRuns, delete old useMtr.ts",
+      "status": "complete"
+    },
+    {
+      "id": "t4",
+      "desc": "Adapt qmstr/components (MtrCountryCard, MtrDetailModal, MtrHistoryModal, MtrProgress, MtrConfigDialog) + pages/QmsTrPage + utils/downloadMtrCsv to the new types/hooks (dynamic steps, job_id, tag-based download, no separate execute/cancel step since job_id model starts immediately)",
+      "status": "complete"
+    },
+    {
+      "id": "t5",
+      "desc": "Full VERIFY_CMD green: npm test, npm run lint, npx tsc -b",
+      "status": "complete"
+    }
+  ]
+}

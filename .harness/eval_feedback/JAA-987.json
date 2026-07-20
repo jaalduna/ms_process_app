@@ -1,0 +1,8 @@
+[
+  {"id": "ac1", "verdict": "PASS", "evidence": "grep -rn 'mtr/types|/mtr/runs' src/modules/qmstr/ -> no matches; manual import audit confirms no mtr module imports remain."},
+  {"id": "ac2", "verdict": "PASS", "evidence": "npx tsc -b -> TypeScript: No errors found."},
+  {"id": "ac3", "verdict": "PASS", "evidence": "npm test -- --run -> 68 files, 503 tests passed. New tests (api-qmstr.test.ts, useQmsTr.test.tsx) are substantive behavioral assertions, not rubber-stamped."},
+  {"id": "ac4", "verdict": "PASS", "evidence": "QmsTrRun has job_id/country/ano_base/status/steps: QmsTrStep[]; QmsTrStep.name is free-form string; no run_id/period fields."},
+  {"id": "ac5", "verdict": "PASS", "evidence": "getQmsTrRuns/getQmsTrRun/createQmsTrRun/downloadQmsTrTag in src/lib/api.ts target /qms_tr/runs, /qms_tr/runs/{id}, /qms_tr/{tag}/download exactly, matched by unit tests."},
+  {"id": "lint", "verdict": "PASS", "evidence": "npm run lint -> ESLint: No issues found."}
+]
