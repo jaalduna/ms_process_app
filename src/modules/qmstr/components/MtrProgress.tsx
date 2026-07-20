@@ -1,26 +1,22 @@
 import { Progress } from "@/components/ui/progress"
 import { CheckCircle2, Circle, Loader2, XCircle } from "lucide-react"
-import { MTR_STEPS, MTR_STEP_LABELS } from "../types"
-import type { MtrStep } from "../types"
+import type { QmsTrStep } from "../types"
 
-interface MtrProgressProps {
-  steps: MtrStep[]
-  currentStep?: string
+function stepLabel(name: string): string {
+  return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-export function MtrProgress({ steps, currentStep }: MtrProgressProps) {
-  const total = MTR_STEPS.length
-  let completed = 0
-  for (const s of steps) {
-    if (s.status === "completed") {
-      completed += 1
-    }
-  }
+interface MtrProgressProps {
+  steps: QmsTrStep[]
+}
+
+export function MtrProgress({ steps }: MtrProgressProps) {
+  const total = steps.length
+  const completed = steps.filter((s) => s.status === "completed").length
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0
 
-  const label = currentStep
-    ? (MTR_STEP_LABELS[currentStep as keyof typeof MTR_STEP_LABELS] ?? currentStep)
-    : `${completed}/${total} steps`
+  const currentStep = steps.find((s) => s.status === "running")
+  const label = currentStep ? stepLabel(currentStep.name) : `${completed}/${total} steps`
 
   return (
     <div className="space-y-2">
@@ -31,13 +27,9 @@ export function MtrProgress({ steps, currentStep }: MtrProgressProps) {
       <Progress value={percent} className="h-2" />
 
       <div className="flex items-center gap-0.5 pt-1">
-        {MTR_STEPS.map((stepName) => {
-          const step = steps.find((s) => s.name === stepName)
-          const status = step?.status ?? "pending"
-          return (
-            <StepDot key={stepName} status={status} label={MTR_STEP_LABELS[stepName]} />
-          )
-        })}
+        {steps.map((step) => (
+          <StepDot key={step.name} status={step.status} label={stepLabel(step.name)} />
+        ))}
       </div>
     </div>
   )
@@ -55,7 +47,7 @@ function StepDot({ status, label }: { status: string; label: string }) {
       {status === "failed" && (
         <XCircle className="h-3.5 w-3.5 text-destructive" />
       )}
-      {status === "pending" && (
+      {status !== "completed" && status !== "running" && status !== "failed" && (
         <Circle className="h-3.5 w-3.5 text-muted-foreground/40" />
       )}
     </div>

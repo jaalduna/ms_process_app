@@ -1,38 +1,13 @@
-export type MtrStepName =
-  | "generate_targets"
-  | "compute_imputations"
-  | "validate_results"
-  | "export_results"
-  | "complete"
-
-/** Human-readable labels for each MTR step. */
-export const MTR_STEP_LABELS: Record<MtrStepName, string> = {
-  generate_targets: "Generate Targets",
-  compute_imputations: "Compute Imputations",
-  validate_results: "Validate Results",
-  export_results: "Export Results",
-  complete: "Complete",
-}
-
-/** Ordered list of MTR steps for iteration. */
-export const MTR_STEPS: MtrStepName[] = [
-  "generate_targets",
-  "compute_imputations",
-  "validate_results",
-  "export_results",
-  "complete",
-]
-
-export type MtrStatus = "pending" | "running" | "completed" | "failed" | "cancelled"
+export type QmsTrStatus = "pending" | "running" | "completed" | "failed" | "cancelled"
 
 /** Statuses where the pipeline is actively processing (excludes "pending" which is pre-execution). */
-export const MTR_ACTIVE_STATUSES: MtrStatus[] = ["running"]
+export const QMSTR_ACTIVE_STATUSES: QmsTrStatus[] = ["running"]
 
-/** Statuses that should trigger polling (includes "pending" since it transitions to "running" after execute). */
-export const MTR_POLL_STATUSES: MtrStatus[] = ["pending", "running"]
+/** Statuses that should trigger polling (includes "pending" since it transitions to "running"). */
+export const QMSTR_POLL_STATUSES: QmsTrStatus[] = ["pending", "running"]
 
-export const MTR_STATUS_CONFIG: Record<
-  MtrStatus,
+export const QMSTR_STATUS_CONFIG: Record<
+  QmsTrStatus,
   { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string }
 > = {
   pending: { label: "Pendiente", variant: "outline", className: "" },
@@ -42,63 +17,57 @@ export const MTR_STATUS_CONFIG: Record<
   cancelled: { label: "Cancelado", variant: "secondary", className: "" },
 }
 
-/** Status of a single MTR pipeline step. */
-export interface MtrStep {
-  name: MtrStepName
+/** Status of a single QMS-TR pipeline step. `name` is a free-form value
+ * returned by the engine -- there is no fixed 4-step enum (that was an MTR
+ * assumption that does not hold for the real qms_tr engine). */
+export interface QmsTrStep {
+  name: string
   status: string
   started_at?: string | null
   completed_at?: string | null
   error?: string | null
 }
 
-/** Summary of MTR imputation results. */
-export interface MtrResultsSummary {
-  total_targets: number
-  targets_achieved: number
-  total_imputations: number
-  quality_score?: number
-}
-
-/** A single MTR run. */
-export interface MtrRun {
-  run_id: string
+/** A single QMS-TR job. Keyed by `job_id` (not `run_id`/DB-record like MTR) --
+ * same job_id/steps/tag model as calibración/sync. */
+export interface QmsTrRun {
+  job_id: string
   country: string
-  period: number
-  status: MtrStatus
-  parameters_json?: Record<string, unknown>
-  results_summary?: MtrResultsSummary | null
-  steps?: MtrStep[]
-  current_step?: string
-  started_at?: string
-  completed_at?: string
-  created_by?: string
+  ano_base: number
+  status: QmsTrStatus
+  steps: QmsTrStep[]
+  /** Set once the job produces a downloadable result; feeds GET /qms_tr/{tag}/download. */
+  tag?: string | null
+  started_at?: string | null
+  completed_at?: string | null
   created_at: string
   updated_at: string
-  error_message?: string
+  error_message?: string | null
 }
 
-/** Request body for creating a new MTR run. */
-export interface MtrRunCreate {
+/** Request body for creating (and starting) a new QMS-TR job. */
+export interface QmsTrRunCreate {
   country: string
-  period: number
+  ano_base: number
   parameters?: Record<string, unknown>
 }
 
-/** Placeholder MTR parameters -- concrete fields TBD when backend is defined. */
-export interface MtrParams {
+/** Placeholder QMS-TR parameters -- concrete fields TBD when the backend config
+ * (JAA-990) is defined. Kept separate from MTR's params so the two can diverge. */
+export interface QmsTrParams {
   target_threshold: number
   imputation_method: string
   quality_min: number
 }
 
-export const DEFAULT_MTR_PARAMS: MtrParams = {
+export const DEFAULT_QMSTR_PARAMS: QmsTrParams = {
   target_threshold: 0.85,
   imputation_method: "weighted_average",
   quality_min: 0.80,
 }
 
-export const MTR_PARAM_META: Record<
-  keyof MtrParams,
+export const QMSTR_PARAM_META: Record<
+  keyof QmsTrParams,
   { label: string; unit: string; step?: string; type?: "number" | "select"; options?: string[] }
 > = {
   target_threshold: { label: "Target achievement threshold", unit: "ratio", step: "0.01" },

@@ -24,6 +24,7 @@ import type { EligibilityFile, EligibilityRun, EligibilityRunCreate } from "@/mo
 import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
 import type { WeightingRun, WeightingRunCreate } from "@/modules/pesaje/types"
 import type { MtrRun, MtrRunCreate } from "@/modules/mtr/types"
+import type { QmsTrRun, QmsTrRunCreate } from "@/modules/qmstr/types"
 import type { Formato4Run, Formato4RunCreate } from "@/modules/formato4/types"
 import type { TagListResponse, TagFilters } from "@/modules/trazabilidad/types"
 import type {
@@ -435,6 +436,43 @@ export function executeMtr(runId: string) {
 
 export function cancelMtr(runId: string) {
   return api.post<MtrRun>(`/mtr/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+// -- QMS-TR (JAA-987: own job_id/tag model, NOT the MTR run_id model above) --
+
+export function getQmsTrRuns(params?: {
+  country?: string
+  ano_base?: number
+  status?: string
+  limit?: number
+  offset?: number
+}) {
+  return api.get<{ items: QmsTrRun[]; total: number }>("/qms_tr/runs", { params }).then((r) => r.data)
+}
+
+export function getQmsTrRun(jobId: string) {
+  return api.get<QmsTrRun>(`/qms_tr/runs/${jobId}`).then((r) => r.data)
+}
+
+/** Creates a QMS-TR job; unlike MTR there is no separate execute step -- the
+ * job_id model (like calibración/sync) starts running immediately on create. */
+export function createQmsTrRun(data: QmsTrRunCreate) {
+  return api.post<QmsTrRun>("/qms_tr/runs", data).then((r) => r.data)
+}
+
+// Blob GET + anchor-click + revokeObjectURL, mirroring downloadTagZip below.
+export async function downloadQmsTrTag(tag: string): Promise<void> {
+  const response = await api.get(`/qms_tr/${tag}/download`, { responseType: "blob" })
+  const url = URL.createObjectURL(new Blob([response.data]))
+  const a = document.createElement("a")
+  a.href = url
+  const disposition = response.headers["content-disposition"] ?? ""
+  const match = disposition.match(/filename="?([^";\n]+)"?/)
+  a.download = match?.[1] ?? `qms_tr_${tag}.zip`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 // -- Formato 4 --

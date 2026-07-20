@@ -16,33 +16,33 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import type { MtrParams } from "../types"
-import { DEFAULT_MTR_PARAMS, MTR_PARAM_META } from "../types"
+import type { QmsTrParams } from "../types"
+import { DEFAULT_QMSTR_PARAMS, QMSTR_PARAM_META } from "../types"
 
 interface MtrConfigDialogProps {
-  params: MtrParams
-  onChange: (params: MtrParams) => void
+  params: QmsTrParams
+  onChange: (params: QmsTrParams) => void
 }
 
 export function MtrConfigDialog({ params, onChange }: MtrConfigDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="MTR settings">
+        <Button variant="outline" size="icon" aria-label="QMS-TR settings">
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>MTR Parameters</DialogTitle>
+          <DialogTitle>QMS-TR Parameters</DialogTitle>
           <DialogDescription>
-            Configure parameters applied to all MTR runs. Values are saved with each execution.
+            Configure parameters applied to all QMS-TR runs. Values are saved with each execution.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          {(Object.keys(MTR_PARAM_META) as (keyof MtrParams)[]).map((key) => {
-            const meta = MTR_PARAM_META[key]
+          {(Object.keys(QMSTR_PARAM_META) as (keyof QmsTrParams)[]).map((key) => {
+            const meta = QMSTR_PARAM_META[key]
             return (
               <label key={key} className="block space-y-1">
                 <div className="flex items-center justify-between">
@@ -94,7 +94,7 @@ export function MtrConfigDialog({ params, onChange }: MtrConfigDialogProps) {
             variant="ghost"
             size="sm"
             className="text-xs text-muted-foreground"
-            onClick={() => onChange(DEFAULT_MTR_PARAMS)}
+            onClick={() => onChange(DEFAULT_QMSTR_PARAMS)}
           >
             Restore defaults
           </Button>
