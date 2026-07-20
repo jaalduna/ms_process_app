@@ -1,0 +1,56 @@
+{
+  "ticket": "JAA-989",
+  "linear_url": "https://linear.app/kwp-technology-solutions-latam/issue/JAA-989",
+  "branch": "feat/JAA-989-qmstr-e2e",
+  "archetype": "webapp",
+  "change_scope": "trivial",
+  "goal": "Add a scoped Playwright spec (e2e/qms-tr.spec.ts) covering the QMS-TR page against mock-server: load with Brasil card, run to completion with step progress + download, a failed-run case with error message/logs/retry, and a history view listing a previous run.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "New e2e/qms-tr.spec.ts exists and covers: load /qms-tr and see the Brasil card.",
+      "how_to_verify": "grep test names in e2e/qms-tr.spec.ts; run the spec"
+    },
+    {
+      "id": "ac2",
+      "criterion": "Spec fills ano_base, clicks Ejecutar/Confirmar, and asserts step progress advances to completed (Completado badge).",
+      "how_to_verify": "rtk proxy npx playwright test e2e/qms-tr.spec.ts -g completa"
+    },
+    {
+      "id": "ac3",
+      "criterion": "Spec clicks the download button and asserts a download event fires with the expected filename pattern.",
+      "how_to_verify": "rtk proxy npx playwright test e2e/qms-tr.spec.ts -g completa"
+    },
+    {
+      "id": "ac4",
+      "criterion": "Spec seeds a failed run (via mock force_outcome=fail) and asserts the error message, a way to view logs (detail modal), and a Reintentar/retry button are all visible.",
+      "how_to_verify": "rtk proxy npx playwright test e2e/qms-tr.spec.ts -g error"
+    },
+    {
+      "id": "ac5",
+      "criterion": "Spec opens the history view (click card) and asserts at least one previous run is listed.",
+      "how_to_verify": "rtk proxy npx playwright test e2e/qms-tr.spec.ts -g historial"
+    },
+    {
+      "id": "ac6",
+      "criterion": "`rtk proxy npx playwright test e2e/qms-tr.spec.ts` passes in full, green, against mock-server; no other spec file is modified or run.",
+      "how_to_verify": "rtk proxy npx playwright test e2e/qms-tr.spec.ts"
+    },
+    {
+      "id": "ac7",
+      "criterion": "Root-cause fix: mock-server/routes/qms_tr.js run-level error field renamed from `error` to `error_message` to match the frontend contract (QmsTrRun.error_message, used by every other module's run store) so AC4's error text actually renders — without this the UI never shows the error message and ac4 cannot pass.",
+      "how_to_verify": "grep -n error_message mock-server/routes/qms_tr.js; npx vitest run (or mock-server test runner) mock-server/__tests__/qms_tr.test.js"
+    },
+    {
+      "id": "ac8",
+      "criterion": "Root-cause fix: mock-server/routes/test.js POST /test/reset now calls resetQmsTrJobs() (was never wired in, unlike every other run store) so QMS-TR job state doesn't leak across tests/mock-server lifetime — without this the history spec (ac5) is flaky/fails once more than one qms_tr run has ever been created against the running mock.",
+      "how_to_verify": "grep -n resetQmsTrJobs mock-server/routes/test.js; run e2e/qms-tr.spec.ts 3x in a row against the same mock process, all green"
+    }
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Fix mock-server/routes/qms_tr.js: rename job-level `error` field to `error_message` (keep step-level `.error`); update qms_tr.test.js assertion accordingly", "status": "complete"},
+    {"id": "t2", "desc": "Write e2e/qms-tr.spec.ts covering ac1-ac5", "status": "complete"},
+    {"id": "t3", "desc": "Run full VERIFY_CMD (vitest+lint+tsc) + the new spec in isolation, confirm green", "status": "complete"},
+    {"id": "t4", "desc": "Root-cause fix: wire resetQmsTrJobs() into POST /test/reset (mock-server/routes/test.js) so QMS-TR state doesn't leak across tests/full mock-server lifetime", "status": "complete"}
+  ]
+}

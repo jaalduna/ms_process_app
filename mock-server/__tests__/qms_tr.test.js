@@ -129,7 +129,7 @@ describe("QMS-TR API (mock-server, JAA-986)", () => {
     const { job_id } = await createRes.json()
 
     const final = await waitForStatus(job_id, ["failed"])
-    expect(final.error).toBeTruthy()
+    expect(final.error_message).toBeTruthy()
     expect(final.steps.some((s) => s.status === "failed")).toBe(true)
   })
 
