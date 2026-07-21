@@ -56,7 +56,51 @@ describe("QMS-TR API (mock-server, JAA-986)", () => {
     expect(body.job_id).toBeTruthy()
     expect(body.country).toBe("brasil")
     expect(body.ano_base).toBe(2025)
-    expect(body.steps.map((s) => s.name)).toEqual(["silver_builder", "kpis_batch", "export_zip"])
+    expect(body.steps.map((s) => s.name)).toEqual([
+      "run_sync", "run_bronze_copy", "silver_builder", "kpis_batch", "export_zip",
+    ])
+  })
+
+  // ------------------------------------------------------------------- JAA-1003 skip_sync
+  it("JAA-1003: skip_sync defaults to true, and run_sync is immediately 'cancelled' (skipped)", async () => {
+    const res = await fetch(`${baseUrl}/qms_tr/runs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country: "brasil", ano_base: 2025 }),
+    })
+    const body = await res.json()
+    expect(body.skip_sync).toBe(true)
+    const runSync = body.steps.find((s) => s.name === "run_sync")
+    expect(runSync.status).toBe("cancelled")
+    const bronzeCopy = body.steps.find((s) => s.name === "run_bronze_copy")
+    expect(bronzeCopy.status).toBe("running")
+  })
+
+  it("JAA-1003: skip_sync=false runs run_sync normally instead of skipping it", async () => {
+    const res = await fetch(`${baseUrl}/qms_tr/runs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country: "brasil", ano_base: 2025, skip_sync: false }),
+    })
+    const body = await res.json()
+    expect(body.skip_sync).toBe(false)
+    const runSync = body.steps.find((s) => s.name === "run_sync")
+    expect(runSync.status).toBe("running")
+    const bronzeCopy = body.steps.find((s) => s.name === "run_bronze_copy")
+    expect(bronzeCopy.status).toBe("pending")
+  })
+
+  it("JAA-1003: skip_sync=false still reaches completed with run_sync marked completed (not cancelled)", async () => {
+    const createRes = await fetch(`${baseUrl}/qms_tr/runs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country: "brasil", ano_base: 2025, skip_sync: false, force_outcome: "pass" }),
+    })
+    const { job_id } = await createRes.json()
+
+    const final = await waitForStatus(job_id, ["completed"])
+    const runSync = final.steps.find((s) => s.name === "run_sync")
+    expect(runSync.status).toBe("completed")
   })
 
   it("POST /qms_tr/runs 400s when country or ano_base is missing", async () => {
@@ -77,7 +121,9 @@ describe("QMS-TR API (mock-server, JAA-986)", () => {
     const { job_id } = await createRes.json()
 
     const final = await waitForStatus(job_id, ["completed"])
-    expect(final.steps.every((s) => s.status === "completed")).toBe(true)
+    // run_sync stays "cancelled" (skip_sync defaults true) even on overall
+    // pipeline completion; every other step reaches "completed".
+    expect(final.steps.map((s) => s.status)).toEqual(["cancelled", "completed", "completed", "completed", "completed"])
     expect(final.current_step).toBeNull()
   })
 

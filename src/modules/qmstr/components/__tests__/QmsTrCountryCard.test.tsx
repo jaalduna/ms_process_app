@@ -96,6 +96,7 @@ describe("QmsTrCountryCard", () => {
       expect(mockCreateQmsTrRun).toHaveBeenCalledWith({
         country: "brasil",
         ano_base: new Date().getFullYear() - 1,
+        skip_sync: true,
       }),
     )
     const arg = mockCreateQmsTrRun.mock.calls[0][0]
@@ -160,7 +161,7 @@ describe("QmsTrCountryCard", () => {
     const retryBtn = screen.getByRole("button", { name: /Reintentar/ })
     await user.click(retryBtn)
     await waitFor(() =>
-      expect(mockCreateQmsTrRun).toHaveBeenCalledWith({ country: "brasil", ano_base: 2025 }),
+      expect(mockCreateQmsTrRun).toHaveBeenCalledWith({ country: "brasil", ano_base: 2025, skip_sync: true }),
     )
 
     expect(screen.getByRole("button", { name: /Ver logs completos/ })).toBeInTheDocument()

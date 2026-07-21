@@ -1,0 +1,27 @@
+{
+  "ticket": "JAA-1003",
+  "evaluator": "ux-ui-reviewer (sonnet, fresh context)",
+  "verdict": "PASS",
+  "results": [
+    {
+      "id": "ac1",
+      "verdict": "PASS",
+      "evidence": "QmsTrCountryCard.tsx initializes useState(true) for skipSync; Switch rendered in AlertDialog with aria-label 'Saltar sincronización'. npx vitest run QmsTrCountryCard.skipSync.test.tsx -> 3/3 pass."
+    },
+    {
+      "id": "ac2",
+      "verdict": "PASS",
+      "evidence": "handleExecute passes skip_sync: skipSync into createRun.mutate. vitest api-qmstr.test.ts + mock-server/__tests__/qms_tr.test.js -> 16/16 pass. No weakened assertions vs numerator/develop."
+    },
+    {
+      "id": "ac3",
+      "verdict": "PASS",
+      "evidence": "mock-server QMS_TR_STEPS extended with run_sync/run_bronze_copy; run_sync short-circuits to 'cancelled' when skip_sync. QmsTrProgress/QmsTrDetailModal render distinct MinusCircle + 'Omitido' label for cancelled, separate from pending/failed. QmsTrProgress.test.tsx -> 2/2 pass."
+    },
+    {
+      "id": "ac4",
+      "verdict": "PASS",
+      "evidence": "npm test: 528/528 passed. npm run lint: clean. npx tsc -b: clean. Scoped Playwright (./node_modules/.bin/playwright test qmstr --project=smoke): 6/6 passed, including new skip_sync Chile smoke test."
+    }
+  ]
+}

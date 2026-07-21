@@ -30,9 +30,10 @@ test.describe("QMS-TR run flow", () => {
     await expect(dialog.getByText("2025")).toBeVisible()
     await dialog.getByRole("button", { name: "Confirmar" }).click()
 
-    // steps come from the API (silver_builder/kpis_batch/export_zip), not a
-    // hardcoded MTR DAG -- assert the first real step label appears.
-    await expect(card.getByText("Silver Builder")).toBeVisible({ timeout: 10_000 })
+    // steps come from the API (run_sync/run_bronze_copy/silver_builder/kpis_batch/
+    // export_zip), not a hardcoded MTR DAG -- skip_sync defaults to true, so
+    // run_bronze_copy is the first step that actually runs.
+    await expect(card.getByText("Run Bronze Copy")).toBeVisible({ timeout: 10_000 })
 
     const downloadBtn = card.getByRole("button", { name: /Descargar/ })
     await expect(downloadBtn).toBeVisible({ timeout: 30_000 })
@@ -52,5 +53,46 @@ test.describe("QMS-TR run flow", () => {
     for (const forbidden of [/\bCanal\b/, /\bRegi[oó]n\b/, /\bMarca\b/, /\bKPIs? de salida\b/]) {
       expect(bodyText).not.toMatch(forbidden)
     }
+  })
+
+  // JAA-1003: skip_sync toggle in the Ejecutar confirm dialog.
+  test("Chile: skip_sync defaults on, run_sync shows as skipped in the run detail", { tag: "@smoke" }, async ({ page }) => {
+    const card = page.locator('[data-slot="card"]', { hasText: "Chile" })
+    await expect(card).toBeVisible({ timeout: 10_000 })
+
+    await card.getByRole("button", { name: "Ejecutar" }).click()
+    const dialog = page.getByRole("alertdialog")
+    await expect(dialog).toBeVisible()
+
+    const toggle = dialog.getByRole("switch", { name: /saltar sincronización/i })
+    await expect(toggle).toBeChecked()
+    await dialog.getByRole("button", { name: "Confirmar" }).click()
+
+    // run_bronze_copy is the first step that actually runs when skip_sync is on.
+    await expect(card.getByText("Run Bronze Copy")).toBeVisible({ timeout: 10_000 })
+
+    await card.getByRole("button", { name: /Ver detalle/ }).click()
+    const modal = page.getByRole("dialog", { name: /QMS-TR Detail/ })
+    await expect(modal).toBeVisible()
+    await expect(modal.getByText("Omitido")).toBeVisible()
+  })
+
+  test("Argentina: disabling skip_sync runs run_sync instead of skipping it", async ({ page }) => {
+    const card = page.locator('[data-slot="card"]', { hasText: "Argentina" })
+    await expect(card).toBeVisible({ timeout: 10_000 })
+
+    await card.getByRole("button", { name: "Ejecutar" }).click()
+    const dialog = page.getByRole("alertdialog")
+    await expect(dialog).toBeVisible()
+
+    await dialog.getByRole("switch", { name: /saltar sincronización/i }).click()
+    await dialog.getByRole("button", { name: "Confirmar" }).click()
+
+    await expect(card.getByText("Run Sync")).toBeVisible({ timeout: 10_000 })
+
+    await card.getByRole("button", { name: /Ver detalle/ }).click()
+    const modal = page.getByRole("dialog", { name: /QMS-TR Detail/ })
+    await expect(modal).toBeVisible()
+    await expect(modal.getByText("Omitido")).not.toBeVisible()
   })
 })

@@ -7,12 +7,12 @@ const router = Router()
 // MOCK_STEP_INTERVAL_MS), falls back to 2000ms.
 const STEP_INTERVAL_MS = () => Number(process.env.MOCK_STEP_INTERVAL_MS) || 2000
 
-// Placeholder step names — the real Databricks pipeline for QMS-TR
-// (qms_tr_silver_builder -> qms_tr_kpis_batch -> export) is not confirmed/wired
-// yet. These MUST be synced with whatever names the real backend returns once
-// that's known (Stage B) — do not treat them as a stable contract in the
-// frontend.
-const QMS_TR_STEPS = ["silver_builder", "kpis_batch", "export_zip"]
+// Public step contract, mirrors ms-process-api routes/qms_tr.py (JAA-1002):
+// run_sync/run_bronze_copy (JAA-1001's sync gate) are prepended ahead of
+// silver_builder. run_sync is gated by skip_sync -- see makeSteps/POST /runs
+// below, where it's short-circuited to "cancelled" (Databricks SKIPPED
+// condition-task branch) instead of ever running.
+const QMS_TR_STEPS = ["run_sync", "run_bronze_copy", "silver_builder", "kpis_batch", "export_zip"]
 
 const uuid = () => crypto.randomUUID()
 const isoNow = () => new Date().toISOString()
@@ -103,7 +103,7 @@ function serializeJob(job) {
 // progression immediately (same combined create+trigger pattern as sync.js's
 // POST /trigger).
 router.post("/qms_tr/runs", (req, res) => {
-  const { country, ano_base, force_outcome, fail_at_step } = req.body || {}
+  const { country, ano_base, force_outcome, fail_at_step, skip_sync } = req.body || {}
   if (!country || ano_base === undefined || ano_base === null) {
     return res.status(400).json({ error: "bad_request", message: "country and ano_base are required" })
   }
@@ -111,10 +111,15 @@ router.post("/qms_tr/runs", (req, res) => {
   const jobId = uuid()
   const now = isoNow()
   const steps = makeSteps()
+  // JAA-1002: skip_sync defaults to true (same default as the real API's
+  // QmsTrRunCreate.skip_sync) -- by default run_sync is SKIPPED and the
+  // pipeline relies on the daily mirror_sync.
+  const skipSync = skip_sync ?? true
   const job = {
     job_id: jobId,
     country,
     ano_base,
+    skip_sync: skipSync,
     status: "pending",
     tag: `qms_tr-${country}-${ano_base}-${Date.now()}`,
     created_at: now,
@@ -126,12 +131,26 @@ router.post("/qms_tr/runs", (req, res) => {
     steps,
     _stepIndex: 0,
     _forceOutcome: force_outcome ?? null,
-    _failAtStep: fail_at_step ?? QMS_TR_STEPS[1],
+    _failAtStep: fail_at_step ?? "kpis_batch",
   }
   job.status = "running"
   job.started_at = now
-  job.steps[0].status = "running"
-  job.steps[0].started_at = now
+
+  if (skipSync) {
+    // run_sync never runs -- Databricks' check_sync condition_task routes
+    // straight to the SKIPPED branch, which the real API surfaces as
+    // status "cancelled" (not "completed"); run_bronze_copy starts instead.
+    job.steps[0].status = "cancelled"
+    job.steps[0].started_at = now
+    job.steps[0].completed_at = now
+    job._stepIndex = 1
+    job.steps[1].status = "running"
+    job.steps[1].started_at = now
+    job.current_step = job.steps[1].name
+  } else {
+    job.steps[0].status = "running"
+    job.steps[0].started_at = now
+  }
 
   qmsTrJobs.set(jobId, job)
   startProgression(jobId)
