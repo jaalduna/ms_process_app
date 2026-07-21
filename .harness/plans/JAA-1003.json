@@ -1,0 +1,29 @@
+{
+  "ticket": "JAA-1003",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-1003",
+  "branch": "feat/JAA-1003-qmstr-skip-sync-toggle",
+  "archetype": "webapp",
+  "change_scope": "substantive",
+  "goal": "Add a 'Saltar sincronización' toggle to the QMS-TR run-trigger flow (mirroring CalibrateButton's skip_sync pattern), wire skip_sync into createQmsTrRun, and surface the new run_sync/run_bronze_copy steps (including a skipped/cancelled visual state) in the QMS-TR progress UI and mock-server.",
+  "notes": [
+    "Real backend contract (ms-process-api JAA-1002, commit 5280048): STEPS = [run_sync, run_bronze_copy, silver_builder, kpis_batch, export_zip]. QmsTrRunCreate.skip_sync: bool = True (default TRUE = skip). QmsTrRun.skip_sync: bool. When skip_sync=true, run_sync's step status is 'cancelled' (Databricks SKIPPED condition-task branch), NOT 'completed'; run_bronze_copy always executes.",
+    "Ticket text's claim that CalibrateButton defaults skipSync=true is WRONG (actual code: useState(false), backend default false there). QMS-TR's own backend default is TRUE — use that as the source of truth per ac1 ('mismo default que backend'). Documented as-is, not a blocker.",
+    "Precedent component: src/modules/calibracion/components/CalibrateButton.tsx (Switch inside AlertDialogDescription, skip_sync passed into the confirm mutate call)."
+  ],
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "QmsTrCountryCard's Ejecutar confirm dialog shows a 'Saltar sincronización' Switch, default checked=true", "how_to_verify": "vitest: render QmsTrCountryCard, open confirm dialog, assert screen.getByRole('switch', {name: /saltar sincronización/i}) is checked by default"},
+    {"id": "ac2", "criterion": "skip_sync is sent in the createQmsTrRun request body, reflecting the toggle state (true by default, false when toggled off)", "how_to_verify": "vitest: mock useCreateQmsTrRun/createQmsTrRun, confirm without toggling -> mutate called with skip_sync:true; toggle off then confirm -> skip_sync:false. Also mock-server test: POST /qms_tr/runs with skip_sync in body is persisted and returned on the run."},
+    {"id": "ac3", "criterion": "run_sync and run_bronze_copy steps are shown in the run progress (QmsTrProgress + QmsTrDetailModal), and run_sync renders a distinct 'skipped' presentation (not conflated with 'pending' or 'failed') when skip_sync=true", "how_to_verify": "vitest: QmsTrProgress/QmsTrDetailModal render with a step {name:'run_sync', status:'cancelled'} shows the skipped-specific icon/label (not the default Circle/pending look). mock-server test: create run with skip_sync=true -> run_sync step status is 'cancelled' after the first progression tick, run_bronze_copy step progresses normally."},
+    {"id": "ac4", "criterion": "vitest suite green, eslint clean, tsc -b clean, Playwright qms-tr specs green (scoped run only)", "how_to_verify": "npm test && npm run lint && npx tsc -b; MOCK_SERVER_PORT=8000 npx playwright test qmstr --project=smoke"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "mock-server/routes/qms_tr.js: STEPS -> [run_sync, run_bronze_copy, silver_builder, kpis_batch, export_zip]; accept skip_sync in POST /qms_tr/runs body (default true), persist on job, short-circuit run_sync to status='cancelled' (started_at=completed_at=now) and start run_bronze_copy running when skip_sync=true; update default fail_at_step; mock-server/__tests__/qms_tr.test.js updated + new skip_sync cases", "status": "complete"},
+    {"id": "t2", "desc": "src/modules/qmstr/types.ts: add skip_sync?: boolean to QmsTrRunCreate and skip_sync: boolean to QmsTrRun", "status": "complete"},
+    {"id": "t3", "desc": "src/lib/api.ts: createQmsTrRun already forwards the full QmsTrRunCreate body (no signature change needed) -- verify skip_sync flows through; add/adjust api-qmstr.test.ts case", "status": "complete"},
+    {"id": "t4", "desc": "src/modules/qmstr/components/QmsTrCountryCard.tsx: add local skipSync state (default true) + Switch in the Ejecutar AlertDialog (mirror CalibrateButton copy/markup), pass skip_sync into createRun.mutate for both handleExecute and handleRetry", "status": "complete"},
+    {"id": "t5", "desc": "src/modules/qmstr/components/QmsTrProgress.tsx + QmsTrDetailModal.tsx: add a distinct 'skipped' (cancelled) visual state for step-level status (icon + Spanish label 'Omitido'), separate from the generic pending Circle and from failed", "status": "complete"},
+    {"id": "t6", "desc": "vitest: QmsTrCountryCard.skipSync.test.tsx (ac1/ac2), extend QmsTrProgress/QmsTrDetailModal tests for the cancelled-step rendering (ac3)", "status": "complete"},
+    {"id": "t7", "desc": "e2e/qmstr-flow.spec.ts: add a case toggling skip_sync off and asserting run_sync progresses (not skipped); verify existing default-flow test still passes with the 5-step pipeline", "status": "complete"},
+    {"id": "t8", "desc": "Full VERIFY_CMD (vitest+lint+tsc) + scoped Playwright qms-tr run", "status": "complete"}
+  ]
+}

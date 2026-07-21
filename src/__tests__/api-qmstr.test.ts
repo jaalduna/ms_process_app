@@ -43,6 +43,12 @@ describe("qmstr api fns", () => {
     expect(postSpy).toHaveBeenCalledTimes(1)
   })
 
+  it("createQmsTrRun forwards skip_sync in the body (JAA-1003)", async () => {
+    const body = { country: "brasil", ano_base: 2026, skip_sync: false }
+    await createQmsTrRun(body)
+    expect(postSpy).toHaveBeenCalledWith("/qms_tr/runs", body)
+  })
+
   describe("downloadQmsTrTag (server zip by tag)", () => {
     let createObjectURL: ReturnType<typeof vi.fn>
     let revokeObjectURL: ReturnType<typeof vi.fn>

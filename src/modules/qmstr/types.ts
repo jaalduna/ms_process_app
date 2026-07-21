@@ -17,6 +17,18 @@ export const QMSTR_STATUS_CONFIG: Record<
   cancelled: { label: "Cancelado", variant: "secondary", className: "" },
 }
 
+/** Step-level status label, distinct from run-level QMSTR_STATUS_CONFIG:
+ * "cancelled" at the step level means the step was SKIPPED (JAA-1002's
+ * run_sync sync-gate when skip_sync=true), not that the run was cancelled --
+ * "Omitido" avoids conflating the two in the progress/detail UI. */
+export const QMSTR_STEP_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendiente",
+  running: "Ejecutando",
+  completed: "Completado",
+  failed: "Error",
+  cancelled: "Omitido",
+}
+
 /** Status of a single QMS-TR pipeline step. `name` is a free-form value
  * returned by the engine -- there is no fixed 4-step enum (that was an MTR
  * assumption that does not hold for the real qms_tr engine). */
@@ -34,6 +46,9 @@ export interface QmsTrRun {
   job_id: string
   country: string
   ano_base: number
+  /** Whether the run_sync sync-gate step was skipped (JAA-1002); default true
+   * server-side, same default as calibración's skip_sync. */
+  skip_sync: boolean
   status: QmsTrStatus
   steps: QmsTrStep[]
   /** Set once the job produces a downloadable result; feeds GET /qms_tr/{tag}/download. */
@@ -53,5 +68,9 @@ export interface QmsTrRun {
 export interface QmsTrRunCreate {
   country: string
   ano_base: number
+  /** Skip the SQL->bronze sync (run_sync). Defaults to true server-side
+   * (JAA-1002) -- omit to accept the backend default, same as calibración's
+   * skip_sync. */
+  skip_sync?: boolean
   parameters?: Record<string, unknown>
 }

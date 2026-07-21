@@ -29,12 +29,13 @@ import {
   Circle,
   Download,
   Loader2,
+  MinusCircle,
   RefreshCcw,
   XCircle,
 } from "lucide-react"
 import { QmsTrProgress } from "./QmsTrProgress"
 import { useQmsTrRun, useCreateQmsTrRun, useExecuteQmsTrRun } from "../hooks/useQmsTr"
-import { QMSTR_ACTIVE_STATUSES, QMSTR_STATUS_CONFIG } from "../types"
+import { QMSTR_ACTIVE_STATUSES, QMSTR_STATUS_CONFIG, QMSTR_STEP_STATUS_LABELS } from "../types"
 import type { QmsTrStep } from "../types"
 import { downloadQmsTrTag } from "@/lib/api"
 import { COUNTRY_LABELS } from "@/lib/countries"
@@ -52,6 +53,10 @@ function StepIcon({ status }: { status: string }) {
       return <Loader2 className="h-4 w-4 text-info animate-spin shrink-0" />
     case "failed":
       return <XCircle className="h-4 w-4 text-destructive shrink-0" />
+    case "cancelled":
+      // Step-level "cancelled" means SKIPPED (JAA-1002's run_sync sync-gate),
+      // distinct from pending -- shown with a dedicated dash icon + "Omitido" label.
+      return <MinusCircle className="h-4 w-4 text-muted-foreground shrink-0" />
     default:
       return <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
   }
@@ -114,7 +119,7 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
             }
             className="text-[10px] px-1.5 py-0"
           >
-            {step.status}
+            {QMSTR_STEP_STATUS_LABELS[step.status] ?? step.status}
           </Badge>
         </div>
       </button>

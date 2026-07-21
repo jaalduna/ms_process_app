@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Switch } from "@/components/ui/switch"
 import { Download, Eye, Loader2, RefreshCcw } from "lucide-react"
 import { toast } from "sonner"
 import { QmsTrProgress } from "./QmsTrProgress"
@@ -36,6 +37,10 @@ interface QmsTrCountryCardProps {
 
 export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
   const [anoBase, setAnoBase] = useState(defaultAnoBase)
+  // Defaults to true: by default run_sync (SQL->bronze sync) is SKIPPED,
+  // relying on the daily mirror_sync -- same backend default as
+  // QmsTrRunCreate.skip_sync (JAA-1002).
+  const [skipSync, setSkipSync] = useState(true)
   const [detailJobId, setDetailJobId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -62,7 +67,7 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
 
   const handleExecute = () => {
     createRun.mutate(
-      { country: countryCode, ano_base: anoBase },
+      { country: countryCode, ano_base: anoBase, skip_sync: skipSync },
       {
         onSuccess: (run) => {
           executeRun.mutate(run.job_id, {
@@ -78,7 +83,7 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
   const handleRetry = () => {
     if (!latestRun) return
     createRun.mutate(
-      { country: countryCode, ano_base: latestRun.ano_base },
+      { country: countryCode, ano_base: latestRun.ano_base, skip_sync: skipSync },
       {
         onSuccess: (run) => {
           executeRun.mutate(run.job_id, {
@@ -184,12 +189,34 @@ export function QmsTrCountryCard({ countryCode }: QmsTrCountryCardProps) {
                     )}
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Confirmar QMS-TR</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Iniciar la corrida de QMS-TR para <strong>{countryLabel}</strong>, año base{" "}
-                      <strong>{anoBase}</strong>?
+                    <AlertDialogDescription asChild>
+                      <div className="text-sm text-muted-foreground">
+                        <p>
+                          Iniciar la corrida de QMS-TR para <strong>{countryLabel}</strong>, año base{" "}
+                          <strong>{anoBase}</strong>?
+                        </p>
+                        <label
+                          className="mt-3 flex items-start gap-2 cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Switch
+                            checked={skipSync}
+                            onCheckedChange={setSkipSync}
+                            aria-label="Saltar sincronización"
+                            className="mt-0.5"
+                          />
+                          <span className="text-xs">
+                            Saltar sincronización (<code className="bg-muted px-1 rounded">skip_sync</code>)
+                            <span className="block text-muted-foreground">
+                              Por defecto se salta la sync SQL→bronze, confiando en el mirror_sync diario.
+                              Desactívalo solo si necesitas datos frescos.
+                            </span>
+                          </span>
+                        </label>
+                      </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
