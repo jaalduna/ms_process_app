@@ -5,7 +5,7 @@ import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
 /**
  * Smoke coverage for the QMS-TR page (its own /qms_tr backed model as of
  * JAA-987/JAA-988, no longer an MTR clone) at /qms-tr, the retained MTR page
- * (/mtr), and the Macrocac placeholder (/macrocac, on-demand publish to
+ * (/mtr), and the Macrocac form (/macrocac, on-demand publish to
  * productive SQL tables). Nav-click navigation is used instead of page.goto
  * because the dev auth state is in-memory and a hard reload logs the session out.
  */
@@ -41,12 +41,12 @@ test.describe("QMS-TR / MTR / Macrocac", () => {
     await expect(page.getByRole("heading", { name: "MTR", exact: true })).toBeVisible({ timeout: 10_000 })
   })
 
-  test("Macrocac shows the placeholder describing the productive-table upload", { tag: "@smoke" }, async ({ page }) => {
+  test("Macrocac shows the productive-table correction form", { tag: "@smoke" }, async ({ page }) => {
     const nav = page.getByRole("navigation", { name: /main navigation/i })
     await nav.getByRole("link", { name: "Macrocac", exact: true }).click()
     await expect(page).toHaveURL(/\/macrocac$/, { timeout: 10_000 })
     await expect(page.getByRole("heading", { name: "Macrocac", exact: true })).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByText("Próximamente")).toBeVisible()
+    await expect(page.getByTestId("macrocac-tabla-select")).toBeVisible()
     await expect(page.getByText(/tablas productivas/i).first()).toBeVisible()
   })
 })

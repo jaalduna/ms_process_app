@@ -1,0 +1,1 @@
+mock macrocac correction fixture (JAA-1051) — the mock-server never parses this file, only its filename.

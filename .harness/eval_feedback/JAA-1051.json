@@ -1,0 +1,13 @@
+{
+  "ticket": "JAA-1051",
+  "attempt": 1,
+  "result": "PASS",
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "vitest 6/6; walkthrough visual: form completo, sin placeholder, Ejecutar disabled pre-upload"},
+    {"id": "ac2", "verdict": "PASS", "evidence": "upload 201 chip filename/filas/columnas; 422 missing_columns renderizado; 400 visible; walkthrough vivo con fixture real"},
+    {"id": "ac3", "verdict": "PASS", "evidence": "run 201 running visible; 409 run_in_progress con run_id existente; disabled sin upload"},
+    {"id": "ac4", "verdict": "PASS", "evidence": "playwright 3/3 contra mock vivo (tras descartar falso negativo por dev-server stale del propio evaluador)"},
+    {"id": "ac5", "verdict": "PASS", "evidence": "npm test 547/547 (74 files); eslint limpio; tsc -b limpio; AGENTS.md numerator verificado contra git remote -v"}
+  ],
+  "overall_notes": "Evaluador separado (ux-ui-reviewer Sonnet). 2 hallazgos no bloqueantes corregidos post-eval por el orquestador: AGENTS.md:37 'ado/develop' residual y e2e/qmstr-macrocac.spec.ts assert del placeholder eliminado. Re-verificado: playwright macrocac.spec.ts + qmstr-macrocac.spec.ts 7/7 en :5002/:5176 (colision de puertos con mocks de otras sesiones resuelta usando puertos libres)."
+}

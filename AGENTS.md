@@ -30,16 +30,16 @@ A feature that needs both this repo and `ms-process-api` is NOT one session over
    Full pattern: `~/.claude/skills/harness/SKILL.md` → "Cross-repo tickets".
 
 ## Git / integration (the PR target that counts)
-- **INTEGRATION_REMOTE = `ado`** (Azure DevOps — the official one). `origin` (GitHub
+- **INTEGRATION_REMOTE = `numerator`** (Azure DevOps — the official one). `origin` (GitHub
   `jaalduna/ms_process_app`) is a personal mirror, NOT the PR target.
-- **INTEGRATION_BRANCH = `develop`** (local `develop` tracks `ado/develop`).
+- **INTEGRATION_BRANCH = `develop`** (local `develop` tracks `numerator/develop`).
 - **Branch naming:** `feat/<LINEAR-ID>-<slug>` (feature) / `fix/<LINEAR-ID>-<slug>` (bug), Linear IDs
-  like `JAA-237`. Base every branch on freshly-fetched `ado/develop`.
+  like `JAA-237`. Base every branch on freshly-fetched `numerator/develop`.
 - **Auth:** ADO fetch/push needs `AZURE_DEVOPS_EXT_PAT` (user:pat form) — see global memory
   `feedback_ado_git_push_pat`. AAD alone gives 401.
 - **PR:** `az repos pr create --target-branch develop --source-branch feat/<ID>-<slug>`. Branch
   policies (`/cicd`) enforce reviewers/checks. Never push to `develop` directly; never auto-merge.
-- Start-of-ticket sync: `git fetch ado develop` (do NOT `git pull` onto the checked-out branch).
+- Start-of-ticket sync: `git fetch numerator develop` (do NOT `git pull` onto the checked-out branch).
 
 ## VERIFY_CMD
 ```
