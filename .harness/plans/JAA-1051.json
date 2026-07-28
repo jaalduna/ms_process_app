@@ -1,0 +1,42 @@
+{
+  "ticket": "JAA-1051",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-1051/frontend-pagina-macrocac-con-formulario-upload-de-excel-gatillar",
+  "branch": "feat/JAA-1051-macrocac-upload-form",
+  "archetype": "webapp",
+  "change_scope": "substantive",
+  "goal": "Reemplazar el placeholder de MacrocacPage por el formulario MVP (tabla, pais, motivo) + upload de Excel + boton Ejecutar (dry-run), contra el contrato mock de JAA-1048 (docs/design/macrocac-api-contract.md).",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "src/modules/macrocac/ implementa el formulario siguiendo las convenciones de modulos existentes (types.ts, api.ts con @/lib/api, hooks.ts react-query, componentes): select tabla [j_atoscompra_new, j_atoscompra_new_test, hato_cabecalho_ooh], select pais [BO,CL,MX,CO,EC,PE], motivo opcional (chips o input), dropzone/file-input .xlsx. El placeholder 'Proximamente' desaparece.",
+      "how_to_verify": "npx vitest run src/modules/macrocac"
+    },
+    {
+      "id": "ac2",
+      "criterion": "Subir archivo llama POST /macrocac/uploads (multipart con ?filename=&pais=&tabla=&motivo= como define el contrato mock) y muestra chip con filename/filas/columnas en exito (201) y los errores del backend en fallo: 422 missing_columns renderiza las columnas faltantes, 400 muestra el error — sin tragarse errores.",
+      "how_to_verify": "npx vitest run src/modules/macrocac (tests de exito 201, 422 y 400 con MSW o mock de api)"
+    },
+    {
+      "id": "ac3",
+      "criterion": "Boton 'Ejecutar (dry-run)' habilitado solo con upload valido; llama POST /macrocac/runs {upload_id}; en 201 muestra el run creado con estado running; en 409 run_in_progress muestra el mensaje con el run_id existente.",
+      "how_to_verify": "npx vitest run src/modules/macrocac"
+    },
+    {
+      "id": "ac4",
+      "criterion": "Spec Playwright e2e/macrocac.spec.ts (SOLO este spec, contra mock-server, nunca API real): navegar a /macrocac -> completar formulario -> subir fixture xlsx -> chip visible -> Ejecutar -> aparece run en estado running. Sigue las convenciones de e2e/ existentes (helpers, auth bypass).",
+      "how_to_verify": "rtk proxy npx playwright test e2e/macrocac.spec.ts"
+    },
+    {
+      "id": "ac5",
+      "criterion": "Suite completa verde: npm test (vitest total), npm run lint, npx tsc -b. Ademas AGENTS.md corregido: INTEGRATION_REMOTE documenta el remote real 'numerator' (no 'ado').",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b && grep -q 'numerator' AGENTS.md"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Implementar modulo macrocac (form+upload+execute) + tests vitest + spec Playwright + fix AGENTS.md remote",
+      "status": "complete"
+    }
+  ]
+}
