@@ -1,0 +1,42 @@
+{
+  "ticket": "JAA-1048",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-1048/contrato-api-macrocac-en-mock-server-upload-execute-runs-reportes",
+  "branch": "feat/JAA-1048-macrocac-mock-contract",
+  "archetype": "webapp",
+  "change_scope": "substantive",
+  "goal": "Encodear en el mock-server el contrato API macrocac del MVP (upload de Excel + params, execute dry-run, estado de runs, descarga de reportes) para que la UI (JAA-1051/1053) y el backend real (JAA-1052) construyan contra el mismo seam.",
+  "acceptance_criteria": [
+    {
+      "id": "ac1",
+      "criterion": "mock-server/routes/macrocac.js implementa y server.js registra: POST /api/v1/macrocac/uploads (multipart no parseado, filename via query ?filename= como eligibility; filename que contenga 'sin-idato' o 'invalid' simula columnas obligatorias IdAto/Flg faltantes -> 422 {error, missing_columns}; valido -> 201 {upload_id, filename, pais, tabla, motivo, filas, columnas}), con pais validado contra [BO,CL,MX,CO,EC,PE] y tabla contra [j_atoscompra_new, j_atoscompra_new_test, hato_cabecalho_ooh] (400 si no)",
+      "how_to_verify": "npx vitest run mock-server/__tests__/macrocac.test.js"
+    },
+    {
+      "id": "ac2",
+      "criterion": "POST /api/v1/macrocac/runs {upload_id} crea run dry-run (dry_run siempre true en el response; 404 upload_id desconocido; 409 si ya hay run activo para el mismo (pais,tabla) — dedupe del contrato); GET /api/v1/macrocac/runs y GET /api/v1/macrocac/runs/:runId devuelven status con progresion running->succeeded temporizada por MOCK_STEP_INTERVAL_MS (patron qms_tr/sync) y resultado_lote [{IdAto, ok, mensaje, accion}] coherente con correcciones_bo.xlsx (14 filas, acciones M/E) al llegar a succeeded",
+      "how_to_verify": "npx vitest run mock-server/__tests__/macrocac.test.js (con MOCK_STEP_INTERVAL_MS corto)"
+    },
+    {
+      "id": "ac3",
+      "criterion": "GET /api/v1/macrocac/runs/:runId/reporte y /reporte-diff responden 200 con Content-Disposition attachment y content-type xlsx (buffer stub, sin xlsx writer — patron weighting-params) solo cuando el run esta succeeded; 409 antes",
+      "how_to_verify": "npx vitest run mock-server/__tests__/macrocac.test.js"
+    },
+    {
+      "id": "ac4",
+      "criterion": "Contrato documentado: header comment del route (convencion params.js) + docs/design/macrocac-api-contract.md con request/response de cada endpoint y los magic filenames del mock",
+      "how_to_verify": "test -f docs/design/macrocac-api-contract.md && grep -q 'macrocac/uploads' docs/design/macrocac-api-contract.md && head -40 mock-server/routes/macrocac.js"
+    },
+    {
+      "id": "ac5",
+      "criterion": "Suite completa verde: vitest run total, eslint ., tsc -b (sin Playwright: no existe UI macrocac aun; el walkthrough e2e pertenece a JAA-1051)",
+      "how_to_verify": "npm test && npm run lint && npx tsc -b"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "desc": "Implementar mock-server/routes/macrocac.js + registro en server.js + tests __tests__/macrocac.test.js (TDD) + docs/design/macrocac-api-contract.md",
+      "status": "complete"
+    }
+  ]
+}

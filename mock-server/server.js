@@ -21,6 +21,7 @@ import feedbackRouter from "./routes/feedback.js"
 import processConfigRouter from "./routes/process_config.js"
 import paramsRouter from "./routes/params.js"
 import weightingParamsRouter from "./routes/weighting-params.js"
+import macrocacRouter from "./routes/macrocac.js"
 import { seedAll } from "./fixtures/seed.js"
 
 const app = express()
@@ -121,6 +122,7 @@ app.use("/api/v1", feedbackRouter)
 app.use("/api/v1", paramsRouter)
 app.use("/api/v1", weightingParamsRouter)
 app.use("/api/v1", processConfigRouter)
+app.use("/api/v1", macrocacRouter)
 
 // ---------------------------------------------------------------------------
 // SPA same-origin serving (prod demo). Only active when SPA_DIR is set, so it

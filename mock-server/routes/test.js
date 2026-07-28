@@ -12,6 +12,7 @@ import { reset as resetFeedback } from "./feedback.js"
 import { seedParams } from "./params.js"
 import { resetWeightingParams } from "./weighting-params.js"
 import { seedProcessConfig } from "./process_config.js"
+import { resetMacrocac } from "./macrocac.js"
 import { seedSyncJobs } from "../fixtures/seed.js"
 
 const router = Router()
@@ -35,6 +36,7 @@ router.post("/test/reset", (_req, res) => {
   tagStore.reset()
   resetWeightingParams()
   resetFeedback()
+  resetMacrocac()
 
   // Enable deterministic mode on all run stores so E2E happy-path tests
   // never fail due to the 5% random failure in _advanceStep().

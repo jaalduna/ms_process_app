@@ -1,0 +1,13 @@
+{
+  "ticket": "JAA-1048",
+  "attempt": 1,
+  "result": "PASS",
+  "verdicts": [
+    {"id": "ac1", "verdict": "PASS", "evidence": "uploads: 400 pais/tabla, 422 magic filename missing_columns, 201 envelope; vitest 13/13"},
+    {"id": "ac2", "verdict": "PASS", "evidence": "runs: dry_run true, 404, 409 dedupe (pais,tabla), progresion MOCK_STEP_INTERVAL_MS, resultado_lote 14 filas con ok:false"},
+    {"id": "ac3", "verdict": "PASS", "evidence": "reporte/reporte-diff: 409 antes de succeeded, 200 con headers xlsx + attachment despues"},
+    {"id": "ac4", "verdict": "PASS", "evidence": "docs/design/macrocac-api-contract.md + header comment estilo params.js"},
+    {"id": "ac5", "verdict": "PASS", "evidence": "npm test 541/541 (73 files), eslint limpio, tsc -b limpio — corridos por el evaluador"}
+  ],
+  "overall_notes": "Evaluador separado (Sonnet, fresh ctx): change surface exacto (mock-server/, docs/design/, .harness/), router registrado y server arrancado en vivo con curl 201, tests con asserts genuinos de body shape (no debilitados). Unico stub permitido: buffer xlsx de descargas, documentado y gateado por status."
+}
