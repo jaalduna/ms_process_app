@@ -56,10 +56,13 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
     await instance.loginRedirect(loginRequest)
   }, [instance])
 
+  // No pasamos postLogoutRedirectUri acá: msalConfig ya lo define como el mismo
+  // `redirectUri` que está registrado en el app registration. Pasarlo explícito
+  // como origin + BASE_URL agregaba un slash final ("https://host/"), que Entra
+  // compara de forma exacta contra los redirect URIs y no calza → el logout
+  // fallaba con AADSTS50011 aunque el login funcionara.
   const logout = useCallback(async () => {
-    await instance.logoutRedirect({
-      postLogoutRedirectUri: window.location.origin + import.meta.env.BASE_URL,
-    })
+    await instance.logoutRedirect()
   }, [instance])
 
   const getAccessToken = useCallback(async (): Promise<string> => {
@@ -73,18 +76,27 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
     }
   }, [instance, account])
 
+  // Roles = app roles de Entra ID (claim `roles` del ID token, asignados en el
+  // app registration del tenant). Fallback a /auth/me mientras el registration
+  // no tenga appRoles configurados, para no dejar a nadie sin perfil durante la
+  // transición. Todo autenticado sin rol explícito es perfil base "usuario".
+  const claimRoles = useMemo(() => {
+    const claims = account?.idTokenClaims as { roles?: string[] } | undefined
+    return claims?.roles ?? []
+  }, [account])
+
   const contextValue = useMemo(
     () => ({
       isAuthenticated,
       user,
-      roles: userInfo?.roles ?? [],
+      roles: claimRoles.length > 0 ? claimRoles : (userInfo?.roles ?? []),
       countries: userInfo?.countries ?? [],
       loading,
       login,
       logout,
       getAccessToken,
     }),
-    [isAuthenticated, user, userInfo, loading, login, logout, getAccessToken],
+    [isAuthenticated, user, claimRoles, userInfo, loading, login, logout, getAccessToken],
   )
 
   return (

@@ -8,6 +8,8 @@ import { CountryListRow } from "../components/CountryListRow"
 import { RunningCountriesChip } from "../components/RunningCountriesChip"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useAuth } from "@/hooks/useAuth"
+import { getPermissions } from "@/lib/permissions"
 import { useCountries } from "@/hooks/useCountries"
 import { useViewMode } from "@/hooks/useViewMode"
 // useDataAvailability intentionally not used for now — see UNKNOWN_AVAILABILITY (JAA-570).
@@ -40,6 +42,10 @@ const UNKNOWN_AVAILABILITY: DataAvailability = { elegibilidad: null, pesaje: nul
 export function CalibrationPage() {
   const [period, setPeriod] = useState(currentPeriod)
   const [viewMode, setViewMode] = useViewMode("calibracion")
+  // El rol se consulta una sola vez acá y baja por props: los componentes de
+  // tarjeta/fila quedan puros y siguen montándose aislados en los tests.
+  const { roles } = useAuth()
+  const { canTriggerCalibration: canTriggerByRole } = getPermissions(roles)
 
   useEffect(() => {
     // Legacy per-browser key that tracked in-flight calibration job-ids. Run state
@@ -122,6 +128,7 @@ export function CalibrationPage() {
               calibrationConfig={calibrationConfig}
               lastSyncDate={lastSync?.[c.code]?.completed_at ?? null}
               lastCalibrationDate={lastCalibration?.[c.code]?.completed_at ?? null}
+              canTriggerByRole={canTriggerByRole}
             />
           ))}
         </div>
@@ -151,6 +158,7 @@ export function CalibrationPage() {
                 calibrationConfig={calibrationConfig}
                 lastSyncDate={lastSync?.[c.code]?.completed_at ?? null}
                 lastCalibrationDate={lastCalibration?.[c.code]?.completed_at ?? null}
+                canTriggerByRole={canTriggerByRole}
               />
             ))}
           </TableBody>

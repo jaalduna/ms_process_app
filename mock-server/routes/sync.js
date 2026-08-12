@@ -107,6 +107,20 @@ export function defaultPeriod() {
 /** @type {Map<string, object>} */
 export const jobs = new Map()
 
+// JAA-1056: fake Databricks run identity for the "Ver en Databricks" link.
+// The real backend (ms-process-api) will expose the SAME two fields from
+// jobs.get_run (JAA-1059) — the field names are the contract, do not rename.
+const DBX_HOST = "https://adb-2125673683576002.2.azuredatabricks.net"
+const DBX_JOB_IDS = { calibracion: 9210250 }
+
+export function stampDatabricksRun(job) {
+  const dbxJobId = DBX_JOB_IDS[job.stage] ?? 9210000
+  const dbxRunId = Math.floor(Math.random() * 900000) + 100000
+  job.databricks_run_id = String(dbxRunId)
+  job.run_page_url = `${DBX_HOST}/#job/${dbxJobId}/run/${dbxRunId}`
+  return job
+}
+
 export function enrichSummary(job) {
   const { results, _stepIndex, _forceOutcome, ...base } = job
   const running_queries = (results || []).filter(r => r.status === "running").map(r => r.query_name)
@@ -126,7 +140,7 @@ export function seedCompletedJob(country, stage, period, daysAgo) {
   const started = new Date(new Date(created).getTime() + 2000).toISOString()
   const completed = new Date(new Date(started).getTime() + 30000 + Math.floor(Math.random() * 60000)).toISOString()
   const results = queries.map(q => ({ query_name: q, status: "completed", rows_extracted: Math.floor(Math.random() * 50000) + 1000, table_name: `kpi_prd_01.bridge.${country}_${q}`, duration_seconds: +(Math.random() * 30 + 2).toFixed(2), error: null, started_at: started }))
-  jobs.set(jobId, { job_id: jobId, status: "completed", country, stage, period, tag: `${country}-${stage}-seed`, queries_total: queries.length, queries_completed: queries.length, queries_failed: 0, created_at: created, started_at: started, completed_at: completed, triggered_by: "system-seed", error: null, results, steps: makeCompletedSteps(started), current_step: null })
+  jobs.set(jobId, stampDatabricksRun({ job_id: jobId, status: "completed", country, stage, period, tag: `${country}-${stage}-seed`, queries_total: queries.length, queries_completed: queries.length, queries_failed: 0, created_at: created, started_at: started, completed_at: completed, triggered_by: "system-seed", error: null, results, steps: makeCompletedSteps(started), current_step: null }))
 }
 
 export function seedFailedJob(country, stage, period, daysAgo) {
@@ -140,7 +154,7 @@ export function seedFailedJob(country, stage, period, daysAgo) {
     return { query_name: q, status: "completed", rows_extracted: Math.floor(Math.random() * 10000) + 500, table_name: `kpi_prd_01.bridge.${country}_${q}`, duration_seconds: +(Math.random() * 20 + 1).toFixed(2), error: null, started_at: failedStarted }
   })
   const failStepIndex = Math.min(2, CALIBRATION_STEPS.length - 1)
-  jobs.set(jobId, { job_id: jobId, status: "failed", country, stage, period, tag: `${country}-${stage}-seed`, queries_total: queries.length, queries_completed: queries.length - 1, queries_failed: 1, created_at: created, started_at: failedStarted, completed_at: new Date(new Date(created).getTime() + 45000).toISOString(), triggered_by: "system-seed", error: "1 query failed", results, steps: makeFailedSteps(failedStarted, failStepIndex), current_step: null })
+  jobs.set(jobId, stampDatabricksRun({ job_id: jobId, status: "failed", country, stage, period, tag: `${country}-${stage}-seed`, queries_total: queries.length, queries_completed: queries.length - 1, queries_failed: 1, created_at: created, started_at: failedStarted, completed_at: new Date(new Date(created).getTime() + 45000).toISOString(), triggered_by: "system-seed", error: "1 query failed", results, steps: makeFailedSteps(failedStarted, failStepIndex), current_step: null }))
 }
 
 /**
@@ -162,7 +176,7 @@ export function seedRunningJob(country, stage, period) {
   steps[1].status = "completed"; steps[1].started_at = now; steps[1].completed_at = now
   steps[2].status = "running"; steps[2].started_at = now
   if (steps[2].tasks?.length) { steps[2].tasks[0].status = "running"; steps[2].tasks[0].started_at = now }
-  const job = { job_id: jobId, status: "running", country, stage, period: period ?? null, tag: `${country}-${stage}-${Date.now()}`, queries_total: queries.length, queries_completed: queries.length, queries_failed: 0, created_at: now, started_at: now, completed_at: null, triggered_by: "e2e-seed", error: null, results, steps, current_step: "merge_data", _stepIndex: 2 }
+  const job = stampDatabricksRun({ job_id: jobId, status: "running", country, stage, period: period ?? null, tag: `${country}-${stage}-${Date.now()}`, queries_total: queries.length, queries_completed: queries.length, queries_failed: 0, created_at: now, started_at: now, completed_at: null, triggered_by: "e2e-seed", error: null, results, steps, current_step: "merge_data", _stepIndex: 2 })
   jobs.set(jobId, job)
   return job
 }
@@ -234,16 +248,24 @@ router.post("/trigger", (req, res) => {
   const { country, stage, period, queries: requestedQueries, aggregations, row_limit, lookback_months, skip_sync, skip_copy,
     // JAA-384 C4: extra fields the frontend's TriggerRequest sends — the backend
     // supports them, so reflect them in job state instead of silently dropping.
-    table_suffix, group_by, start_period, final_period, skip_merge, skip_simulation } = req.body
+    table_suffix, group_by, start_period, final_period, skip_merge, skip_simulation,
+    // JAA-1117: fuente de J. "sync" (o ausente) = comportamiento de siempre;
+    // cualquier otro valor es el tag de una versión registrada.
+    j_source } = req.body
   if (!country || !stage) return res.status(400).json({ error: "bad_request", message: "country and stage are required" })
   const countryMeta = COUNTRIES.find(c => c.code === country)
   if (!countryMeta) return res.status(404).json({ error: "not_found", message: `Unknown country: ${country}` })
+  // Con una versión guardada NO se sincroniza: correr la sync reescribiría J
+  // justo antes de leer una versión congelada. Paridad con routes/trigger.py,
+  // que fuerza skip_sync en vez de respetar lo que venga en el body.
+  const usingSavedJVersion = Boolean(j_source) && j_source !== "sync"
+  const effectiveSkipSync = usingSavedJVersion ? true : skip_sync
   const queryList = requestedQueries ?? countryMeta.queries
   const jobId = uuid(); const now = isoNow()
   const results = queryList.map(q => ({ query_name: q, status: "pending", rows_extracted: 0, table_name: null, duration_seconds: 0, error: null, started_at: null }))
-  const job = { job_id: jobId, status: "pending", country, stage, period: period ?? null, tag: `${country}-${stage}-${Date.now()}`, queries_total: queryList.length, queries_completed: 0, queries_failed: 0, created_at: now, started_at: null, completed_at: null, triggered_by: "calibration-app", aggregations: aggregations ?? null, row_limit: row_limit ?? null, lookback_months: lookback_months ?? null, table_suffix: table_suffix ?? null, group_by: group_by ?? null, start_period: start_period ?? null, final_period: final_period ?? null, skip_merge: skip_merge ?? false, skip_simulation: skip_simulation ?? false, error: null, results, steps: makeSteps(), current_step: "sync_data", _stepIndex: 0 }
+  const job = stampDatabricksRun({ job_id: jobId, status: "pending", country, stage, period: period ?? null, tag: `${country}-${stage}-${Date.now()}`, queries_total: queryList.length, queries_completed: 0, queries_failed: 0, created_at: now, started_at: null, completed_at: null, triggered_by: "calibration-app", aggregations: aggregations ?? null, row_limit: row_limit ?? null, lookback_months: lookback_months ?? null, table_suffix: table_suffix ?? null, group_by: group_by ?? null, start_period: start_period ?? null, final_period: final_period ?? null, skip_merge: skip_merge ?? false, skip_simulation: skip_simulation ?? false, j_source: j_source ?? "sync", error: null, results, steps: makeSteps(), current_step: "sync_data", _stepIndex: 0 })
   if (stage === "calibracion" && DEMO_CALIBRATION_OUTCOMES[country]) job._forceOutcome = DEMO_CALIBRATION_OUTCOMES[country]
-  if (skip_sync) { job.steps[0].status = "completed"; job.steps[0].started_at = isoNow(); job.steps[0].completed_at = isoNow(); job._stepIndex = 1; for (const r of job.results) { r.status = "completed"; r.rows_extracted = Math.floor(Math.random() * 40000) + 500; r.table_name = `kpi_prd_01.bridge.${country}_${r.query_name}`; r.duration_seconds = 0; r.started_at = isoNow() }; job.queries_completed = queryList.length; job.current_step = "copy_to_calibration" }
+  if (effectiveSkipSync) { job.steps[0].status = "completed"; job.steps[0].started_at = isoNow(); job.steps[0].completed_at = isoNow(); job._stepIndex = 1; for (const r of job.results) { r.status = "completed"; r.rows_extracted = Math.floor(Math.random() * 40000) + 500; r.table_name = `kpi_prd_01.bridge.${country}_${r.query_name}`; r.duration_seconds = 0; r.started_at = isoNow() }; job.queries_completed = queryList.length; job.current_step = "copy_to_calibration" }
   if (skip_copy) { job.steps[1].status = "completed"; job.steps[1].started_at = isoNow(); job.steps[1].completed_at = isoNow(); for (const t of job.steps[1].tasks || []) { t.status = "completed"; if (!t.started_at) t.started_at = isoNow(); t.completed_at = isoNow() }; job._stepIndex = 2; job.steps[2].status = "running"; job.steps[2].started_at = isoNow(); job.current_step = job.steps[2].name; if (job.steps[2].tasks?.length > 0) { job.steps[2].tasks[0].status = "running"; job.steps[2].tasks[0].started_at = isoNow() } }
   jobs.set(jobId, job)
   let tick = 0; const maxTicks = queryList.length + 1 + 2 + 4 + 2 + 5

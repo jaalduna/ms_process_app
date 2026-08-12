@@ -8,6 +8,7 @@ import type {
   FeedbackMineResponse,
   FeedbackPayload,
   FeedbackResponse,
+  JVersionListResponse,
   LastElegibilidadResponse,
   LastStageCompletionResponse,
   LastSyncResponse,
@@ -152,14 +153,28 @@ export function triggerSync(body: TriggerRequest) {
 /** Alias for triggerSync for calibration_frontend compatibility. */
 export const triggerCalibration = triggerSync
 
+// -- Versiones de J (JAA-1116) --
+
+/**
+ * Versiones sincronizadas de J que se pueden usar como fuente, más recientes
+ * primero. Alimenta el desplegable con búsqueda del diálogo de lanzamiento.
+ */
+export function getJVersions(params: { country: string; period?: string }) {
+  return api
+    .get<JVersionListResponse>("/calibration/j-versions", { params })
+    .then((r) => r.data)
+}
+
 // -- Calibration runs (JAA-648) --
 
 /**
- * List calibration runs from the shared, server-authoritative backend run store
- * (JAA-647 lifecycle in process_runs). Mirrors the mtr/prices runs pattern: the
- * active run is derived as `items[0]` (newest first) instead of from per-browser
- * localStorage, so the running state is recovered after reload and shared across
- * browsers/users.
+ * List calibration runs, server-authoritative (JAA-648): the active run is
+ * derived as `items[0]` (newest first) instead of per-browser localStorage.
+ *
+ * JAA-1082: unified on GET /events?stage=calibracion — the ONE list the real
+ * backend serves for runs created by POST /trigger (its /calibration/runs is a
+ * different lifecycle store where triggered runs never appear). Against the
+ * mock both endpoints are equivalent (same jobs Map, same enrichSummary).
  */
 export function getCalibrationRuns(params?: {
   country?: string
@@ -169,7 +184,7 @@ export function getCalibrationRuns(params?: {
   offset?: number
 }) {
   return api
-    .get<EventListResponse>("/calibration/runs", { params })
+    .get<EventListResponse>("/events", { params: { ...params, stage: "calibracion" } })
     .then((r) => r.data)
 }
 

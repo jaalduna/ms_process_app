@@ -16,6 +16,8 @@ export interface CalibrationOverrides {
   final_period?: string | null
   skip_merge?: boolean
   skip_simulation?: boolean
+  /** Fuente de J: `"sync"` (default) o el tag de una versión registrada (JAA-1119). */
+  j_source?: string | null
 }
 
 export const ACTIVE_STATUSES = ["pending", "running"]
@@ -79,6 +81,7 @@ export function useCalibration(country: string, stage: string, period?: string) 
       final_period: overrides?.final_period,
       skip_merge: overrides?.skip_merge,
       skip_simulation: overrides?.skip_simulation,
+      j_source: overrides?.j_source,
     })
   }, [trigger, country, stage])
 

@@ -26,9 +26,11 @@ interface CountryCardProps {
   calibrationConfig: CalibrationConfig
   lastSyncDate: string | null
   lastCalibrationDate: string | null
+  /** Permiso de rol para ejecutar; lo calcula la página. Default true. */
+  canTriggerByRole?: boolean
 }
 
-export const CountryCard = memo(function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate }: CountryCardProps) {
+export const CountryCard = memo(function CountryCard({ country, period, availability, availabilityLoading, calibrationConfig, lastSyncDate, lastCalibrationDate, canTriggerByRole = true }: CountryCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const { job, isPending, isCancelling, startCalibration, cancelCalibration } = useCalibration(country.code, "calibracion", period)
@@ -113,10 +115,13 @@ export const CountryCard = memo(function CountryCard({ country, period, availabi
                 />
               ) : (
                 <CalibrateButton
+                  country={country.code}
                   countryLabel={countryLabel}
+                  lastSyncLabel={lastSyncDate}
                   period={period}
                   calibrationConfig={calibrationConfig}
                   canTrigger={canTrigger}
+                  canTriggerByRole={canTriggerByRole}
                   isClosed={isClosed}
                   isPending={isPending}
                   isRunning={isRunning}

@@ -25,6 +25,8 @@ interface CountryListRowProps {
   calibrationConfig: CalibrationConfig
   lastSyncDate: string | null
   lastCalibrationDate: string | null
+  /** Permiso de rol para ejecutar; lo calcula la página. Default true. */
+  canTriggerByRole?: boolean
 }
 
 /** List/table row rendering of CountryCard's same data + actions (JAA-763). */
@@ -36,6 +38,7 @@ export const CountryListRow = memo(function CountryListRow({
   calibrationConfig,
   lastSyncDate,
   lastCalibrationDate,
+  canTriggerByRole = true,
 }: CountryListRowProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -108,10 +111,13 @@ export const CountryListRow = memo(function CountryListRow({
               />
             ) : (
               <CalibrateButton
+                country={country.code}
                 countryLabel={countryLabel}
+                lastSyncLabel={lastSyncDate}
                 period={period}
                 calibrationConfig={calibrationConfig}
                 canTrigger={canTrigger}
+                canTriggerByRole={canTriggerByRole}
                 isClosed={isClosed}
                 isPending={isPending}
                 isRunning={isRunning}

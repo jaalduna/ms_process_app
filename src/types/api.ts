@@ -56,6 +56,58 @@ export interface TriggerRequest {
   final_period?: string | null
   skip_merge?: boolean
   skip_simulation?: boolean
+  /**
+   * Fuente de J (JAA-1116/JAA-1117). `undefined` o `"sync"` = sincronizar desde
+   * SQL Server, el comportamiento de siempre. Cualquier otro valor es el tag de
+   * una versión registrada; en ese caso el backend fuerza `skip_sync` porque
+   * sincronizar reescribiría J justo antes de leer una versión congelada.
+   */
+  j_source?: string | null
+}
+
+/** Valor de `j_source` que significa "sincronizar" (default). */
+export const J_SOURCE_SYNC = "sync"
+
+/**
+ * Una versión sincronizada de J, registrada con su tag `_BKP_..._vN`.
+ *
+ * `period_min`/`period_max` no son decorativos: dos versiones con nombre
+ * parecido pueden cubrir rangos distintos (en Bolivia los respaldos `_V0`/`_V1`
+ * de SQL Server arrancan en 202201 mientras la tabla viva arranca en 202101),
+ * así que el desplegable tiene que mostrarlos para que la elección sea informada.
+ */
+/** Una tabla bronze fijada por el snapshot (JAA-1121). */
+export interface JVersionTable {
+  table: string
+  table_fqn: string
+  delta_version: number
+  delta_timestamp: string
+  delta_table_id?: string | null
+  row_count?: number | null
+}
+
+export interface JVersion {
+  tag: string
+  country: string
+  period: string
+  table_fqn: string
+  delta_version: number
+  delta_timestamp: string
+  delta_table_id?: string | null
+  row_count?: number | null
+  period_min?: string | null
+  period_max?: string | null
+  /** Todo el input del pipeline que el tag congela, J incluida. */
+  tables?: JVersionTable[]
+  /** Tablas del pipeline que el snapshot NO fija (registros viejos: solo J). */
+  missing_tables?: string[]
+  run_id?: string | null
+  created_by: string
+  created_at: string
+}
+
+export interface JVersionListResponse {
+  items: JVersion[]
 }
 
 /** Response from POST /trigger */
@@ -107,6 +159,9 @@ export interface EventSummary {
   total_rows_extracted: number
   steps?: CalibrationStep[]
   current_step?: string | null
+  /** JAA-1059: Databricks run identity for the (admin-only) deep link. */
+  databricks_run_id?: string | null
+  run_page_url?: string | null
   /** JAA-755: exclusive per (country, stage, period) — marks the run used for that scope */
   is_final?: boolean
   /** JAA-755: free-text note, e.g. "aprobada por X" */
