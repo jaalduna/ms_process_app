@@ -1,4 +1,6 @@
 import { useState } from "react"
+import { Link } from "react-router-dom"
+import { ArrowLeft } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -23,6 +25,13 @@ export function ParametrosElegibilidadPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
+          <Link
+            to="/elegibilidad"
+            className="mb-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver a Elegibilidad
+          </Link>
           <h1 className="text-2xl font-semibold tracking-tight">Parámetros de elegibilidad</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Edición asistida de los configs de elegibilidad por país. Cada cambio se valida en vivo y se

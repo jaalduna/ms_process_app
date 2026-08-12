@@ -17,7 +17,7 @@ export function StatusPill({ errors, dirty }: { errors: number; dirty: number })
       </Badge>
     )
   return (
-    <Badge className="gap-1 bg-emerald-600 text-white" data-testid="status-pill">
+    <Badge variant="outline" className="gap-1 border-success/30 bg-success/15 text-success" data-testid="status-pill">
       <CheckCircle2 className="h-3 w-3" />
       {dirty} cambio{dirty !== 1 && "s"} · válido
     </Badge>

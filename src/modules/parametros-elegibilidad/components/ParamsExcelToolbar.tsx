@@ -79,7 +79,7 @@ export function ParamsExcelToolbar({ country }: { country: ElegCountry }) {
     <div className="flex flex-wrap items-end gap-4" data-testid="params-excel-toolbar">
       <div className="space-y-1.5">
         <span className="block text-xs font-medium text-muted-foreground">Excel</span>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             variant="outline"
             size="sm"

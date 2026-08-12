@@ -110,7 +110,15 @@ export function ParamsEditor<R extends ParamRow>({
           <RotateCcw className="h-4 w-4" />
           Descartar
         </Button>
-        <Button size="sm" disabled={dirty === 0} onClick={() => setReview(true)} data-testid="open-review">
+        {/* Deshabilitado: a muted, no primary al 50% — en oscuro el primario
+            atenuado seguía leyéndose como habilitado. */}
+        <Button
+          size="sm"
+          disabled={dirty === 0}
+          onClick={() => setReview(true)}
+          data-testid="open-review"
+          className="disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
+        >
           <Upload className="h-4 w-4" />
           Revisar y publicar
         </Button>

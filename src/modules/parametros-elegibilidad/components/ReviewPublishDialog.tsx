@@ -66,13 +66,13 @@ export function ReviewPublishDialog({ open, onOpenChange, target, issues, diff, 
                   {errors.length} error{errors.length !== 1 && "es"}
                 </Badge>
               ) : (
-                <Badge className="gap-1 bg-emerald-600 text-white">
+                <Badge variant="outline" className="gap-1 border-success/30 bg-success/15 text-success">
                   <CheckCircle2 className="h-3 w-3" />
                   Sin errores
                 </Badge>
               )}
               {warnings.length > 0 && (
-                <Badge variant="outline" className="gap-1 text-amber-600">
+                <Badge variant="outline" className="gap-1 border-warning/30 bg-warning/15 text-warning">
                   <AlertTriangle className="h-3 w-3" />
                   {warnings.length} advertencia{warnings.length !== 1 && "s"}
                 </Badge>
@@ -80,7 +80,7 @@ export function ReviewPublishDialog({ open, onOpenChange, target, issues, diff, 
             </div>
 
             {issues.length === 0 ? (
-              <p className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <p className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 Todas las reglas pasaron: tipos correctos, sin duplicados y variables dentro del vocabulario.
               </p>
@@ -92,7 +92,7 @@ export function ReviewPublishDialog({ open, onOpenChange, target, issues, diff, 
                     className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
                       i.severity === "error"
                         ? "border-destructive/30 bg-destructive/5 text-destructive"
-                        : "border-amber-300/40 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+                        : "border-warning/30 bg-warning/10 text-warning"
                     }`}
                   >
                     {i.severity === "error" ? (
@@ -139,7 +139,7 @@ export function ReviewPublishDialog({ open, onOpenChange, target, issues, diff, 
                         <td className="px-2 py-2 text-muted-foreground">
                           <ArrowRight className="h-3.5 w-3.5" />
                         </td>
-                        <td className="px-4 py-2 font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        <td className="px-4 py-2 font-mono text-xs font-medium text-success">
                           {d.after}
                         </td>
                       </tr>

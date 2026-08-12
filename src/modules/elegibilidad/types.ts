@@ -111,15 +111,18 @@ export const STATUS_CONFIG: Record<
   EligibilityStatus,
   { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }
 > = {
+  // Tintes suaves sobre tokens semánticos (patrón de wp-calibration-app):
+  // los rellenos sólidos amber/green/blue con texto blanco fallaban AA y
+  // usaban colores fuera de la paleta Worldpanel.
   pending: { label: 'Pendiente', variant: 'outline', className: '' },
-  running: { label: 'Ejecutando...', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
-  results_ready: { label: 'Pendiente de revisión', variant: 'default', className: 'bg-amber-500 hover:bg-amber-500/80' },
-  applying_sql: { label: 'Aplicando a SQL...', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
-  mordom_downloading: { label: 'Descargando MorDom...', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
-  mordom_ready: { label: 'Revisar MorDom', variant: 'default', className: 'bg-amber-500 hover:bg-amber-500/80' },
-  mordom_uploaded: { label: 'MorDom subido', variant: 'default', className: 'bg-amber-500 hover:bg-amber-500/80' },
-  applying_mordom: { label: 'Aplicando MorDom...', variant: 'default', className: 'bg-blue-500 hover:bg-blue-500/80' },
-  ready: { label: 'Listo', variant: 'default', className: 'bg-green-600 hover:bg-green-600/80' },
+  running: { label: 'Ejecutando...', variant: 'outline', className: 'border-info/30 bg-info/15 text-info' },
+  results_ready: { label: 'Pendiente de revisión', variant: 'outline', className: 'border-warning/30 bg-warning/15 text-warning' },
+  applying_sql: { label: 'Aplicando a SQL...', variant: 'outline', className: 'border-info/30 bg-info/15 text-info' },
+  mordom_downloading: { label: 'Descargando MorDom...', variant: 'outline', className: 'border-info/30 bg-info/15 text-info' },
+  mordom_ready: { label: 'Revisar MorDom', variant: 'outline', className: 'border-warning/30 bg-warning/15 text-warning' },
+  mordom_uploaded: { label: 'MorDom subido', variant: 'outline', className: 'border-warning/30 bg-warning/15 text-warning' },
+  applying_mordom: { label: 'Aplicando MorDom...', variant: 'outline', className: 'border-info/30 bg-info/15 text-info' },
+  ready: { label: 'Listo', variant: 'outline', className: 'border-success/30 bg-success/15 text-success' },
   failed: { label: 'Error', variant: 'destructive', className: '' },
   cancelled: { label: 'Cancelado', variant: 'secondary', className: '' },
 }

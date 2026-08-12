@@ -2,8 +2,15 @@ import { useState } from "react"
 import { PeriodSelector } from "@/components/PeriodSelector"
 import { EligibilityConfigDialog, DEFAULT_ELIGIBILITY_PARAMS } from "../components/EligibilityConfigDialog"
 import type { EligibilityParams } from "../components/EligibilityConfigDialog"
-import { EligibilityCountryCard } from "../components/EligibilityCountryCard"
+import { EligibilityCountryRow } from "../components/EligibilityCountryRow"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { useCountries } from "@/hooks/useCountries"
 import { useLastElegibilidad } from "../hooks/useLastElegibilidad"
 
@@ -24,7 +31,7 @@ export function ElegibilidadPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Elegibilidad</h1>
           <p className="text-sm text-muted-foreground">
@@ -37,11 +44,11 @@ export function ElegibilidadPage() {
         </div>
       </div>
 
-      {/* Country grid */}
+      {/* Country list (patrón lista de wp-calibration-app) */}
       {isLoading && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-xl" />
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
           ))}
         </div>
       )}
@@ -53,17 +60,29 @@ export function ElegibilidadPage() {
       )}
 
       {data && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {data.countries.filter((c) => c.type === "country").map((c) => (
-            <EligibilityCountryCard
-              key={c.code}
-              countryCode={c.code}
-              period={period}
-              eligibilityParams={eligibilityParams}
-              lastFinalizedDate={lastElegibilidad?.[c.code]?.completed_at ?? null}
-            />
-          ))}
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>País</TableHead>
+              <TableHead className="hidden lg:table-cell">Última corrida</TableHead>
+              <TableHead className="hidden md:table-cell">Dependencias</TableHead>
+              <TableHead className="hidden md:table-cell">Proceso</TableHead>
+              <TableHead>Corrida actual</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.countries.filter((c) => c.type === "country").map((c) => (
+              <EligibilityCountryRow
+                key={c.code}
+                countryCode={c.code}
+                period={period}
+                eligibilityParams={eligibilityParams}
+                lastFinalizedDate={lastElegibilidad?.[c.code]?.completed_at ?? null}
+              />
+            ))}
+          </TableBody>
+        </Table>
       )}
     </div>
   )

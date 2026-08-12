@@ -43,3 +43,4 @@ spa.zip
 
 # Playwright MCP ephemeral output
 .playwright-mcp/
+public/eval-fonts/

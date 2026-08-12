@@ -30,15 +30,23 @@ export function EligibilityProgress({ steps, currentStep }: EligibilityProgressP
       </div>
       <Progress value={percent} className="h-2" />
 
-      <div className="flex items-center gap-0.5 pt-1">
-        {STEP_ORDER.map((stepName) => {
-          const step = steps.find((s) => s.name === stepName)
-          const status = step?.status ?? "pending"
-          return (
-            <StepDot key={stepName} status={status} label={STEP_LABELS[stepName]} />
-          )
-        })}
-      </div>
+      <EligibilityStepDots steps={steps} className="pt-1" />
+    </div>
+  )
+}
+
+/** Tira compacta de pasos (solo los puntos) — la usan la card/fila de país y
+ * el bloque de progreso completo. */
+export function EligibilityStepDots({ steps, className }: { steps: EligibilityStep[]; className?: string }) {
+  return (
+    <div className={`flex items-center gap-0.5 ${className ?? ""}`}>
+      {STEP_ORDER.map((stepName) => {
+        const step = steps.find((s) => s.name === stepName)
+        const status = step?.status ?? "pending"
+        return (
+          <StepDot key={stepName} status={status} label={STEP_LABELS[stepName]} />
+        )
+      })}
     </div>
   )
 }
