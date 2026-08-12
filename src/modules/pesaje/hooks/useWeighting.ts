@@ -9,10 +9,11 @@ import {
 import { WEIGHTING_ACTIVE_STATUSES } from "../types"
 import type { WeightingRunCreate, WeightingRun } from "../types"
 
-export function useWeightingRuns(country?: string, period?: number) {
+export function useWeightingRuns(country?: string, period?: number, options?: { limit?: number }) {
+  const limit = options?.limit
   return useQuery({
-    queryKey: ["weighting-runs", country, period],
-    queryFn: () => getWeightingRuns({ country, period }),
+    queryKey: ["weighting-runs", country, period, limit],
+    queryFn: () => getWeightingRuns({ country, period, limit }),
     staleTime: 30_000,
     refetchInterval: (query) => {
       const data = query.state.data
@@ -41,9 +42,11 @@ export function useCreateWeightingRun() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (data: WeightingRunCreate) => createWeightingRun(data),
-    onSuccess: (run) => {
+    onSuccess: () => {
+      // Bare "weighting-runs" prefix (not scoped to run.country) so it also
+      // catches the all-countries query the rich history panel uses.
       queryClient.invalidateQueries({
-        queryKey: ["weighting-runs", run.country],
+        queryKey: ["weighting-runs"],
       })
     },
   })
@@ -54,7 +57,7 @@ export function useExecuteWeighting() {
   return useMutation({
     mutationFn: (runId: string) => executeWeighting(runId),
     onSuccess: (run) => {
-      queryClient.invalidateQueries({ queryKey: ["weighting-runs", run.country] })
+      queryClient.invalidateQueries({ queryKey: ["weighting-runs"] })
       queryClient.invalidateQueries({ queryKey: ["weighting-run", run.run_id] })
     },
   })
@@ -65,7 +68,7 @@ export function useCancelWeighting() {
   return useMutation({
     mutationFn: (runId: string) => cancelWeighting(runId),
     onSuccess: (run: WeightingRun) => {
-      queryClient.invalidateQueries({ queryKey: ["weighting-runs", run.country] })
+      queryClient.invalidateQueries({ queryKey: ["weighting-runs"] })
       queryClient.invalidateQueries({ queryKey: ["weighting-run", run.run_id] })
     },
   })

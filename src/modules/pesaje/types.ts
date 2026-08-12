@@ -86,8 +86,8 @@ export const WEIGHTING_STATUS_CONFIG: Record<
   { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string }
 > = {
   pending: { label: "Pendiente", variant: "outline", className: "" },
-  running: { label: "Ejecutando...", variant: "default", className: "bg-blue-500 hover:bg-blue-500/80" },
-  completed: { label: "Completado", variant: "default", className: "bg-green-600 hover:bg-green-600/80" },
+  running: { label: "Ejecutando...", variant: "default", className: "bg-info text-primary-foreground hover:bg-info/90" },
+  completed: { label: "Completado", variant: "default", className: "bg-success text-primary-foreground hover:bg-success/90" },
   failed: { label: "Error", variant: "destructive", className: "" },
   cancelled: { label: "Cancelado", variant: "secondary", className: "" },
 }

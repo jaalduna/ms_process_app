@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -21,7 +21,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   CheckCircle2,
   ChevronDown,
@@ -31,6 +40,7 @@ import {
   Loader2,
   Play,
   RefreshCcw,
+  RotateCcw,
   XCircle,
 } from "lucide-react"
 import { WeightingProgress } from "./WeightingProgress"
@@ -41,9 +51,10 @@ import {
 } from "../hooks/useWeighting"
 import { WEIGHTING_STEP_ORDER, WEIGHTING_STEP_LABELS, WEIGHTING_ACTIVE_STATUSES, WEIGHTING_STATUS_CONFIG, fmtSummaryFloat, fmtSummaryInt } from "../types"
 import type { WeightingRun, WeightingStep } from "../types"
-import { DEFAULT_WEIGHTING_PARAMS, EXECUTION_PARAM_KEYS } from "../weightingParams"
+import { DEFAULT_WEIGHTING_PARAMS, EXECUTION_PARAM_KEYS, WEIGHTING_PARAM_FIELD_BY_KEY, type WeightingFieldDescriptor } from "../weightingParams"
 import { COUNTRY_NAME_TO_CODE } from "../params/types"
-import { useExecutionParams } from "../params/hooks"
+import { useExecutionParams, usePublishWeightingParams } from "../params/hooks"
+import { diffHyperparams, validateHyperparams } from "../params/validation"
 import { COUNTRY_LABELS } from "@/lib/countries"
 import { LiveDuration, parseUTC } from "@/lib/duration"
 
@@ -147,6 +158,68 @@ function StepRow({ step, expanded, onToggle, hasDetails, children }: StepRowProp
 const pickExecutionParams = (params: Record<string, unknown>): Record<string, unknown> =>
   Object.fromEntries(EXECUTION_PARAM_KEYS.map((k) => [k, params[k]]))
 
+/** One editable "De ejecución" param row inside the launch dialog — same field
+ *  descriptors as the Parametros tab's editor, compact for the dialog's width.
+ *  Iterate-and-relaunch (JAA feedback: switching to Parametros and back was
+ *  "engorroso") happens here now instead of a second screen. */
+function ExecParamEditRow({
+  descriptor,
+  value,
+  changed,
+  error,
+  onChange,
+}: {
+  descriptor: WeightingFieldDescriptor
+  value: unknown
+  changed: boolean
+  error?: string
+  onChange: (next: unknown) => void
+}) {
+  const key = descriptor.key
+  return (
+    <div className="flex items-center justify-between gap-3 py-1">
+      <div className="min-w-0 flex-1">
+        <span className="font-mono text-xs font-medium">
+          {key}
+          {changed && <span className="ml-1.5 text-info" title="Modificado respecto al publicado">●</span>}
+        </span>
+        {error && <p className="text-[11px] text-destructive">{error}</p>}
+      </div>
+      {descriptor.control === "switch" ? (
+        <Switch aria-label={key} checked={Boolean(value)} onCheckedChange={onChange} />
+      ) : descriptor.control === "select" ? (
+        <Select value={String(value)} onValueChange={onChange}>
+          <SelectTrigger aria-label={key} className="h-7 w-32 font-mono text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {descriptor.options.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input
+          type="number"
+          aria-label={key}
+          step={descriptor.step ?? "any"}
+          min={descriptor.min}
+          max={descriptor.max}
+          placeholder={descriptor.nullable ? "—" : undefined}
+          className="h-7 w-24 text-right font-mono text-xs"
+          value={value === null || value === undefined ? "" : String(value)}
+          onChange={(e) => {
+            const raw = e.target.value
+            onChange(raw === "" ? (descriptor.nullable ? null : 0) : parseFloat(raw))
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRun, countryCode, period }: WeightingDetailModalProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
   const [isDownloading, setIsDownloading] = useState(false)
@@ -156,15 +229,17 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
 
   const cancel = useCancelWeighting()
 
-  // Published per-country defaults (Parametros tab, persisted across periods) — the
-  // only place "De ejecución" params are edited now; the launch modal just displays
-  // whatever is currently published and launches with it.
+  // Published per-country defaults (Parametros tab owns the persistent version +
+  // the Insumos/Avanzados publish flow). The 4 "De ejecución" params are now also
+  // editable right here (JAA feedback: switching to Parametros and back to
+  // relaunch was "engorroso") — Ejecutar publishes the edit (same endpoint the
+  // Parametros tab uses, only when it actually changed) then creates the run, so
+  // the pipeline genuinely runs with what's on screen instead of a stale default.
   const paisCode = COUNTRY_NAME_TO_CODE[run?.country ?? countryCode ?? ""] ?? null
   const { data: publishedParams } = useExecutionParams(open ? paisCode : null)
-  const launchParams = pickExecutionParams({
-    ...DEFAULT_WEIGHTING_PARAMS,
-    ...publishedParams?.params,
-  })
+  const publishExecParams = usePublishWeightingParams(paisCode ?? "", "idpeso-config")
+  const fullPublishedParams = { ...DEFAULT_WEIGHTING_PARAMS, ...publishedParams?.params }
+  const launchParams = pickExecutionParams(fullPublishedParams)
 
   const isProcessing = run ? WEIGHTING_ACTIVE_STATUSES.includes(run.status) : false
   const isPending = run?.status === "pending"
@@ -186,6 +261,27 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
 
   const hasStoredParams = !!run?.parameters_json && Object.keys(run.parameters_json).length > 0
   const showParams = canRun || hasStoredParams
+
+  // Re-run seeds from the SAME run's own stored params (JAA feedback: "iterar
+  // cambiando parámetros" — the value that actually ran, not whatever happens
+  // to be published now); a brand-new launch (no prior run) seeds from the
+  // published default. Re-seeded whenever the run/country changes while open —
+  // set-state-during-render guarded by a signature, same idiom as the
+  // Parametros tab's useHyperparamsDraft.
+  const seedParams = hasStoredParams ? pickExecutionParams(run!.parameters_json!) : launchParams
+  const seedKey = open ? `${run?.run_id ?? countryCode ?? ""}:${JSON.stringify(seedParams)}` : null
+  const [paramDraft, setParamDraft] = useState<Record<string, unknown>>(seedParams)
+  const [seededFor, setSeededFor] = useState<string | null>(null)
+  if (canRun && seedKey !== null && seedKey !== seededFor) {
+    setSeededFor(seedKey)
+    setParamDraft(seedParams)
+  }
+
+  const paramIssues = useMemo(() => validateHyperparams(paramDraft), [paramDraft])
+  const paramErrors = paramIssues.filter((i) => i.severity === "error")
+  const paramErrorByKey = Object.fromEntries(paramErrors.map((i) => [i.location, i.message]))
+  const diffVsPublished = useMemo(() => diffHyperparams(launchParams, paramDraft), [launchParams, paramDraft])
+  const isParamsDirty = diffVsPublished.length > 0
 
   function toggleStep(stepName: string) {
     setExpandedSteps((prev) => {
@@ -217,6 +313,32 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
     }
   }
 
+  const handleResetParams = () => setParamDraft({ ...launchParams })
+
+  // Publish the edited "De ejecución" values (merged over whatever else is
+  // currently published, so Insumos/Avanzados stay untouched) only when they
+  // actually changed, THEN create+execute — so the pipeline that launches
+  // reads the params on screen, not a stale published default. Publish failure
+  // aborts the launch instead of running with an inconsistent params state.
+  const handleRunClick = async () => {
+    if (paramErrors.length > 0) return
+    if (isParamsDirty) {
+      if (!paisCode) {
+        toast.error("Pais desconocido — no se pudo publicar el cambio de parametros")
+        return
+      }
+      try {
+        await publishExecParams.mutateAsync({ params: { ...fullPublishedParams, ...paramDraft } })
+        toast.success(`Parametros de ejecucion actualizados para ${countryLabel}`)
+      } catch {
+        toast.error("No se pudo publicar el cambio de parametros — la corrida no se lanzo")
+        return
+      }
+    }
+    onRun!(paramDraft)
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
@@ -232,7 +354,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
           <DialogDescription>
             {run
               ? "Detalle del proceso de pesaje, progreso y resultados."
-              : "Revisa los parametros publicados (editables en la pestaña Parametros) y ejecuta el pipeline de pesaje."}
+              : "Ajusta los parametros de ejecucion si hace falta y ejecuta el pipeline de pesaje."}
           </DialogDescription>
         </DialogHeader>
 
@@ -270,15 +392,43 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
             <>
               <Separator />
               <div>
-                <span className="text-muted-foreground">Parametros</span>
-                <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
-                  {Object.entries(canRun ? launchParams : run!.parameters_json!).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between text-xs gap-2">
-                      <span className="text-muted-foreground font-mono truncate">{key}</span>
-                      <span className="font-medium font-mono">{String(value)}</span>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">
+                    Parametros de ejecucion
+                    {canRun && hasStoredParams && (
+                      <span className="ml-1.5 font-normal text-[11px] italic">(de la ultima corrida)</span>
+                    )}
+                  </span>
+                  {canRun && isParamsDirty && (
+                    <Button variant="ghost" size="sm" className="h-6 gap-1 px-2 text-[11px]" onClick={handleResetParams}>
+                      <RotateCcw className="h-3 w-3" />
+                      Restaurar publicados
+                    </Button>
+                  )}
                 </div>
+                {canRun ? (
+                  <div className="mt-1.5 divide-y">
+                    {EXECUTION_PARAM_KEYS.map((key) => (
+                      <ExecParamEditRow
+                        key={key}
+                        descriptor={WEIGHTING_PARAM_FIELD_BY_KEY[key]}
+                        value={paramDraft[key]}
+                        changed={JSON.stringify(paramDraft[key] ?? null) !== JSON.stringify(launchParams[key] ?? null)}
+                        error={paramErrorByKey[key]}
+                        onChange={(v) => setParamDraft((d) => ({ ...d, [key]: v }))}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
+                    {Object.entries(run!.parameters_json!).map(([key, value]) => (
+                      <div key={key} className="flex items-center justify-between text-xs gap-2">
+                        <span className="text-muted-foreground font-mono truncate">{key}</span>
+                        <span className="font-medium font-mono">{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -405,8 +555,10 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
           {canRun && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline">
-                  {runLabel === "Re-ejecutar" ? (
+                <Button variant="outline" disabled={paramErrors.length > 0}>
+                  {publishExecParams.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : runLabel === "Re-ejecutar" ? (
                     <RefreshCcw className="mr-2 h-4 w-4" />
                   ) : (
                     <Play className="mr-2 h-4 w-4" />
@@ -419,18 +571,20 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
                   <AlertDialogTitle>{runLabel} pipeline</AlertDialogTitle>
                   <AlertDialogDescription>
                     {runLabel === "Re-ejecutar"
-                      ? <>Crear una nueva ejecucion para <strong>{countryLabel}</strong> periodo <strong>{periodDisplay}</strong> con los parametros modificados?</>
+                      ? <>Crear una nueva ejecucion para <strong>{countryLabel}</strong> periodo <strong>{periodDisplay}</strong>?</>
                       : <>Iniciar pipeline de pesaje para <strong>{countryLabel}</strong> periodo <strong>{periodDisplay}</strong>?</>}
+                    {isParamsDirty && (
+                      <>
+                        {" "}Se publicara el cambio de <strong>{diffVsPublished.length}</strong>{" "}
+                        {diffVsPublished.length === 1 ? "parametro" : "parametros"} de ejecucion como nuevo default para{" "}
+                        <strong>{countryLabel}</strong> antes de lanzar.
+                      </>
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      onRun!(launchParams)
-                      onOpenChange(false)
-                    }}
-                  >
+                  <AlertDialogAction onClick={handleRunClick}>
                     {runLabel}
                   </AlertDialogAction>
                 </AlertDialogFooter>

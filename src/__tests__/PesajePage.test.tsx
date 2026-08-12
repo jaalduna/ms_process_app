@@ -45,6 +45,7 @@ vi.mock("sonner", () => ({
 const mockGetCountries = vi.fn()
 const mockGetLastWeighting = vi.fn()
 const mockGetWeightingRuns = vi.fn()
+const mockGetProcessStatus = vi.fn()
 
 vi.mock("@/lib/api", () => ({
   getCountries: (...args: unknown[]) => mockGetCountries(...args),
@@ -55,7 +56,7 @@ vi.mock("@/lib/api", () => ({
   executeWeighting: vi.fn(),
   cancelWeighting: vi.fn(),
   downloadWeightingCSV: vi.fn(),
-  getProcessStatus: vi.fn().mockResolvedValue({ countries: {} }),
+  getProcessStatus: (...args: unknown[]) => mockGetProcessStatus(...args),
   openProcess: vi.fn(),
   closeProcess: vi.fn(),
   setTokenProvider: vi.fn(),
@@ -108,26 +109,17 @@ describe("PesajePage", () => {
     localStorage.clear()
     mockGetLastWeighting.mockResolvedValue({ countries: {} })
     mockGetWeightingRuns.mockResolvedValue([])
+    mockGetProcessStatus.mockResolvedValue({ countries: {} })
   })
 
-  it("renders country card grid for all 9 countries", async () => {
+  it("renders page header with title and description", async () => {
     mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
 
     const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
     renderWithProviders(<PesajePage />)
 
-    await waitFor(() => {
-      expect(screen.getByText("Argentina")).toBeInTheDocument()
-    })
-
-    expect(screen.getByText("Bolivia")).toBeInTheDocument()
-    expect(screen.getByText("Brasil")).toBeInTheDocument()
-    expect(screen.getByText("CAM")).toBeInTheDocument()
-    expect(screen.getByText("Chile")).toBeInTheDocument()
-    expect(screen.getByText("Colombia")).toBeInTheDocument()
-    expect(screen.getByText("Ecuador")).toBeInTheDocument()
-    expect(screen.getByText("Mexico")).toBeInTheDocument()
-    expect(screen.getByText("Peru")).toBeInTheDocument()
+    expect(screen.getByText("Pesaje")).toBeInTheDocument()
+    expect(screen.getByText(/Ejecuta y monitorea procesos de pesaje/)).toBeInTheDocument()
   })
 
   it("shows loading skeletons while countries are loading", async () => {
@@ -153,16 +145,6 @@ describe("PesajePage", () => {
     })
   })
 
-  it("renders page header with title and description", async () => {
-    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
-
-    const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
-    renderWithProviders(<PesajePage />)
-
-    expect(screen.getByText("Pesaje")).toBeInTheDocument()
-    expect(screen.getByText(/Ejecuta y monitorea procesos de pesaje/)).toBeInTheDocument()
-  })
-
   it("no longer renders the global 'Parametros de pesaje' gear (params are per-country now) (ac1)", async () => {
     mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
 
@@ -170,12 +152,12 @@ describe("PesajePage", () => {
     renderWithProviders(<PesajePage />)
 
     await waitFor(() => {
-      expect(screen.getByText("Argentina")).toBeInTheDocument()
+      expect(screen.getByText("Ejecutar Pesaje")).toBeInTheDocument()
     })
     expect(screen.queryByRole("button", { name: "Parametros de pesaje" })).not.toBeInTheDocument()
   })
 
-  it("renders the 3 process-workspace tabs and defaults to Ejecutar (the grid) (ac2)", async () => {
+  it("renders the 2 process-workspace tabs (Historial merged into Ejecutar — JAA feedback: no more cards)", async () => {
     mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
 
     const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
@@ -183,28 +165,35 @@ describe("PesajePage", () => {
 
     expect(screen.getByRole("tab", { name: "Ejecutar" })).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: "Parametros" })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: "Historial" })).toBeInTheDocument()
-    // Ejecutar is the default active tab → the country grid is visible
-    await waitFor(() => {
-      expect(screen.getByText("Argentina")).toBeInTheDocument()
-    })
+    expect(screen.queryByRole("tab", { name: "Historial" })).not.toBeInTheDocument()
     expect(screen.getByRole("tab", { name: "Ejecutar" })).toHaveAttribute("data-state", "active")
   })
 
-  it("activates the Historial tab from the ?tab=historial URL param and survives refresh (ac3)", async () => {
+  it("shows the launch panel, an empty board message, and the history table on the Ejecutar tab by default", async () => {
     mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
-    mockGetWeightingRuns.mockResolvedValue([])
+
+    const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
+    renderWithProviders(<PesajePage />)
+
+    await waitFor(() => expect(screen.getByText("Ejecutar Pesaje")).toBeInTheDocument())
+    expect(screen.getByText(/Sin corridas activas para este periodo/)).toBeInTheDocument()
+    expect(screen.getByText("Historial")).toBeInTheDocument()
+    expect(await screen.findByText("No hay ejecuciones registradas.")).toBeInTheDocument()
+  })
+
+  it("an unknown ?tab=historial falls back to the default Ejecutar tab (the old dedicated tab was merged there)", async () => {
+    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
 
     const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
     renderWithProviders(<PesajePage />, ["/pesaje?tab=historial"])
 
     await waitFor(() => {
-      expect(screen.getByRole("tab", { name: "Historial" })).toHaveAttribute("data-state", "active")
+      expect(screen.getByRole("tab", { name: "Ejecutar" })).toHaveAttribute("data-state", "active")
     })
     expect(await screen.findByText("No hay ejecuciones registradas.")).toBeInTheDocument()
   })
 
-  it("switches tab and reflects it in the URL on click (ac3)", async () => {
+  it("switches tab and reflects it in the URL on click", async () => {
     const user = userEvent.setup()
     mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
 
@@ -217,7 +206,8 @@ describe("PesajePage", () => {
     })
   })
 
-  it('shows "never" for countries with no last weighting date', async () => {
+  it('shows "sin ejecuciones" for a country with no last weighting date once selected', async () => {
+    const user = userEvent.setup()
     mockGetCountries.mockResolvedValue({
       countries: [{ code: "chile", queries: [], queries_count: 0, type: "country" }],
     })
@@ -226,26 +216,57 @@ describe("PesajePage", () => {
     const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
     renderWithProviders(<PesajePage />)
 
-    await waitFor(() => {
-      expect(screen.getByText("never")).toBeInTheDocument()
-    })
+    await user.click(await screen.findByRole("combobox", { name: "Pais a ejecutar" }))
+    await user.click(await screen.findByRole("option", { name: /Chile/ }))
+
+    expect(await screen.findByText(/sin ejecuciones/)).toBeInTheDocument()
   })
 
-  it("Tarjetas/Lista toggle switches to a table with the same countries and preserves actions (JAA-763)", async () => {
+  it("selecting a country and clicking the launch button opens the Configurar Pesaje dialog", async () => {
     const user = userEvent.setup()
-    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
+    mockGetCountries.mockResolvedValue({
+      countries: [{ code: "chile", queries: [], queries_count: 0, type: "country" }],
+    })
 
     const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
     renderWithProviders(<PesajePage />)
 
-    await waitFor(() => expect(screen.getByText("Argentina")).toBeInTheDocument())
-    await user.click(screen.getByRole("button", { name: "Lista" }))
+    await user.click(await screen.findByRole("combobox", { name: "Pais a ejecutar" }))
+    await user.click(await screen.findByRole("option", { name: /Chile/ }))
+    await user.click(screen.getByRole("button", { name: /Configurar y ejecutar/ }))
 
-    await waitFor(() => expect(screen.getByRole("table")).toBeInTheDocument())
-    expect(screen.getByText("Chile")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Abrir detalle de Pesaje para Chile/i })).toBeInTheDocument()
+    expect(await screen.findByText("Configurar Pesaje")).toBeInTheDocument()
+  })
 
-    await user.click(screen.getByRole("button", { name: "Tarjetas" }))
-    await waitFor(() => expect(screen.queryByRole("table")).not.toBeInTheDocument())
+  it("renders a run card only for pending/running/failed runs, not completed ones", async () => {
+    mockGetCountries.mockResolvedValue(MOCK_COUNTRIES)
+    mockGetWeightingRuns.mockResolvedValue([
+      {
+        run_id: "run-pending",
+        country: "chile",
+        period: 202607,
+        status: "pending",
+        created_at: "2026-07-01T00:00:00Z",
+        updated_at: "2026-07-01T00:00:00Z",
+      },
+      {
+        run_id: "run-done",
+        country: "peru",
+        period: 202607,
+        status: "completed",
+        created_at: "2026-07-01T00:00:00Z",
+        updated_at: "2026-07-01T00:00:00Z",
+        started_at: "2026-07-01T00:00:00Z",
+        completed_at: "2026-07-01T00:05:00Z",
+      },
+    ])
+
+    const { PesajePage } = await import("@/modules/pesaje/pages/PesajePage")
+    renderWithProviders(<PesajePage />)
+
+    expect(await screen.findByText("Chile")).toBeInTheDocument()
+    expect(screen.queryByText(/Sin corridas activas/)).not.toBeInTheDocument()
+    // Peru's run is completed — no card for it up top (only in the history table).
+    expect(screen.queryByRole("heading", { name: "Peru" })).not.toBeInTheDocument()
   })
 })
