@@ -1,36 +1,113 @@
 import { Router } from "express"
 import crypto from "crypto"
 
-// JAA-1048 — mock of the macrocac API. macrocac applies row-level corrections
-// (an Excel with IdAto, Flg=M/E, and optional New* columns) to production SQL
-// tables, always in dry-run mode, and produces two Excel reports (reporte and
-// reporte-diff). This is the contract seam that lets the UI (JAA-1051/1053)
-// build without the real backend (JAA-1052, ms-process-api, must implement
-// this same contract with real xlsx validation). Base path: /api/v1/macrocac.
+// Mock de la API de PythonCac (módulo `macrocac`). Aplica correcciones fila a
+// fila (un Excel con IdAto, Flg=M/E y columnas New*) sobre las tablas de
+// compras y produce un reporte Excel. Base path: /api/v1/macrocac.
 //
-//   POST /macrocac/uploads?filename=&pais=&tabla=  -> 201 {upload_id,filename,pais,tabla,motivo,filas,columnas}
-//                                                       | 422 {error:"missing_columns",missing_columns}
-//                                                       | 400 unknown pais/tabla
-//   POST /macrocac/runs {upload_id}                -> 201 {run_id,status:"running",dry_run:true,pais,tabla,upload_id,created_at}
-//                                                       | 404 unknown upload_id
-//                                                       | 409 {error:"run_in_progress",run_id} active run for same (pais,tabla)
-//   GET  /macrocac/runs                            -> {items,total}
-//   GET  /macrocac/runs/:runId                     -> run status; resultado_lote populated once status="succeeded"
-//   GET  /macrocac/runs/:runId/reporte             -> xlsx blob | 409 unless succeeded
-//   GET  /macrocac/runs/:runId/reporte-diff        -> xlsx blob | 409 unless succeeded
+// ⚠️ NO hay dry-run. El motor canónico (KWP-macrocac) abre transacción, aplica
+// los UPDATE/DELETE y hace COMMIT; no tiene modo simulación. El campo
+// `dry_run` sigue en el contrato porque el backend real lo manda (refleja qué
+// runner está activo), pero es `false` cuando el motor es el real. Por eso el
+// flujo de la UI es subir → verificar formato → CONFIRMAR → aplicar.
 //
-// The mock has no multipart/xlsx parser (express.json() leaves the upload
-// body unparsed) — filename/pais/tabla travel via query string, mirroring
-// eligibility.js/weighting-params.js. Filenames containing "sin-idato" or
-// "invalid" simulate a sheet missing the mandatory IdAto/Flg columns.
+// Contrato espejado de `wp-pythoncac-app/backend` (fuente de verdad):
+//   GET  /macrocac/tablas?pais=            -> {items,pais,patrones}
+//   GET  /macrocac/motivos?pais=           -> {items,pais,stale,age_seconds}
+//   GET  /macrocac/plantilla               -> xlsx blob
+//   POST /macrocac/uploads?filename=&pais=&tabla=&motivo=&auxiliar=
+//                                          -> 201 upload | 422 missing_columns
+//                                             | 400 bad_request | 422 motivo_requerido
+//   POST /macrocac/runs {upload_id}        -> 201 run | 404 | 409 run_in_progress
+//   GET  /macrocac/runs                    -> {items,total}
+//   GET  /macrocac/runs/:runId             -> run; resultado_lote al terminar
+//   HEAD/GET /macrocac/runs/:runId/reporte -> xlsx blob | 409 mientras no termine
 //
-// State is in-memory: uploads keyed by upload_id, runs keyed by run_id, plus
-// a (pais,tabla) -> active run_id index that backs the dedupe rule.
+// El mock no parsea multipart/xlsx (express.json() deja el body sin parsear):
+// filename/pais/tabla viajan por query string, como eligibility.js. Los nombres
+// de archivo que contienen "sin-idato"/"invalid" simulan una planilla sin las
+// columnas obligatorias, y "sin-motivo" simula filas con MotivoCambio vacío.
+//
+// Estado en memoria: uploads por upload_id, runs por run_id, y un índice
+// (pais,tabla) -> run activo que respalda la regla de deduplicación.
 
 const router = Router()
 
-export const MACROCAC_COUNTRIES = ["BO", "CL", "MX", "CO", "EC", "PE"]
-export const MACROCAC_TABLES = ["j_atoscompra_new", "j_atoscompra_new_test", "hato_cabecalho_ooh"]
+// Los 10 del motor canónico (config/countries.json). RD corre sobre CAM_KWP.
+export const MACROCAC_COUNTRIES = ["AR", "BO", "BR", "CAM", "RD", "CL", "CO", "EC", "MX", "PE"]
+
+/** país -> base, espejo de COUNTRY_SQL del backend. */
+const COUNTRY_DB = {
+  AR: "AR_KWP",
+  BO: "BO_KWP",
+  BR: "BR_KWP",
+  CAM: "CAM_KWP",
+  RD: "CAM_KWP",
+  CL: "CL_KWP",
+  CO: "CO_KWP",
+  EC: "ECU_KWP",
+  MX: "MX_KWP",
+  PE: "PE_KWP",
+}
+
+// Patrones habilitados (espejo de backend assets/tablas.json). El backend los
+// expande contra sys.tables; acá se expanden contra una lista fija por país.
+const PATRONES = [
+  {
+    patron: "_test_*",
+    base: null,
+    descripcion:
+      "Convención acordada con TI: _test_<tabla>_<version>, nombres fijos por base país que se reutilizan",
+  },
+  {
+    patron: "j_atoscompra_new",
+    base: null,
+    descripcion: "Productiva. La única que lee el motor canónico",
+  },
+  {
+    patron: "j_atoscompra_new_rd",
+    base: null,
+    descripcion: "Oficial, no es test. Nombre exacto",
+  },
+]
+
+/** Qué tablas "existen" en la base de cada país (lo que el backend leería de
+ *  sys.tables). BO tiene la de Nini; RD suma su tabla oficial. */
+function tablasDe(pais) {
+  const base = COUNTRY_DB[pais]
+  const nombres = [
+    "j_atoscompra_new",
+    // Convención nueva: nombre fijo + versión, reutilizado período a período.
+    "_test_j_atoscompra_new_v1",
+    "_test_j_atoscompra_new_v2",
+  ]
+  if (pais === "RD") nombres.push("j_atoscompra_new_rd")
+  return nombres.map((tabla) => ({
+    base,
+    esquema: "dbo",
+    tabla,
+    patron: patronDe(tabla),
+  }))
+}
+
+/** Qué patrón habilitó esta tabla (el backend lo devuelve para poder rastrearlo). */
+function patronDe(tabla) {
+  return tabla.startsWith("_test_") ? "_test_*" : tabla
+}
+
+// Catálogo A_FlgMotivo. 9 filas, idénticas en las bases verificadas. El
+// `flg_motivo` es lo que la auditoría guarda; la descripción es la etiqueta.
+const MOTIVOS = [
+  { flg_motivo: 1, descricao: "EVA" },
+  { flg_motivo: 2, descricao: "SmartQuality" },
+  { flg_motivo: 3, descricao: "Críticas" },
+  { flg_motivo: 4, descricao: "Elegibilidad" },
+  { flg_motivo: 5, descricao: "Calibración" },
+  { flg_motivo: 6, descricao: "Cuestionamientos" },
+  { flg_motivo: 7, descricao: "Reprocesos" },
+  { flg_motivo: 8, descricao: "Cambios/Reestructuras MF" },
+  { flg_motivo: 9, descricao: "Otros" },
+]
 
 // Same knob qms_tr.js uses for fast, deterministic e2e progression.
 const STEP_INTERVAL_MS = () => Number(process.env.MOCK_STEP_INTERVAL_MS) || 2000
@@ -38,6 +115,8 @@ const STEP_INTERVAL_MS = () => Number(process.env.MOCK_STEP_INTERVAL_MS) || 2000
 const CORRECTION_COLUMNS = [
   "IdAto",
   "Flg",
+  "MotivoCambio",
+  "Motivo_Otros",
   "NewQuantidade",
   "NewPreco",
   "NewIdCanal",
@@ -67,13 +146,45 @@ function activeKey(pais, tabla) {
 }
 
 export function resetMacrocac() {
-  for (const timer of timers.values()) clearInterval(timer)
+  for (const timer of timers.values()) clearTimeout(timer)
   timers.clear()
   uploads.clear()
   runs.clear()
   activeRunByKey.clear()
   uploadCounter = 0
 }
+
+// ---------------------------------------------------------------------------
+// Catálogos (tablas, motivos, plantilla)
+// ---------------------------------------------------------------------------
+
+router.get("/macrocac/tablas", (req, res) => {
+  const pais = String(req.query.pais || "")
+  if (!MACROCAC_COUNTRIES.includes(pais)) {
+    return res.status(400).json({ error: "bad_request", message: `País desconocido: '${pais}'.` })
+  }
+  const items = tablasDe(pais)
+  const patrones = PATRONES.map((p) => ({
+    ...p,
+    coincidencias: items.filter((t) => t.patron === p.patron).length,
+  }))
+  res.json({ items, pais, patrones })
+})
+
+router.get("/macrocac/motivos", (req, res) => {
+  const pais = String(req.query.pais || "")
+  if (!MACROCAC_COUNTRIES.includes(pais)) {
+    return res.status(400).json({ error: "bad_request", message: `País desconocido: '${pais}'.` })
+  }
+  res.json({ items: MOTIVOS, pais, stale: false, age_seconds: 0 })
+})
+
+router.get("/macrocac/plantilla", (_req, res) => {
+  const body = Buffer.from("mock plantilla de correcciones PythonCac")
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+  res.setHeader("Content-Disposition", 'attachment; filename="plantilla_correcciones.xlsx"')
+  res.send(body)
+})
 
 // ---------------------------------------------------------------------------
 // Uploads
@@ -104,12 +215,17 @@ router.post("/macrocac/uploads", (req, res) => {
   const filename = String(req.query.filename || "correcciones.xlsx")
   const pais = String(req.query.pais || "")
   const tabla = String(req.query.tabla || "")
+  const motivo = req.query.motivo ? String(req.query.motivo) : null
+  const auxiliar = req.query.auxiliar ? String(req.query.auxiliar) : null
 
   if (!MACROCAC_COUNTRIES.includes(pais)) {
     return res.status(400).json({ error: "bad_request", message: `País desconocido: '${pais}'.` })
   }
-  if (!MACROCAC_TABLES.includes(tabla)) {
-    return res.status(400).json({ error: "bad_request", message: `Tabla desconocida: '${tabla}'.` })
+  if (!tablasDe(pais).some((t) => t.tabla === tabla)) {
+    return res.status(400).json({
+      error: "bad_request",
+      message: `Tabla no habilitada: '${tabla}'. No coincide con ningún patrón configurado.`,
+    })
   }
 
   if (/sin-idato|invalid/i.test(filename)) {
@@ -119,6 +235,32 @@ router.post("/macrocac/uploads", (req, res) => {
     })
   }
 
+  // Filas con MotivoCambio vacío: el motivo del formulario es su fallback, y
+  // sin él el motor abortaría el lote. El backend lo exige solo en ese caso.
+  const filasSinMotivo = /sin-motivo/i.test(filename) ? 4 : 0
+  if (filasSinMotivo > 0 && !motivo) {
+    return res.status(422).json({
+      error: "motivo_requerido",
+      message: `${filasSinMotivo} filas no traen MotivoCambio. Elige uno para usarlo como fallback.`,
+      filas_sin_motivo: filasSinMotivo,
+    })
+  }
+
+  const flgMotivo = motivo ? Number(motivo) : null
+  const filas = 14
+  // Desglose por motivo, de más a menos filas. Las filas sin motivo propio se
+  // cuentan bajo el del formulario, que es el que van a terminar usando.
+  const motivosResumen =
+    filasSinMotivo > 0
+      ? [
+          { flg_motivo: flgMotivo, descricao: motivoCambioLabel(flgMotivo), filas: filas - 4 + filasSinMotivo },
+          { flg_motivo: 2, descricao: "SmartQuality", filas: 4 - filasSinMotivo + 4 },
+        ].filter((m) => m.filas > 0)
+      : [
+          { flg_motivo: 5, descricao: "Calibración", filas: 9 },
+          { flg_motivo: 2, descricao: "SmartQuality", filas: 5 },
+        ]
+
   uploadCounter += 1
   const uploadId = `upl_macrocac_${uploadCounter}`
   const upload = {
@@ -126,13 +268,22 @@ router.post("/macrocac/uploads", (req, res) => {
     filename,
     pais,
     tabla,
-    motivo: "Corrección de campos de compra mal capturados en el operativo de campo.",
-    filas: 14,
+    motivo,
+    flg_motivo: flgMotivo,
+    auxiliar: auxiliar,
+    filas,
     columnas: CORRECTION_COLUMNS,
+    motivos_resumen: motivosResumen,
+    filas_sin_motivo: filasSinMotivo,
+    filas_con_auxiliar: 3,
   }
   uploads.set(uploadId, upload)
   res.status(201).json(upload)
 })
+
+function motivoCambioLabel(flgMotivo) {
+  return MOTIVOS.find((m) => m.flg_motivo === flgMotivo)?.descricao ?? "Otros"
+}
 
 // ---------------------------------------------------------------------------
 // Runs
@@ -161,7 +312,7 @@ function startProgression(runId) {
 }
 
 router.post("/macrocac/runs", (req, res) => {
-  const { upload_id: uploadId } = req.body || {}
+  const { upload_id: uploadId, per_ini: perIni, per_fin: perFin } = req.body || {}
   const upload = uploadId ? uploads.get(uploadId) : null
   if (!upload) {
     return res.status(404).json({ error: "not_found", message: `Upload '${uploadId}' no encontrado.` })
@@ -182,10 +333,14 @@ router.post("/macrocac/runs", (req, res) => {
   const run = {
     run_id: runId,
     status: "running",
-    dry_run: true,
+    // El motor real aplica y confirma; el mock imita ese contrato, no un
+    // dry-run que no existe.
+    dry_run: false,
     pais: upload.pais,
     tabla: upload.tabla,
     upload_id: upload.upload_id,
+    per_ini: perIni ?? null,
+    per_fin: perFin ?? null,
     created_at: now,
     completed_at: null,
     _resultadoLote: null,
@@ -206,38 +361,56 @@ router.get("/macrocac/runs", (req, res) => {
 
 router.get("/macrocac/runs/:runId", (req, res) => {
   const run = runs.get(req.params.runId)
-  if (!run) return res.status(404).json({ error: "not_found", message: `Run '${req.params.runId}' no encontrado.` })
+  if (!run) {
+    return res
+      .status(404)
+      .json({ error: "not_found", message: `Run '${req.params.runId}' no encontrado.` })
+  }
   res.json(serializeRun(run))
 })
 
-// ---------------------------------------------------------------------------
-// Report downloads — no xlsx writer in the mock (mirrors weighting-params.js's
-// export.xlsx precedent), just a buffer stub with the right content-type and
-// Content-Disposition.
-// ---------------------------------------------------------------------------
-
-function downloadReport(res, run, suffix) {
-  if (run.status !== "succeeded") {
-    return res.status(409).json({ error: "run_not_finished", message: `Run is still ${run.status}` })
-  }
-  const pais = run.pais.toLowerCase()
-  const filename = suffix ? `reporte_${pais}_${suffix}.xlsx` : `reporte_${pais}.xlsx`
-  const body = Buffer.from(`mock macrocac report for ${run.pais}/${run.tabla} run=${run.run_id} (${suffix || "reporte"})`)
-  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
-  res.send(body)
+function reportBuffer(run, suffix) {
+  return Buffer.from(
+    `mock macrocac report for ${run.pais}/${run.tabla} run=${run.run_id} (${suffix || "reporte"})`,
+  )
 }
 
-router.get("/macrocac/runs/:runId/reporte", (req, res) => {
-  const run = runs.get(req.params.runId)
-  if (!run) return res.status(404).json({ error: "not_found", message: `Run '${req.params.runId}' no encontrado.` })
-  downloadReport(res, run, null)
-})
+/** El reporte solo existe una vez terminado el run: antes es 409, que es lo que
+ *  la UI usa para no ofrecer la descarga. La UI hace HEAD antes de navegar, así
+ *  que ambos verbos tienen que responder igual. */
+function serveReporte(suffix) {
+  return (req, res) => {
+    const run = runs.get(req.params.runId)
+    if (!run) {
+      return res
+        .status(404)
+        .json({ error: "not_found", message: `Run '${req.params.runId}' no encontrado.` })
+    }
+    if (run.status !== "succeeded") {
+      return res.status(409).json({
+        error: "run_not_finished",
+        message: `El run '${run.run_id}' todavía no termina (status: ${run.status}).`,
+      })
+    }
+    const body = reportBuffer(run, suffix)
+    // Los nombres son los que escribe el motor canónico: reporte_<pais>.xlsx y
+    // reporte_<pais>_diff.xlsx.
+    const pais = run.pais.toLowerCase()
+    const nombre = suffix === "reporte-diff" ? `reporte_${pais}_diff.xlsx` : `reporte_${pais}.xlsx`
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    res.setHeader("Content-Disposition", `attachment; filename="${nombre}"`)
+    res.setHeader("Content-Length", String(body.length))
+    // HEAD no lleva cuerpo: express corta el body solo, pero los headers ya
+    // están puestos y eso es lo que la sonda de la UI mira.
+    res.send(body)
+  }
+}
 
-router.get("/macrocac/runs/:runId/reporte-diff", (req, res) => {
-  const run = runs.get(req.params.runId)
-  if (!run) return res.status(404).json({ error: "not_found", message: `Run '${req.params.runId}' no encontrado.` })
-  downloadReport(res, run, "diff")
-})
+router.get("/macrocac/runs/:runId/reporte", serveReporte("reporte"))
+router.head("/macrocac/runs/:runId/reporte", serveReporte("reporte"))
+router.get("/macrocac/runs/:runId/reporte-diff", serveReporte("reporte-diff"))
 
 export default router

@@ -36,7 +36,11 @@ import type {
   UserBody,
 } from "@/modules/admin/types"
 
-function getBaseUrl(): string {
+/** Base de la API. Exportada porque las descargas del módulo PythonCac navegan
+ *  a la URL directamente (sin axios) y necesitan resolverla igual que las
+ *  requests — `api.defaults.baseURL` viene vacío, se resuelve en el
+ *  interceptor de abajo. */
+export function getBaseUrl(): string {
   return (
     (window as unknown as { __BRIDGE_CONFIG__?: { API_URL?: string } }).__BRIDGE_CONFIG__?.API_URL ??
     import.meta.env.VITE_BRIDGE_API_URL ??
