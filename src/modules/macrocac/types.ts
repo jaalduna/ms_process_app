@@ -81,11 +81,24 @@ export interface MacrocacTablasError {
  * cuenta como productiva, que es exactamente lo que pidió Jorge ("no es un
  * test, es oficial"). El sufijo `_RD` no la vuelve de prueba.
  */
-const PREFIJO_SANDBOX = "_test"
+/**
+ * Copias de trabajo: `_test_<tabla>_<version>` es la convención acordada con TI,
+ * pero se acepta también sin el guion bajo inicial. La copia que crearon en
+ * Bolivia el 2026-08-31 se llama `Test_J_atoscompra_new_Pythoncac`, y con la
+ * comparación anterior —prefijo `_test` estricto— quedaba clasificada como
+ * PRODUCTIVA. Eso no solo mostraba la advertencia equivocada: la selección por
+ * defecto elige la primera tabla que no sea productiva y, al no encontrar
+ * ninguna, caía en `tablas[0]`, que en Bolivia es `j_atoscompra_new`. Es decir,
+ * el destino por defecto pasaba a ser la tabla productiva.
+ *
+ * Se mantiene la propiedad importante: un nombre desconocido cuenta como
+ * productivo. Ante la duda, se advierte de más y no de menos.
+ */
+const PATRON_SANDBOX = /^_?test/i
 
-/** ¿Escribe sobre datos productivos? Todo lo que no sea una copia `_test*`. */
+/** ¿Escribe sobre datos productivos? Todo lo que no sea una copia de trabajo. */
 export function esProduccion(tabla: string): boolean {
-  return !tabla.toLowerCase().startsWith(PREFIJO_SANDBOX)
+  return !PATRON_SANDBOX.test(tabla.trim())
 }
 
 export function isSandboxTable(tabla: string): boolean {

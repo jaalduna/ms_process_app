@@ -250,15 +250,20 @@ router.post("/macrocac/uploads", (req, res) => {
   const filas = 14
   // Desglose por motivo, de más a menos filas. Las filas sin motivo propio se
   // cuentan bajo el del formulario, que es el que van a terminar usando.
+  // OJO: el campo es `motivo`, NO `descricao`. El catálogo de /macrocac/motivos
+  // sí usa `descricao`, pero dentro del upload la API real manda `motivo`
+  // (MacrocacMotivoResumen en schemas.py). Cuando el mock decía `descricao`, la
+  // UI mostraba "5.- undefined": el desglose de motivos, que es justamente la
+  // señal de que la app entendió el archivo, quedaba ilegible.
   const motivosResumen =
     filasSinMotivo > 0
       ? [
-          { flg_motivo: flgMotivo, descricao: motivoCambioLabel(flgMotivo), filas: filas - 4 + filasSinMotivo },
-          { flg_motivo: 2, descricao: "SmartQuality", filas: 4 - filasSinMotivo + 4 },
+          { flg_motivo: flgMotivo, motivo: motivoCambioLabel(flgMotivo), filas: filas - 4 + filasSinMotivo },
+          { flg_motivo: 2, motivo: "SmartQuality", filas: 4 - filasSinMotivo + 4 },
         ].filter((m) => m.filas > 0)
       : [
-          { flg_motivo: 5, descricao: "Calibración", filas: 9 },
-          { flg_motivo: 2, descricao: "SmartQuality", filas: 5 },
+          { flg_motivo: 5, motivo: "Calibración", filas: 9 },
+          { flg_motivo: 2, motivo: "SmartQuality", filas: 5 },
         ]
 
   uploadCounter += 1

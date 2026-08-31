@@ -548,7 +548,7 @@ function MotivosResumen({ upload }: { upload: MacrocacUpload }) {
         <p className="text-muted-foreground text-xs" data-testid="macrocac-detalle-propio">
           {upload.filas_con_auxiliar}{" "}
           {upload.filas_con_auxiliar === 1 ? "fila trae" : "filas traen"} su propio detalle
-          (Motivo_Otros); en esas no se usa el del formulario.
+          (Auxiliar); en esas no se usa el del formulario.
         </p>
       )}
     </div>
