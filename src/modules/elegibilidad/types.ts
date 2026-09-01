@@ -111,6 +111,19 @@ export const ACTIVE_STATUSES: EligibilityStatus[] = [
   'applying_mordom',
 ]
 
+/** Statuses in which the results zip already exists in the volume (JAA-1184).
+ *  Mirrors the real API's `ZIP_READY_STATUSES` — keep in sync with
+ *  `mock-server/routes/eligibility.js`'s `ZIP_DOWNLOAD_STATUSES`. */
+export const ZIP_DOWNLOAD_STATUSES: EligibilityStatus[] = [
+  'results_ready',
+  'applying_sql',
+  'mordom_downloading',
+  'mordom_ready',
+  'mordom_uploaded',
+  'applying_mordom',
+  'ready',
+]
+
 export const STATUS_CONFIG: Record<
   EligibilityStatus,
   { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }

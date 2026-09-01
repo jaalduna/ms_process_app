@@ -6,9 +6,11 @@ import { buildMockZip } from "../lib/zip.js"
 import { J_SOURCE_SYNC, registerSnapshot, generateSnapshotTag } from "./snapshots.js"
 
 /** Estados en que el zip de resultados ya existe en el volumen (JAA-1184). */
+// Espejo de ZIP_READY_STATUSES en la API real.
 const ZIP_DOWNLOAD_STATUSES = [
   "results_ready",
   "applying_sql",
+  "mordom_downloading",
   "mordom_ready",
   "mordom_uploaded",
   "applying_mordom",

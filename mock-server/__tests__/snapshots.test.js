@@ -69,6 +69,7 @@ describe("GET /snapshots/:process (JAA-1179/JAA-1183)", () => {
   it("404s for an unknown process", async () => {
     const resp = await fetch(`${baseUrl}/snapshots/unknown`)
     expect(resp.status).toBe(404)
+    expect(await resp.json()).toMatchObject({ error: "unknown_process" })
   })
 })
 
@@ -140,5 +141,12 @@ describe("eligibility execute with j_source + zip download (JAA-1179/JAA-1183/JA
     const run = eligibilityStore.create("brasil", 202608, {})
     const resp = await fetch(`${baseUrl}/eligibility/runs/${run.run_id}/download-url`)
     expect(resp.status).toBe(409)
+  })
+
+  it("allows the zip download during mordom_downloading (paridad con la API real)", async () => {
+    const run = eligibilityStore.create("brasil", 202609, {})
+    run.status = "mordom_downloading"
+    const resp = await fetch(`${baseUrl}/eligibility/runs/${run.run_id}/download-url`)
+    expect(resp.status).toBe(200)
   })
 })

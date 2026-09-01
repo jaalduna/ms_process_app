@@ -14,18 +14,8 @@ import { downloadEligibilityFile, downloadEligibilityZip } from "@/lib/api"
 import { LiveDuration, parseUTC } from "@/lib/duration"
 import { useEligibilityHistory } from "../hooks/useEligibility"
 import { EligibilityDetailModal } from "./EligibilityDetailModal"
-import { STATUS_CONFIG } from "../types"
+import { STATUS_CONFIG, ZIP_DOWNLOAD_STATUSES } from "../types"
 import type { EligibilityRun, EligibilityFile } from "../types"
-
-/** Estados en que el zip de resultados ya existe en el volumen (JAA-1184). */
-const ZIP_DOWNLOAD_STATUSES = [
-  "results_ready",
-  "applying_sql",
-  "mordom_ready",
-  "mordom_uploaded",
-  "applying_mordom",
-  "ready",
-]
 
 interface EligibilityHistoryModalProps {
   countryCode: string

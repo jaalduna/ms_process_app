@@ -99,7 +99,7 @@ const STORES = {
 router.get("/snapshots/:process", (req, res) => {
   const items = STORES[req.params.process]
   if (!items) {
-    return res.status(404).json({ error: "not_found", message: `Unknown process "${req.params.process}"` })
+    return res.status(404).json({ error: "unknown_process", message: `Unknown process "${req.params.process}"` })
   }
   const { country, period } = req.query
   const filtered = items

@@ -52,19 +52,9 @@ import {
   useApplyMordom,
   useCancelEligibility,
 } from "../hooks/useEligibility"
-import { STEP_ORDER, STEP_LABELS, ACTIVE_STATUSES, STATUS_CONFIG } from "../types"
+import { STEP_ORDER, STEP_LABELS, ACTIVE_STATUSES, STATUS_CONFIG, ZIP_DOWNLOAD_STATUSES } from "../types"
 import type { EligibilityFile, EligibilityRun, EligibilityStep } from "../types"
 import { COUNTRY_LABELS } from "@/lib/countries"
-
-/** Estados en que el zip de resultados ya existe en el volumen (JAA-1184). */
-const ZIP_DOWNLOAD_STATUSES = [
-  "results_ready",
-  "applying_sql",
-  "mordom_ready",
-  "mordom_uploaded",
-  "applying_mordom",
-  "ready",
-]
 
 interface EligibilityDetailModalProps {
   run: EligibilityRun | null
