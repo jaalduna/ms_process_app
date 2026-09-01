@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { WeightingRun } from "@/modules/pesaje/types"
 
 const mockToastSuccess = vi.fn()
@@ -16,6 +17,9 @@ vi.mock("sonner", () => ({
 const mockDownloadWeightingCSV = vi.fn()
 vi.mock("@/lib/api", () => ({
   downloadWeightingCSV: (...a: unknown[]) => mockDownloadWeightingCSV(...a),
+  // JAA-1179/JAA-1183: no versions registered by default — every test here
+  // exercises the "sync" default path unless it explicitly overrides this.
+  getProcessSnapshots: () => Promise.resolve({ items: [] }),
 }))
 
 const mockCancelMutate = vi.fn()
@@ -43,6 +47,14 @@ const PUBLISHED_DEFAULTS = {
   F_BOUNDS: 1.1,
   AGREGACAO_BOUNDS: "union",
   MAX_ERR_RATIO_BOUNDS: 2.0,
+}
+
+/** Wraps `render` in a `QueryClientProvider` — the modal now runs its own
+ *  `useQuery` for the JAA-1179/JAA-1183 snapshot selector, not just the
+ *  mocked hook modules the rest of this suite stubs out. */
+function renderModal(node: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={client}>{node}</QueryClientProvider>)
 }
 
 /** Click the "Ejecutar"/"Re-ejecutar" trigger, then confirm inside the nested
@@ -79,7 +91,7 @@ describe("WeightingDetailModal — editable execution params (iterate-and-relaun
   it("brand-new launch seeds the published default and lets you edit it", async () => {
     const user = userEvent.setup()
     const onRun = vi.fn()
-    render(
+    renderModal(
       <WeightingDetailModal
         run={null}
         open={true}
@@ -110,7 +122,7 @@ describe("WeightingDetailModal — editable execution params (iterate-and-relaun
   it("does not publish when nothing was edited", async () => {
     const user = userEvent.setup()
     const onRun = vi.fn()
-    render(
+    renderModal(
       <WeightingDetailModal
         run={null}
         open={true}
@@ -129,7 +141,7 @@ describe("WeightingDetailModal — editable execution params (iterate-and-relaun
   })
 
   it("re-run seeds from the run's OWN parameters_json, not the currently published default", async () => {
-    render(
+    renderModal(
       <WeightingDetailModal
         run={completedRun()}
         open={true}
@@ -145,7 +157,7 @@ describe("WeightingDetailModal — editable execution params (iterate-and-relaun
 
   it("a validation error disables the run button", async () => {
     const user = userEvent.setup()
-    render(
+    renderModal(
       <WeightingDetailModal
         run={null}
         open={true}
@@ -168,7 +180,7 @@ describe("WeightingDetailModal — editable execution params (iterate-and-relaun
 
   it("Restaurar publicados resets an edited field back to the published default", async () => {
     const user = userEvent.setup()
-    render(
+    renderModal(
       <WeightingDetailModal
         run={null}
         open={true}
@@ -192,7 +204,7 @@ describe("WeightingDetailModal — editable execution params (iterate-and-relaun
     mockPublishMutateAsync.mockRejectedValue(new Error("boom"))
     const user = userEvent.setup()
     const onRun = vi.fn()
-    render(
+    renderModal(
       <WeightingDetailModal
         run={null}
         open={true}
@@ -213,7 +225,7 @@ describe("WeightingDetailModal — editable execution params (iterate-and-relaun
   })
 
   it("the read-only history view (no onRun) shows plain values, not editable inputs", () => {
-    render(
+    renderModal(
       <WeightingDetailModal
         run={completedRun()}
         open={true}

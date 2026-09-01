@@ -169,6 +169,20 @@ export function getJVersions(params: { country: string; period?: string }) {
     .then((r) => r.data)
 }
 
+/**
+ * Versiones bronze registradas para pesaje/elegibilidad, generalización de
+ * `getJVersions` (JAA-1179/JAA-1183): alimenta el mismo `JSourceSelector`
+ * compartido, ahora fuera del módulo de calibración.
+ */
+export function getProcessSnapshots(
+  process: "pesaje" | "elegibilidad",
+  params: { country: string; period?: string },
+) {
+  return api
+    .get<JVersionListResponse>(`/snapshots/${process}`, { params })
+    .then((r) => r.data)
+}
+
 // -- Calibration runs (JAA-648) --
 
 /**
@@ -313,8 +327,10 @@ export function deleteEligibilityRun(runId: string) {
   return api.delete(`/eligibility/runs/${runId}`).then((r) => r.data)
 }
 
-export function executeEligibility(runId: string) {
-  return api.post<EligibilityRun>(`/eligibility/runs/${runId}/execute`).then((r) => r.data)
+/** JAA-1179/JAA-1183: body opcional con `j_source` ("sync" o el tag de una
+ *  versión bronze registrada); sin body, el backend sincroniza como siempre. */
+export function executeEligibility(runId: string, body?: { j_source?: string }) {
+  return api.post<EligibilityRun>(`/eligibility/runs/${runId}/execute`, body).then((r) => r.data)
 }
 
 export function approveEligibility(runId: string) {
@@ -352,6 +368,14 @@ export async function uploadEligibilityFiles(runId: string, file: File): Promise
 
 export function cancelEligibility(runId: string) {
   return api.post<EligibilityRun>(`/eligibility/runs/${runId}/cancel`).then((r) => r.data)
+}
+
+// JAA-1184: native browser download via a short-lived signed URL — see
+// downloadWeightingCSV above for the rationale. The zip bundles the run's
+// results once phase 1 finished (status results_ready or later).
+export async function downloadEligibilityZip(runId: string): Promise<void> {
+  const { data } = await api.get<SignedDownloadUrl>(`/eligibility/runs/${runId}/download-url`)
+  window.location.assign(resolveDownloadUrl(data.url))
 }
 
 // -- Prices --
@@ -406,8 +430,10 @@ export function createWeightingRun(data: WeightingRunCreate) {
   return api.post<WeightingRun>("/weighting/runs", data).then((r) => r.data)
 }
 
-export function executeWeighting(runId: string) {
-  return api.post<WeightingRun>(`/weighting/runs/${runId}/execute`).then((r) => r.data)
+/** JAA-1179/JAA-1183: body opcional con `j_source` ("sync" o el tag de una
+ *  versión bronze registrada); sin body, el backend sincroniza como siempre. */
+export function executeWeighting(runId: string, body?: { j_source?: string }) {
+  return api.post<WeightingRun>(`/weighting/runs/${runId}/execute`, body).then((r) => r.data)
 }
 
 export function cancelWeighting(runId: string) {

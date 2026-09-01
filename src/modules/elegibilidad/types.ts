@@ -56,6 +56,10 @@ export interface EligibilityRun {
   created_by?: string
   created_at: string
   updated_at: string
+  /** JAA-1179/JAA-1183: tag de la versión bronze pedida al ejecutar, o `null`/`"sync"` cuando se sincronizó. */
+  j_source?: string | null
+  /** JAA-1179/JAA-1183: tag efectivo del snapshot bronze que corrió, registrado por la API al completar. */
+  snapshot_tag?: string | null
   approved_by?: string
   approved_at?: string
   error_message?: string

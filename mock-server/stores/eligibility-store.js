@@ -203,7 +203,13 @@ export class EligibilityStore {
     this.timers.set(runId, timer)
   }
 
-  execute(runId) {
+  /**
+   * @param {string} runId
+   * @param {(run: object) => void} [onResultsReady] - JAA-1179/JAA-1183: fired
+   *   once phase 1 lands on results_ready, so the route can register the
+   *   snapshot tag the way the real API reads it off `bronze_snapshot.json`.
+   */
+  execute(runId, onResultsReady) {
     const run = this.runs.get(runId)
     if (!run) return null
     if (run.status !== "pending") return run
@@ -223,6 +229,7 @@ export class EligibilityStore {
         run.status = "results_ready"
         run.current_step = null
         run.updated_at = iso()
+        if (onResultsReady) onResultsReady(run)
       },
     ])
     return run

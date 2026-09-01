@@ -79,7 +79,8 @@ export function useUpdateEligibilityRun() {
 export function useExecuteEligibility() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (runId: string) => executeEligibility(runId),
+    mutationFn: ({ runId, jSource }: { runId: string; jSource?: string }) =>
+      executeEligibility(runId, jSource ? { j_source: jSource } : undefined),
     onSuccess: (run) => {
       queryClient.invalidateQueries({ queryKey: ["eligibility-runs", run.country] })
       queryClient.invalidateQueries({ queryKey: ["eligibility-run", run.run_id] })

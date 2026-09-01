@@ -53,17 +53,20 @@ export function PesajePage() {
     setModalOpen(true)
   }
 
-  function handleRun(params: Record<string, unknown>) {
+  function handleRun(params: Record<string, unknown>, jSource: string) {
     if (!modalCountry) return
     const countryLabel = COUNTRY_LABELS[modalCountry] ?? modalCountry
     createRun.mutate(
       { country: modalCountry, period: periodStringToNumber(period), parameters: params },
       {
         onSuccess: (run) => {
-          executeRun.mutate(run.run_id, {
-            onSuccess: () => toast.success(`Pipeline iniciado para ${countryLabel}`),
-            onError: () => toast.error(`Error al ejecutar pipeline para ${countryLabel}`),
-          })
+          executeRun.mutate(
+            { runId: run.run_id, jSource },
+            {
+              onSuccess: () => toast.success(`Pipeline iniciado para ${countryLabel}`),
+              onError: () => toast.error(`Error al ejecutar pipeline para ${countryLabel}`),
+            },
+          )
         },
         onError: () => toast.error(`Error al crear ejecucion para ${countryLabel}`),
       },

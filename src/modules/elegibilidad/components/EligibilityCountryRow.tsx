@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +28,9 @@ import { ACTIVE_STATUSES, STATUS_CONFIG } from "../types"
 import type { EligibilityParams } from "./EligibilityConfigDialog"
 import { COUNTRY_FLAGS, COUNTRY_LABELS } from "@/lib/countries"
 import { formatRelativeTime } from "@/lib/utils"
+import { JSourceSelector } from "@/components/snapshot/JSourceSelector"
+import { getProcessSnapshots } from "@/lib/api"
+import { J_SOURCE_SYNC } from "@/types/api"
 
 interface EligibilityCountryRowProps {
   countryCode: string
@@ -54,6 +57,21 @@ export const EligibilityCountryRow = memo(function EligibilityCountryRow({ count
   const executeRun = useExecuteEligibility()
   const cancelRun = useCancelEligibility()
   const queryClient = useQueryClient()
+
+  // JAA-1179/JAA-1183: fuente de datos bronze para el lanzamiento (Ejecutar /
+  // Re-ejecutar rápido desde la fila) — mismo patrón que pesaje, se resetea si
+  // cambia el país.
+  const { data: snapshots, isLoading: snapshotsLoading } = useQuery({
+    queryKey: ["snapshots", "elegibilidad", countryCode],
+    queryFn: () => getProcessSnapshots("elegibilidad", { country: countryCode }),
+  })
+  const [jSource, setJSource] = useState<string>(J_SOURCE_SYNC)
+  const [jSourceCountry, setJSourceCountry] = useState<string | null>(null)
+  const effectiveJSource = jSourceCountry === countryCode ? jSource : J_SOURCE_SYNC
+  function handleJSourceChange(next: string) {
+    setJSource(next)
+    setJSourceCountry(countryCode)
+  }
 
   const latestRun = runs?.[0] ?? null
   const countryLabel = COUNTRY_LABELS[countryCode] ?? countryCode
@@ -86,25 +104,31 @@ export const EligibilityCountryRow = memo(function EligibilityCountryRow({ count
       { country: countryCode, period: periodStringToNumber(period), parameters: { ...eligibilityParams } as Record<string, unknown> },
       {
         onSuccess: (run) => {
-          executeRun.mutate(run.run_id, {
-            onSuccess: () => toast.success(`Pipeline iniciado para ${countryLabel}`),
-            onError: () => toast.error(`Error al ejecutar pipeline para ${countryLabel}`),
-          })
+          executeRun.mutate(
+            { runId: run.run_id, jSource: effectiveJSource },
+            {
+              onSuccess: () => toast.success(`Pipeline iniciado para ${countryLabel}`),
+              onError: () => toast.error(`Error al ejecutar pipeline para ${countryLabel}`),
+            },
+          )
         },
         onError: () => toast.error(`Error al crear ejecución para ${countryLabel}`),
       },
     )
   }
 
-  const handleRerun = (params: Record<string, unknown>) => {
+  const handleRerun = (params: Record<string, unknown>, jSourceOverride?: string) => {
     createRun.mutate(
       { country: countryCode, period: periodStringToNumber(period), parameters: params },
       {
         onSuccess: (run) => {
-          executeRun.mutate(run.run_id, {
-            onSuccess: () => toast.success(`Re-ejecución iniciada para ${countryLabel}`),
-            onError: () => toast.error(`Error al re-ejecutar pipeline para ${countryLabel}`),
-          })
+          executeRun.mutate(
+            { runId: run.run_id, jSource: jSourceOverride ?? effectiveJSource },
+            {
+              onSuccess: () => toast.success(`Re-ejecución iniciada para ${countryLabel}`),
+              onError: () => toast.error(`Error al re-ejecutar pipeline para ${countryLabel}`),
+            },
+          )
         },
         onError: () => toast.error(`Error al crear re-ejecución para ${countryLabel}`),
       },
@@ -226,6 +250,14 @@ export const EligibilityCountryRow = memo(function EligibilityCountryRow({ count
                       Iniciar pipeline de elegibilidad para <strong>{countryLabel}</strong> periodo <strong>{period}</strong>?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  <div className="rounded-lg border p-3">
+                    <JSourceSelector
+                      versions={snapshots?.items ?? []}
+                      value={effectiveJSource}
+                      onChange={handleJSourceChange}
+                      loading={snapshotsLoading}
+                    />
+                  </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={handleExecutar}>Confirmar</AlertDialogAction>
