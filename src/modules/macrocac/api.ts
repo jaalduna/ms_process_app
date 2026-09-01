@@ -1,7 +1,7 @@
 // JAA-1051 — macrocac API client. Talks to the JAA-1048 mock (in-repo, base
 // /api/v1/macrocac) or the real ms-process-api (JAA-1052) once it lands.
 
-import { api, getBaseUrl } from "@/lib/api"
+import { api, resolveDownloadUrl, type SignedDownloadUrl } from "@/lib/api"
 import { MacrocacApiError } from "./types"
 import type {
   MacrocacCatalogoError,
@@ -99,24 +99,19 @@ export async function downloadMacrocacReporte(params: {
   pais: string
 }): Promise<void> {
   const { runId } = params
-  const path = `/macrocac/runs/${runId}/reporte`
 
-  const probe = await api.head(path, { validateStatus: () => true })
-  if (probe.status !== 200) {
-    const detalle = await api.get(path, { validateStatus: () => true })
-    throw new MacrocacApiError<MacrocacRunError>(detalle.status, detalle.data)
+  // La URL firmada hace de sonda: si el run no terminó o el archivo no está,
+  // esto responde 409/404 con el detalle y no llega a navegar. Antes eso era un
+  // HEAD aparte; ahora es la misma llamada que autoriza la descarga.
+  const firmada = await api.get<SignedDownloadUrl | MacrocacRunError>(
+    `/macrocac/runs/${runId}/reporte/download-url`,
+    { validateStatus: () => true },
+  )
+  if (firmada.status !== 200) {
+    throw new MacrocacApiError<MacrocacRunError>(firmada.status, firmada.data as MacrocacRunError)
   }
 
-  const link = document.createElement("a")
-  // No `api.defaults.baseURL`: se resuelve en un interceptor, así que ahí
-  // viene vacío y el link caería en el host del frontend.
-  link.href = `${getBaseUrl()}${path}`
-  // El nombre real lo define el Content-Disposition del backend; este atributo
-  // solo marca la intención de descargar en vez de navegar.
-  link.download = ""
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
+  window.location.assign(resolveDownloadUrl((firmada.data as SignedDownloadUrl).url))
 }
 
 export async function getMotivos(pais: string): Promise<MacrocacMotivoList> {
@@ -129,17 +124,17 @@ export async function getMotivos(pais: string): Promise<MacrocacMotivoList> {
 }
 
 /**
- * Descarga la plantilla de correcciones. Misma técnica que el reporte: se
- * navega a la URL para que el navegador haga la descarga con su progreso.
- * Sin sonda previa — es un archivo estático del backend, no depende de un run.
+ * Descarga la plantilla de correcciones.
+ *
+ * Vía URL firmada (JAA-757), no navegando directo a `/macrocac/plantilla`: esa
+ * ruta exige el header Authorization y una navegación nativa no puede mandarlo,
+ * así que con SSO activo el navegador guardaba el JSON del 401 como
+ * `plantilla.json`. Se pide primero la URL firmada —esa llamada sí lleva el
+ * token, por el interceptor— y recién después se navega.
  */
-export function downloadPlantilla(): void {
-  const link = document.createElement("a")
-  link.href = `${getBaseUrl()}/macrocac/plantilla`
-  link.download = ""
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
+export async function downloadPlantilla(): Promise<void> {
+  const { data } = await api.get<SignedDownloadUrl>("/macrocac/plantilla/download-url")
+  window.location.assign(resolveDownloadUrl(data.url))
 }
 
 /**

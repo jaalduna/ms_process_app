@@ -38,4 +38,9 @@ export const KNOWN_ROLES = [
   "calibration_specialist",
   "mtr_specialist",
   "formato4_specialist",
+  // JAA-1147: el port de PythonCac agregó el rol en el backend pero no acá, así
+  // que no había forma de asignarlo desde Admin → Usuarios. Es además el único
+  // que gatea la LECTURA de su módulo: sin él, /macrocac/tablas y /motivos dan
+  // 403 y el selector queda vacío.
+  "macrocac_specialist",
 ] as const

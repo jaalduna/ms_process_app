@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { PublicClientApplication } from "@azure/msal-browser"
 import { MsalProvider, useMsal, useIsAuthenticated } from "@azure/msal-react"
 import { InteractionStatus } from "@azure/msal-browser"
-import { msalConfig, loginRequest } from "@/lib/auth-config"
+import { apiScopeConfigured, msalConfig, loginRequest } from "@/lib/auth-config"
 import { AuthContext } from "@/hooks/useAuth"
 import { ApiTokenBinder } from "@/components/ApiTokenBinder"
 import { api } from "@/lib/api"
@@ -38,12 +38,14 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
         const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account })
         const info = await api
           .get<UserInfo>("/auth/me", {
-            headers: { Authorization: `Bearer ${tokenResponse.accessToken}` },
+            headers: { Authorization: `Bearer ${bearerDe(tokenResponse)}` },
           })
           .then((r) => r.data)
         if (!cancelled) setUserInfo({ roles: info.roles, countries: info.countries })
       } catch {
-        if (!cancelled) setUserInfo({ roles: [], countries: [] })
+        // null, no `{roles: []}`: el contexto cae al claim del token cuando
+        // /auth/me no responde, y una lista vacía no es lo mismo que "no sé".
+        if (!cancelled) setUserInfo(null)
       }
     })()
 
@@ -69,27 +71,35 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
     if (!account) throw new Error("No authenticated account")
     try {
       const response = await instance.acquireTokenSilent({ ...loginRequest, account })
-      return response.accessToken
+      return bearerDe(response)
     } catch {
-      const response = await instance.acquireTokenRedirect(loginRequest)
-      return (response as unknown as { accessToken: string })?.accessToken ?? ""
+      // acquireTokenRedirect navega fuera de la página y devuelve void: no hay
+      // token que retornar, la sesión se rearma cuando el navegador vuelve.
+      await instance.acquireTokenRedirect(loginRequest)
+      return ""
     }
   }, [instance, account])
 
-  // Roles = app roles de Entra ID (claim `roles` del ID token, asignados en el
-  // app registration del tenant). Fallback a /auth/me mientras el registration
-  // no tenga appRoles configurados, para no dejar a nadie sin perfil durante la
-  // transición. Todo autenticado sin rol explícito es perfil base "usuario".
+  // Roles: manda /auth/me, no el claim del ID token.
+  //
+  // El backend hace dos cosas que el claim crudo no tiene (JAA-1148): normaliza a
+  // minúsculas —Entra emite "Admin" y todo el front compara contra "admin", así
+  // que usar el claim tal cual dejaba el menú VACÍO para un admin del tenant— y
+  // suma los roles de módulo de config_users, que es donde se asignan los
+  // `<stage>_specialist` sin tocar el tenant.
+  //
+  // El claim queda de respaldo por si /auth/me falla (red, 5xx): sin él un admin
+  // se quedaría sin nada. Se normaliza igual, por la misma razón.
   const claimRoles = useMemo(() => {
     const claims = account?.idTokenClaims as { roles?: string[] } | undefined
-    return claims?.roles ?? []
+    return (claims?.roles ?? []).map((r) => r.toLowerCase())
   }, [account])
 
   const contextValue = useMemo(
     () => ({
       isAuthenticated,
       user,
-      roles: claimRoles.length > 0 ? claimRoles : (userInfo?.roles ?? []),
+      roles: userInfo?.roles ?? claimRoles,
       countries: userInfo?.countries ?? [],
       loading,
       login,
@@ -107,6 +117,20 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
+}
+
+/** Los dos tokens que devuelve MSAL; sólo interesa cuál se manda al backend. */
+type TokenPair = { accessToken: string; idToken: string }
+
+/**
+ * Qué token va en el header Authorization.
+ *
+ * Sin scope de API configurado el access token de MSAL es para Graph y la API lo
+ * rechaza ("Signature verification failed"); el ID token, en cambio, viene con
+ * `aud` = el client id que la API valida. Ver `apiScopeConfigured`.
+ */
+function bearerDe(t: TokenPair): string {
+  return apiScopeConfigured ? t.accessToken : (t.idToken ?? "")
 }
 
 export function MsalAuthProvider({ children }: { children: React.ReactNode }) {

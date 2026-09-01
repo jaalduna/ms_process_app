@@ -25,9 +25,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { downloadPlantilla } from "../api"
 import {
   useCreateMacrocacRun,
+  useDownloadPlantilla,
   useDownloadReporte,
   useMacrocacRun,
   useMotivos,
@@ -78,6 +78,7 @@ export function MacrocacPage() {
   const uploadMutation = useUploadMacrocac()
   const runMutation = useCreateMacrocacRun()
   const downloadMutation = useDownloadReporte()
+  const descargarPlantilla = useDownloadPlantilla()
   const runQuery = useMacrocacRun(runId)
 
   // El run que se muestra: el poll manda en cuanto responde, porque el POST solo
@@ -93,7 +94,7 @@ export function MacrocacPage() {
   const tablasQuery = useTablas(pais)
   const tablas = useMemo(() => tablasQuery.data?.items ?? [], [tablasQuery.data])
 
-  // Elección por defecto: la primera copia de trabajo (`_test*`). Se deriva en vez de
+  // Elección por defecto: la primera copia de trabajo (`Test*`). Se deriva en vez de
   // guardarse por efecto, así el formulario nunca muestra una tabla que no está
   // en la base del país elegido (aunque sea por un render).
   const tablaEfectiva = useMemo(() => {
@@ -239,7 +240,7 @@ export function MacrocacPage() {
             </Select>
           </div>
 
-          {/* Fila completa, no media: `_test_J_AtosCompra_New_RespaldoCalibracion`
+          {/* Fila completa, no media: `Test_J_atoscompra_new_Pythoncac`
               no entra en media columna ni cerrado ni desplegado. */}
           <div className="space-y-1.5">
             <span className="text-sm font-medium">Tabla</span>
@@ -282,7 +283,7 @@ export function MacrocacPage() {
 
         {tablaEfectiva === "" ? null : sandbox ? (
           <p className="text-muted-foreground text-xs" data-testid="macrocac-sandbox-hint">
-            Copia de trabajo (<span className="font-mono">_test*</span>): los cambios no tocan la
+            Copia de trabajo (<span className="font-mono">Test*</span>): los cambios no tocan la
             tabla productiva.
           </p>
         ) : (
@@ -381,7 +382,8 @@ export function MacrocacPage() {
                 el usuario se da cuenta de que no sabe qué formato usar. */}
             <button
               type="button"
-              onClick={downloadPlantilla}
+              onClick={() => descargarPlantilla.mutate()}
+              disabled={descargarPlantilla.isPending}
               className="text-primary inline-flex items-center gap-1.5 text-xs underline-offset-4 hover:underline"
               data-testid="macrocac-descargar-plantilla"
             >
@@ -389,6 +391,13 @@ export function MacrocacPage() {
               Descargar plantilla
             </button>
           </div>
+
+          {descargarPlantilla.isError && (
+            <p className="text-destructive text-xs" role="alert">
+              No se pudo descargar la plantilla. Reintenta; si insiste, vuelve a
+              iniciar sesión.
+            </p>
+          )}
 
           {upload ? (
             <div

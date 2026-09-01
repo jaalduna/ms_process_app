@@ -45,6 +45,11 @@ export const allModules: ModuleDefinition[] = [
  */
 export function hasModuleAccess(module: ModuleDefinition, roles: string[]): boolean {
   if (!module.requiredRoles || module.requiredRoles.length === 0) return true
-  if (roles.includes("admin")) return true
-  return module.requiredRoles.some((r) => roles.includes(r))
+  // Case-insensitive a propósito: Entra emite los app roles capitalizados
+  // ("Admin"), y comparar tal cual dejaba el menú VACÍO para un admin del
+  // tenant. La normalización vive en el proveedor de auth, pero esta función la
+  // llama todo el ruteo: que no dependa de que la hayan hecho antes.
+  const propios = new Set(roles.map((r) => r.toLowerCase()))
+  if (propios.has("admin")) return true
+  return module.requiredRoles.some((r) => propios.has(r.toLowerCase()))
 }

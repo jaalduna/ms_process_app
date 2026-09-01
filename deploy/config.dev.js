@@ -14,18 +14,20 @@
 window.__APP_CONFIG__ = {
   authProvider: "azure-ad",
   modules: {
-    overview: true,
+    overview: false,
     sync: false,
     calibration: true,
     elegibilidad: true,
-    prices: true,
+    prices: false,
     weighting: true,
-    mtr: true,
-    formato4: true,
-    qmstr: true,
+    mtr: false,
+    formato4: false,
+    qmstr: false,
     macrocac: true,
     traceability: false,
-    parametros: true,
+    parametros: false,
+    // El módulo real es este; `parametros` arriba es un flag sin módulo detrás.
+    "parametros-elegibilidad": false,
   },
   // Feature flags (JAA-558). The real ms-process-api does not implement the
   // telemetry sink (POST /telemetry/events) nor the process-status endpoint

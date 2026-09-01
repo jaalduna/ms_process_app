@@ -15,13 +15,14 @@ export const calibracionModule: ModuleDefinition = {
     "calibration_specialist",
     "calibracion_specialist",
   ],
-  // El tablero de Ejecución (mockup v6) es la vista principal: primera ruta =
+  // El tablero de ejecución (mockup v6) es la vista principal: primera ruta =
   // destino del redirect por defecto del App, y el ítem del sidebar apunta ahí.
-  // Solo "Ejecución" en la topbar: la vista por país sigue ruteable en
+  // Un solo ítem en el sidebar: la vista por país sigue ruteable en
   // /calibration (historial/descargas via deep-link) pero sin pestaña propia
-  // (pedido usuario 2026-07-29).
+  // (pedido usuario 2026-07-29). Se llama "Calibración" —no "Ejecución"— para
+  // que el nombre del ítem coincida con el del módulo (pedido 2026-09-01).
   navItems: [
-    { path: "/calibration/execute", label: "Ejecución" },
+    { path: "/calibration/execute", label: "Calibración" },
   ],
   routes: [
     { path: "/calibration/execute", component: lazy(() => import("./pages/CalibrationRunPage").then(m => ({ default: m.CalibrationRunPage }))) },

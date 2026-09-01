@@ -9,8 +9,8 @@
 # ONLY that SPA mount — it never redeploys the backend container.
 #
 # Surfaces:
-#   dev → app-cl-prd-nmr-wp-msproc-dev   real ms-process-api, IP-locked
-#   prd → app-cl-prd-nmr-wp-msproc-01    mock demo backend (ms-process-mock)
+#   dev → app-weu-prd-nmr-wp-msproc-dev  real ms-process-api, IP-locked
+#   prd → app-cl-prd-nmr-wp-msproc-01    real ms-process-api (Entra)
 #
 # NOT covered here: the separate "prod" SPA that the ADO pipeline
 # `ms-process-app-deploy` builds (real Entra auth) and uploads to a Storage
@@ -46,7 +46,7 @@ resolve_env() {
   BUILD_AUTH_PROVIDER=""
   case "$1" in
     dev)
-      APP_NAME="app-cl-prd-nmr-wp-msproc-dev"
+      APP_NAME="app-weu-prd-nmr-wp-msproc-dev"
       CONFIG_SRC="${REPO_ROOT}/deploy/config.dev.js"
       REQUIRE_YES="false"
       BUILD_AUTH_BYPASS="true"
@@ -67,12 +67,14 @@ resolve_env() {
 
 usage() {
   cat >&2 <<'EOF'
-Usage: scripts/deploy-spa.sh <dev|prd> [--yes] [--dry-run]
+Usage: scripts/deploy-spa.sh <dev|prd> [--yes] [--dry-run] [--sso]
 
-  dev        deploy the SPA to app-cl-prd-nmr-wp-msproc-dev (real API)
-  prd        deploy the SPA to app-cl-prd-nmr-wp-msproc-01  (mock demo)
+  dev        deploy the SPA to app-weu-prd-nmr-wp-msproc-dev (real API, auth bypass)
+  prd        deploy the SPA to app-cl-prd-nmr-wp-msproc-01  (real API, Entra)
 
   --yes      required to actually upload to prd (no-op for dev)
+  --sso      build dev with Entra real instead of the auth bypass
+             (needs AUTH_ENABLED=true on the App Service)
   --dry-run  build + zip and print the plan, but do NOT upload
   --help     show this help
 
@@ -85,11 +87,13 @@ EOF
 ENV_ARG=""
 ASSUME_YES="false"
 DRY_RUN="false"
+FORCE_SSO="false"
 for arg in "$@"; do
   case "$arg" in
     --help|-h) usage; exit 1 ;;
     --yes|-y)  ASSUME_YES="true" ;;
     --dry-run) DRY_RUN="true" ;;
+    --sso)     FORCE_SSO="true" ;;
     dev|prd|prod) ENV_ARG="$arg" ;;
     *) echo "ERROR: unknown argument '$arg'" >&2; usage; exit 1 ;;
   esac
@@ -102,6 +106,15 @@ if [[ -z "$ENV_ARG" ]]; then
 fi
 
 resolve_env "$ENV_ARG" || { usage; exit 1; }
+
+# --sso: construir 'dev' con Entra real en vez del bypass. La URL de dev SÍ está
+# registrada como redirect URI del app registration, así que el login funciona;
+# la de prd todavía no (JAA-347). Requiere AUTH_ENABLED=true en la App Service:
+# el SPA pide token y la API tiene que exigirlo, o el token no sirve de nada.
+if [[ "$FORCE_SSO" == "true" ]]; then
+  BUILD_AUTH_BYPASS="false"
+  BUILD_AUTH_PROVIDER="azure-ad"
+fi
 
 # --- prd guard: refuse a real upload without --yes --------------------------
 if [[ "$REQUIRE_YES" == "true" && "$ASSUME_YES" != "true" && "$DRY_RUN" != "true" ]]; then

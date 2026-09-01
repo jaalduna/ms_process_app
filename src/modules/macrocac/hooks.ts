@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import {
   createMacrocacRun,
   downloadMacrocacReporte,
+  downloadPlantilla,
   getMacrocacRun,
   getMotivos,
   getTablas,
@@ -41,6 +42,16 @@ export function useMacrocacRun(runId: string | null) {
 
 export function useDownloadReporte() {
   return useMutation({ mutationFn: downloadMacrocacReporte })
+}
+
+/**
+ * Descarga de la plantilla. Es una mutación y no un `onClick` suelto porque
+ * desde JAA-757 la descarga pide primero una URL firmada al backend: puede
+ * fallar (401, red) y ese error tiene que llegar a la pantalla, no morir en una
+ * promesa sin dueño.
+ */
+export function useDownloadPlantilla() {
+  return useMutation({ mutationFn: downloadPlantilla })
 }
 
 /**

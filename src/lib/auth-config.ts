@@ -27,3 +27,20 @@ export const msalConfig: Configuration = {
 export const loginRequest: RedirectRequest = {
   scopes: apiScope ? [apiScope] : ["openid", "profile", "offline_access"],
 }
+
+/**
+ * ¿Hay un scope de API configurado? Decide QUÉ token se manda al backend.
+ *
+ * Sin scope, MSAL sólo puede emitir un access token para Microsoft Graph, y la
+ * API lo rechaza con "Invalid token: Signature verification failed" — Graph
+ * firma con llaves que no están en el JWKS del tenant para esta app. En ese caso
+ * se manda el ID TOKEN, que sí sirve acá: el SPA y la API comparten app
+ * registration, así que su `aud` es exactamente el client id que valida
+ * `azure_ad.py`, y su emisor es el v2.0 del tenant.
+ *
+ * No es el diseño definitivo —lo correcto es exponer `api://<client-id>/...` y
+ * pedirlo— pero eso requiere un Application Administrator (JAA-347). Cuando el
+ * scope exista, basta setear VITE_AZURE_AD_API_SCOPE y esto pasa solo al access
+ * token, sin tocar más código.
+ */
+export const apiScopeConfigured = Boolean(apiScope)

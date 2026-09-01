@@ -65,11 +65,11 @@ api.interceptors.request.use((config) => {
  * "/api/v1/calibration/tag1/download-signed?...") against the API's origin —
  * NOT against `api`'s baseURL, which already includes the "/api/v1" prefix
  * the backend's `url` also carries (JAA-757/758). */
-function resolveDownloadUrl(relativeUrl: string): string {
+export function resolveDownloadUrl(relativeUrl: string): string {
   return new URL(relativeUrl, new URL(getBaseUrl(), window.location.origin).origin).toString()
 }
 
-interface SignedDownloadUrl {
+export interface SignedDownloadUrl {
   url: string
   expires_in: number
 }
