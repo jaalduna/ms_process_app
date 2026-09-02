@@ -2,7 +2,7 @@ import { Router } from "express"
 import crypto from "crypto"
 
 // Mock de la API de PythonCac (módulo `macrocac`). Aplica correcciones fila a
-// fila (un Excel con IdAto, Flg=M/E y columnas New*) sobre las tablas de
+// fila (un Excel con IdAto, Flg=M/E/X y columnas New*) sobre las tablas de
 // compras y produce un reporte Excel. Base path: /api/v1/macrocac.
 //
 // ⚠️ NO hay dry-run. El motor canónico (KWP-macrocac) abre transacción, aplica
@@ -195,15 +195,13 @@ function synthesizeResultadoLote() {
   // actions, one deliberate failure so the UI has a realistic error to show.
   const rows = []
   for (let i = 1; i <= 14; i++) {
-    const accion = i % 2 === 0 ? "E" : "M"
+    const accion = ["M", "E", "X"][i % 3]
     const ok = i !== 9
     rows.push({
       IdAto: 900000 + i,
       ok,
       mensaje: ok
-        ? accion === "M"
-          ? "Actualizado correctamente."
-          : "Eliminado correctamente."
+        ? { M: "Actualizado correctamente.", E: "Eliminado correctamente.", X: "Excluido correctamente." }[accion]
         : "No se encontró IdAto en la tabla destino.",
       accion,
     })

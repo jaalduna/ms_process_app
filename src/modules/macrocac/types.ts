@@ -172,7 +172,7 @@ export interface MacrocacField {
 /** Únicas dos que el backend exige (routes/macrocac.py) y sin las cuales el motor no arranca. */
 export const MACROCAC_REQUIRED_FIELDS: MacrocacField[] = [
   { key: "IdAto", label: "Id del acto", aliases: ["IdAto"] },
-  { key: "Flg", label: "Acción (M/E)", aliases: ["Flg", "FLG", "flg", "accion", "Accion", "ACCION", "Acción"] },
+  { key: "Flg", label: "Acción (M/E/X)", aliases: ["Flg", "FLG", "flg", "accion", "Accion", "ACCION", "Acción"] },
 ]
 
 /** Opcionales: celda vacía = no cambiar ese campo (`set_cambio`, core.py:162). */
