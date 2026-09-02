@@ -20,6 +20,22 @@ describe("module registry (sidebar source of truth)", () => {
   })
 })
 
+describe("módulo PythonCac", () => {
+  const macrocac = allModules.find((m) => m.id === "macrocac")!
+
+  it("lo ve un macrocac_specialist sin ser admin", () => {
+    expect(hasModuleAccess(macrocac, ["Usuario", "macrocac_specialist"])).toBe(true)
+  })
+
+  it("lo sigue viendo un admin", () => {
+    expect(hasModuleAccess(macrocac, ["Admin"])).toBe(true)
+  })
+
+  it("no lo ve el perfil base sin rol de módulo", () => {
+    expect(hasModuleAccess(macrocac, ["Usuario"])).toBe(false)
+  })
+})
+
 describe("hasModuleAccess: mayúsculas de Entra", () => {
   const modulo = { requiredRoles: ["macrocac_specialist"] } as ModuleDefinition
 
