@@ -17,7 +17,12 @@ export const macrocacModule: ModuleDefinition = {
   id: "macrocac",
   label: "PythonCac",
   group: "pipeline",
-  requiredRoles: ["admin"],
+  // `macrocac_specialist` es el rol de módulo que el backend exige para operar
+  // (`require_role("admin", "macrocac_specialist")` en routes/macrocac.py) y el
+  // que Admin → Usuarios asigna por UPN. Sin él acá, un especialista no admin
+  // no veía la entrada del sidebar aunque el backend lo aceptara. `admin` no
+  // hace falta listarlo: hasModuleAccess lo admite siempre.
+  requiredRoles: ["macrocac_specialist"],
   navItems: [{ path: "/macrocac", label: "PythonCac" }],
   routes: [{ path: "/macrocac", component: lazy(() => import("./pages/MacrocacPage").then(m => ({ default: m.MacrocacPage }))) }],
 }

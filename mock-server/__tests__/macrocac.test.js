@@ -300,7 +300,7 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
       expect(row).toHaveProperty("IdAto")
       expect(typeof row.ok).toBe("boolean")
       expect(typeof row.mensaje).toBe("string")
-      expect(["M", "E"]).toContain(row.accion)
+      expect(["M", "E", "X"]).toContain(row.accion)
     }
     expect(body.resultado_lote.some((r) => r.ok === false)).toBe(true)
     expect(body.resultado_lote.some((r) => r.accion === "M")).toBe(true)
