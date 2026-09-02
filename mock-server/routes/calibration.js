@@ -100,6 +100,10 @@ const J_VERSIONS = [
   },
 ]
 
+// Exportado para /snapshots/calibracion (JAA-1183): mismos datos, un único
+// registro generalizado en vez de duplicar la lista.
+export { J_VERSIONS }
+
 router.get("/calibration/j-versions", (req, res) => {
   const { country, period } = req.query
   const items = J_VERSIONS.filter(

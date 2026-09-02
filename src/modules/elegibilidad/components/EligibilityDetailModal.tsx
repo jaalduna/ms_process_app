@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -24,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import {
+  Archive,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -39,7 +41,9 @@ import {
 import { EligibilityProgress } from "./EligibilityProgress"
 import { ProcessStatusBadge } from "@/components/ProcessStatusBadge"
 import { useProcessEntry } from "@/hooks/useProcessStatus"
-import { downloadEligibilityFile } from "@/lib/api"
+import { JSourceSelector } from "@/components/snapshot/JSourceSelector"
+import { downloadEligibilityFile, downloadEligibilityZip, getProcessSnapshots } from "@/lib/api"
+import { J_SOURCE_SYNC } from "@/types/api"
 import { LiveDuration, parseUTC } from "@/lib/duration"
 import {
   useEligibilityRun,
@@ -48,7 +52,7 @@ import {
   useApplyMordom,
   useCancelEligibility,
 } from "../hooks/useEligibility"
-import { STEP_ORDER, STEP_LABELS, ACTIVE_STATUSES, STATUS_CONFIG } from "../types"
+import { STEP_ORDER, STEP_LABELS, ACTIVE_STATUSES, STATUS_CONFIG, ZIP_DOWNLOAD_STATUSES } from "../types"
 import type { EligibilityFile, EligibilityRun, EligibilityStep } from "../types"
 import { COUNTRY_LABELS } from "@/lib/countries"
 
@@ -56,7 +60,8 @@ interface EligibilityDetailModalProps {
   run: EligibilityRun | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onRerun?: (params: Record<string, unknown>) => void
+  /** `jSource` (JAA-1179/JAA-1183): `J_SOURCE_SYNC` o el tag de una versión bronze registrada. */
+  onRerun?: (params: Record<string, unknown>, jSource: string) => void
 }
 
 function StepIcon({ status }: { status: string }) {
@@ -197,6 +202,7 @@ function MordomUploadZone({ runId, onSuccess }: { runId: string; onSuccess: () =
 export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, onRerun }: EligibilityDetailModalProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
   const [editableParams, setEditableParams] = useState<Record<string, unknown>>({})
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false)
 
   const { data: liveRun } = useEligibilityRun(open && initialRun ? initialRun.run_id : null)
   const run = liveRun ?? initialRun
@@ -214,9 +220,21 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing, preserving behavior
   }, [run?.run_id, open])
 
-  if (!run) return null
+  const canRerun = run?.status === "results_ready" && !!onRerun
 
-  const canRerun = run.status === "results_ready" && !!onRerun
+  // JAA-1179/JAA-1183: fuente de datos bronze para la re-ejecución — se
+  // resetea cada vez que se abre el diálogo para otra corrida.
+  const { data: snapshots, isLoading: snapshotsLoading } = useQuery({
+    queryKey: ["snapshots", "elegibilidad", run?.country],
+    queryFn: () => getProcessSnapshots("elegibilidad", { country: run!.country }),
+    enabled: canRerun && !!run?.country,
+  })
+  const [rerunJSource, setRerunJSource] = useState<string>(J_SOURCE_SYNC)
+  useEffect(() => {
+    setRerunJSource(J_SOURCE_SYNC)
+  }, [run?.run_id, open])
+
+  if (!run) return null
 
   const steps = run.steps ?? []
   const files = run.files ?? []
@@ -260,6 +278,19 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
       onError: () => toast.error("Error al cancelar"),
     })
   }
+
+  const handleDownloadZip = async () => {
+    setIsDownloadingZip(true)
+    try {
+      await downloadEligibilityZip(run.run_id)
+      toast.success("Zip de resultados descargado")
+    } catch {
+      toast.error("Error al descargar el zip de resultados")
+    } finally {
+      setIsDownloadingZip(false)
+    }
+  }
+  const canDownloadZip = ZIP_DOWNLOAD_STATUSES.includes(run.status)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -308,7 +339,28 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
                 <p className="font-medium">{run.approved_by}</p>
               </div>
             )}
+            {run.snapshot_tag && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Snapshot del input</span>
+                <p className="font-medium font-mono text-xs break-all">{run.snapshot_tag}</p>
+              </div>
+            )}
           </div>
+
+          {/* Fuente de datos para la re-ejecución (JAA-1179/JAA-1183) */}
+          {canRerun && (
+            <>
+              <Separator />
+              <div className="rounded-lg border p-3">
+                <JSourceSelector
+                  versions={snapshots?.items ?? []}
+                  value={rerunJSource}
+                  onChange={setRerunJSource}
+                  loading={snapshotsLoading}
+                />
+              </div>
+            </>
+          )}
 
           {/* Parameters — editable when results_ready, read-only otherwise */}
           {run.parameters_json && Object.keys(run.parameters_json).length > 0 && (
@@ -486,7 +538,7 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={() => {
-                      onRerun!(editableParams)
+                      onRerun!(editableParams, rerunJSource)
                       onOpenChange(false)
                     }}
                   >
@@ -495,6 +547,18 @@ export function EligibilityDetailModal({ run: initialRun, open, onOpenChange, on
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+          )}
+
+          {/* Descargar zip de resultados: mientras exista el manifiesto en el volumen (JAA-1184) */}
+          {canDownloadZip && (
+            <Button variant="outline" disabled={isDownloadingZip} onClick={handleDownloadZip}>
+              {isDownloadingZip ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Archive className="mr-2 h-4 w-4" />
+              )}
+              Descargar zip de resultados
+            </Button>
           )}
 
           {/* Approve: when results are ready. Disabled while the process is

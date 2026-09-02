@@ -51,6 +51,10 @@ export interface WeightingRun {
   created_at: string
   updated_at: string
   error_message?: string | null
+  /** JAA-1179/JAA-1183: tag de la versión bronze pedida al ejecutar, o `null`/`"sync"` cuando se sincronizó. */
+  j_source?: string | null
+  /** JAA-1179/JAA-1183: tag efectivo del snapshot bronze que corrió, registrado por la API al completar. */
+  snapshot_tag?: string | null
   /** JAA-755: exclusive per (country, period) — marks the run used for that scope */
   is_final?: boolean
   /** JAA-755: free-text note, e.g. "aprobada por X" */

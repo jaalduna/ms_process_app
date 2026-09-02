@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
 import { JSourceSelector } from "../JSourceSelector"
-import { versionSummary } from "../../lib/jVersions"
+import { versionSummary } from "@/lib/jVersions"
 import { J_SOURCE_SYNC, type JVersion } from "@/types/api"
 
 /** Versiones reales de `001-calibration-3-0.bronze_chile.j_atoscompra_new`. */
@@ -50,7 +50,7 @@ function setup(props: Partial<React.ComponentProps<typeof JSourceSelector>> = {}
 describe("JSourceSelector", () => {
   it("arranca en sincronizar", () => {
     setup()
-    expect(screen.getByLabelText("Sincronizar J desde SQL Server")).toBeChecked()
+    expect(screen.getByLabelText("Sincronizar (versión viva)")).toBeChecked()
     expect(screen.getByLabelText("Usar una versión guardada")).not.toBeChecked()
   })
 
@@ -79,7 +79,7 @@ describe("JSourceSelector", () => {
     expect(screen.getAllByRole("option")).toHaveLength(3)
 
     // Por período: 202606 deja solo una.
-    await userEvent.type(screen.getByLabelText("Buscar versión de J"), "202606")
+    await userEvent.type(screen.getByLabelText("Buscar versión"), "202606")
     const filtered = screen.getAllByRole("option")
     expect(filtered).toHaveLength(1)
     expect(filtered[0]).toHaveTextContent("_202606_v0")
@@ -88,14 +88,14 @@ describe("JSourceSelector", () => {
   it("filtra también por sufijo de corrida", async () => {
     setup({ value: VERSIONS[0].tag })
     await userEvent.click(screen.getByRole("button", { name: /RespaldoCalibracion/ }))
-    await userEvent.type(screen.getByLabelText("Buscar versión de J"), "_v1")
+    await userEvent.type(screen.getByLabelText("Buscar versión"), "_v1")
     expect(screen.getAllByRole("option")).toHaveLength(1)
   })
 
   it("avisa cuando la búsqueda no encuentra nada, en vez de mostrar una lista vacía", async () => {
     setup({ value: VERSIONS[0].tag })
     await userEvent.click(screen.getByRole("button", { name: /RespaldoCalibracion/ }))
-    await userEvent.type(screen.getByLabelText("Buscar versión de J"), "209912")
+    await userEvent.type(screen.getByLabelText("Buscar versión"), "209912")
     expect(screen.queryAllByRole("option")).toHaveLength(0)
     expect(screen.getByText(/Ninguna versión coincide/)).toBeInTheDocument()
   })

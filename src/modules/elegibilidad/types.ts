@@ -56,6 +56,10 @@ export interface EligibilityRun {
   created_by?: string
   created_at: string
   updated_at: string
+  /** JAA-1179/JAA-1183: tag de la versión bronze pedida al ejecutar, o `null`/`"sync"` cuando se sincronizó. */
+  j_source?: string | null
+  /** JAA-1179/JAA-1183: tag efectivo del snapshot bronze que corrió, registrado por la API al completar. */
+  snapshot_tag?: string | null
   approved_by?: string
   approved_at?: string
   error_message?: string
@@ -105,6 +109,19 @@ export const ACTIVE_STATUSES: EligibilityStatus[] = [
   'applying_sql',
   'mordom_downloading',
   'applying_mordom',
+]
+
+/** Statuses in which the results zip already exists in the volume (JAA-1184).
+ *  Mirrors the real API's `ZIP_READY_STATUSES` — keep in sync with
+ *  `mock-server/routes/eligibility.js`'s `ZIP_DOWNLOAD_STATUSES`. */
+export const ZIP_DOWNLOAD_STATUSES: EligibilityStatus[] = [
+  'results_ready',
+  'applying_sql',
+  'mordom_downloading',
+  'mordom_ready',
+  'mordom_uploaded',
+  'applying_mordom',
+  'ready',
 ]
 
 export const STATUS_CONFIG: Record<

@@ -13,6 +13,7 @@ import eligibilityRouter, { eligibilityStore } from "./routes/eligibility.js"
 import processesRouter from "./routes/processes.js"
 import traceabilityRouter from "./routes/traceability.js"
 import calibrationRouter from "./routes/calibration.js"
+import snapshotsRouter from "./routes/snapshots.js"
 import testRouter from "./routes/test.js"
 import authRouter, { verifyAppToken } from "./routes/auth.js"
 import adminRouter from "./routes/admin.js"
@@ -115,6 +116,7 @@ app.use("/api/v1", eligibilityRouter)
 app.use("/api/v1", processesRouter)
 app.use("/api/v1", traceabilityRouter)
 app.use("/api/v1", calibrationRouter)
+app.use("/api/v1", snapshotsRouter)
 app.use("/api/v1", testRouter)
 app.use("/api/v1", adminRouter)
 app.use("/api/v1", telemetryRouter)

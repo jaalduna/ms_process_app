@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -44,7 +45,9 @@ import {
   XCircle,
 } from "lucide-react"
 import { WeightingProgress } from "./WeightingProgress"
-import { downloadWeightingCSV } from "@/lib/api"
+import { JSourceSelector } from "@/components/snapshot/JSourceSelector"
+import { downloadWeightingCSV, getProcessSnapshots } from "@/lib/api"
+import { J_SOURCE_SYNC } from "@/types/api"
 import {
   useWeightingRun,
   useCancelWeighting,
@@ -68,8 +71,11 @@ interface WeightingDetailModalProps {
    * renders a run button ("Ejecutar" the first time, "Re-ejecutar" after a
    * completed/failed run). When omitted (process closed, or the read-only history
    * view) no run button is shown.
+   *
+   * `jSource` (JAA-1179/JAA-1183) es `J_SOURCE_SYNC` o el tag de una versión
+   * bronze registrada, elegido con el `JSourceSelector` de este mismo diálogo.
    */
-  onRun?: (params: Record<string, unknown>) => void
+  onRun?: (params: Record<string, unknown>, jSource: string) => void
   /** Country/period for the first-run (no prior run) header; falls back to the run's own values. */
   countryCode?: string
   period?: string | number
@@ -283,6 +289,27 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
   const diffVsPublished = useMemo(() => diffHyperparams(launchParams, paramDraft), [launchParams, paramDraft])
   const isParamsDirty = diffVsPublished.length > 0
 
+  // JAA-1179/JAA-1183: fuente de datos bronze — sincronizar o una versión ya
+  // registrada. Mismo patrón que calibración: se resetea a "sync" cada vez que
+  // cambia el país, para no arrastrar por error el tag de otro país.
+  //
+  // `country` (el nombre completo, "bolivia") — no `paisCode` (el código corto
+  // "BO" que usa el editor de hyperparámetros) — porque /snapshots/{process}
+  // usa el mismo vocabulario de país que /calibration/j-versions.
+  const country = run?.country ?? countryCode ?? ""
+  const { data: snapshots, isLoading: snapshotsLoading } = useQuery({
+    queryKey: ["snapshots", "pesaje", country],
+    queryFn: () => getProcessSnapshots("pesaje", { country }),
+    enabled: open && canRun && !!country,
+  })
+  const [jSource, setJSource] = useState<string>(J_SOURCE_SYNC)
+  const [jSourceCountry, setJSourceCountry] = useState<string | null>(null)
+  const effectiveJSource = country && jSourceCountry === country ? jSource : J_SOURCE_SYNC
+  function handleJSourceChange(next: string) {
+    setJSource(next)
+    setJSourceCountry(country)
+  }
+
   function toggleStep(stepName: string) {
     setExpandedSteps((prev) => {
       const next = new Set(prev)
@@ -335,7 +362,7 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
         return
       }
     }
-    onRun!(paramDraft)
+    onRun!(paramDraft, effectiveJSource)
     onOpenChange(false)
   }
 
@@ -385,7 +412,29 @@ export function WeightingDetailModal({ run: initialRun, open, onOpenChange, onRu
                 </div>
               </>
             )}
+            {run?.snapshot_tag && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Snapshot del input</span>
+                <p className="font-medium font-mono text-xs break-all">{run.snapshot_tag}</p>
+              </div>
+            )}
           </div>
+
+          {/* Fuente de datos (JAA-1179/JAA-1183): sincronizar o una versión bronze
+              ya registrada — solo tiene sentido antes de lanzar. */}
+          {canRun && (
+            <>
+              <Separator />
+              <div className="rounded-lg border p-3">
+                <JSourceSelector
+                  versions={snapshots?.items ?? []}
+                  value={effectiveJSource}
+                  onChange={handleJSourceChange}
+                  loading={snapshotsLoading}
+                />
+              </div>
+            </>
+          )}
 
           {/* Parameters */}
           {showParams && (

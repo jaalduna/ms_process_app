@@ -9,12 +9,12 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Download, Eye, Loader2 } from "lucide-react"
-import { downloadEligibilityFile } from "@/lib/api"
+import { Archive, Download, Eye, Loader2 } from "lucide-react"
+import { downloadEligibilityFile, downloadEligibilityZip } from "@/lib/api"
 import { LiveDuration, parseUTC } from "@/lib/duration"
 import { useEligibilityHistory } from "../hooks/useEligibility"
 import { EligibilityDetailModal } from "./EligibilityDetailModal"
-import { STATUS_CONFIG } from "../types"
+import { STATUS_CONFIG, ZIP_DOWNLOAD_STATUSES } from "../types"
 import type { EligibilityRun, EligibilityFile } from "../types"
 
 interface EligibilityHistoryModalProps {
@@ -49,6 +49,7 @@ export function EligibilityHistoryModal({
   const [selectedRun, setSelectedRun] = useState<EligibilityRun | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [downloadingZipId, setDownloadingZipId] = useState<string | null>(null)
 
   const handleViewDetail = (run: EligibilityRun) => {
     setSelectedRun(run)
@@ -69,6 +70,18 @@ export function EligibilityHistoryModal({
       toast.error("Error al descargar resultados")
     } finally {
       setDownloadingId(null)
+    }
+  }
+
+  const handleDownloadZip = async (run: EligibilityRun) => {
+    setDownloadingZipId(run.run_id)
+    try {
+      await downloadEligibilityZip(run.run_id)
+      toast.success("Zip de resultados descargado")
+    } catch {
+      toast.error("Error al descargar el zip de resultados")
+    } finally {
+      setDownloadingZipId(null)
     }
   }
 
@@ -151,6 +164,22 @@ export function EligibilityHistoryModal({
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
                             <Download className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
+                      {ZIP_DOWNLOAD_STATUSES.includes(run.status) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          disabled={downloadingZipId === run.run_id}
+                          onClick={() => handleDownloadZip(run)}
+                          title="Descargar zip de resultados"
+                        >
+                          {downloadingZipId === run.run_id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Archive className="h-3.5 w-3.5" />
                           )}
                         </Button>
                       )}

@@ -2,6 +2,7 @@ import { Router } from "express"
 import { RunStore } from "../stores/run-store.js"
 import { COUNTRIES, isIntegerPeriod } from "./sync.js"
 import { issueDownloadToken, validateDownloadToken } from "../lib/download-tokens.js"
+import { J_SOURCE_SYNC, registerSnapshot, generateSnapshotTag } from "./snapshots.js"
 
 const router = Router()
 
@@ -71,8 +72,21 @@ router.post("/weighting/runs/:runId/execute", (req, res) => {
   const run = weightingStore.get(req.params.runId)
   if (!run) return res.status(404).json({ error: "not_found", message: `Run ${req.params.runId} not found` })
   if (run.status === "running") return res.status(409).json({ error: "conflict", message: "Run is already running" })
+
+  // JAA-1179/JAA-1183: `j_source` opcional — "sync" (default) o el tag de una
+  // versión bronze registrada. Se guarda en la corrida y, al completar, la
+  // API real registra el tag efectivo desde el manifiesto `bronze_snapshot.json`;
+  // el mock aproxima ese registro directamente.
+  const jSource = req.body?.j_source || J_SOURCE_SYNC
+  run.j_source = jSource
+
   weightingStore.execute(req.params.runId, (completedRun) => {
-    if (completedRun.status === "completed") completedRun.summary_stats = generateWeightSummary()
+    if (completedRun.status === "completed") {
+      completedRun.summary_stats = generateWeightSummary()
+      const tag = jSource !== J_SOURCE_SYNC ? jSource : generateSnapshotTag(completedRun.country, completedRun.period)
+      completedRun.snapshot_tag = tag
+      registerSnapshot("pesaje", { country: completedRun.country, period: completedRun.period, tag })
+    }
   })
   res.json(weightingStore.get(req.params.runId))
 })

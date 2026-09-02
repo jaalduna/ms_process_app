@@ -1,6 +1,25 @@
 import { Router } from "express"
 import { EligibilityStore } from "../stores/eligibility-store.js"
 import { COUNTRIES, isIntegerPeriod } from "./sync.js"
+import { issueDownloadToken, validateDownloadToken } from "../lib/download-tokens.js"
+import { buildMockZip } from "../lib/zip.js"
+import { J_SOURCE_SYNC, registerSnapshot, generateSnapshotTag } from "./snapshots.js"
+
+/** Estados en que el zip de resultados ya existe en el volumen (JAA-1184). */
+// Espejo de ZIP_READY_STATUSES en la API real.
+const ZIP_DOWNLOAD_STATUSES = [
+  "results_ready",
+  "applying_sql",
+  "mordom_downloading",
+  "mordom_ready",
+  "mordom_uploaded",
+  "applying_mordom",
+  "ready",
+]
+
+function eligibilityDownloadResource(runId) {
+  return `eligibility-zip:${runId}`
+}
 
 const router = Router()
 
@@ -59,7 +78,19 @@ router.post("/eligibility/runs/:runId/execute", (req, res) => {
   if (run.status !== "pending") {
     return res.status(409).json({ error: "conflict", message: `Cannot execute run with status "${run.status}"` })
   }
-  res.json(eligibilityStore.execute(req.params.runId))
+
+  // JAA-1179/JAA-1183: `j_source` opcional — "sync" (default) o el tag de una
+  // versión bronze registrada. Ver el comentario equivalente en weighting.js.
+  const jSource = req.body?.j_source || J_SOURCE_SYNC
+  run.j_source = jSource
+
+  res.json(
+    eligibilityStore.execute(req.params.runId, (readyRun) => {
+      const tag = jSource !== J_SOURCE_SYNC ? jSource : generateSnapshotTag(readyRun.country, readyRun.period)
+      readyRun.snapshot_tag = tag
+      registerSnapshot("elegibilidad", { country: readyRun.country, period: readyRun.period, tag })
+    }),
+  )
 })
 
 router.post("/eligibility/runs/:runId/approve", (req, res) => {
@@ -128,6 +159,48 @@ router.post("/eligibility/runs/:runId/upload", (req, res) => {
   const filename = req.query.filename || `mordom_corrected_${run.country}_${run.period}.csv`
   const file = eligibilityStore.upload(req.params.runId, filename)
   res.status(201).json(file)
+})
+
+// ---------------------------------------------------------------------------
+// GET /eligibility/runs/:runId/download-url   (JAA-1184)
+// GET /eligibility/runs/:runId/download-signed?token=
+// Same signed-URL contract as weighting/calibration — see weighting.js.
+// ---------------------------------------------------------------------------
+
+function buildEligibilityZip(run) {
+  const entries = (run.files || []).map(f => f.filename)
+  return buildMockZip(entries, `Eligibility zip for ${run.country} ${run.period} (run ${run.run_id}).`)
+}
+
+router.get("/eligibility/runs/:runId/download-url", (req, res) => {
+  const run = eligibilityStore.get(req.params.runId)
+  if (!run) return notFound(res, req.params.runId)
+  if (!ZIP_DOWNLOAD_STATUSES.includes(run.status)) {
+    return res.status(409).json({ error: "conflict", message: `Run "${run.status}" has no results zip yet` })
+  }
+
+  const { token, expiresIn } = issueDownloadToken(eligibilityDownloadResource(req.params.runId))
+  res.json({
+    url: `/api/v1/eligibility/runs/${req.params.runId}/download-signed?token=${token}`,
+    expires_in: expiresIn,
+  })
+})
+
+router.get("/eligibility/runs/:runId/download-signed", (req, res) => {
+  const failure = validateDownloadToken(req.query.token, eligibilityDownloadResource(req.params.runId))
+  if (failure) {
+    return res.status(failure.status).json({ error: failure.error, message: failure.message })
+  }
+  const run = eligibilityStore.get(req.params.runId)
+  if (!run) return notFound(res, req.params.runId)
+  if (!ZIP_DOWNLOAD_STATUSES.includes(run.status)) {
+    return res.status(409).json({ error: "conflict", message: `Run "${run.status}" has no results zip yet` })
+  }
+
+  const zip = buildEligibilityZip(run)
+  res.setHeader("Content-Type", "application/zip")
+  res.setHeader("Content-Disposition", `attachment; filename="eligibility_${run.country}_${run.period}.zip"`)
+  res.send(zip)
 })
 
 // ---------------------------------------------------------------------------

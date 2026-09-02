@@ -141,6 +141,9 @@ export function ExecutionLaunchPanel({ countries, period, launching, runningCoun
               value={effectiveJSource}
               onChange={handleJSourceChange}
               loading={jVersionsLoading}
+              title="Fuente de J"
+              syncLabel="Sincronizar J desde SQL Server"
+              syncDescription="Trae el estado actual de SQL Server."
             />
           </div>
         ) : (

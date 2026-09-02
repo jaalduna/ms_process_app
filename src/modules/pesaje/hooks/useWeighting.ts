@@ -55,7 +55,8 @@ export function useCreateWeightingRun() {
 export function useExecuteWeighting() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (runId: string) => executeWeighting(runId),
+    mutationFn: ({ runId, jSource }: { runId: string; jSource?: string }) =>
+      executeWeighting(runId, jSource ? { j_source: jSource } : undefined),
     onSuccess: (run) => {
       queryClient.invalidateQueries({ queryKey: ["weighting-runs"] })
       queryClient.invalidateQueries({ queryKey: ["weighting-run", run.run_id] })
