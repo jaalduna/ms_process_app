@@ -2,8 +2,11 @@ import { useMemo, useRef, useState } from "react"
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   DatabaseZap,
   Download,
+  Eye,
   FileDown,
   FileSpreadsheet,
   Loader2,
@@ -33,6 +36,7 @@ import {
   useMotivos,
   useTablas,
   useUploadMacrocac,
+  useVistaPrevia,
 } from "../hooks"
 import {
   esProduccion,
@@ -49,6 +53,8 @@ import type {
   MacrocacRunError,
   MacrocacUpload,
   MacrocacUploadError,
+  MacrocacVistaPreviaError,
+  MacrocacVistaPreviaItem,
 } from "../types"
 
 /** Bolivia: es donde viven las tablas de prueba con las que se está validando. */
@@ -74,6 +80,8 @@ export function MacrocacPage() {
   const [upload, setUpload] = useState<MacrocacUpload | null>(null)
   const [runId, setRunId] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [arrastrando, setArrastrando] = useState(false)
+  const [archivoRechazado, setArchivoRechazado] = useState<string | null>(null)
 
   const uploadMutation = useUploadMacrocac()
   const runMutation = useCreateMacrocacRun()
@@ -161,12 +169,43 @@ export function MacrocacPage() {
    * celda viene vacía. Si lo exige responde `motivo_requerido`, y elegir el
    * motivo reintenta la subida sola (ver handleMotivoChange).
    */
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const procesarArchivo = (file: File) => {
+    // El `accept` del input filtra el diálogo, pero no lo que se arrastra.
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      setArchivoRechazado(file.name)
+      return
+    }
+    setArchivoRechazado(null)
     limpiarResultado()
     setArchivoPendiente(file)
     subir(file, motivoCambio)
+  }
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) procesarArchivo(file)
+  }
+
+  // Sin tabla destino no hay adónde subir el archivo.
+  const subidaDeshabilitada = uploadMutation.isPending || tablaEfectiva === ""
+
+  /**
+   * QA 2026-09 (Jorge): el recuadro decía "Arrastra el .xlsx" pero no tenía
+   * handlers de drop, así que soltar el archivo no hacía nada (o el navegador
+   * lo abría). `preventDefault` en dragover es lo que habilita el drop.
+   */
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = subidaDeshabilitada ? "none" : "copy"
+    if (!subidaDeshabilitada) setArrastrando(true)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setArrastrando(false)
+    if (subidaDeshabilitada) return
+    const file = e.dataTransfer.files?.[0]
+    if (file) procesarArchivo(file)
   }
 
   const handleMotivoChange = (motivo: string) => {
@@ -422,8 +461,16 @@ export function MacrocacPage() {
             </div>
           ) : (
             <div
-              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-muted-foreground/25 p-5 transition-colors hover:border-muted-foreground/50"
+              className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed p-5 transition-colors ${
+                arrastrando
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-muted-foreground/50"
+              }`}
+              data-testid="macrocac-dropzone"
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={() => setArrastrando(false)}
+              onDrop={handleDrop}
               onKeyDown={(e) => {
                 if (e.key === "Enter") fileInputRef.current?.click()
               }}
@@ -449,15 +496,21 @@ export function MacrocacPage() {
                 className="hidden"
                 data-testid="macrocac-file-input"
                 onChange={handleFile}
-                // Sin tabla destino no hay adónde subir el archivo.
-                disabled={uploadMutation.isPending || tablaEfectiva === ""}
+                disabled={subidaDeshabilitada}
               />
             </div>
           )}
 
+          {archivoRechazado && (
+            <p className="text-destructive text-xs" role="alert" data-testid="macrocac-archivo-rechazado">
+              <span className="font-mono">{archivoRechazado}</span> no es un .xlsx. Sube el Excel
+              de correcciones.
+            </p>
+          )}
           {uploadError && <UploadErrorDetail error={uploadError.body} />}
           {upload && <MotivosResumen upload={upload} />}
           {formato && <FormatoDetail check={formato} />}
+          {upload && formato?.ok && <VistaPrevia key={upload.upload_id} uploadId={upload.upload_id} />}
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-4">
@@ -733,6 +786,152 @@ function RunStatus({
       <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
       <span>La ejecución falló. {run.error_message ?? ""}</span>
     </div>
+  )
+}
+
+/** Columnas de contexto que se muestran siempre, en este orden. */
+const CONTEXTO_VISTA: { col: string; label: string }[] = [
+  { col: "IdDomicilio", label: "Hogar" },
+  { col: "Data_Compra", label: "Fecha" },
+  { col: "IdArtigo", label: "Artículo" },
+  { col: "IdProduto", label: "Producto" },
+  { col: "IdCanal", label: "Canal" },
+]
+
+const ACCION_LABEL: Record<string, string> = {
+  M: "Modificar",
+  E: "Eliminar",
+  X: "Excluir",
+}
+
+function fmt(v: unknown): string {
+  return v === null || v === undefined || v === "" ? "—" : String(v)
+}
+
+/**
+ * Vista previa del lote (QA 2026-09, Jorge): los actos que se van a tocar, con
+ * su estado actual en la tabla destino y el valor que pide el Excel.
+ *
+ * Se abre a pedido porque consulta el SQL del país. No simula el motor: los
+ * recálculos derivados (COEF, VALUE_PM, Semana…) salen en el reporte del run.
+ */
+function VistaPrevia({ uploadId }: { uploadId: string }) {
+  const [abierta, setAbierta] = useState(false)
+  const query = useVistaPrevia(uploadId, abierta)
+  const error = query.error instanceof MacrocacApiError
+    ? (query.error.body as MacrocacVistaPreviaError)
+    : null
+
+  return (
+    <div className="rounded-lg border border-border text-sm" data-testid="macrocac-vista-previa">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium"
+        onClick={() => setAbierta((v) => !v)}
+        aria-expanded={abierta}
+        data-testid="macrocac-vista-previa-toggle"
+      >
+        {abierta ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <Eye className="h-4 w-4 text-muted-foreground" />
+        Ver actos a modificar
+        {query.data && (
+          <span className="ml-auto text-xs font-normal text-muted-foreground">
+            {query.data.total} {query.data.total === 1 ? "acto" : "actos"}
+            {query.data.no_encontrados > 0 && ` · ${query.data.no_encontrados} no encontrados`}
+          </span>
+        )}
+      </button>
+
+      {abierta && (
+        <div className="space-y-2 border-t border-border px-3 py-2">
+          {query.isPending && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Leyendo los actos en la tabla destino…
+            </p>
+          )}
+          {query.isError && (
+            <p className="text-destructive text-xs" role="alert" data-testid="macrocac-vista-previa-error">
+              No se pudo leer la vista previa. {error?.message ?? ""}
+            </p>
+          )}
+          {query.data && (
+            <>
+              <p className="text-muted-foreground text-xs">
+                Estado actual en <span className="font-mono">{query.data.tabla}</span> y el valor
+                pedido. Los recálculos (COEF, VALUE_PM, semana…) los hace el motor al aplicar y
+                salen en el reporte.
+                {query.data.mostrados < query.data.total &&
+                  ` Se muestran los primeros ${query.data.mostrados} de ${query.data.total}.`}
+              </p>
+              <div className="max-h-80 overflow-auto rounded-md border border-border">
+                <table className="w-full text-xs" data-testid="macrocac-vista-previa-tabla">
+                  <thead className="sticky top-0 bg-muted text-left">
+                    <tr>
+                      <th className="px-2 py-1 font-medium">IdAto</th>
+                      <th className="px-2 py-1 font-medium">Acción</th>
+                      {CONTEXTO_VISTA.map((c) => (
+                        <th key={c.col} className="px-2 py-1 font-medium">{c.label}</th>
+                      ))}
+                      <th className="px-2 py-1 font-medium">Cambios</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {query.data.items.map((item) => (
+                      <FilaVistaPrevia key={item.IdAto} item={item} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FilaVistaPrevia({ item }: { item: MacrocacVistaPreviaItem }) {
+  const accion = ACCION_LABEL[item.flg] ?? item.flg
+  if (!item.encontrado || item.actual === null) {
+    return (
+      <tr className="border-t border-border text-destructive" data-testid="macrocac-vista-previa-fila">
+        <td className="px-2 py-1 font-mono">{item.IdAto}</td>
+        <td className="px-2 py-1">{accion}</td>
+        <td className="px-2 py-1" colSpan={CONTEXTO_VISTA.length + 1}>
+          No existe en la tabla destino; el motor lo rechazará.
+        </td>
+      </tr>
+    )
+  }
+  const actual = item.actual
+  const cambios = Object.entries(item.cambios)
+  return (
+    <tr className="border-t border-border align-top" data-testid="macrocac-vista-previa-fila">
+      <td className="px-2 py-1 font-mono">{item.IdAto}</td>
+      <td className="px-2 py-1">{accion}</td>
+      {CONTEXTO_VISTA.map((c) => (
+        <td key={c.col} className="px-2 py-1 font-mono whitespace-nowrap">{fmt(actual[c.col])}</td>
+      ))}
+      <td className="px-2 py-1">
+        {item.flg === "E" ? (
+          <span className="text-destructive">Se borra el acto</span>
+        ) : item.flg === "X" ? (
+          <span>FACTOR_RW1: {fmt(actual.FACTOR_RW1)} → 0</span>
+        ) : cambios.length === 0 ? (
+          <span className="text-muted-foreground">Sin cambios</span>
+        ) : (
+          <ul className="space-y-0.5">
+            {cambios.map(([col, nuevo]) => (
+              <li key={col} className="whitespace-nowrap">
+                <span className="text-muted-foreground">{col}:</span>{" "}
+                <span className="font-mono">{fmt(actual[col])}</span> →{" "}
+                <span className="font-mono font-medium">{fmt(nuevo)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </td>
+    </tr>
   )
 }
 
