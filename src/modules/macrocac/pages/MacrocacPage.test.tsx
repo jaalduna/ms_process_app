@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MacrocacApiError } from "../types"
@@ -12,6 +12,7 @@ const mockDownload = vi.fn()
 const mockGetMotivos = vi.fn()
 const mockDownloadPlantilla = vi.fn()
 const mockGetTablas = vi.fn()
+const mockGetVistaPrevia = vi.fn()
 
 vi.mock("../api", () => ({
   uploadMacrocacFile: (...a: unknown[]) => mockUpload(...a),
@@ -21,6 +22,7 @@ vi.mock("../api", () => ({
   getMotivos: (...a: unknown[]) => mockGetMotivos(...a),
   downloadPlantilla: (...a: unknown[]) => mockDownloadPlantilla(...a),
   getTablas: (...a: unknown[]) => mockGetTablas(...a),
+  getVistaPrevia: (...a: unknown[]) => mockGetVistaPrevia(...a),
 }))
 
 
@@ -679,5 +681,97 @@ describe("esProduccion — convención de nombres de las copias de trabajo", () 
     expect(esProduccion("J_AtosCompra_New_RD")).toBe(true)
     // El prefijo tiene que ir al principio.
     expect(esProduccion("algo__test_j_atoscompra_new")).toBe(true)
+  })
+})
+
+
+describe("MacrocacPage — observaciones QA 2026-09", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetRun.mockResolvedValue(RUN_RUNNING)
+    mockGetMotivos.mockResolvedValue(CATALOGO)
+    mockGetTablas.mockResolvedValue(TABLAS_RESP)
+  })
+
+  it("se puede soltar el .xlsx sobre el recuadro (antes el drop no hacía nada)", async () => {
+    mockUpload.mockResolvedValue(UPLOAD_RESP)
+    await renderPage()
+    await waitFor(() => expect(screen.getByTestId("macrocac-file-input")).toBeEnabled())
+
+    const file = makeFile()
+    fireEvent.drop(screen.getByTestId("macrocac-dropzone"), { dataTransfer: { files: [file] } })
+
+    await waitFor(() => expect(mockUpload).toHaveBeenCalledTimes(1))
+    expect(mockUpload.mock.calls[0]![0]).toMatchObject({ file, tabla: "_test_J_AtosCompra_New_v1" })
+    expect(await screen.findByTestId("macrocac-upload-chip")).toBeInTheDocument()
+  })
+
+  it("soltar algo que no es .xlsx no sube nada y lo dice", async () => {
+    await renderPage()
+    await waitFor(() => expect(screen.getByTestId("macrocac-file-input")).toBeEnabled())
+
+    const pdf = new File(["x"], "notas.pdf", { type: "application/pdf" })
+    fireEvent.drop(screen.getByTestId("macrocac-dropzone"), { dataTransfer: { files: [pdf] } })
+
+    expect(await screen.findByTestId("macrocac-archivo-rechazado")).toHaveTextContent("notas.pdf")
+    expect(mockUpload).not.toHaveBeenCalled()
+  })
+
+  it("muestra los actos a modificar con su valor actual y el nuevo, antes de aplicar", async () => {
+    mockUpload.mockResolvedValue(UPLOAD_RESP)
+    mockGetVistaPrevia.mockResolvedValue({
+      upload_id: "upl_macrocac_1",
+      pais: "BO",
+      tabla: "_test_J_AtosCompra_New_v1",
+      total: 3,
+      mostrados: 3,
+      no_encontrados: 1,
+      items: [
+        {
+          IdAto: 111, flg: "M", encontrado: true,
+          actual: { IdDomicilio: 5, Data_Compra: "2026-08-15", IdArtigo: 9, IdProduto: 7, IdCanal: 3, Preco: 1500, Acceso_Canal: 1 },
+          cambios: { Preco: 2000, Acceso_Canal: 2 },
+        },
+        {
+          IdAto: 222, flg: "X", encontrado: true,
+          actual: { IdDomicilio: 6, FACTOR_RW1: 1.25 },
+          cambios: {},
+        },
+        { IdAto: 333, flg: "M", encontrado: false, actual: null, cambios: { Preco: 10 } },
+      ],
+    })
+    const user = userEvent.setup()
+    await renderPage()
+    await subirArchivo(user)
+
+    // No se consulta SQL hasta que el usuario la abre.
+    await screen.findByTestId("macrocac-vista-previa")
+    expect(mockGetVistaPrevia).not.toHaveBeenCalled()
+    await user.click(screen.getByTestId("macrocac-vista-previa-toggle"))
+
+    await waitFor(() => expect(mockGetVistaPrevia).toHaveBeenCalledWith("upl_macrocac_1"))
+    const filas = await screen.findAllByTestId("macrocac-vista-previa-fila")
+    expect(filas).toHaveLength(3)
+    expect(filas[0]).toHaveTextContent("Preco: 1500 → 2000")
+    expect(filas[0]).toHaveTextContent("Acceso_Canal: 1 → 2")
+    expect(filas[1]).toHaveTextContent("FACTOR_RW1: 1.25 → 0")
+    expect(filas[2]).toHaveTextContent("No existe en la tabla destino")
+    expect(screen.getByTestId("macrocac-vista-previa-toggle")).toHaveTextContent("1 no encontrados")
+  })
+
+  it("si la vista previa falla lo muestra y no bloquea aplicar", async () => {
+    mockUpload.mockResolvedValue(UPLOAD_RESP)
+    mockGetVistaPrevia.mockRejectedValue(
+      new MacrocacApiError(503, { error: "sql_not_configured", message: "Sin credenciales SQL." }),
+    )
+    const user = userEvent.setup()
+    await renderPage()
+    await subirArchivo(user)
+    await user.click(await screen.findByTestId("macrocac-vista-previa-toggle"))
+
+    expect(await screen.findByTestId("macrocac-vista-previa-error")).toHaveTextContent(
+      "Sin credenciales SQL.",
+    )
+    expect(screen.getByTestId("macrocac-aplicar")).toBeEnabled()
   })
 })

@@ -87,6 +87,18 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
     expect(body.items.map((t) => t.tabla)).not.toContain("j_atoscompra_new_rd")
   })
 
+  it("RD solo ve su tabla oficial, no la de CAM/PNC (comparten CAM_KWP)", async () => {
+    const rd = await (await fetch(`${baseUrl}/macrocac/tablas?pais=RD`)).json()
+    const nombresRd = rd.items.map((t) => t.tabla)
+    expect(nombresRd).toContain("j_atoscompra_new_rd")
+    expect(nombresRd).not.toContain("j_atoscompra_new")
+
+    const cam = await (await fetch(`${baseUrl}/macrocac/tablas?pais=CAM`)).json()
+    const nombresCam = cam.items.map((t) => t.tabla)
+    expect(nombresCam).toContain("j_atoscompra_new")
+    expect(nombresCam).not.toContain("j_atoscompra_new_rd")
+  })
+
   it("tablas con un país desconocido devuelve 400", async () => {
     const res = await fetch(`${baseUrl}/macrocac/tablas?pais=XX`)
     expect(res.status).toBe(400)

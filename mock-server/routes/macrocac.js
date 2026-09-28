@@ -62,14 +62,22 @@ const PATRONES = [
   {
     patron: "j_atoscompra_new",
     base: null,
-    descripcion: "Productiva. La única que lee el motor canónico",
+    excluir_paises: ["RD"],
+    descripcion: "Productiva. No aplica a RD: en CAM_KWP es la de CAM/PNC",
   },
   {
     patron: "j_atoscompra_new_rd",
     base: null,
-    descripcion: "Oficial, no es test. Nombre exacto",
+    paises: ["RD"],
+    descripcion: "Oficial de RD, no es test. Nombre exacto",
   },
 ]
+
+/** Espejo de `PatronTabla.aplica_a` del backend. */
+function aplicaA(p, pais) {
+  if ((p.excluir_paises ?? []).includes(pais)) return false
+  return !p.paises || p.paises.includes(pais)
+}
 
 /** Qué tablas "existen" en la base de cada país (lo que el backend leería de
  *  sys.tables). BO tiene la de Nini; RD suma su tabla oficial. */
@@ -81,13 +89,13 @@ function tablasDe(pais) {
     "_test_j_atoscompra_new_v1",
     "_test_j_atoscompra_new_v2",
   ]
-  if (pais === "RD") nombres.push("j_atoscompra_new_rd")
-  return nombres.map((tabla) => ({
-    base,
-    esquema: "dbo",
-    tabla,
-    patron: patronDe(tabla),
-  }))
+  // RD comparte CAM_KWP con CAM: en esa base existen las dos tablas, y son
+  // los patrones por país los que deciden cuál ve cada uno.
+  if (pais === "RD" || pais === "CAM") nombres.push("j_atoscompra_new_rd")
+  const patrones = PATRONES.filter((p) => aplicaA(p, pais))
+  return nombres
+    .map((tabla) => ({ base, esquema: "dbo", tabla, patron: patronDe(tabla) }))
+    .filter((t) => patrones.some((p) => p.patron === t.patron))
 }
 
 /** Qué patrón habilitó esta tabla (el backend lo devuelve para poder rastrearlo). */
@@ -164,7 +172,7 @@ router.get("/macrocac/tablas", (req, res) => {
     return res.status(400).json({ error: "bad_request", message: `País desconocido: '${pais}'.` })
   }
   const items = tablasDe(pais)
-  const patrones = PATRONES.map((p) => ({
+  const patrones = PATRONES.filter((p) => aplicaA(p, pais)).map((p) => ({
     ...p,
     coincidencias: items.filter((t) => t.patron === p.patron).length,
   }))
@@ -282,6 +290,51 @@ router.post("/macrocac/uploads", (req, res) => {
   }
   uploads.set(uploadId, upload)
   res.status(201).json(upload)
+})
+
+// Vista previa (QA 2026-09): el estado actual de los actos del lote, antes de
+// aplicar. Espejo de GET /uploads/{id}/vista-previa (backend preview.py).
+router.get("/macrocac/uploads/:uploadId/vista-previa", (req, res) => {
+  const upload = uploads.get(req.params.uploadId)
+  if (!upload) {
+    return res.status(404).json({ error: "not_found", message: `Upload '${req.params.uploadId}' no encontrado.` })
+  }
+  const items = []
+  for (let i = 1; i <= upload.filas; i++) {
+    const flg = ["M", "E", "X"][i % 3]
+    // Uno que no existe, para que la UI tenga el caso "no encontrado".
+    const encontrado = i !== 9
+    const cambios = flg === "M" ? { Preco: 1000 + i * 10, Acceso_Canal: 2 } : {}
+    items.push({
+      IdAto: 900000 + i,
+      flg,
+      encontrado,
+      actual: encontrado
+        ? {
+            IdDomicilio: 10000 + i,
+            Data_Compra: "2026-08-15",
+            IdArtigo: 5000 + i,
+            IdProduto: 700 + i,
+            IdCanal: 3,
+            Quantidade: 1,
+            Preco: 990 + i * 10,
+            VALUE_PM: 990 + i * 10,
+            FACTOR_RW1: 1,
+            ...(flg === "M" ? { Acceso_Canal: 1 } : {}),
+          }
+        : null,
+      cambios,
+    })
+  }
+  res.json({
+    upload_id: upload.upload_id,
+    pais: upload.pais,
+    tabla: upload.tabla,
+    total: items.length,
+    mostrados: items.length,
+    no_encontrados: items.filter((x) => !x.encontrado).length,
+    items,
+  })
 })
 
 function motivoCambioLabel(flgMotivo) {

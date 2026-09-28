@@ -183,6 +183,10 @@ export const MACROCAC_OPTIONAL_FIELDS: MacrocacField[] = [
   { key: "NewUnidadesPack", label: "Unidades por pack", aliases: ["NewUnidadesPack", "NewUnidadesPacks", "NewUnidades_Packs", "Unidades_packs", "Unidades_Packs", "UnidadesPack", "Nuevo_Unidades_Packs"] },
   { key: "NewForma_Compra", label: "Forma de compra", aliases: ["NewForma_Compra", "NewFormaCompra", "NewIdFCompra", "FORMA_COMPRA", "FormaCompra", "Forma_Compra", "Nuevo_IdFCompra"] },
   { key: "NewIdCanal", label: "Canal", aliases: ["NewIdCanal", "IdCanal", "Nuevo_IdCanal"] },
+  // QA 2026-09 (Jorge): faltaban en la plantilla. El motor ya los leía
+  // (core.py, bloque de campos enteros); Acceso_Canal entra al IdVenue.
+  { key: "NewAcceso_Canal", label: "Acceso del canal", aliases: ["NewAcceso_Canal", "NewIdAcceso", "Acceso_Canal", "Acceso_canal", "Nuevo_IdAcceso"] },
+  { key: "NewForma_Pagto", label: "Forma de pago", aliases: ["NewForma_Pagto", "NewIdFPagto", "Forma_Pagto", "Forma_pagto", "Nuevo_IdFPagto"] },
   { key: "NewIdArtigo", label: "Artículo", aliases: ["NewIdArtigo", "IdArtigo", "Nuevo_IdArtigo"] },
   { key: "NewIdPromocao", label: "Promoción", aliases: ["NewIdPromocao", "NewidPromocao", "IdPromocao", "idPromocao", "Nuevo_IdPromocao"] },
   { key: "NewDataCompra", label: "Fecha de compra", aliases: ["NewDataCompra", "NewData_Compra", "Data_Compra", "Nueva_Data_Compra"] },
@@ -301,6 +305,40 @@ export interface MacrocacUpload {
   filas_sin_motivo: number
   /** Filas que traen su propio `Motivo_Otros` (el detalle del formulario no las toca). */
   filas_con_auxiliar: number
+}
+
+/**
+ * Vista previa del lote (`GET /macrocac/uploads/{id}/vista-previa`): cómo están
+ * HOY en la tabla destino los actos que el Excel va a tocar, junto al valor
+ * pedido. Solo lectura; los recálculos (COEF, VALUE_PM, Semana…) los hace el
+ * motor al aplicar y quedan en el reporte.
+ */
+export interface MacrocacVistaPreviaItem {
+  IdAto: number
+  /** M / E / X, tal como viene en el Excel. */
+  flg: string
+  /** False: el IdAto no existe en la tabla destino (el motor lo rechazará). */
+  encontrado: boolean
+  /** Columna de la tabla → valor actual. `null` si no se encontró. */
+  actual: Record<string, string | number | null> | null
+  /** Columna de la tabla → valor pedido por el Excel (solo celdas no vacías). */
+  cambios: Record<string, string | number | null>
+}
+
+export interface MacrocacVistaPrevia {
+  upload_id: string
+  pais: string
+  tabla: string
+  total: number
+  /** El backend consulta como máximo los primeros N actos del lote. */
+  mostrados: number
+  no_encontrados: number
+  items: MacrocacVistaPreviaItem[]
+}
+
+export interface MacrocacVistaPreviaError {
+  error: "not_found" | "sql_not_configured" | "vista_previa_no_disponible" | "bad_request"
+  message: string
 }
 
 /** Estados terminales del run: dejan de pollear y habilitan (o no) la descarga. */

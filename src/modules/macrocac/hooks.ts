@@ -8,6 +8,7 @@ import {
   getMacrocacRun,
   getMotivos,
   getTablas,
+  getVistaPrevia,
   uploadMacrocacFile,
 } from "./api"
 import { isTerminal } from "./types"
@@ -93,6 +94,22 @@ export function useTablas(pais: string) {
     // Sin reintento: los errores posibles son configuración (patrones rotos) o
     // SQL caído, y ninguno se arregla solo en un segundo. Vale más mostrar el
     // problema rápido; react-query reintenta igual al remontar o refocalizar.
+    retry: false,
+  })
+}
+
+/**
+ * Vista previa de los actos del lote. Se pide recién cuando el usuario la abre
+ * (`enabled`): cruza al SQL on-prem y no tiene sentido pagarla en cada subida.
+ * Sin caché larga: el punto es ver el estado de AHORA, justo antes de aplicar.
+ */
+export function useVistaPrevia(uploadId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["macrocac", "vista-previa", uploadId],
+    queryFn: () => getVistaPrevia(uploadId as string),
+    enabled: enabled && uploadId !== null,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
     retry: false,
   })
 }

@@ -12,6 +12,8 @@ import type {
   MacrocacTablasError,
   MacrocacUpload,
   MacrocacUploadError,
+  MacrocacVistaPrevia,
+  MacrocacVistaPreviaError,
 } from "./types"
 
 /**
@@ -50,6 +52,15 @@ export async function uploadMacrocacFile(params: {
   })
   if (response.status === 201) return response.data as MacrocacUpload
   throw new MacrocacApiError<MacrocacUploadError>(response.status, response.data)
+}
+
+/** Estado actual de los actos del lote, antes de aplicar (solo lectura). */
+export async function getVistaPrevia(uploadId: string): Promise<MacrocacVistaPrevia> {
+  const response = await api.get(`/macrocac/uploads/${uploadId}/vista-previa`, {
+    validateStatus: () => true,
+  })
+  if (response.status === 200) return response.data as MacrocacVistaPrevia
+  throw new MacrocacApiError<MacrocacVistaPreviaError>(response.status, response.data)
 }
 
 /** Trigger an execution against a previously uploaded correction file. */
