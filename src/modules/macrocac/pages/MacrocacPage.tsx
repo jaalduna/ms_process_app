@@ -869,10 +869,12 @@ function VistaPrevia({ uploadId }: { uploadId: string }) {
                     <tr>
                       <th className="px-2 py-1 font-medium">IdAto</th>
                       <th className="px-2 py-1 font-medium">Acción</th>
+                      {/* Cambios va antes del contexto: es lo que hay que revisar,
+                          y la tabla no cabe entera en el ancho de la tarjeta. */}
+                      <th className="px-2 py-1 font-medium">Cambios</th>
                       {CONTEXTO_VISTA.map((c) => (
                         <th key={c.col} className="px-2 py-1 font-medium">{c.label}</th>
                       ))}
-                      <th className="px-2 py-1 font-medium">Cambios</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -909,14 +911,11 @@ function FilaVistaPrevia({ item }: { item: MacrocacVistaPreviaItem }) {
     <tr className="border-t border-border align-top" data-testid="macrocac-vista-previa-fila">
       <td className="px-2 py-1 font-mono">{item.IdAto}</td>
       <td className="px-2 py-1">{accion}</td>
-      {CONTEXTO_VISTA.map((c) => (
-        <td key={c.col} className="px-2 py-1 font-mono whitespace-nowrap">{fmt(actual[c.col])}</td>
-      ))}
       <td className="px-2 py-1">
         {item.flg === "E" ? (
           <span className="text-destructive">Se borra el acto</span>
         ) : item.flg === "X" ? (
-          <span>FACTOR_RW1: {fmt(actual.FACTOR_RW1)} → 0</span>
+          <span className="whitespace-nowrap">FACTOR_RW1: {fmt(actual.FACTOR_RW1)} → 0</span>
         ) : cambios.length === 0 ? (
           <span className="text-muted-foreground">Sin cambios</span>
         ) : (
@@ -931,6 +930,9 @@ function FilaVistaPrevia({ item }: { item: MacrocacVistaPreviaItem }) {
           </ul>
         )}
       </td>
+      {CONTEXTO_VISTA.map((c) => (
+        <td key={c.col} className="px-2 py-1 font-mono whitespace-nowrap">{fmt(actual[c.col])}</td>
+      ))}
     </tr>
   )
 }
