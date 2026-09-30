@@ -36,8 +36,20 @@ describe("module role gating (JAA-773): admin-only modules", () => {
     adminModule,
   ]
 
-  it.each(ADMIN_ONLY)("declares requiredRoles: [admin] ($id)", (m) => {
-    expect(m.requiredRoles).toEqual(["admin"])
+  // Módulos que además aceptan su rol de especialista (el resto sigue admin-only).
+  const ROLES_ESPECIALISTA: Record<string, string[]> = {
+    qmstr: ["admin", "qmstr_specialist", "qms_tr_specialist"], // JAA-1401
+    macrocac: ["macrocac_specialist"], // a0f8569: el sidebar acepta macrocac_specialist
+  }
+
+  it.each(ADMIN_ONLY)("declares requiredRoles ($id)", (m) => {
+    expect(m.requiredRoles).toEqual(ROLES_ESPECIALISTA[m.id] ?? ["admin"])
+  })
+
+  it.each(Object.entries(ROLES_ESPECIALISTA))("shows %s for its specialist role", (id, roles) => {
+    const m = ADMIN_ONLY.find((x) => x.id === id)!
+    const especialista = roles.find((r) => r !== "admin")!
+    expect(hasModuleAccess(m, [especialista])).toBe(true)
   })
 
   it.each(ADMIN_ONLY)("hides $id for a user with no roles", (m) => {

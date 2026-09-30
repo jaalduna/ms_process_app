@@ -25,7 +25,6 @@ import type { EligibilityFile, EligibilityRun, EligibilityRunCreate } from "@/mo
 import type { PricesRun, PricesRunCreate } from "@/modules/precios/types"
 import type { WeightingRun, WeightingRunCreate } from "@/modules/pesaje/types"
 import type { MtrRun, MtrRunCreate } from "@/modules/mtr/types"
-import type { QmsTrRun, QmsTrRunCreate } from "@/modules/qmstr/types"
 import type { Formato4Run, Formato4RunCreate } from "@/modules/formato4/types"
 import type { TagListResponse, TagFilters } from "@/modules/trazabilidad/types"
 import type {
@@ -483,53 +482,7 @@ export function cancelMtr(runId: string) {
   return api.post<MtrRun>(`/mtr/runs/${runId}/cancel`).then((r) => r.data)
 }
 
-// -- QMS-TR (JAA-987: own job_id/tag model, NOT the MTR run_id model above) --
-
-export function getQmsTrRuns(params?: {
-  country?: string
-  ano_base?: number
-  status?: string
-  limit?: number
-  offset?: number
-}) {
-  return api.get<{ items: QmsTrRun[]; total: number }>("/qms_tr/runs", { params }).then((r) => r.data)
-}
-
-export function getQmsTrRun(jobId: string) {
-  return api.get<QmsTrRun>(`/qms_tr/runs/${jobId}`).then((r) => r.data)
-}
-
-/** Creates a QMS-TR run in "pending" status -- does NOT start it (matches
- * calibración's create-pending -> execute-triggers model; see
- * executeQmsTrRun). Callers must chain executeQmsTrRun(run.run_id) on
- * success, same as the calibración/mtr create+execute pattern. */
-export function createQmsTrRun(data: QmsTrRunCreate) {
-  return api.post<QmsTrRun>("/qms_tr/runs", data).then((r) => r.data)
-}
-
-/** Triggers the just-created run's first Databricks job (silver_builder);
- * polling later auto-advances to kpis_batch once silver succeeds (JAA-992). */
-export function executeQmsTrRun(runId: string) {
-  return api.post<QmsTrRun>(`/qms_tr/runs/${runId}/execute`).then((r) => r.data)
-}
-
-// Blob GET + anchor-click + revokeObjectURL, mirroring downloadTagZip below.
-export async function downloadQmsTrTag(tag: string, country: string): Promise<void> {
-  const response = await api.get(`/qms_tr/${tag}/download`, {
-    params: { country },
-    responseType: "blob",
-  })
-  const url = URL.createObjectURL(new Blob([response.data]))
-  const a = document.createElement("a")
-  a.href = url
-  const disposition = response.headers["content-disposition"] ?? ""
-  const match = disposition.match(/filename="?([^";\n]+)"?/)
-  a.download = match?.[1] ?? `qms_tr_${tag}.zip`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
-}
+// QMS-TR: cliente propio en src/modules/qmstr/api.ts (JAA-1401).
 
 // -- Formato 4 --
 // Mirrors the MTR lifecycle (MTR-29). The mock-server formato4 routes (MTR-27)

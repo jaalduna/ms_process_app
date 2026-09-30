@@ -3,7 +3,7 @@ import { login } from "./helpers/auth"
 import { setModuleConfig, MOCK_API_BASE } from "./helpers/config"
 
 /**
- * Smoke coverage for the QMS-TR page (its own /qms_tr backed model as of
+ * Smoke coverage for the QMS-TR page (own /qms_tr model; JAA-1401 launch panel as of
  * JAA-987/JAA-988, no longer an MTR clone) at /qms-tr, the retained MTR page
  * (/mtr), and the PythonCac form (/macrocac, on-demand publish to
  * productive SQL tables). Nav-click navigation is used instead of page.goto
@@ -28,14 +28,15 @@ test.describe("QMS-TR / MTR / PythonCac", () => {
     await expect(nav.getByRole("link", { name: "PythonCac", exact: true })).toBeVisible()
   })
 
-  test("QMS-TR page renders a country grid under its own heading", { tag: "@smoke" }, async ({ page }) => {
+  test("QMS-TR page renders the launch panel under its own heading", { tag: "@smoke" }, async ({ page }) => {
     const nav = page.getByRole("navigation", { name: /main navigation/i })
     await nav.getByRole("link", { name: "QMS-TR", exact: true }).click()
     await expect(page).toHaveURL(/\/qms-tr$/, { timeout: 10_000 })
     await expect(page.getByRole("heading", { name: "QMS-TR", exact: true })).toBeVisible({ timeout: 10_000 })
-    // At least one country card with its own ano_base input + trigger button.
-    await expect(page.getByRole("button", { name: /^Ejecutar$/ }).first()).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByLabel("Año base").first()).toBeVisible()
+    // JAA-1401: país + instante (hora de Chile) + mes de procesamiento, y el botón de ejecutar.
+    await expect(page.getByTestId("qmstr-country")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId("qmstr-instante")).toBeVisible()
+    await expect(page.getByTestId("qmstr-launch")).toBeVisible()
   })
 
   test("MTR page is still reachable at /mtr with its own heading", { tag: "@smoke" }, async ({ page }) => {
