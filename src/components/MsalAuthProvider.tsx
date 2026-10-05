@@ -6,6 +6,7 @@ import { apiScopeConfigured, msalConfig, loginRequest } from "@/lib/auth-config"
 import { AuthContext } from "@/hooks/useAuth"
 import { ApiTokenBinder } from "@/components/ApiTokenBinder"
 import { api } from "@/lib/api"
+import { adquirirBearer } from "@/lib/bearer-token"
 import type { UserInfo } from "@/types/api"
 
 const msalInstance = new PublicClientApplication(msalConfig)
@@ -35,10 +36,10 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
     let cancelled = false
     ;(async () => {
       try {
-        const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account })
+        const bearer = await adquirirBearer(instance, { ...loginRequest, account }, apiScopeConfigured)
         const info = await api
           .get<UserInfo>("/auth/me", {
-            headers: { Authorization: `Bearer ${bearerDe(tokenResponse)}` },
+            headers: { Authorization: `Bearer ${bearer}` },
           })
           .then((r) => r.data)
         if (!cancelled) setUserInfo({ roles: info.roles, countries: info.countries })
@@ -70,8 +71,7 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
   const getAccessToken = useCallback(async (): Promise<string> => {
     if (!account) throw new Error("No authenticated account")
     try {
-      const response = await instance.acquireTokenSilent({ ...loginRequest, account })
-      return bearerDe(response)
+      return await adquirirBearer(instance, { ...loginRequest, account }, apiScopeConfigured)
     } catch {
       // acquireTokenRedirect navega fuera de la página y devuelve void: no hay
       // token que retornar, la sesión se rearma cuando el navegador vuelve.
@@ -117,20 +117,6 @@ function MsalAuthInner({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-/** Los dos tokens que devuelve MSAL; sólo interesa cuál se manda al backend. */
-type TokenPair = { accessToken: string; idToken: string }
-
-/**
- * Qué token va en el header Authorization.
- *
- * Sin scope de API configurado el access token de MSAL es para Graph y la API lo
- * rechaza ("Signature verification failed"); el ID token, en cambio, viene con
- * `aud` = el client id que la API valida. Ver `apiScopeConfigured`.
- */
-function bearerDe(t: TokenPair): string {
-  return apiScopeConfigured ? t.accessToken : (t.idToken ?? "")
 }
 
 export function MsalAuthProvider({ children }: { children: React.ReactNode }) {

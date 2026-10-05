@@ -1,0 +1,27 @@
+{
+  "ticket": "JAA-790",
+  "linear_url": "https://linear.app/jaalduna/issue/JAA-790/frontend-boton-descargar-excel-templateactual-en-universotab",
+  "title": "[frontend] Botón Descargar Excel (template/actual) en UniversoTab",
+  "archetype": "webapp",
+  "branch": "feat/JAA-790-universo-excel-download",
+  "base": "ado/develop",
+  "mode": "direct",
+  "goal": "Add a 'Descargar Excel' button + valores-actuales/template toggle to UniversoTab (mirroring JAA-628's ParamsExcelToolbar pattern), backed by a new downloadUniversoExcel(pais, template) client fn hitting GET /weighting/params/{pais}/universo/export.xlsx, with a mock-server contract route so it's testable without the JAA-789 real backend.",
+  "acceptance_criteria": [
+    {"id": "ac1", "criterion": "UniversoTab renders a 'Descargar Excel' button (data-testid=download-excel-btn) next to the existing 'Actualizar desde Excel' button, plus a toggle (data-testid=download-template-toggle) for valores actuales vs template vacío.", "how_to_verify": "vitest UniversoTab.test.tsx renders both buttons + toggle"},
+    {"id": "ac2", "criterion": "Clicking Descargar Excel calls downloadUniversoExcel(pais, template) which GETs /weighting/params/{pais}/universo/export.xlsx as a blob with ?template reflecting the toggle state, and triggers a browser download (anchor-click pattern, same as downloadParamsExcel/downloadFormato4).", "how_to_verify": "vitest mocks api.get and asserts the URL/params + that a download is triggered (createObjectURL/anchor click called)"},
+    {"id": "ac3", "criterion": "mock-server serves GET /weighting/params/:pais/universo/export.xlsx (and ?template=true) returning a valid minimal xlsx with columns Categoria,Expresion,Jerarquia,Secuencia,Marginales + at least one period column, reusing the existing universo fixture rows for the non-template case.", "how_to_verify": "curl http://localhost:8000/api/v1/weighting/params/chile/universo/export.xlsx (and ?template=true) returns 200 with an xlsx content-type/body"},
+    {"id": "ac4", "criterion": "npm run test && npm run lint && npx tsc -b && npm run build all green.", "how_to_verify": "run VERIFY_CMD"}
+  ],
+  "tasks": [
+    {"id": "t1", "desc": "Add downloadUniversoExcel(pais, template) to src/modules/pesaje/params/api.ts (blob GET + anchor-click, same pattern as downloadParamsExcel).", "status": "complete"},
+    {"id": "t2", "desc": "Add 'Descargar Excel' button + template toggle to UniversoTab.tsx next to 'Actualizar desde Excel'.", "status": "complete"},
+    {"id": "t3", "desc": "Add mock-server route for GET /weighting/params/:pais/universo/export.xlsx (+ ?template=true) generating a minimal valid xlsx from the universo fixture.", "status": "complete"},
+    {"id": "t4", "desc": "Write/extend UniversoTab test coverage for ac1/ac2.", "status": "complete"},
+    {"id": "t5", "desc": "Run VERIFY_CMD.", "status": "complete"},
+    {"id": "t6", "desc": "Separate skeptical evaluator (sonnet).", "status": "complete"},
+    {"id": "t7", "desc": "Commit, push, PR to develop with auto-complete armed.", "status": "complete"}
+  ],
+  "out_of_scope": "The real ms-process-api export.xlsx endpoint (JAA-789, separate repo/session). Changes to the existing upload wizard (JAA-583) or publish flow.",
+  "status": "in_review"
+}
