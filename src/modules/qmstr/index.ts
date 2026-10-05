@@ -1,13 +1,12 @@
 import { lazy } from "react"
 import type { ModuleDefinition } from "../types"
 
-// QMS-TR shares the MTR implementation for now; the two pages are expected to
-// diverge later, so this module keeps its own copy of the components/hooks.
+// QMS-TR (JAA-1401): país + instante -> snapshot de J -> job qms_tr_run (motor v6q) -> zip -> validación en J.
 export const qmstrModule: ModuleDefinition = {
   id: "qmstr",
   label: "QMS-TR",
   group: "pipeline",
-  requiredRoles: ["admin"],
+  requiredRoles: ["admin", "qmstr_specialist", "qms_tr_specialist"],
   navItems: [{ path: "/qms-tr", label: "QMS-TR" }],
   routes: [{ path: "/qms-tr", component: lazy(() => import("./pages/QmsTrPage").then(m => ({ default: m.QmsTrPage }))) }],
 }

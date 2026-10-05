@@ -1,76 +1,135 @@
-export type QmsTrStatus = "pending" | "running" | "completed" | "failed" | "cancelled"
+/**
+ * QMS-TR (JAA-1401): contrato con ms-process-api `routes/qms_tr.py` (JAA-1400).
+ *
+ * El usuario elige país + instante; la API resuelve el snapshot de J siguiente a ese instante y
+ * dispara el job `qms_tr_run` (repo mtr) con las versiones fijadas. Si el snapshot todavía no existe
+ * la corrida queda en `waiting_snapshot` y parte sola cuando el CDC horario lo produce.
+ */
 
-/** Statuses where the pipeline is actively processing (excludes "pending" which is pre-execution). */
-export const QMSTR_ACTIVE_STATUSES: QmsTrStatus[] = ["running"]
+export type QmsTrStatus = "waiting_snapshot" | "pending" | "running" | "completed" | "failed" | "cancelled"
 
-/** Statuses that should trigger polling (includes "pending" since it transitions to "running"). */
-export const QMSTR_POLL_STATUSES: QmsTrStatus[] = ["pending", "running"]
-
-export const QMSTR_STATUS_CONFIG: Record<
-  QmsTrStatus,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string }
-> = {
-  pending: { label: "Pendiente", variant: "outline", className: "" },
-  running: { label: "Ejecutando...", variant: "default", className: "bg-blue-500 hover:bg-blue-500/80" },
-  completed: { label: "Completado", variant: "default", className: "bg-green-600 hover:bg-green-600/80" },
-  failed: { label: "Error", variant: "destructive", className: "" },
-  cancelled: { label: "Cancelado", variant: "secondary", className: "" },
-}
-
-/** Step-level status label, distinct from run-level QMSTR_STATUS_CONFIG:
- * "cancelled" at the step level means the step was SKIPPED (JAA-1002's
- * run_sync sync-gate when skip_sync=true), not that the run was cancelled --
- * "Omitido" avoids conflating the two in the progress/detail UI. */
-export const QMSTR_STEP_STATUS_LABELS: Record<string, string> = {
-  pending: "Pendiente",
-  running: "Ejecutando",
-  completed: "Completado",
-  failed: "Error",
-  cancelled: "Omitido",
-}
-
-/** Status of a single QMS-TR pipeline step. `name` is a free-form value
- * returned by the engine -- there is no fixed 4-step enum (that was an MTR
- * assumption that does not hold for the real qms_tr engine). */
 export interface QmsTrStep {
   name: string
   status: string
-  started_at?: string | null
-  completed_at?: string | null
-  error?: string | null
+  started_at: string | null
+  completed_at: string | null
+  error: string | null
 }
 
-/** A single QMS-TR job. Keyed by `job_id` (not `run_id`/DB-record like MTR) --
- * same job_id/steps/tag model as calibración/sync. */
+export interface QmsTrSnapshotTabla {
+  table: string
+  table_fqn: string
+  version: number
+  timestamp: string
+}
+
+export interface QmsTrSnapshot {
+  status: "ready" | "waiting"
+  at: string
+  j: QmsTrSnapshotTabla | null
+  tables: QmsTrSnapshotTabla[]
+  expected_j_at: string | null
+  warnings: string[]
+}
+
+export type QmsTrResultado = "aplicado" | "pendiente" | "distinto"
+
+export interface QmsTrValidacionFila {
+  sheet: string
+  id_ato: number
+  id_produto: number | null
+  variable: string | null
+  esperado: number | string | null
+  actual: number | string | null
+  anterior: number | string | null
+  resultado: QmsTrResultado
+}
+
+export interface QmsTrValidacionHoja {
+  total: number
+  checked: number
+  applied: number
+  pending: number
+  mismatched: number
+}
+
+export interface QmsTrValidacion {
+  status: "aplicado" | "parcial" | "no_aplicado"
+  validated_at: string
+  validated_by: string | null
+  checked: number
+  applied: number
+  pending: number
+  mismatched: number
+  by_sheet: Record<string, QmsTrValidacionHoja>
+  rows: QmsTrValidacionFila[]
+}
+
 export interface QmsTrRun {
-  job_id: string
+  run_id: string
   country: string
-  ano_base: number
-  /** Whether the run_sync sync-gate step was skipped (JAA-1002); default true
-   * server-side, same default as calibración's skip_sync. */
-  skip_sync: boolean
+  at: string
+  mes_procesamiento: string
+  productos: number[]
   status: QmsTrStatus
+  current_step: string | null
   steps: QmsTrStep[]
-  /** Set once the job produces a downloadable result; feeds GET /qms_tr/{tag}/download. */
-  tag?: string | null
-  started_at?: string | null
-  completed_at?: string | null
+  snapshot: QmsTrSnapshot | null
+  run_tag: string | null
+  databricks_run_id: string | null
+  run_page_url: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_by: string | null
   created_at: string
   updated_at: string
-  error_message?: string | null
+  error_message: string | null
+  validacion: QmsTrValidacion | null
 }
 
-/** Request body for creating (and starting) a new QMS-TR job. `ano_base` is the
- * only per-run parameter confirmed against the reference pipeline (v2.py) --
- * see docs/design/mockups/qms-tr-historias-usuario.md. `parameters` is kept
- * open-ended for the deferred "Avanzado" periodic-calibration section, not
- * used by this iteration. */
 export interface QmsTrRunCreate {
   country: string
-  ano_base: number
-  /** Skip the SQL->bronze sync (run_sync). Defaults to true server-side
-   * (JAA-1002) -- omit to accept the backend default, same as calibración's
-   * skip_sync. */
-  skip_sync?: boolean
-  parameters?: Record<string, unknown>
+  /** ISO 8601 con zona horaria */
+  at: string
+  /** AAAAMM */
+  mes_procesamiento: string
+  productos?: number[]
 }
+
+export const ACTIVE_STATUSES: QmsTrStatus[] = ["waiting_snapshot", "pending", "running"]
+
+/** Nombres de los pasos del job qms_tr_run (task_keys). Desconocidos se muestran tal cual. */
+export const STEP_LABELS: Record<string, string> = {
+  silver_builder: "Silver",
+  panelistas: "Panelistas",
+  prep: "Preparación",
+  motor_grandes: "Motor (productos grandes)",
+  motor_normales: "Motor",
+  entrega: "Entregable",
+}
+
+export function qmsTrStepLabel(name: string): string {
+  return STEP_LABELS[name] ?? name
+}
+
+/** Hojas del entregable de Data Quality, en el orden del xlsx (slug de la API -> etiqueta). */
+export const SHEET_LABELS: Record<string, string> = {
+  imputaciones: "Imputaciones",
+  cantidad_envasados: "Cantidad envasados",
+  factores: "Factores",
+  exclusiones: "Exclusiones",
+}
+
+/** Países con motor QMS-TR (claves de ADAPTERS en el repo mtr). */
+export const QMSTR_COUNTRIES = ["bolivia", "brasil", "cam", "chile", "colombia", "ecuador", "mexico", "peru"]
+
+/** Etiqueta y color del estado de una corrida. */
+export const STATUS_META: Record<string, { label: string; className: string }> = {
+  waiting_snapshot: { label: "Esperando snapshot", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400" },
+  pending: { label: "En cola", className: "bg-muted text-muted-foreground" },
+  running: { label: "Ejecutando", className: "bg-primary/15 text-primary" },
+  completed: { label: "Completado", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" },
+  failed: { label: "Error", className: "bg-destructive/15 text-destructive" },
+  cancelled: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
+}
+

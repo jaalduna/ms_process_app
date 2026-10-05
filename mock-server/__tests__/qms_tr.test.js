@@ -2,16 +2,17 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import express from "express"
 import qmsTrRouter, { resetQmsTrJobs } from "../routes/qms_tr.js"
 
-// JAA-986: QMS-TR mock route, modeled on sync.js's job_id/steps/download
-// pattern (NOT mtr.js's run_id/RunStore pattern) so the future frontend can
-// be built against the same job_id-shaped contract sync.js already exposes.
-describe("QMS-TR API (mock-server, JAA-986)", () => {
+// JAA-1401: mock del contrato QMS-TR de ms-process-api (JAA-1400).
+describe("QMS-TR API (mock-server, JAA-1401)", () => {
   let server
   let baseUrl
-  const ORIG_INTERVAL = process.env.MOCK_STEP_INTERVAL_MS
+  const ORIG = { step: process.env.MOCK_STEP_INTERVAL_MS, wait: process.env.MOCK_QMSTR_WAIT_MS }
+  const PASADO = "2026-09-11T11:00:00Z"
+  const FUTURO = new Date(Date.now() + 3 * 24 * 3_600_000).toISOString()
 
   beforeAll(async () => {
     process.env.MOCK_STEP_INTERVAL_MS = "20"
+    process.env.MOCK_QMSTR_WAIT_MS = "60"
     const app = express()
     app.use(express.json())
     app.use("/api/v1", qmsTrRouter)
@@ -23,164 +24,90 @@ describe("QMS-TR API (mock-server, JAA-986)", () => {
     })
   })
 
-  afterEach(() => {
-    resetQmsTrJobs()
-  })
+  afterEach(() => resetQmsTrJobs())
 
   afterAll(async () => {
-    if (ORIG_INTERVAL === undefined) delete process.env.MOCK_STEP_INTERVAL_MS
-    else process.env.MOCK_STEP_INTERVAL_MS = ORIG_INTERVAL
+    for (const [k, v] of [["MOCK_STEP_INTERVAL_MS", ORIG.step], ["MOCK_QMSTR_WAIT_MS", ORIG.wait]]) {
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
     await new Promise((resolve) => server.close(resolve))
   })
 
-  async function waitForStatus(jobId, statuses, { timeoutMs = 3000, intervalMs = 15 } = {}) {
+  const post = (path, body) =>
+    fetch(`${baseUrl}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) })
+
+  async function esperar(runId, estados, timeoutMs = 3000) {
     const deadline = Date.now() + timeoutMs
-    let last
+    let run
     while (Date.now() < deadline) {
-      const res = await fetch(`${baseUrl}/qms_tr/runs/${jobId}`)
-      last = await res.json()
-      if (statuses.includes(last.status)) return last
-      await new Promise((r) => setTimeout(r, intervalMs))
+      run = await (await fetch(`${baseUrl}/qms_tr/runs/${runId}`)).json()
+      if (estados.includes(run.status)) return run
+      await new Promise((r) => setTimeout(r, 15))
     }
-    throw new Error(`Timed out waiting for status in [${statuses}], last=${JSON.stringify(last)}`)
+    throw new Error(`timeout esperando ${estados}; último ${run?.status}`)
   }
 
-  it("ac1: POST /qms_tr/runs creates a run for a country + ano_base with a synthetic job_id and step scaffold", async () => {
-    const res = await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil", ano_base: 2025 }),
-    })
-    expect(res.status).toBe(201)
-    const body = await res.json()
-    expect(body.job_id).toBeTruthy()
-    expect(body.country).toBe("brasil")
-    expect(body.ano_base).toBe(2025)
-    expect(body.steps.map((s) => s.name)).toEqual([
-      "run_sync", "run_bronze_copy", "silver_builder", "kpis_batch", "export_zip",
-    ])
+  it("resuelve el snapshot de J de un instante pasado", async () => {
+    const r = await fetch(`${baseUrl}/qms_tr/snapshots/resolve?country=colombia&at=${encodeURIComponent(PASADO)}`)
+    const s = await r.json()
+    expect(s.status).toBe("ready")
+    expect(new Date(s.j.timestamp).getTime()).toBeGreaterThanOrEqual(new Date(PASADO).getTime())
+    expect(s.tables.length).toBeGreaterThan(1)
   })
 
-  // ------------------------------------------------------------------- JAA-1003 skip_sync
-  it("JAA-1003: skip_sync defaults to true, and run_sync is immediately 'cancelled' (skipped)", async () => {
-    const res = await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil", ano_base: 2025 }),
-    })
-    const body = await res.json()
-    expect(body.skip_sync).toBe(true)
-    const runSync = body.steps.find((s) => s.name === "run_sync")
-    expect(runSync.status).toBe("cancelled")
-    const bronzeCopy = body.steps.find((s) => s.name === "run_bronze_copy")
-    expect(bronzeCopy.status).toBe("running")
+  it("un instante futuro queda en espera con el ciclo esperado", async () => {
+    const s = await (await fetch(`${baseUrl}/qms_tr/snapshots/resolve?country=colombia&at=${encodeURIComponent(FUTURO)}`)).json()
+    expect(s.status).toBe("waiting")
+    expect(new Date(s.expected_j_at).getTime()).toBeGreaterThanOrEqual(new Date(FUTURO).getTime())
   })
 
-  it("JAA-1003: skip_sync=false runs run_sync normally instead of skipping it", async () => {
-    const res = await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil", ano_base: 2025, skip_sync: false }),
-    })
-    const body = await res.json()
-    expect(body.skip_sync).toBe(false)
-    const runSync = body.steps.find((s) => s.name === "run_sync")
-    expect(runSync.status).toBe("running")
-    const bronzeCopy = body.steps.find((s) => s.name === "run_bronze_copy")
-    expect(bronzeCopy.status).toBe("pending")
+  it("rechaza instantes sin zona horaria", async () => {
+    const r = await fetch(`${baseUrl}/qms_tr/snapshots/resolve?country=colombia&at=2026-09-11T11:00`)
+    expect(r.status).toBe(422)
   })
 
-  it("JAA-1003: skip_sync=false still reaches completed with run_sync marked completed (not cancelled)", async () => {
-    const createRes = await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil", ano_base: 2025, skip_sync: false, force_outcome: "pass" }),
-    })
-    const { job_id } = await createRes.json()
+  it("corrida completa: pasos en orden, rama de grandes omitida, descarga y validación", async () => {
+    const r = await post("/qms_tr/runs", { country: "colombia", at: PASADO, mes_procesamiento: "202608", force_outcome: "pass" })
+    expect(r.status).toBe(201)
+    const creada = await r.json()
+    expect(creada.status).toBe("running")
+    const run = await esperar(creada.run_id, ["completed"])
+    expect(run.steps.map((s) => s.name)).toEqual(["silver_builder", "panelistas", "prep", "motor_grandes", "motor_normales", "entrega"])
+    expect(run.steps.find((s) => s.name === "motor_grandes").status).toBe("cancelled")
+    expect(run.run_page_url).toContain("/run/")
 
-    const final = await waitForStatus(job_id, ["completed"])
-    const runSync = final.steps.find((s) => s.name === "run_sync")
-    expect(runSync.status).toBe("completed")
+    const { url } = await (await fetch(`${baseUrl}/qms_tr/runs/${run.run_id}/download-url`)).json()
+    const zip = await fetch(`http://localhost:${server.address().port}${url}`)
+    expect(zip.status).toBe(200)
+    expect(zip.headers.get("content-disposition")).toContain(`qms_tr_colombia_${run.run_tag}.zip`)
+
+    const v = await (await post(`/qms_tr/runs/${run.run_id}/validate`)).json()
+    expect(v.validacion.by_sheet.factores.pending).toBe(1)
   })
 
-  it("POST /qms_tr/runs 400s when country or ano_base is missing", async () => {
-    const res = await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil" }),
-    })
-    expect(res.status).toBe(400)
+  it("instante futuro: waiting_snapshot y luego parte sola", async () => {
+    const creada = await (await post("/qms_tr/runs", { country: "brasil", at: FUTURO, mes_procesamiento: "202608" })).json()
+    expect(creada.status).toBe("waiting_snapshot")
+    const run = await esperar(creada.run_id, ["running", "completed"])
+    expect(run.snapshot.status).toBe("ready")
   })
 
-  it("ac2: GET /qms_tr/runs/{id} advances steps over time until completed", async () => {
-    const createRes = await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil", ano_base: 2025, force_outcome: "pass" }),
-    })
-    const { job_id } = await createRes.json()
-
-    const final = await waitForStatus(job_id, ["completed"])
-    // run_sync stays "cancelled" (skip_sync defaults true) even on overall
-    // pipeline completion; every other step reaches "completed".
-    expect(final.steps.map((s) => s.status)).toEqual(["cancelled", "completed", "completed", "completed", "completed"])
-    expect(final.current_step).toBeNull()
+  it("409 con otra corrida activa del mismo país y mes", async () => {
+    const primera = await (await post("/qms_tr/runs", { country: "chile", at: PASADO, mes_procesamiento: "202608" })).json()
+    const r = await post("/qms_tr/runs", { country: "chile", at: PASADO, mes_procesamiento: "202608" })
+    expect(r.status).toBe(409)
+    expect((await r.json()).run_id).toBe(primera.run_id)
   })
 
-  it("ac3: download 409s before completion and 200s with an attachment after", async () => {
-    const createRes = await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil", ano_base: 2025, force_outcome: "pass" }),
-    })
-    const { job_id, tag } = await createRes.json()
-
-    const earlyRes = await fetch(`${baseUrl}/qms_tr/${job_id}/download`)
-    expect(earlyRes.status).toBe(409)
-
-    await waitForStatus(job_id, ["completed"])
-
-    const byId = await fetch(`${baseUrl}/qms_tr/${job_id}/download`)
-    expect(byId.status).toBe(200)
-    expect(byId.headers.get("content-disposition")).toMatch(/attachment/)
-
-    const byTag = await fetch(`${baseUrl}/qms_tr/${tag}/download`)
-    expect(byTag.status).toBe(200)
+  it("descarga antes de terminar es 409", async () => {
+    const creada = await (await post("/qms_tr/runs", { country: "peru", at: FUTURO, mes_procesamiento: "202608" })).json()
+    expect((await fetch(`${baseUrl}/qms_tr/runs/${creada.run_id}/download-url`)).status).toBe(409)
   })
 
-  it("ac4: GET /qms_tr/runs?country=... filters the list/history", async () => {
-    await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil", ano_base: 2025 }),
-    })
-    await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "chile", ano_base: 2025 }),
-    })
-
-    const res = await fetch(`${baseUrl}/qms_tr/runs?country=brasil`)
-    const body = await res.json()
-    expect(body.items.length).toBeGreaterThan(0)
-    expect(body.items.every((j) => j.country === "brasil")).toBe(true)
-  })
-
-  it("ac5: force_outcome=fail deterministically fails a step and surfaces the error", async () => {
-    const createRes = await fetch(`${baseUrl}/qms_tr/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: "brasil", ano_base: 2025, force_outcome: "fail" }),
-    })
-    const { job_id } = await createRes.json()
-
-    const final = await waitForStatus(job_id, ["failed"])
-    expect(final.error_message).toBeTruthy()
-    expect(final.steps.some((s) => s.status === "failed")).toBe(true)
-  })
-
-  it("GET /qms_tr/runs/{id} 404s for an unknown id", async () => {
-    const res = await fetch(`${baseUrl}/qms_tr/runs/does-not-exist`)
-    expect(res.status).toBe(404)
+  it("cancelar una corrida en espera", async () => {
+    const creada = await (await post("/qms_tr/runs", { country: "ecuador", at: FUTURO, mes_procesamiento: "202608" })).json()
+    const c = await (await post(`/qms_tr/runs/${creada.run_id}/cancel`)).json()
+    expect(c.status).toBe("cancelled")
   })
 })
