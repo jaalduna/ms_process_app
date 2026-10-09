@@ -166,7 +166,7 @@ function correo(t, tipo, at = isoNow()) {
   const reversion = t.tipo === "reversion"
   // Como la API (orquestador._asunto): en simulación no se lee el buzón, así que el pase a MTR sale
   // siempre como correo nuevo; en modo real responde a todos en el hilo de la liberación metodológica.
-  const enHilo = tipo === "pase_mtr" && MODO() === "real"
+  const enHilo = (tipo === "pase_mtr" || tipo === "reversion_aplicada") && MODO() === "real"
   const que = tipo === "resultados" ? (reversion ? "reversión" : "resultados") : reversion ? "reversión aplicada" : "pase a MTR"
   const asunto = enHilo
     ? `RE: [${p.cod_asunto} - ${t.periodo}] Liberación Metodológica`
@@ -269,7 +269,7 @@ function avanzar(t) {
         mover(t, "cerrada", MODO() === "simulacion"
           ? `hito 10 simulado: se habría ${verbo} en ${n} bases`
           : `hito 10 ${verbo} en ${n} bases`, at)
-        if (t.modo === "completo") correo(t, "pase_mtr", at)
+        if (t.modo === "completo") correo(t, t.tipo === "reversion" ? "reversion_aplicada" : "pase_mtr", at)
         t._sigEn = null
         return
       }
@@ -403,7 +403,7 @@ function sembrarEcuador() {
   })
   st.tandas.set(tr.id, tr)
   correo(tr, "resultados", chile(2026, 10, 4, 9, 24))
-  correo(tr, "pase_mtr", chile(2026, 10, 5, 12, 4))
+  correo(tr, "reversion_aplicada", chile(2026, 10, 5, 12, 4))
 
   // la que está corriendo ahora: 20 min de corrida, va en 35 %
   const [d3, h3] = rango("EC", g.t3)

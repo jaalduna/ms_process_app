@@ -5,7 +5,7 @@ import { formatChile } from "../../time"
 import type { FlujoCorreo, Tanda } from "../../types"
 import { Chip, Vacio } from "./piezas"
 
-const TIPO_LABEL = { resultados: "Resultados", pase_mtr: "Pase a MTR" } as const
+const TIPO_LABEL = { resultados: "Resultados", pase_mtr: "Pase a MTR", reversion_aplicada: "Reversión aplicada" } as const
 
 /** En simulación QMSTR_CORREO_PARA puede venir vacío: se dice, en vez de dejar el campo en blanco. */
 const SIN_DESTINATARIOS = "sin destinatarios configurados"

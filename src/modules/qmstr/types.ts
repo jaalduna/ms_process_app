@@ -289,6 +289,9 @@ export interface TandaCorreos {
   pase_mtr?: string
   pase_mtr_hilo?: string | null
   pase_mtr_enviado?: boolean
+  reversion_aplicada?: string
+  reversion_aplicada_hilo?: string | null
+  reversion_aplicada_enviado?: boolean
 }
 
 export interface TandaCreate {
@@ -335,7 +338,7 @@ export interface TandaProgreso {
   tareas: ProgresoTarea[]
 }
 
-export type TipoCorreo = "resultados" | "pase_mtr"
+export type TipoCorreo = "resultados" | "pase_mtr" | "reversion_aplicada"
 
 /** GET /qmstr_flujo/correos — bandeja (simulada o enviada). */
 export interface FlujoCorreo {
