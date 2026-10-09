@@ -209,7 +209,16 @@ export function QmsTrFlujoPage() {
           </div>
 
           {/* tablero */}
-          {bases.isLoading || !pais || !periodo ? (
+          {periodos.error ? (
+            <Vacio role="alert" icon={<AlertOctagon />} tono="var(--destructive)" titulo="No se pudieron leer los períodos"
+              accion={<Button variant="outline" onClick={() => periodos.refetch()}><RefreshCw /> Reintentar</Button>}>
+              {mensajeError(periodos.error)}
+            </Vacio>
+          ) : periodos.data && periodos.data.length === 0 ? (
+            <Vacio icon={<CalendarClock />} titulo={`Sin períodos con hitos para ${etiqueta?.etiqueta ?? pais}`}>
+              Todavía no hay hitos 3 ni 4 en los últimos períodos. Apenas DC libere, aparecen acá.
+            </Vacio>
+          ) : bases.isLoading || !pais || !periodo ? (
             <Skeleton className="h-72 w-full rounded-2xl" />
           ) : bases.error ? (
             <Vacio role="alert" icon={<AlertOctagon />} tono="var(--destructive)" titulo="No se pudieron leer las bases"
@@ -244,7 +253,8 @@ export function QmsTrFlujoPage() {
                 {tandas.isLoading ? (
                   <Skeleton className="h-64 w-full rounded-2xl" />
                 ) : tandas.error ? (
-                  <Vacio role="alert" icon={<AlertOctagon />} tono="var(--destructive)" titulo="No se pudieron leer las tandas">
+                  <Vacio role="alert" icon={<AlertOctagon />} tono="var(--destructive)" titulo="No se pudieron leer las tandas"
+                    accion={<Button variant="outline" onClick={() => tandas.refetch()}><RefreshCw /> Reintentar</Button>}>
                     {mensajeError(tandas.error)}
                   </Vacio>
                 ) : ordenadas.length === 0 ? (
@@ -276,7 +286,8 @@ export function QmsTrFlujoPage() {
 
               <TabsContent value="correos">
                 {correos.isLoading ? <Skeleton className="h-80 w-full rounded-2xl" /> : correos.error ? (
-                  <Vacio role="alert" icon={<AlertOctagon />} tono="var(--destructive)" titulo="No se pudo leer la bandeja">
+                  <Vacio role="alert" icon={<AlertOctagon />} tono="var(--destructive)" titulo="No se pudo leer la bandeja"
+                    accion={<Button variant="outline" onClick={() => correos.refetch()}><RefreshCw /> Reintentar</Button>}>
                     {mensajeError(correos.error)}
                   </Vacio>
                 ) : <BandejaCorreos correos={correos.data ?? []} tandas={tandas.data ?? []} />}

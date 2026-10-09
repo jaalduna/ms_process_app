@@ -57,6 +57,19 @@ test.describe("Flujo QMS-TR", () => {
     await expect(page.getByTestId("qf-kpi-aplicadas")).toContainText("58")
   })
 
+  test("un país sin períodos legibles muestra el error con reintentar, no un esqueleto eterno", { tag: "@smoke" }, async ({ page }) => {
+    await abrir(page)
+    // navegación del lado del cliente (un goto duro pierde la sesión de dev)
+    await page.evaluate(() => {
+      history.pushState({}, "", `${location.pathname}?pais=XX`)
+      dispatchEvent(new PopStateEvent("popstate"))
+    })
+    const alerta = page.getByRole("alert").filter({ hasText: "No se pudieron leer los períodos" })
+    await expect(alerta).toBeVisible({ timeout: 15_000 })
+    await expect(alerta).toContainText("País no configurado")
+    await expect(alerta.getByRole("button", { name: /Reintentar/ })).toBeVisible()
+  })
+
   test("override: país, período y bases; advertencia sin hito 4 hasta forzar", { tag: "@smoke" }, async ({ page }) => {
     await abrir(page)
     await page.getByTestId("qf-lanzar").click()

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { useFlujoBases, useFlujoPeriodos } from "../../hooks/useQmsTrFlujo"
 import { formatChile } from "../../time"
 import type { EstadoBase, FlujoBase, FlujoPais, ModoTanda, TandaCreate } from "../../types"
-import { periodoLabel } from "./formato"
+import { mensajeError, periodoLabel } from "./formato"
 import { ChipBase } from "./piezas"
 
 /** Orden de la lista: primero las candidatas naturales (liberadas), al final las que no se pueden elegir. */
@@ -167,10 +167,14 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
                 className="pl-8" aria-label="Buscar bases" data-testid="qf-override-buscar" />
             </div>
             <div className="min-h-48 max-h-80 flex-1 overflow-y-auto rounded-xl border bg-card lg:max-h-none" data-testid="qf-override-bases">
-              {bases.isLoading || !periodo ? (
+              {periodos.error ? (
+                <p role="alert" className="p-4 text-sm text-destructive">No se pudieron leer los períodos de {etiquetaPais}: {mensajeError(periodos.error)}</p>
+              ) : periodos.data && periodos.data.length === 0 ? (
+                <p className="p-6 text-center text-sm text-muted-foreground">{etiquetaPais} no tiene períodos con hitos todavía.</p>
+              ) : bases.isLoading || !periodo ? (
                 <div className="space-y-2 p-3">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
               ) : bases.error ? (
-                <p role="alert" className="p-4 text-sm text-destructive">No se pudieron leer las bases de {etiquetaPais} {periodo}.</p>
+                <p role="alert" className="p-4 text-sm text-destructive">No se pudieron leer las bases de {etiquetaPais} {periodo}: {mensajeError(bases.error)}</p>
               ) : filtradas.length === 0 ? (
                 <p className="p-6 text-center text-sm text-muted-foreground">Ninguna base coincide con “{q}”.</p>
               ) : (
