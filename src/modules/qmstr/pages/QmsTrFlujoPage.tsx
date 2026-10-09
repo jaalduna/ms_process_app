@@ -22,7 +22,7 @@ import { RevertirDialog } from "../components/flujo/RevertirDialog"
 import { TablaBases } from "../components/flujo/TablaBases"
 import { TableroBases } from "../components/flujo/TableroBases"
 import { TandaCard } from "../components/flujo/TandaCard"
-import { mensajeError, periodoLabel, relativo } from "../components/flujo/formato"
+import { mensajeError, nBases, periodoLabel, relativo } from "../components/flujo/formato"
 import { Chip, Vacio } from "../components/flujo/piezas"
 import { TANDA_ACTIVOS, type EstadoBase, type FlujoEstado, type Tanda, type TandaCreate } from "../types"
 
@@ -101,7 +101,8 @@ export function QmsTrFlujoPage() {
         setFiltro(null)
         setParams({ pais: t.pais, periodo: t.periodo }, { replace: true })
         setTab("tandas")
-        toast.success(`Tanda ${t.numero} lanzada: ${t.productos.length} bases de ${t.pais} ${t.periodo}`)
+        const nombrePais = paises.data?.find((p) => p.codigo === t.pais)?.etiqueta ?? t.pais
+        toast.success(`Tanda ${t.numero} lanzada: ${nBases(t.productos.length)} de ${nombrePais}, ${periodoLabel(t.periodo)}`)
       },
       onError: (e) => toast.error(`No se pudo lanzar QMS-TR: ${mensajeError(e)}`),
     })
@@ -120,7 +121,7 @@ export function QmsTrFlujoPage() {
     revertir.mutate({ tid: origen.id, productos, motivo }, {
       onSuccess: (t) => {
         setARevertir(null)
-        toast.success(`Reversión en marcha (tanda ${t.numero}): ${productos.length} bases de la tanda ${origen.numero}`)
+        toast.success(`Reversión en marcha (tanda ${t.numero}): ${nBases(productos.length)} de la tanda ${origen.numero}`)
       },
       onError: (e) => toast.error(`No se pudo revertir: ${mensajeError(e)}`),
     })

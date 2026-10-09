@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { periodoLabel, relativo } from "../formato"
+import { nBases, periodoLabel, relativo } from "../formato"
 import { Stepper } from "../TandaCard"
 import { TableroBases } from "../TableroBases"
 import { pollTandas } from "../../../hooks/useQmsTrFlujo"
@@ -17,7 +17,7 @@ const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t", pais: "EC", periodo: "202609", numero: 1, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "detectada", estado_previo: null, pausada: false, qms_run_id: null, jira_key: null,
   envio: {}, bypass: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
-  modo: "completo", creada_por: null, tanda_origen: null, correos: {}, ...extra,
+  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, ...extra,
 })
 
 describe("formato del flujo QMS-TR", () => {
@@ -29,6 +29,13 @@ describe("formato del flujo QMS-TR", () => {
     const ahora = Date.parse("2026-10-08T15:00:00Z")
     expect(relativo("2026-10-08T14:57:00Z", ahora)).toBe("hace 3 min")
     expect(relativo("2026-10-08T13:00:00Z", ahora)).toBe("hace 2 h")
+    expect(relativo("2026-10-08T14:59:57Z", ahora)).toBe("recién")
+    // una vuelta que llegó después del último tic de `ahora` sigue siendo pasada
+    expect(relativo("2026-10-08T15:00:17Z", ahora)).toBe("recién")
+  })
+  it("cuenta bases en singular y plural", () => {
+    expect(nBases(1)).toBe("1 base")
+    expect(nBases(3)).toBe("3 bases")
   })
   it("polling: 10 s con tandas avanzando, 60 s si están quietas o pausadas", () => {
     expect(pollTandas([tanda({ estado: "corriendo" })])).toBe(10_000)
@@ -66,5 +73,31 @@ describe("TableroBases", () => {
     expect(screen.getByTestId("qf-kpi-aplicadas")).toHaveTextContent("2")
     await userEvent.click(screen.getByRole("button", { name: /Retenidas/ }))
     expect(onFiltro).toHaveBeenCalledWith("retenida")
+  })
+})
+
+describe("errores y bandeja contra la forma de la API real", () => {
+  it("mensajeError lee {detail:{message}} de la API, {detail:[{msg}]} de FastAPI y {message} del mock", async () => {
+    const { AxiosError } = await import("axios")
+    const { mensajeError } = await import("../formato")
+    const err = (data: unknown) => new AxiosError("Request failed", "ERR", undefined, undefined,
+      { data, status: 422, statusText: "", headers: {}, config: {} as never })
+    expect(mensajeError(err({ detail: { error: "conflict", message: "bases en una tanda en curso: 101" } })))
+      .toBe("bases en una tanda en curso: 101")
+    expect(mensajeError(err({ detail: [{ msg: "String should have at least 1 character", loc: ["body", "motivo"] }] })))
+      .toBe("String should have at least 1 character")
+    expect(mensajeError(err({ message: "País no configurado" }))).toBe("País no configurado")
+  })
+
+  it("un correo sin destinatarios lo dice y uno en el hilo de la liberación se marca", async () => {
+    const { BandejaCorreos } = await import("../BandejaCorreos")
+    const correo = {
+      id: "c1", tanda_id: "t", pais: "EC", periodo: "202609", tipo: "pase_mtr" as const, para: [], cc: [],
+      asunto: "RE: [ECU - 202609] Liberación Metodológica", html: "<p>Hola</p>", adjuntos: [], enviado: false,
+      modo: "simulacion" as const, at: "2026-10-08T15:00:00Z", en_respuesta_a: "AAMk-hilo",
+    }
+    render(<BandejaCorreos correos={[correo]} tandas={[]} />)
+    expect(screen.getByTestId("qf-correo-preview")).toHaveTextContent("sin destinatarios configurados")
+    expect(screen.getByTestId("qf-correo-preview")).toHaveTextContent("En el hilo de la liberación")
   })
 })

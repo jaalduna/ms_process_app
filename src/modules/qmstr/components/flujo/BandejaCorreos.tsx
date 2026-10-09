@@ -1,11 +1,23 @@
 import { useState } from "react"
-import { Inbox, Mail, MailCheck, Paperclip } from "lucide-react"
+import { CornerUpLeft, Inbox, Mail, MailCheck, Paperclip } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatChile } from "../../time"
 import type { FlujoCorreo, Tanda } from "../../types"
 import { Chip, Vacio } from "./piezas"
 
 const TIPO_LABEL = { resultados: "Resultados", pase_mtr: "Pase a MTR" } as const
+
+/** En simulación QMSTR_CORREO_PARA puede venir vacío: se dice, en vez de dejar el campo en blanco. */
+const SIN_DESTINATARIOS = "sin destinatarios configurados"
+
+/**
+ * Estilo base de la vista previa. El HTML de la API trae solo párrafos y listas, sin tipografía; sin
+ * esto el iframe lo pinta con la serif del navegador, que no es como lo ve Outlook.
+ */
+const ESTILO_CORREO =
+  "body{margin:20px;background:#fff;color:#1f2933;font:14px/1.55 'Segoe UI',Aptos,Calibri,Arial,sans-serif}" +
+  "p{margin:0 0 .8em}ul,ol{margin:0 0 .8em;padding-left:1.4em}a{color:#0e7c88}" +
+  "table{border-collapse:collapse}td,th{border:1px solid #d7dde3;padding:4px 8px;text-align:left}"
 
 interface BandejaCorreosProps {
   correos: FlujoCorreo[]
@@ -51,7 +63,7 @@ export function BandejaCorreos({ correos, tandas }: BandejaCorreosProps) {
                   <time className="ml-auto tabular-nums" dateTime={c.at}>{formatChile(c.at)}</time>
                 </span>
                 <span className="line-clamp-2 text-sm font-medium">{c.asunto}</span>
-                <span className="truncate text-xs text-muted-foreground">Para {c.para.join(", ")}</span>
+                <span className="truncate text-xs text-muted-foreground">Para {c.para.join(", ") || SIN_DESTINATARIOS}</span>
               </button>
             </li>
           )
@@ -65,9 +77,16 @@ export function BandejaCorreos({ correos, tandas }: BandejaCorreosProps) {
             {actual.enviado
               ? <Chip tone="var(--qf-aplicada)" dot="solid">Enviado</Chip>
               : <Chip tone="var(--qf-retenida)" dot="solid">Simulado, no se envió</Chip>}
+            {actual.en_respuesta_a && (
+              <Chip tone="var(--qf-en-proceso)" title="Respuesta a todos en el hilo de la liberación metodológica">
+                <CornerUpLeft className="size-3" /> En el hilo de la liberación
+              </Chip>
+            )}
           </div>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-            <dt className="text-muted-foreground">Para</dt><dd className="break-all">{actual.para.join(", ")}</dd>
+            <dt className="text-muted-foreground">Para</dt><dd className={cn("break-all", actual.para.length === 0 && "text-muted-foreground italic")}>
+              {actual.para.join(", ") || SIN_DESTINATARIOS}
+            </dd>
             {actual.cc.length > 0 && <><dt className="text-muted-foreground">CC</dt><dd className="break-all">{actual.cc.join(", ")}</dd></>}
           </dl>
           {actual.adjuntos.length > 0 && (
@@ -84,7 +103,7 @@ export function BandejaCorreos({ correos, tandas }: BandejaCorreosProps) {
         <iframe
           title={`Vista previa: ${actual.asunto}`}
           sandbox=""
-          srcDoc={`<!doctype html><meta charset="utf-8"><body style="margin:20px;background:#fff">${actual.html}</body>`}
+          srcDoc={`<!doctype html><meta charset="utf-8"><style>${ESTILO_CORREO}</style><body>${actual.html}</body>`}
           className="min-h-80 w-full flex-1 bg-white"
         />
       </article>

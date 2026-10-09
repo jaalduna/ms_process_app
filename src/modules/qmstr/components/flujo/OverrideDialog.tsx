@@ -152,7 +152,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium">Bases</span>
-              <span className="text-xs text-muted-foreground tabular-nums">{sel.size} elegidas</span>
+              <span className="text-xs text-muted-foreground tabular-nums">{sel.size} {sel.size === 1 ? "elegida" : "elegidas"}</span>
               <div className="ml-auto flex gap-1.5">
                 <Button type="button" size="sm" variant="secondary" disabled={liberadas.length === 0}
                   onClick={() => setSel(new Set([...sel, ...liberadas.map((b) => b.producto)]))} data-testid="qf-override-liberadas">

@@ -46,20 +46,31 @@ export const TONO_TIPO: Record<TipoTanda, string> = {
 /** Mensaje legible de un error de la API ({error, message}) o de red. */
 export function mensajeError(e: unknown): string {
   if (e instanceof AxiosError) {
-    const d = e.response?.data as { message?: string; detail?: { message?: string } } | undefined
-    return d?.message ?? d?.detail?.message ?? e.message
+    // La API responde {detail: {error, message}} en los errores de negocio y {detail: [{msg, loc}]} en
+    // los 422 de validación de FastAPI; el mock, {message}.
+    const d = e.response?.data as
+      | { message?: string; detail?: { message?: string } | { msg?: string }[] | string }
+      | undefined
+    const det = d?.detail
+    const deFastApi = Array.isArray(det) ? det.map((x) => x.msg).filter(Boolean).join("; ") : undefined
+    return d?.message ?? (typeof det === "string" ? det : Array.isArray(det) ? deFastApi : det?.message) ?? e.message
   }
   return (e as Error).message
 }
 
-/** "hace 3 min" / "hace 2 h" / "en 4 min" respecto de `ahora`. */
+/** "recién" / "hace 3 min" / "hace 2 h" respecto de `ahora` (para instantes pasados). */
 export function relativo(iso: string, ahora: number): string {
-  const s = Math.round((ahora - new Date(iso).getTime()) / 1000)
-  const abs = Math.abs(s)
-  const txt = abs < 60 ? `${abs} s` : abs < 3600 ? `${Math.round(abs / 60)} min` : abs < 86_400
-    ? `${Math.round(abs / 3600)} h` : `${Math.round(abs / 86_400)} d`
-  return s >= 0 ? `hace ${txt}` : `en ${txt}`
+  // `ahora` avanza a saltos (useNow cada 30 s): un instante pasado recién llegado de la API puede
+  // quedar "adelante" del reloj de la vista. Es pasado, así que no se dice "en 17 s".
+  const s = Math.max(0, Math.round((ahora - new Date(iso).getTime()) / 1000))
+  if (s < 10) return "recién"
+  const txt = s < 60 ? `${s} s` : s < 3600 ? `${Math.round(s / 60)} min` : s < 86_400
+    ? `${Math.round(s / 3600)} h` : `${Math.round(s / 86_400)} d`
+  return `hace ${txt}`
 }
+
+/** "1 base", "3 bases". */
+export const nBases = (n: number) => `${n} ${n === 1 ? "base" : "bases"}`
 
 /** Estilo inline que fija el tono (`--tone`) que usan .qf-tone y las clases bg-[var(--tone)]. */
 export const tono = (t: string) => ({ "--tone": t }) as CSSProperties

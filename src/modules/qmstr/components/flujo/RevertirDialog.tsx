@@ -57,7 +57,7 @@ function Contenido({ tanda, yaRevertidas, nombres, revirtiendo, onRevertir }: Re
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
           <div className="flex items-center gap-2 text-sm">
             <span className="font-medium">Bases del zip</span>
-            <span className="text-xs text-muted-foreground tabular-nums">{elegidas.length} elegidas</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{elegidas.length} {elegidas.length === 1 ? "elegida" : "elegidas"}</span>
           </div>
           <ul className="max-h-64 divide-y overflow-y-auto rounded-xl border" data-testid="qf-revertir-bases">
             {candidatas.map((p) => {
