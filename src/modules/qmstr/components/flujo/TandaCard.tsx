@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import {
-  Check, CheckCheck, ChevronDown, Download, ExternalLink, Loader2, Pause, Play, RotateCcw, RotateCw, Ticket, Undo2, X,
+  Check, CheckCheck, ChevronDown, Download, ExternalLink, FlaskConical, Hourglass, Loader2, Pause, Play, Quote, RotateCcw, RotateCw, Ticket,
+  Undo2, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -12,7 +13,7 @@ import { formatChile } from "../../time"
 import {
   ESTADO_TANDA_LABEL, TANDA_ACTIVOS, TAREA_LABELS, caminoDe, type EstadoTanda, type FlujoModo, type ProgresoTarea, type Tanda,
 } from "../../types"
-import { TONO_TANDA, mensajeError, tono } from "./formato"
+import { TONO_TANDA, mensajeError, nBases, tono } from "./formato"
 import { Chip, ChipTanda, ChipTipo } from "./piezas"
 
 const PASO_LABEL: Partial<Record<EstadoTanda, string>> = {
@@ -111,7 +112,21 @@ function ProgresoCorrida({ tanda, verRun }: { tanda: Tanda; verRun: boolean }) {
   if (!p) return null
   const simples = p.tareas.filter((t) => !t.for_each && !t.clave.startsWith("hay_"))
   const foreach = p.tareas.filter((t) => t.for_each)
-  const link = verRun && (
+  if (p.estado === "WAITING_SNAPSHOT") {
+    return (
+      <div className="flex items-start gap-3 rounded-xl border border-dashed bg-muted/30 p-4" data-testid="qf-progreso-espera" role="status">
+        <Hourglass className="mt-0.5 size-4 shrink-0 text-[var(--qf-en-proceso)]" />
+        <div className="space-y-0.5 text-sm">
+          <p className="font-medium">Esperando el snapshot de J</p>
+          <p className="text-muted-foreground">
+            La corrida de {nBases(p.productos_total)} parte sola con el primer ciclo del CDC de J posterior al hito 4
+            (cada hora, de 06:00 a 19:00 de Chile).
+          </p>
+        </div>
+      </div>
+    )
+  }
+  const link = verRun && p.run_page_url && (
     <a href={p.run_page_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
       Abrir el run en Databricks <ExternalLink className="size-3" />
     </a>
@@ -208,8 +223,12 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
   const [bajando, setBajando] = useState(false)
   const activa = TANDA_ACTIVOS.includes(t.estado)
   const zipListo = !["detectada", "corriendo", "armando_reversion", "sin_bases"].includes(t.estado)
-  // solo correr no envía nada a DQ: no hay cambios en J que revertir
-  const revertible = t.tipo !== "reversion" && t.modo !== "solo_correr" && ["cerrada", "hito10", "verificando"].includes(t.estado)
+  // Una tanda sólo avanza (y se revierte) en el modo del flujo en que se creó.
+  const deOtroModo = t.ejecucion !== modo
+  // Sólo una tanda cerrada: mientras verifica o registra el hito 10 sus bases siguen en curso y la API
+  // responde 409 (el hito 10 se escribiría después de anularlo). Solo correr no envía nada a DQ: no
+  // hay cambios en J que revertir.
+  const revertible = t.tipo !== "reversion" && t.modo !== "solo_correr" && t.estado === "cerrada" && !deOtroModo
   const v = t.validacion
 
   async function bajar() {
@@ -251,15 +270,27 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
           <ChipTanda estado={t.estado} pausada={t.pausada} />
           {t.pausada && <Chip tone="var(--qf-retenida)" dot="solid">Pausada</Chip>}
           {t.modo === "solo_correr" && <Chip tone="var(--qf-bypass)">Solo correr</Chip>}
+          {deOtroModo && (
+            <Chip tone="var(--qf-retenida)" data-testid="qf-tanda-ejecucion"
+              title={`Se creó con el flujo en modo ${t.ejecucion === "simulacion" ? "simulación" : "real"}: no avanza en este modo`}>
+              <FlaskConical className="size-3" />{t.ejecucion === "simulacion" ? "Simulada" : "Real"}
+            </Chip>
+          )}
           {t.jira_key && (
             <Chip tone="var(--qf-pendiente)" className="font-semibold"><Ticket className="size-3" />{t.jira_key}</Chip>
           )}
         </div>
         <p className="w-full text-xs text-muted-foreground">
-          {t.tipo === "reversion" && origen ? <>Revierte {t.productos.length} bases de la tanda {origen.numero}. </> : null}
+          {t.tipo === "reversion" && origen ? <>Revierte {nBases(t.productos.length)} de la tanda {origen.numero}. </> : null}
           Hito 4 entre las {formatChile(t.h4_desde)} y las {formatChile(t.h4_hasta)}.
           {t.creada_por && t.creada_por !== "qmstr_flujo" ? <> Lanzada por {t.creada_por}.</> : <> Detectada por el flujo.</>}
         </p>
+        {t.nota && (
+          <p className="flex w-full items-start gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm" data-testid="qf-tanda-nota">
+            <Quote className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+            <span><span className="font-medium">{t.tipo === "reversion" ? "Motivo" : "Nota"}:</span> {t.nota}</span>
+          </p>
+        )}
       </header>
 
       <div className="space-y-5 px-5 py-4">
@@ -277,7 +308,7 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
           <button type="button" onClick={() => setVerBases(!verBases)} aria-expanded={verBases}
             className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary">
             <ChevronDown className={cn("size-4 transition-transform", verBases && "rotate-180")} />
-            {t.productos.length} bases
+            {nBases(t.productos.length)}
           </button>
           {t.bypass.length > 0 && <span className="text-muted-foreground">{t.bypass.length} sin cambios del motor</span>}
           {v.status && (
@@ -320,7 +351,7 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
             {activa && !t.pausada && accion("pausar", "Pausar", Pause)}
             {t.pausada && accion("reanudar", "Reanudar", Play)}
             {t.estado === "revision_manual" && accion("reintentar", "Reintentar", RotateCw, "default")}
-            {modo === "simulacion" && t.estado === "en_dq" && !t.pausada && accion("simular_cierre_ticket", "Simular cierre del ticket", CheckCheck, "default")}
+            {modo === "simulacion" && t.ejecucion === "simulacion" && t.estado === "en_dq" && !t.pausada && accion("simular_cierre_ticket", "Simular cierre del ticket", CheckCheck, "default")}
             {revertible && (
               <Button variant="outline" size="sm" onClick={onRevertir} disabled={ocupado !== null} data-testid="qf-accion-revertir">
                 <Undo2 /> Revertir bases

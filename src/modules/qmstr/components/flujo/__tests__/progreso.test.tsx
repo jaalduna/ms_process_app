@@ -15,7 +15,7 @@ const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t1", pais: "EC", periodo: "202609", numero: 4, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "corriendo", estado_previo: null, pausada: false, qms_run_id: "r1", jira_key: null,
   envio: {}, bypass: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
-  modo: "completo", creada_por: null, tanda_origen: null, correos: {}, ...extra,
+  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, ...extra,
 })
 
 const progreso = (listos: number, terminada: boolean): TandaProgreso => ({
@@ -43,6 +43,25 @@ describe("progreso de la corrida en la tarjeta de la tanda", () => {
   })
 })
 
+describe("corrida esperando el snapshot de J", () => {
+  it("no muestra 0% ni un link vacío: dice que espera el snapshot", async () => {
+    getTandaProgreso.mockResolvedValueOnce({
+      run_id: null, estado: "WAITING_SNAPSHOT", run_page_url: null, inicio: null, fin: null,
+      productos_total: 1, productos_listos: 0, porcentaje: 0, tareas: [],
+    })
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <TandaCard tanda={tanda({ estado: "corriendo", qms_run_id: "r9", id: "t9" })} nombres={new Map()} modo="simulacion"
+          esAdmin verRun ocupado={null} onAccion={() => {}} onRevertir={() => {}} />
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByTestId("qf-progreso-espera")).toHaveTextContent("Esperando el snapshot de J")
+    expect(screen.queryByTestId("qf-progreso-pct")).toBeNull()
+    expect(screen.queryByRole("link", { name: /Databricks/ })).toBeNull()
+  })
+})
+
 describe("acciones de la tanda", () => {
   it("una tanda solo correr cerrada no ofrece revertir; una completa sí", () => {
     const qc = new QueryClient()
@@ -56,5 +75,52 @@ describe("acciones de la tanda", () => {
     expect(screen.queryByTestId("qf-accion-revertir")).toBeNull()
     rerender(card(tanda({ estado: "cerrada", qms_run_id: null, modo: "completo" })))
     expect(screen.getByTestId("qf-accion-revertir")).toBeVisible()
+  })
+
+  it("verificando o en hito 10 no ofrece revertir: la API responde 409 mientras sus bases siguen en curso", () => {
+    const qc = new QueryClient()
+    const card = (t: Tanda) => (
+      <QueryClientProvider client={qc}>
+        <TandaCard tanda={t} nombres={new Map()} modo="simulacion" esAdmin verRun={false} ocupado={null}
+          onAccion={() => {}} onRevertir={() => {}} />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(card(tanda({ estado: "verificando", qms_run_id: null })))
+    expect(screen.queryByTestId("qf-accion-revertir")).toBeNull()
+    rerender(card(tanda({ estado: "hito10", qms_run_id: null })))
+    expect(screen.queryByTestId("qf-accion-revertir")).toBeNull()
+  })
+
+  it("una tanda creada en otro modo del flujo se marca y no ofrece simular cierre ni revertir", () => {
+    const qc = new QueryClient()
+    const card = (t: Tanda, modo: "simulacion" | "real") => (
+      <QueryClientProvider client={qc}>
+        <TandaCard tanda={t} nombres={new Map()} modo={modo} esAdmin verRun={false} ocupado={null}
+          onAccion={() => {}} onRevertir={() => {}} />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(card(tanda({ estado: "en_dq", qms_run_id: null, jira_key: "LAT-1", ejecucion: "real" }), "simulacion"))
+    expect(screen.getByTestId("qf-tanda-ejecucion")).toHaveTextContent("Real")
+    expect(screen.queryByTestId("qf-accion-simular_cierre_ticket")).toBeNull()
+    rerender(card(tanda({ estado: "cerrada", qms_run_id: null, ejecucion: "simulacion" }), "real"))
+    expect(screen.getByTestId("qf-tanda-ejecucion")).toHaveTextContent("Simulada")
+    expect(screen.queryByTestId("qf-accion-revertir")).toBeNull()
+    rerender(card(tanda({ estado: "en_dq", qms_run_id: null, jira_key: "SIM-1" }), "simulacion"))
+    expect(screen.queryByTestId("qf-tanda-ejecucion")).toBeNull()
+    expect(screen.getByTestId("qf-accion-simular_cierre_ticket")).toBeVisible()
+  })
+
+  it("muestra la nota del lanzamiento y el motivo de la reversión", () => {
+    const qc = new QueryClient()
+    const card = (t: Tanda) => (
+      <QueryClientProvider client={qc}>
+        <TandaCard tanda={t} nombres={new Map()} modo="simulacion" esAdmin={false} verRun={false} ocupado={null}
+          onAccion={() => {}} onRevertir={() => {}} />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(card(tanda({ estado: "cerrada", qms_run_id: null, tipo: "manual", nota: "DC re-liberó Café" })))
+    expect(screen.getByTestId("qf-tanda-nota")).toHaveTextContent("Nota: DC re-liberó Café")
+    rerender(card(tanda({ estado: "cerrada", qms_run_id: null, tipo: "reversion", nota: "pedido de DC" })))
+    expect(screen.getByTestId("qf-tanda-nota")).toHaveTextContent("Motivo: pedido de DC")
   })
 })
