@@ -82,14 +82,27 @@ export function setTokenProvider(provider: () => Promise<string>) {
   })
 }
 
+/** FastAPI responde 422 con `detail` como lista de {msg, loc}; otros errores con `detail` string. */
+export function detailMessage(detail: unknown): string | undefined {
+  if (typeof detail === "string") return detail
+  if (Array.isArray(detail)) {
+    const msgs = detail
+      .map((d) => (typeof d === "string" ? d : (d as { msg?: unknown } | null)?.msg))
+      .filter((m): m is string => typeof m === "string" && m.length > 0)
+    return msgs.length ? msgs.join("; ") : undefined
+  }
+  return undefined
+}
+
 /** Transform Axios errors into our ApiError shape. */
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (axios.isAxiosError(error) && error.response?.data) {
+      const data = error.response.data
       const apiError: ApiError = {
-        error: error.response.data.error ?? "unknown",
-        message: error.response.data.message ?? error.message,
+        error: data.error ?? "unknown",
+        message: data.message ?? detailMessage(data.detail) ?? error.message,
       }
       return Promise.reject(apiError)
     }
