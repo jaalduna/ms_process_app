@@ -61,7 +61,9 @@ export function useFlujoBases(pais: string | undefined, periodo: string | undefi
 export function useTandaProgreso(tanda: Tanda) {
   const corriendo = tanda.estado === "corriendo" && !tanda.pausada
   return useQuery({
-    queryKey: [...KEY, "progreso", tanda.id],
+    // `corriendo` va en la llave: al terminar la corrida se pide el progreso final una vez, en vez de quedarse con
+    // la última lectura en vivo (que puede ser de hasta 10 s antes del fin, p. ej. "24 de 26 productos").
+    queryKey: [...KEY, "progreso", tanda.id, corriendo],
     queryFn: () => getTandaProgreso(tanda.id),
     enabled: tanda.tipo !== "reversion" && !!tanda.qms_run_id,
     refetchInterval: corriendo ? 10_000 : false,
