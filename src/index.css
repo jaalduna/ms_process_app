@@ -176,3 +176,98 @@
       transparent;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Flujo QMS-TR (JAA-1435): identidad Worldpanel by Numerator acotada a la vista (.qf) y a sus diálogos.
+ * Claro: primary = Deep Teal #004A52 (9.99:1); Worldpanel Blue #00A8B8 solo en rellenos/gráficos, nunca
+ * texto ni fondo de botón. Oscuro: primary = Worldpanel Blue (5.54:1 sobre #04262B). Los estados de base
+ * son semánticos propios (no el verde ni el amarillo de marca).
+ * ------------------------------------------------------------------------- */
+.qf {
+  --primary: #004a52;
+  --primary-foreground: #ffffff;
+  --ring: #0e8c99;
+  --qf-wp-blue: #00a8b8;
+  --qf-deep-teal: #004a52;
+  --qf-island: #004a52;
+  --qf-island-2: #0a5c66;
+  --qf-island-fg: #ffffff;
+
+  /* estados de base (rellenos) */
+  --qf-aplicada: oklch(0.6 0.12 162);
+  --qf-en-proceso: #00a8b8;
+  --qf-pendiente: oklch(0.56 0.15 272);
+  --qf-retenida: oklch(0.74 0.15 68);
+  --qf-revertida: oklch(0.6 0.18 352);
+  --qf-bypass: oklch(0.72 0.02 225);
+  --qf-sin-hito4: oklch(0.86 0.01 225);
+  --qf-fuera: oklch(0.8 0.01 225);
+  --qf-error: var(--destructive);
+}
+
+.dark .qf,
+.dark.qf {
+  --primary: #00a8b8;
+  --primary-foreground: #04262b;
+  --ring: #00a8b8;
+  --qf-island: #04262b;
+  --qf-island-2: #0a3a41;
+
+  --qf-aplicada: oklch(0.74 0.13 162);
+  --qf-pendiente: oklch(0.72 0.12 272);
+  --qf-retenida: oklch(0.8 0.14 75);
+  --qf-revertida: oklch(0.72 0.16 352);
+  --qf-bypass: oklch(0.6 0.02 225);
+  --qf-sin-hito4: oklch(0.38 0.015 225);
+  --qf-fuera: oklch(0.45 0.015 225);
+}
+
+/* La isla deep teal usa siempre los tonos claros de los estados (fondo oscuro en ambos modos). */
+.qf-island {
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in oklch, var(--qf-wp-blue) 22%, transparent) 0%, transparent 55%),
+    var(--qf-island);
+  color: var(--qf-island-fg);
+  --qf-aplicada: oklch(0.8 0.13 162);
+  --qf-pendiente: oklch(0.76 0.12 272);
+  --qf-retenida: oklch(0.84 0.14 78);
+  --qf-revertida: oklch(0.76 0.16 352);
+  --qf-bypass: oklch(0.66 0.03 210);
+  --qf-sin-hito4: oklch(1 0 0 / 0.14);
+  --qf-fuera: oklch(1 0 0 / 0.08);
+  --qf-en-proceso: #2eefee;
+}
+
+/* Chip tonal: fondo = tono al 15 %, texto = tono mezclado con el foreground (contraste en ambos modos). */
+.qf-tone {
+  background: color-mix(in oklch, var(--tone) 15%, transparent);
+  color: color-mix(in oklch, var(--tone) 55%, var(--foreground));
+  border: 1px solid color-mix(in oklch, var(--tone) 28%, transparent);
+}
+
+.qf-hatch {
+  background-image: repeating-linear-gradient(135deg, var(--tone) 0 2px, transparent 2px 5px);
+}
+
+@keyframes qf-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.82); }
+}
+@keyframes qf-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 45%, transparent); }
+  100% { box-shadow: 0 0 0 7px transparent; }
+}
+@keyframes qf-shimmer {
+  from { background-position: 0 0; }
+  to { background-position: 28px 0; }
+}
+.qf-pulse { animation: qf-pulse 1.8s ease-in-out infinite; }
+.qf-ring { animation: qf-ring 1.6s ease-out infinite; }
+.qf-bar-live {
+  background-image: repeating-linear-gradient(115deg, transparent 0 10px, rgb(255 255 255 / 0.18) 10px 14px);
+  background-size: 28px 100%;
+  animation: qf-shimmer 1.1s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .qf-pulse, .qf-ring, .qf-bar-live { animation: none; }
+}
