@@ -144,10 +144,19 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     const { body: [bo] } = await get("/tandas?pais=BO&periodo=202609&estado=revision_manual")
     const { body: re } = await post(`/tandas/${bo.id}/reintentar`)
     expect(re.estado).toBe("verificando")
-    const { body: [ec] } = await get("/tandas?pais=EC&estado=corriendo")
-    expect((await post(`/tandas/${ec.id}/pausar`)).body.pausada).toBe(true)
-    expect((await post(`/tandas/${ec.id}/pausar`)).status).toBe(409)
-    expect((await post(`/tandas/${ec.id}/reanudar`)).body.pausada).toBe(false)
+    // una corrida corta (paso de 5 ms => 900 ms): pausada, el progreso y el estado no se mueven
+    const { body: bases } = await get("/bases?pais=EC&periodo=202609")
+    const pend = bases.filter((b) => b.estado === "pendiente").map((b) => b.producto)
+    const { body: t } = await post("/tandas", { pais: "EC", periodo: "202609", productos: pend })
+    await esperar(async () => (await get(`/tandas/${t.id}`)).body.estado === "corriendo")
+    expect((await post(`/tandas/${t.id}/pausar`)).body.pausada).toBe(true)
+    expect((await post(`/tandas/${t.id}/pausar`)).status).toBe(409)
+    const antes = (await get(`/tandas/${t.id}/progreso`)).body.porcentaje
+    await new Promise((r) => setTimeout(r, 1200))
+    expect((await get(`/tandas/${t.id}`)).body.estado).toBe("corriendo")
+    expect((await get(`/tandas/${t.id}/progreso`)).body.porcentaje).toBe(antes)
+    expect((await post(`/tandas/${t.id}/reanudar`)).body.pausada).toBe(false)
+    await esperar(async () => (await get(`/tandas/${t.id}`)).body.estado === "en_dq", 5000)
   })
 
   it("zip: URL firmada solo cuando la tanda ya pasó la corrida", async () => {
