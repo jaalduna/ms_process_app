@@ -282,7 +282,9 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
         </div>
         <p className="w-full text-xs text-muted-foreground">
           {t.tipo === "reversion" && origen ? <>Revierte {nBases(t.productos.length)} de la tanda {origen.numero}. </> : null}
-          Hito 4 entre las {formatChile(t.h4_desde)} y las {formatChile(t.h4_hasta)}.
+          {t.h4_desde === t.h4_hasta
+            ? <>Hito 4 a las {formatChile(t.h4_hasta)}.</>
+            : <>Hito 4 entre las {formatChile(t.h4_desde)} y las {formatChile(t.h4_hasta)}.</>}
           {t.creada_por && t.creada_por !== "qmstr_flujo" ? <> Lanzada por {t.creada_por}.</> : <> Detectada por el flujo.</>}
         </p>
         {t.nota && (
