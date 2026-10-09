@@ -151,6 +151,8 @@ export interface FlujoEstado {
   /** Resultado de la última vuelta por país ("ok" o el error). */
   resultado: Record<string, string> | null
   error_config: string | null
+  /** La tarea de fondo del flujo está corriendo (la API real; el mock no lo informa). */
+  activo?: boolean
 }
 
 /** GET /qmstr_flujo/paises */
@@ -229,6 +231,9 @@ export interface TandaValidacion {
   applied?: number
   pending?: number
   mismatched?: number
+  validated_at?: string
+  validated_by?: string | null
+  by_sheet?: Record<string, { total: number; checked: number; applied: number; pending: number; mismatched: number }>
 }
 
 /** Tanda = (país, período, número); todas las columnas de `qmstr_flujo_tandas`. */
@@ -257,8 +262,25 @@ export interface Tanda {
   modo: ModoTanda
   creada_por: string | null
   tanda_origen: string | null
-  /** Progreso de los correos: tipo -> message_id. */
-  correos: Partial<Record<TipoCorreo, string>>
+  /** Nota del lanzamiento manual o motivo de la reversión. */
+  nota: string | null
+  /** Modo del flujo con que se creó: sólo avanza (y se revierte) en ese mismo modo. */
+  ejecucion: FlujoModo
+  correos: TandaCorreos
+}
+
+/**
+ * Progreso de los correos de la tanda, en llaves planas como `envio`: `<tipo>` = id del borrador,
+ * `<tipo>_hilo` = message_id al que responde (o null si salió como correo nuevo) y
+ * `<tipo>_enviado` = el paso de envío terminó (en simulación sólo queda en la bandeja).
+ */
+export interface TandaCorreos {
+  resultados?: string
+  resultados_hilo?: string | null
+  resultados_enviado?: boolean
+  pase_mtr?: string
+  pase_mtr_hilo?: string | null
+  pase_mtr_enviado?: boolean
 }
 
 export interface TandaCreate {
@@ -292,9 +314,11 @@ export interface ProgresoTarea {
 
 /** GET /qmstr_flujo/tandas/{tid}/progreso — run del job qms_tr_run en Databricks. */
 export interface TandaProgreso {
-  run_id: number
+  /** Entero en Databricks; un uuid con la API en modo fake; null mientras espera el snapshot de J. */
+  run_id: number | string | null
+  /** Estado de Databricks (RUNNING, SUCCESS, ...) o WAITING_SNAPSHOT antes de lanzar el run. */
   estado: string
-  run_page_url: string
+  run_page_url: string | null
   inicio: string | null
   fin: string | null
   productos_total: number
@@ -309,7 +333,11 @@ export type TipoCorreo = "resultados" | "pase_mtr"
 export interface FlujoCorreo {
   id: string
   tanda_id: string
+  pais: string
+  periodo: string
   tipo: TipoCorreo
+  /** message_id del correo al que responde (pase a MTR en el hilo de la liberación); null si es nuevo. */
+  en_respuesta_a: string | null
   para: string[]
   cc: string[]
   asunto: string

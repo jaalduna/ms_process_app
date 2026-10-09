@@ -99,7 +99,9 @@ function nuevaTanda(campos) {
     validacion: campos.validacion ?? {}, error: campos.error ?? null, eventos: campos.eventos ?? [],
     created_at: campos.created_at ?? ahora, updated_at: campos.updated_at ?? ahora,
     tipo: campos.tipo ?? "liberacion", modo: campos.modo ?? "completo", creada_por: campos.creada_por ?? "qmstr_flujo",
-    tanda_origen: campos.tanda_origen ?? null, correos: campos.correos ?? {},
+    tanda_origen: campos.tanda_origen ?? null, correos: campos.correos ?? {}, nota: campos.nota ?? null,
+    // como la API: la tanda sólo avanza en el modo del flujo en que se creó
+    ejecucion: campos.ejecucion ?? MODO(),
     // privados: reloj de la corrida y del próximo avance
     _corrida: campos._corrida ?? null, _sigEn: campos._sigEn ?? null,
   }
@@ -159,11 +161,16 @@ function htmlPase(t) {
 function correo(t, tipo, at = isoNow()) {
   const p = PAIS[t.pais]
   const reversion = t.tipo === "reversion"
-  const asunto = tipo === "resultados"
-    ? `[QMS-TR] ${p.cod_asunto} ${t.periodo} · ${reversion ? "reversión" : `tanda ${t.numero}`} · resultados${t.jira_key ? ` (${t.jira_key})` : ""}`
-    : `RE: [${p.cod_asunto} - ${t.periodo}] Liberación Metodológica`
+  // Como la API (orquestador._asunto): en simulación no se lee el buzón, así que el pase a MTR sale
+  // siempre como correo nuevo; en modo real responde a todos en el hilo de la liberación metodológica.
+  const enHilo = tipo === "pase_mtr" && MODO() === "real"
+  const que = tipo === "resultados" ? (reversion ? "reversión" : "resultados") : reversion ? "reversión aplicada" : "pase a MTR"
+  const asunto = enHilo
+    ? `RE: [${p.cod_asunto} - ${t.periodo}] Liberación Metodológica`
+    : `[QMS-TR] ${p.etiqueta} ${t.periodo} · tanda ${t.numero} · ${que}${tipo === "resultados" && t.jira_key ? ` · ${t.jira_key}` : ""}`
+  const hilo = enHilo ? `AAMkAD-liberacion-${t.pais}-${t.periodo}` : null
   const c = {
-    id: crypto.randomUUID(), tanda_id: t.id, pais: t.pais, periodo: t.periodo, tipo,
+    id: crypto.randomUUID(), tanda_id: t.id, pais: t.pais, periodo: t.periodo, tipo, en_respuesta_a: hilo,
     para: tipo === "resultados" ? ["jorge.urdaneta@numerator.com"] : ["dc-latam@numerator.com", "mtr-latam@numerator.com"],
     cc: tipo === "resultados" ? ["joaquin.aldunate@numerator.com"] : ["jorge.urdaneta@numerator.com"],
     asunto, html: tipo === "resultados" ? htmlResultados(t) : htmlPase(t),
@@ -171,7 +178,7 @@ function correo(t, tipo, at = isoNow()) {
     enviado: MODO() === "real", modo: MODO(), at,
   }
   st.correos.push(c)
-  t.correos = { ...t.correos, [tipo]: c.id }
+  t.correos = { ...t.correos, [tipo]: c.id, [`${tipo}_hilo`]: hilo, [`${tipo}_enviado`]: true }
   return c
 }
 
@@ -233,16 +240,27 @@ function avanzar(t) {
         mover(t, "en_dq", `${t.jira_key} creado y asignado a DQ${MODO() === "simulacion" ? " (simulado)" : ""}; correo de resultados enviado`, at)
         t._sigEn = null // espera el cierre del ticket
         return
-      case "verificando":
+      case "en_dq":
+        if (!t._ticketResuelto) return
+        mover(t, "verificando", `${t.jira_key} resuelto${MODO() === "simulacion" ? " (simulado)" : ""}`, at)
+        t._sigEn = t._sigEn + 2 * STEP()
+        break
+      case "verificando": {
+        // como la API (validacion.Resultado.resumen): totales + detalle por hoja
+        const ok = MODO() === "simulacion" ? 0 : 3
+        const by_sheet = Object.fromEntries(["Imputaciones", "Cantidad envasados", "Factores", "Exclusiones"]
+          .map((h) => [h, { total: 3, checked: 3, applied: ok, pending: 3 - ok, mismatched: 0 }]))
         t.validacion = MODO() === "simulacion"
-          ? { status: "no_aplicado", checked: 12, applied: 0, pending: 12, mismatched: 0, validated_at: at, validated_by: "qmstr_flujo" }
-          : { status: "aplicado", checked: 12, applied: 12, pending: 0, mismatched: 0, validated_at: at, validated_by: "qmstr_flujo" }
+          ? { status: "no_aplicado", checked: 12, applied: 0, pending: 12, mismatched: 0, validated_at: at, validated_by: "qmstr_flujo", by_sheet }
+          : { status: "aplicado", checked: 12, applied: 12, pending: 0, mismatched: 0, validated_at: at, validated_by: "qmstr_flujo", by_sheet }
         mover(t, "hito10", MODO() === "simulacion"
           ? "verificación en J: no aplicado (esperable en simulación, DQ no aplicó nada); sigue a hito 10"
           : "cambios aplicados en J (12/12)", at)
         t._sigEn = t._sigEn + 2 * STEP()
         break
+      }
       case "hito10": {
+        t.envio = { ...t.envio, hito10: true }
         const n = t.productos.length - t.bypass.length
         const verbo = t.tipo === "reversion" ? "anulado" : "registrado"
         mover(t, "cerrada", MODO() === "simulacion"
@@ -553,8 +571,9 @@ function progreso(t) {
 // Rutas
 // ---------------------------------------------------------------------------
 
+/** Como la API (HTTPException con detail dict): `{detail: {error, message}}`. */
 function error(res, status, code, message, extra = {}) {
-  return res.status(status).json({ error: code, message, ...extra })
+  return res.status(status).json({ detail: { error: code, message, ...extra } })
 }
 
 function buscar(req, res) {
@@ -570,7 +589,7 @@ function buscar(req, res) {
 router.get("/qmstr_flujo/estado", (_req, res) => {
   res.json({
     enabled: true, modo: MODO(), paises: PAISES.map((p) => p.codigo), intervalo_segundos: INTERVALO_S,
-    ultima_vuelta: st.ultimaVuelta, resultado: st.resultado, error_config: null,
+    ultima_vuelta: st.ultimaVuelta, resultado: st.resultado, error_config: null, activo: true, config_error: null,
   })
 })
 
@@ -580,7 +599,7 @@ router.get("/qmstr_flujo/paises", (_req, res) => {
 
 router.get("/qmstr_flujo/periodos", (req, res) => {
   const pais = String(req.query.pais ?? "")
-  if (!PAIS[pais]) return error(res, 422, "validation_error", `País no configurado en el flujo: '${pais}'`)
+  if (!PAIS[pais]) return error(res, 422, "pais_invalido", `País no configurado en el flujo: '${pais}'`)
   const periodos = [...new Set(Object.keys(st.bases).filter((k) => k.startsWith(`${pais}:`)).map((k) => k.split(":")[1]))]
     .sort().reverse().slice(0, 6)
   res.json(periodos.map((periodo) => {
@@ -595,8 +614,8 @@ router.get("/qmstr_flujo/periodos", (req, res) => {
 router.get("/qmstr_flujo/bases", (req, res) => {
   const pais = String(req.query.pais ?? "")
   const periodo = String(req.query.periodo ?? "")
-  if (!PAIS[pais]) return error(res, 422, "validation_error", `País no configurado en el flujo: '${pais}'`)
-  if (!/^\d{6}$/.test(periodo)) return error(res, 422, "validation_error", "periodo debe ser AAAAMM")
+  if (!PAIS[pais]) return error(res, 422, "pais_invalido", `País no configurado en el flujo: '${pais}'`)
+  if (!/^\d{6}$/.test(periodo)) return error(res, 422, "validacion", "periodo debe ser AAAAMM")
   res.json(basesDe(pais, periodo))
 })
 
@@ -617,22 +636,22 @@ router.get("/qmstr_flujo/tandas/:tid", (req, res) => {
 
 router.post("/qmstr_flujo/tandas", (req, res) => {
   const { pais, periodo, productos, modo = "completo", forzar = false, nota = "" } = req.body ?? {}
-  if (!PAIS[pais]) return error(res, 422, "validation_error", `País no configurado en el flujo: '${pais}'`)
-  if (!/^\d{4}(0[1-9]|1[0-2])$/.test(String(periodo ?? ""))) return error(res, 422, "validation_error", "El período debe ser AAAAMM")
+  if (!PAIS[pais]) return error(res, 422, "pais_invalido", `País no configurado en el flujo: '${pais}'`)
+  if (!/^\d{4}(0[1-9]|1[0-2])$/.test(String(periodo ?? ""))) return error(res, 422, "validacion", "El período debe ser AAAAMM")
   if (!Array.isArray(productos) || productos.length === 0 || !productos.every(Number.isInteger)) {
-    return error(res, 422, "validation_error", "Elige al menos una base")
+    return error(res, 422, "validacion", "Elige al menos una base")
   }
-  if (!["completo", "solo_correr"].includes(modo)) return error(res, 422, "validation_error", `Modo desconocido: '${modo}'`)
+  if (!["completo", "solo_correr"].includes(modo)) return error(res, 422, "validacion", `Modo desconocido: '${modo}'`)
   const bases = st.bases[claveBases(pais, periodo)]
-  if (!bases) return error(res, 422, "validation_error", `No hay hitos de ${PAIS[pais].etiqueta} para ${periodo}`)
+  if (!bases) return error(res, 422, "validacion", `No hay hitos de ${PAIS[pais].etiqueta} para ${periodo}`)
   const porId = new Map(bases.map((b) => [b.producto, b]))
   const desconocidas = productos.filter((p) => !porId.has(p))
-  if (desconocidas.length) return error(res, 422, "validation_error", `Bases que no existen en ${periodo}: ${desconocidas.join(", ")}`)
+  if (desconocidas.length) return error(res, 422, "validacion", `Bases que no existen en ${periodo}: ${desconocidas.join(", ")}`)
   const fuera = productos.filter((p) => FUERA_DE_ALCANCE[pais].has(p))
-  if (fuera.length) return error(res, 422, "fuera_de_alcance", `Bases fuera de alcance de QMS-TR: ${fuera.join(", ")}`)
+  if (fuera.length) return error(res, 422, "validacion", `Bases fuera de alcance de QMS-TR: ${fuera.join(", ")}`)
   const sinH4 = productos.filter((p) => !porId.get(p).h4 || porId.get(p).h4_anulado)
   if (sinH4.length && !forzar) {
-    return error(res, 422, "sin_hito4", `Estas bases no tienen hito 4 vigente: ${sinH4.join(", ")}. Marca "forzar" para lanzarlas igual.`)
+    return error(res, 422, "validacion", `Estas bases no tienen hito 4 vigente: ${sinH4.join(", ")}. Marca "forzar" para lanzarlas igual.`)
   }
   const choque = tandasDe(pais, periodo).find((t) => ACTIVOS.has(t.estado) && t.productos.some((p) => productos.includes(p)))
   if (choque) {
@@ -644,6 +663,7 @@ router.post("/qmstr_flujo/tandas", (req, res) => {
   const numero = Math.max(0, ...tandasDe(pais, periodo).map((t) => t.numero)) + 1
   const t = nuevaTanda({
     pais, periodo, numero, productos: [...productos].sort((a, b) => a - b), tipo: "manual", modo, creada_por: USUARIO,
+    nota: nota || null,
     h4_desde: h4s[0] ?? ahora, h4_hasta: h4s.at(-1) ?? ahora, _sigEn: Date.now() + 2 * STEP(),
   })
   const partes = [`override manual de ${USUARIO}: ${productos.length} bases, modo ${modo === "completo" ? "completo" : "solo correr"}`]
@@ -658,26 +678,43 @@ router.post("/qmstr_flujo/tandas/:tid/revertir", (req, res) => {
   const origen = buscar(req, res)
   if (!origen) return
   const { productos, motivo } = req.body ?? {}
-  if (!Array.isArray(productos) || productos.length === 0) return error(res, 422, "validation_error", "Elige al menos una base para revertir")
-  if (!motivo || !String(motivo).trim()) return error(res, 422, "validation_error", "Escribe el motivo de la reversión")
-  if (!["cerrada", "hito10", "verificando"].includes(origen.estado)) {
-    return error(res, 409, "conflict", `Solo se revierte una tanda cerrada, en hito 10 o verificando (está ${origen.estado})`)
+  if (!Array.isArray(productos) || productos.length === 0) return error(res, 422, "validacion", "Elige al menos una base para revertir")
+  if (!motivo) {
+    // `motivo: str = Field(min_length=1)`: el 422 estándar de FastAPI
+    return res.status(422).json({ detail: [{ type: "string_too_short", loc: ["body", "motivo"], msg: "String should have at least 1 character" }] })
+  }
+  if (!String(motivo).trim()) return error(res, 422, "validacion", "indica el motivo de la reversión")
+  if (origen.ejecucion !== MODO()) {
+    return error(res, 409, "conflict", `la tanda se corrió en modo ${origen.ejecucion} y el flujo está en modo ${MODO()}`)
+  }
+  // La API acepta verificando/hito10 en REVERSIBLES, pero sus propias bases siguen en una tanda en curso
+  // y responde 409: en la práctica sólo se revierte una tanda cerrada.
+  if (origen.estado !== "cerrada") {
+    return error(res, 409, "conflict", `bases en una tanda en curso: ${productos.join(", ")} (la tanda ${origen.numero} está ${origen.estado})`)
   }
   if (origen.tipo === "reversion") return error(res, 409, "conflict", "Una reversión no se revierte; lanza un override manual")
   if (origen.modo === "solo_correr") {
     return error(res, 409, "conflict", "Una tanda solo correr no envió nada a DQ: no hay cambios que revertir")
   }
   const ajenas = productos.filter((p) => !origen.productos.includes(p) || origen.bypass.includes(p))
-  if (ajenas.length) return error(res, 422, "validation_error", `Estas bases no estaban en el zip de la tanda ${origen.numero}: ${ajenas.join(", ")}`)
+  if (ajenas.length) return error(res, 422, "validacion", `Estas bases no estaban en el zip de la tanda ${origen.numero}: ${ajenas.join(", ")}`)
   const yaRevertidas = tandasDe(origen.pais, origen.periodo)
     .filter((t) => t.tipo === "reversion" && t.tanda_origen === origen.id)
     .flatMap((t) => t.productos).filter((p) => productos.includes(p))
   if (yaRevertidas.length) return error(res, 409, "conflict", `Ya se revirtieron: ${yaRevertidas.join(", ")}`)
+  const otras = tandasDe(origen.pais, origen.periodo).filter((t) => t.ejecucion === MODO())
+  const posteriores = otras.filter((t) => t.tipo !== "reversion" && t.numero > origen.numero)
+    .flatMap((t) => t.productos).filter((p) => productos.includes(p))
+  if (posteriores.length) {
+    return error(res, 409, "conflict", `bases que pasaron por una tanda posterior (revierte esa): ${[...new Set(posteriores)].join(", ")}`)
+  }
+  const enCurso = otras.filter((t) => ACTIVOS.has(t.estado)).flatMap((t) => t.productos).filter((p) => productos.includes(p))
+  if (enCurso.length) return error(res, 409, "conflict", `bases en una tanda en curso: ${[...new Set(enCurso)].join(", ")}`)
   const numero = Math.max(0, ...tandasDe(origen.pais, origen.periodo).map((t) => t.numero)) + 1
   const t = nuevaTanda({
     pais: origen.pais, periodo: origen.periodo, numero, productos: [...productos].sort((a, b) => a - b), tipo: "reversion",
     tanda_origen: origen.id, creada_por: USUARIO, h4_desde: origen.h4_desde, h4_hasta: origen.h4_hasta,
-    _sigEn: Date.now() + 2 * STEP(),
+    nota: String(motivo).trim(), _sigEn: Date.now() + 2 * STEP(),
   })
   evento(t, `reversión de ${productos.length} bases de la tanda ${origen.numero} por ${USUARIO}: ${String(motivo).trim()}`)
   st.tandas.set(t.id, t)
@@ -724,7 +761,9 @@ router.post("/qmstr_flujo/tandas/:tid/simular_cierre_ticket", (req, res) => {
   if (!t) return
   if (MODO() !== "simulacion") return error(res, 409, "conflict", "Solo disponible en modo simulación")
   if (t.estado !== "en_dq") return error(res, 409, "conflict", `El ticket solo se cierra con la tanda en DQ (está ${t.estado})`)
-  mover(t, "verificando", `${t.jira_key} marcado como resuelto por ${USUARIO}`)
+  // como la API: el ticket queda resuelto pero la tanda sigue en DQ hasta la vuelta siguiente
+  t._ticketResuelto = true
+  evento(t, `${t.jira_key} marcado como resuelto por ${USUARIO} (simulado)`)
   t._sigEn = Date.now() + 2 * STEP()
   res.json(publica(t))
 })
@@ -743,10 +782,10 @@ router.get("/qmstr_flujo/tandas/:tid/zip", (req, res) => {
   if (["detectada", "corriendo", "armando_reversion"].includes(t.estado)) {
     return error(res, 409, "conflict", `El zip todavía no está listo (tanda ${t.estado})`)
   }
-  res.json({ url: `/api/v1/qmstr_flujo/tandas/${t.id}/zip-signed?token=mock`, expires_in: 60 })
+  res.json({ url: `/api/v1/qmstr_flujo/tandas/${t.id}/zip/descarga?token=mock`, expires_in: 60 })
 })
 
-router.get("/qmstr_flujo/tandas/:tid/zip-signed", (req, res) => {
+router.get("/qmstr_flujo/tandas/:tid/zip/descarga", (req, res) => {
   const t = st.tandas.get(req.params.tid)
   if (!t || !req.query.token) return error(res, 401, "unauthorized", "token inválido")
   const nombre = `qms_tr_${PAIS[t.pais].nombre}_${t.periodo}_${t.tipo === "reversion" ? "reversion" : "tanda"}${t.numero}.zip`

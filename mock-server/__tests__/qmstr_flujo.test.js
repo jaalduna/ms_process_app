@@ -85,8 +85,8 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     const ocupada = bases.find((b) => b.tanda_estado === "corriendo").producto
 
     expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [] })).status).toBe(422)
-    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [701] })).body.error).toBe("fuera_de_alcance")
-    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [ret] })).body.error).toBe("sin_hito4")
+    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [701] })).body.detail.message).toMatch(/fuera de alcance/)
+    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [ret] })).body.detail).toMatchObject({ error: "validacion", message: expect.stringMatching(/hito 4/) })
     expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [ocupada] })).status).toBe(409)
 
     const { status, body: t } = await post("/tandas", {
@@ -100,8 +100,10 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
       return body.estado === "en_dq" ? body : null
     }, 5000)
     expect(enDq.jira_key).toMatch(/^SIM-/)
-    const { body: cerrada } = await post(`/tandas/${t.id}/simular_cierre_ticket`)
-    expect(cerrada.estado).toBe("verificando")
+    // como la API: el ticket queda resuelto y la tanda sigue en DQ hasta la vuelta siguiente
+    const { body: resuelta } = await post(`/tandas/${t.id}/simular_cierre_ticket`)
+    expect(resuelta.estado).toBe("en_dq")
+    expect(t).toMatchObject({ nota: "prueba", ejecucion: "simulacion" })
     await esperar(async () => (await get(`/tandas/${t.id}`)).body.estado === "cerrada")
     const { body: correos } = await get("/correos?pais=EC&periodo=202609")
     expect(correos.filter((c) => c.tanda_id === t.id).map((c) => c.tipo).sort()).toEqual(["pase_mtr", "resultados"])
@@ -164,6 +166,41 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect((await get(`/tandas/${ec.id}/zip`)).status).toBe(409)
     const { body: [cerrada] } = await get("/tandas?pais=EC&periodo=202609&estado=cerrada&tipo=liberacion")
     const { body } = await get(`/tandas/${cerrada.id}/zip`)
-    expect(body.url).toMatch(/zip-signed\?token=/)
+    expect(body.url).toMatch(/\/zip\/descarga\?token=/)
+  })
+
+  it("contrato de la API real: errores en detail, correos en llaves planas y reversión sólo de tandas cerradas", async () => {
+    const { body: estado } = await get("/estado")
+    expect(estado).toMatchObject({ activo: true, config_error: null, error_config: null })
+
+    const { status, body: err } = await post("/tandas", { pais: "EC", periodo: "202613", productos: [1] })
+    expect(status).toBe(422)
+    expect(err.detail).toMatchObject({ error: "validacion" })
+
+    // la tanda 2 de EC está en DQ: la API no la revierte mientras sus bases siguen en curso
+    const { body: [enDq] } = await get("/tandas?pais=EC&periodo=202609&estado=en_dq")
+    const base = enDq.productos.find((p) => !enDq.bypass.includes(p))
+    expect((await post(`/tandas/${enDq.id}/revertir`, { productos: [base], motivo: "x" })).status).toBe(409)
+    const vacio = await post(`/tandas/${enDq.id}/revertir`, { productos: [base], motivo: "" })
+    expect(vacio.status).toBe(422)
+    expect(Array.isArray(vacio.body.detail)).toBe(true)
+
+    const { body: bases } = await get("/bases?pais=EC&periodo=202609")
+    const pend = bases.filter((b) => b.estado === "pendiente").map((b) => b.producto)
+    const { body: t } = await post("/tandas", { pais: "EC", periodo: "202609", productos: pend })
+    await esperar(async () => (await get(`/tandas/${t.id}`)).body.estado === "en_dq", 5000)
+    await post(`/tandas/${t.id}/simular_cierre_ticket`)
+    const cerrada = await esperar(async () => {
+      const { body } = await get(`/tandas/${t.id}`)
+      return body.estado === "cerrada" ? body : null
+    }, 5000)
+    expect(cerrada.correos).toMatchObject({
+      resultados: expect.any(String), resultados_hilo: null, resultados_enviado: true,
+      pase_mtr: expect.any(String), pase_mtr_hilo: null, pase_mtr_enviado: true,
+    })
+    const { body: correos } = await get("/correos?pais=EC&periodo=202609")
+    const pase = correos.find((c) => c.id === cerrada.correos.pase_mtr)
+    // en simulación no se busca el hilo de la liberación: sale como correo nuevo
+    expect(pase).toMatchObject({ en_respuesta_a: null, enviado: false, asunto: `[QMS-TR] Ecuador 202609 · tanda ${t.numero} · pase a MTR` })
   })
 })
