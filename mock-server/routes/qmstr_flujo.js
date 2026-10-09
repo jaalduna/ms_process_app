@@ -133,7 +133,7 @@ function filasPorHoja(n) {
   return { Imputaciones: n * 37, "Cantidad envasados": n * 2, Factores: n * 61, Exclusiones: n * 9 }
 }
 
-const MTR = { account_id: "712020:3c1f7a52-8d6e-4b0a-9a57-1e2c4d5f6a70", nombre: "Alejandro Peña" }
+const MTR = { account_id: "712020:0ce95529-7fe5-44d3-8992-b22e3cfaa19d", nombre: "Alejandro Peña" }
 
 /**
  * Aviso en el ticket de Jira (observador agregado o comentario con @mención). Como la API: en simulación no se
