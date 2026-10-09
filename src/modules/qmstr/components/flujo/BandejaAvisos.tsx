@@ -34,13 +34,19 @@ function Ticket({ jiraKey }: { jiraKey: string }) {
     : <span className={clases} data-testid="qf-aviso-ticket" title="Ticket simulado: no existe en Jira">{cuerpo}</span>
 }
 
+/** Sin nombre resuelto se muestra el accountId acortado (prefijo del tenant + 8 caracteres). */
+const abreviar = (id: string) => {
+  const [prefijo, resto = ""] = id.split(":")
+  return resto ? `${prefijo}:${resto.slice(0, 8)}…` : id
+}
+
 function Aviso({ aviso: a }: { aviso: FlujoAviso }) {
   const Icono = ICONO_TIPO[a.tipo]
   return (
     <li className="space-y-2.5 px-4 py-3.5" data-testid={`qf-aviso-${a.tipo}`} data-publicado={a.publicado}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <Chip tone={TONO_AVISO[a.tipo]}><Icono className="size-3" />{TIPO_AVISO_LABEL[a.tipo]}</Chip>
-        <Ticket jiraKey={a.jira_key} />
+        {a.jira_key && <Ticket jiraKey={a.jira_key} />}
         {a.publicado
           ? <Chip tone="var(--qf-aplicada)" dot="solid" data-testid="qf-aviso-estado">Publicado en Jira</Chip>
           : <Chip tone="var(--qf-retenida)" dot="solid" data-testid="qf-aviso-estado">Simulado, no se publicó</Chip>}
@@ -52,7 +58,7 @@ function Aviso({ aviso: a }: { aviso: FlujoAviso }) {
           {a.destinatarios.map((d) => (
             <li key={d.account_id} title={d.account_id}
               className="rounded-full bg-[color-mix(in_oklch,var(--primary)_10%,transparent)] px-2 py-0.5 text-xs font-medium text-primary">
-              @{d.nombre}
+              @{d.nombre ?? abreviar(d.account_id)}
             </li>
           ))}
         </ul>

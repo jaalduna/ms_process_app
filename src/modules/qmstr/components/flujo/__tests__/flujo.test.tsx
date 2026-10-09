@@ -107,6 +107,13 @@ describe("avisos en Jira", () => {
     expect(real.querySelector("a")).toHaveAttribute("href", "https://requestmanager.atlassian.net/browse/LAT-4101")
   })
 
+  it("sin nombre ni ticket muestra el accountId abreviado y no inventa el enlace", async () => {
+    const { BandejaAvisos } = await import("../BandejaAvisos")
+    render(<BandejaAvisos avisos={[aviso({ jira_key: null, destinatarios: [{ account_id: "712020:0ce95529-7fe5-44d3", nombre: null }] })]} tandas={[]} />)
+    expect(screen.getByTestId("qf-aviso-pase_mtr")).toHaveTextContent("@712020:0ce95529…")
+    expect(screen.queryByTestId("qf-aviso-ticket")).toBeNull()
+  })
+
   it("sin avisos muestra el estado vacío", async () => {
     const { BandejaAvisos } = await import("../BandejaAvisos")
     render(<BandejaAvisos avisos={[]} tandas={[]} />)

@@ -125,7 +125,7 @@ test.describe("Flujo QMS-TR contra la API real (fake)", () => {
     const avisos = page.getByTestId("qf-avisos")
     await expect(avisos).toContainText("Tanda 1")
     await expect(avisos.getByTestId("qf-aviso-observadores")).toContainText("Simulado, no se publicó")
-    await expect(avisos.getByTestId("qf-aviso-pase_mtr")).toContainText("@Alejandro Peña")
+    await expect(avisos.getByTestId("qf-aviso-pase_mtr")).toContainText(/@(Alejandro Peña|712020:0ce95529)/)
     await foto(page, "avisos")
 
     // revertir 1 base del zip; la de bypass no aparece

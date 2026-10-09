@@ -348,7 +348,8 @@ export const TIPO_AVISO_LABEL: Record<TipoAviso, string> = {
 
 export interface AvisoDestinatario {
   account_id: string
-  nombre: string
+  /** La API puede no resolver el nombre del usuario de Jira. */
+  nombre: string | null
 }
 
 /** GET /qmstr_flujo/avisos — avisos en el ticket de Jira (comentarios y observadores), publicados o simulados. */
@@ -358,8 +359,8 @@ export interface FlujoAviso {
   pais: string
   periodo: string
   tipo: TipoAviso
-  /** LAT-n en modo real; SIM-n en simulación (no existe en Jira). */
-  jira_key: string
+  /** LAT-n en modo real; SIM-n en simulación (no existe en Jira); null si la tanda aún no tiene ticket. */
+  jira_key: string | null
   texto: string
   destinatarios: AvisoDestinatario[]
   publicado: boolean

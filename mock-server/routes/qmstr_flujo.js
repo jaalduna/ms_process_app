@@ -146,12 +146,12 @@ function aviso(t, tipo, at = isoNow()) {
   const lista = hechas.slice(0, 6).map((x) => nombreBase(t.pais, x)).join(", ")
   const resto = hechas.length > 6 ? ` y ${hechas.length - 6} más` : ""
   const texto = {
-    observadores: `Se agregó a ${MTR.nombre} (MTR) como observador de ${t.jira_key}.`,
+    observadores: `Observadores agregados al ticket ${t.jira_key}.`,
     pase_mtr: `@${MTR.nombre} QMS-TR quedó aplicado y validado en las bases ${lista}${resto} de ${p.etiqueta}. Pueden seguir con MTR.`,
     reversion_aplicada: `@${MTR.nombre} La reversión de QMS-TR quedó aplicada en las bases ${lista}${resto} de ${p.etiqueta}.`,
   }[tipo]
   const a = {
-    id: crypto.randomUUID(), tanda_id: t.id, pais: t.pais, periodo: t.periodo, tipo, jira_key: t.jira_key, texto,
+    id: `${t.id}:${tipo}`, tanda_id: t.id, pais: t.pais, periodo: t.periodo, tipo, jira_key: t.jira_key, texto,
     destinatarios: [MTR], publicado: MODO() === "real", modo: MODO(), at,
   }
   st.avisos.push(a)
