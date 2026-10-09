@@ -42,3 +42,19 @@ describe("progreso de la corrida en la tarjeta de la tanda", () => {
     expect(getTandaProgreso).toHaveBeenCalledTimes(2)
   })
 })
+
+describe("acciones de la tanda", () => {
+  it("una tanda solo correr cerrada no ofrece revertir; una completa sí", () => {
+    const qc = new QueryClient()
+    const card = (t: Tanda) => (
+      <QueryClientProvider client={qc}>
+        <TandaCard tanda={t} nombres={new Map()} modo="simulacion" esAdmin verRun={false} ocupado={null}
+          onAccion={() => {}} onRevertir={() => {}} />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(card(tanda({ estado: "cerrada", qms_run_id: null, modo: "solo_correr" })))
+    expect(screen.queryByTestId("qf-accion-revertir")).toBeNull()
+    rerender(card(tanda({ estado: "cerrada", qms_run_id: null, modo: "completo" })))
+    expect(screen.getByTestId("qf-accion-revertir")).toBeVisible()
+  })
+})

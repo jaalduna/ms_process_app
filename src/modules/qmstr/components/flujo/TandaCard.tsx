@@ -208,7 +208,8 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
   const [bajando, setBajando] = useState(false)
   const activa = TANDA_ACTIVOS.includes(t.estado)
   const zipListo = !["detectada", "corriendo", "armando_reversion", "sin_bases"].includes(t.estado)
-  const revertible = t.tipo !== "reversion" && ["cerrada", "hito10", "verificando"].includes(t.estado)
+  // solo correr no envía nada a DQ: no hay cambios en J que revertir
+  const revertible = t.tipo !== "reversion" && t.modo !== "solo_correr" && ["cerrada", "hito10", "verificando"].includes(t.estado)
   const v = t.validacion
 
   async function bajar() {

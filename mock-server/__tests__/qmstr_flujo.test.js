@@ -124,6 +124,22 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(bases.find((b) => b.producto === base).estado).toBe("revertida")
   })
 
+  it("solo correr: cierra sin correo ni ticket, no deja la base aplicada y no se puede revertir", async () => {
+    const { body: bases } = await get("/bases?pais=EC&periodo=202609")
+    const pend = bases.filter((b) => b.estado === "pendiente").map((b) => b.producto)
+    const { body: t } = await post("/tandas", { pais: "EC", periodo: "202609", productos: pend, modo: "solo_correr" })
+    const cerrada = await esperar(async () => {
+      const { body } = await get(`/tandas/${t.id}`)
+      return body.estado === "cerrada" ? body : null
+    }, 5000)
+    expect(cerrada.jira_key).toBeNull()
+    const { body: correos } = await get("/correos?pais=EC&periodo=202609")
+    expect(correos.filter((c) => c.tanda_id === t.id)).toEqual([])
+    const { body: despues } = await get("/bases?pais=EC&periodo=202609")
+    expect(new Set(despues.filter((b) => pend.includes(b.producto)).map((b) => b.estado))).toEqual(new Set(["pendiente"]))
+    expect((await post(`/tandas/${t.id}/revertir`, { productos: [pend[0]], motivo: "x" })).status).toBe(409)
+  })
+
   it("pausar congela la tanda y reanudar la suelta; reintentar saca de revisión manual", async () => {
     const { body: [bo] } = await get("/tandas?pais=BO&periodo=202609&estado=revision_manual")
     const { body: re } = await post(`/tandas/${bo.id}/reintentar`)

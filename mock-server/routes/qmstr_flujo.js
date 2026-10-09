@@ -472,7 +472,9 @@ function tandasDe(pais, periodo) {
 
 function estadoBase(b, ts) {
   if (b.fuera_de_alcance) return { estado: "fuera_de_alcance", tanda: null }
-  const conBase = ts.filter((t) => t.productos.includes(b.producto) && t.estado !== "sin_bases")
+  // una tanda "solo correr" ya terminada no aplicó nada en J (sin zip a DQ ni hito 10): no cambia el estado de la base
+  const conBase = ts.filter((t) => t.productos.includes(b.producto) && t.estado !== "sin_bases"
+    && !(t.modo === "solo_correr" && !ACTIVOS.has(t.estado)))
   const ultima = conBase.at(-1) ?? null
   if (!b.h4 || b.h4_anulado) {
     if (ultima && ACTIVOS.has(ultima.estado)) return { estado: "en_proceso", tanda: ultima }
@@ -662,6 +664,9 @@ router.post("/qmstr_flujo/tandas/:tid/revertir", (req, res) => {
     return error(res, 409, "conflict", `Solo se revierte una tanda cerrada, en hito 10 o verificando (está ${origen.estado})`)
   }
   if (origen.tipo === "reversion") return error(res, 409, "conflict", "Una reversión no se revierte; lanza un override manual")
+  if (origen.modo === "solo_correr") {
+    return error(res, 409, "conflict", "Una tanda solo correr no envió nada a DQ: no hay cambios que revertir")
+  }
   const ajenas = productos.filter((p) => !origen.productos.includes(p) || origen.bypass.includes(p))
   if (ajenas.length) return error(res, 422, "validation_error", `Estas bases no estaban en el zip de la tanda ${origen.numero}: ${ajenas.join(", ")}`)
   const yaRevertidas = tandasDe(origen.pais, origen.periodo)
