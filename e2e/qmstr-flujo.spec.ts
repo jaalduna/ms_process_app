@@ -95,6 +95,19 @@ test.describe("Flujo QMS-TR", () => {
     await expect(dlg.getByTestId("qf-override-resumen")).toContainText("Bolivia")
   })
 
+  test("override: una base aplicada se ve pero no se puede elegir ni entra en Elegir liberadas", async ({ page }) => {
+    await abrir(page)
+    await page.getByTestId("qf-lanzar").click()
+    const dlg = page.getByTestId("qf-override")
+    await dlg.getByTestId("qf-override-liberadas").click()
+    const fila = dlg.getByRole("listitem").filter({ hasText: "Ya tiene QMS-TR aplicado: revírtela primero" }).first()
+    await expect(fila).toBeVisible()
+    await expect(fila.getByRole("checkbox")).toBeDisabled()
+    await expect(fila.getByRole("checkbox")).toHaveAccessibleDescription(/revírtela primero/)
+    await expect(fila.getByRole("checkbox")).not.toBeChecked()
+    await expect(dlg.getByTestId("qf-override-revisar")).toHaveText(/Revisar 7 bases/)
+  })
+
   test("lanzar override: la tanda corre con progreso, llega a DQ y cierra al simular el ticket", async ({ page }) => {
     await abrir(page)
     await page.getByTestId("qf-lanzar").click()

@@ -12,19 +12,13 @@ import { useFlujoBases, useFlujoPeriodos } from "../../hooks/useQmsTrFlujo"
 import { formatChile } from "../../time"
 import type { EstadoBase, FlujoBase, FlujoPais, ModoTanda, TandaCreate } from "../../types"
 import { mensajeError, periodoLabel } from "./formato"
+import { bloqueo } from "./bloqueo"
 import { ChipBase } from "./piezas"
 
 /** Orden de la lista: primero las candidatas naturales (liberadas), al final las que no se pueden elegir. */
 const PRIORIDAD: EstadoBase[] = ["pendiente", "revertida", "retenida", "sin_hito4", "aplicada", "bypass", "en_proceso", "fuera_de_alcance"]
 
 const sinH4 = (b: FlujoBase) => !b.h4 || b.h4_anulado
-
-/** Por qué una base no se puede elegir (null = se puede). */
-function bloqueo(b: FlujoBase): string | null {
-  if (b.estado === "fuera_de_alcance") return "Fuera de alcance de QMS-TR"
-  if (b.estado === "en_proceso") return `Ya está en la tanda ${b.tanda_numero}`
-  return null
-}
 
 const MODOS: { modo: ModoTanda; titulo: string; texto: string }[] = [
   { modo: "completo", titulo: "Completo", texto: "Corre, envía el zip a DQ con ticket y correo, verifica en J y registra el hito 10." },

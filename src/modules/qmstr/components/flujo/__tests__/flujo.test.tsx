@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { nBases, periodoLabel, relativo } from "../formato"
 import { Stepper } from "../TandaCard"
 import { TableroBases } from "../TableroBases"
+import { bloqueo } from "../bloqueo"
 import { pollTandas } from "../../../hooks/useQmsTrFlujo"
 import type { FlujoBase, Tanda } from "../../../types"
 
@@ -60,6 +61,14 @@ describe("Stepper", () => {
     expect(container.querySelector('[data-paso="corriendo"]')).toBeNull()
     rerender(<Stepper tanda={tanda({ modo: "solo_correr" })} />)
     expect([...container.querySelectorAll("[data-paso]")].map((e) => e.getAttribute("data-paso"))).toEqual(["detectada", "corriendo", "cerrada"])
+  })
+})
+
+describe("bloqueo de bases en el diálogo de lanzamiento", () => {
+  it("una base aplicada no se puede elegir y dice cómo seguir; una revertida sí", () => {
+    expect(bloqueo(base(1, "aplicada"))).toBe("Ya tiene QMS-TR aplicado: revírtela primero")
+    expect(bloqueo(base(2, "revertida"))).toBeNull()
+    expect(bloqueo(base(3, "pendiente"))).toBeNull()
   })
 })
 
