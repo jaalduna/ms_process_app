@@ -42,6 +42,20 @@ function proximoCiclo(at) {
   throw new Error("sin ciclo CDC en 48 h")
 }
 
+/**
+ * Último ciclo del CDC (hh:00 Chile, 06..19) cuyo snapshot ya se commiteó (ciclo + 8 min <= ahora). Sirve para
+ * "producir" el snapshot de una corrida en espera a cualquier hora (antes se usaba ahora - 2 h, que después de las
+ * ~21:00 de Chile cae fuera del horario del CDC y dejaba la corrida esperando hasta el día siguiente).
+ */
+function ultimoCicloListo() {
+  let t = new Date(Math.floor((Date.now() - 8 * 60_000) / 3_600_000) * 3_600_000)
+  for (let i = 0; i < 48; i++, t = new Date(t.getTime() - 3_600_000)) {
+    const h = horaChile(t)
+    if (h >= 6 && h <= 19) return t
+  }
+  throw new Error("sin ciclo CDC en las últimas 48 h")
+}
+
 function resolver(country, atIso) {
   const at = new Date(atIso)
   const ciclo = proximoCiclo(at)
@@ -164,7 +178,7 @@ router.post("/qms_tr/runs", (req, res) => {
     // el ciclo del CDC "ocurre": se re-resuelve con un snapshot ya listo y la corrida parte sola
     const t = setTimeout(() => {
       if (run.status !== "waiting_snapshot") return
-      run.snapshot = resolver(country, new Date(Date.now() - 2 * 3_600_000).toISOString())
+      run.snapshot = resolver(country, ultimoCicloListo().toISOString())
       arrancar(run)
     }, WAIT_MS())
     timers.set(run.run_id, t)
