@@ -60,6 +60,13 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(enCurso.historial[0].evento).toMatch(/tanda 4/)
   })
 
+  it("período sin ningún hito 4: las bases con hito 3 esperan liberación, no están retenidas", async () => {
+    const { body: periodos } = await get("/periodos?pais=BO")
+    expect(periodos[0]).toEqual({ periodo: "202610", h3: 40, h4: 0, h10: 0, tandas: 0 })
+    const { body: bases } = await get("/bases?pais=BO&periodo=202610")
+    expect(new Set(bases.map((b) => b.estado))).toEqual(new Set(["esperando_liberacion"]))
+  })
+
   it("períodos cerrados: todas las bases aplicadas", async () => {
     const { body: bases } = await get("/bases?pais=BO&periodo=202608")
     expect(bases).toHaveLength(58)

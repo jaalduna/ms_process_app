@@ -47,7 +47,9 @@ export function TableroBases({ pais, periodo, bases, filtro, onFiltro }: Tablero
     { label: "en proceso", valor: cuenta.en_proceso, testid: "qf-kpi-en-proceso", estado: "en_proceso" as const },
     { label: "aplicadas", valor: cuenta.aplicada, testid: "qf-kpi-aplicadas", estado: "aplicada" as const },
     { label: "revertidas", valor: cuenta.revertida, testid: "qf-kpi-revertidas", estado: "revertida" as const },
-    { label: "retenidas", valor: cuenta.retenida, testid: "qf-kpi-retenidas", estado: "retenida" as const },
+    cuenta.retenida > 0 || cuenta.esperando_liberacion === 0
+      ? { label: "retenidas", valor: cuenta.retenida, testid: "qf-kpi-retenidas", estado: "retenida" as const }
+      : { label: "esperando liberación", valor: cuenta.esperando_liberacion, testid: "qf-kpi-esperando-liberacion", estado: "esperando_liberacion" as const },
   ]
   const etapas = ETAPAS.map((e) => ({ ...e, n: bases.filter(e.incluye).length }))
   const totalEtapas = etapas.reduce((s, e) => s + e.n, 0)

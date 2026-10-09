@@ -174,6 +174,7 @@ export interface FlujoPeriodo {
 export type EstadoBase =
   | "sin_hito4"
   | "retenida"
+  | "esperando_liberacion"
   | "pendiente"
   | "en_proceso"
   | "aplicada"
@@ -409,7 +410,8 @@ export const ESTADOS_BASE: { estado: EstadoBase; label: string; ayuda: string }[
   { estado: "aplicada", label: "Aplicadas", ayuda: "QMS-TR quedó aplicado en la base" },
   { estado: "en_proceso", label: "En proceso", ayuda: "La base está en una tanda que sigue avanzando" },
   { estado: "pendiente", label: "Liberadas sin tanda", ayuda: "Tienen hito 4 y todavía no entran a una tanda" },
-  { estado: "retenida", label: "Retenidas", ayuda: "Tienen hito 3 pero no hito 4" },
+  { estado: "retenida", label: "Retenidas", ayuda: "Tienen hito 3 pero no hito 4, y otras bases del período ya fueron liberadas" },
+  { estado: "esperando_liberacion", label: "Esperando liberación", ayuda: "Tienen hito 3 y ninguna base del período tiene hito 4 todavía" },
   { estado: "revertida", label: "Revertidas", ayuda: "Se devolvieron a su estado anterior a QMS-TR" },
   { estado: "bypass", label: "Sin cambios", ayuda: "El motor no propuso cambios: quedaron fuera del zip" },
   { estado: "sin_hito4", label: "Sin hitos", ayuda: "Todavía sin hito 3 ni hito 4" },
@@ -421,6 +423,7 @@ export const ESTADO_BASE_LABEL: Record<EstadoBase, string> = {
   en_proceso: "En proceso",
   pendiente: "Liberada",
   retenida: "Retenida",
+  esperando_liberacion: "Esperando liberación",
   revertida: "Revertida",
   bypass: "Sin cambios",
   sin_hito4: "Sin hitos",

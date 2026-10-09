@@ -446,10 +446,20 @@ function sembrarBolivia() {
   aviso(t2, "observadores", chile(2026, 10, 5, 17, 24))
 }
 
+/** Período recién abierto: hito 3 en todas las bases y ninguna con hito 4 todavía (esperando liberación). */
+function sembrarPeriodoSinHito4(pais, periodo, n) {
+  const y = Number(periodo.slice(0, 4))
+  const m = Number(periodo.slice(4))
+  st.bases[claveBases(pais, periodo)] = CATEGORIAS.slice(0, n).map((nombre, i) => ({
+    producto: 10 + i, nombre, h3: chile(y, m, 2, 10, i % 50), h4: null, h4_anulado: false, h10: null, fuera_de_alcance: false,
+  }))
+}
+
 export function resetQmstrFlujo() {
   st = { bases: {}, tandas: new Map(), avisos: [], ultimaVuelta: iso(Date.now() - 3 * MIN), resultado: { EC: "ok", BO: "ok" }, jiraSeq: 5 }
   sembrarEcuador()
   sembrarBolivia()
+  sembrarPeriodoSinHito4("BO", "202610", 40)
   for (const p of PAISES) {
     let per = PERIODO_ACTUAL
     for (let k = 0; k < 5; k++) {
@@ -470,7 +480,7 @@ function tandasDe(pais, periodo) {
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
 }
 
-function estadoBase(b, ts) {
+function estadoBase(b, ts, hayH4Periodo) {
   if (b.fuera_de_alcance) return { estado: "fuera_de_alcance", tanda: null }
   // una tanda "solo correr" ya terminada no aplicó nada en J (sin zip a DQ ni hito 10): no cambia el estado de la base
   const conBase = ts.filter((t) => t.productos.includes(b.producto) && t.estado !== "sin_bases"
@@ -478,7 +488,8 @@ function estadoBase(b, ts) {
   const ultima = conBase.at(-1) ?? null
   if (!b.h4 || b.h4_anulado) {
     if (ultima && ACTIVOS.has(ultima.estado)) return { estado: "en_proceso", tanda: ultima }
-    return { estado: b.h3 ? "retenida" : "sin_hito4", tanda: ultima }
+    // retenida = hito 3 sin hito 4 mientras otras bases del período ya tienen hito 4; si ninguna lo tiene, aún se espera la liberación
+    return { estado: b.h3 ? (hayH4Periodo ? "retenida" : "esperando_liberacion") : "sin_hito4", tanda: ultima }
   }
   if (!ultima) return { estado: "pendiente", tanda: null }
   // re-liberación: hito 4 posterior al último procesado
@@ -493,8 +504,10 @@ function estadoBase(b, ts) {
 
 function basesDe(pais, periodo) {
   const ts = tandasDe(pais, periodo)
-  return (st.bases[claveBases(pais, periodo)] ?? []).map((b) => {
-    const { estado, tanda } = estadoBase(b, ts)
+  const bs = st.bases[claveBases(pais, periodo)] ?? []
+  const hayH4Periodo = bs.some((b) => b.h4 && !b.h4_anulado)
+  return bs.map((b) => {
+    const { estado, tanda } = estadoBase(b, ts, hayH4Periodo)
     const historial = ts.filter((t) => t.productos.includes(b.producto)).flatMap((t) => {
       const tipo = { liberacion: "liberación", manual: "manual", reversion: "reversión" }[t.tipo]
       const evs = [{ at: t.created_at, tanda_id: t.id, tipo: t.tipo, evento: `entró a la tanda ${t.numero} (${tipo})` }]

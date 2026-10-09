@@ -18,6 +18,7 @@ export const TONO_BASE: Record<EstadoBase, string> = {
   en_proceso: "var(--qf-en-proceso)",
   pendiente: "var(--qf-pendiente)",
   retenida: "var(--qf-retenida)",
+  esperando_liberacion: "var(--qf-espera)",
   revertida: "var(--qf-revertida)",
   bypass: "var(--qf-bypass)",
   sin_hito4: "var(--qf-sin-hito4)",

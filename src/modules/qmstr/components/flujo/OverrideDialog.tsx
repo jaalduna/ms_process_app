@@ -16,7 +16,7 @@ import { bloqueo } from "./bloqueo"
 import { ChipBase } from "./piezas"
 
 /** Orden de la lista: primero las candidatas naturales (liberadas), al final las que no se pueden elegir. */
-const PRIORIDAD: EstadoBase[] = ["pendiente", "revertida", "retenida", "sin_hito4", "aplicada", "bypass", "en_proceso", "fuera_de_alcance"]
+const PRIORIDAD: EstadoBase[] = ["pendiente", "revertida", "retenida", "esperando_liberacion", "sin_hito4", "aplicada", "bypass", "en_proceso", "fuera_de_alcance"]
 
 const sinH4 = (b: FlujoBase) => !b.h4 || b.h4_anulado
 

@@ -87,6 +87,15 @@ describe("TableroBases", () => {
   })
 })
 
+describe("TableroBases sin hito 4 en el período", () => {
+  it("muestra esperando liberación en vez de retenidas", () => {
+    const bases = [base(1, "esperando_liberacion", { h4: null }), base(2, "esperando_liberacion", { h4: null })]
+    render(<TableroBases pais="Bolivia" periodo="202610" bases={bases} filtro={null} onFiltro={vi.fn()} />)
+    expect(screen.getByTestId("qf-kpi-esperando-liberacion")).toHaveTextContent("2")
+    expect(screen.queryByTestId("qf-kpi-retenidas")).toBeNull()
+  })
+})
+
 describe("avisos en Jira", () => {
   const aviso = (extra = {}) => ({
     id: "a1", tanda_id: "t1", pais: "EC", periodo: "202609", tipo: "pase_mtr" as const, jira_key: "SIM-1",
