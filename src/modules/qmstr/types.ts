@@ -151,6 +151,8 @@ export interface FlujoEstado {
   /** Resultado de la última vuelta por país ("ok" o el error). */
   resultado: Record<string, string> | null
   error_config: string | null
+  /** El usuario actual puede operar las acciones: admin siempre; specialist sólo en simulación. */
+  puede_operar: boolean
   /** La tarea de fondo del flujo está corriendo (la API real; el mock no lo informa). */
   activo?: boolean
 }

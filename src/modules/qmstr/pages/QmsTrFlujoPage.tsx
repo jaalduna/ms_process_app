@@ -60,7 +60,7 @@ export function EstadoLoop({ estado }: { estado: FlujoEstado }) {
 
 export function QmsTrFlujoPage() {
   const { roles } = useAuth()
-  const { canAdminQmsTrFlujo: esAdmin, canViewDatabricksRun } = getPermissions(roles)
+  const { canViewDatabricksRun } = getPermissions(roles)
   const [params, setParams] = useSearchParams()
   const [tab, setTab] = useState("tandas")
   const [filtro, setFiltro] = useState<EstadoBase | null>(null)
@@ -68,6 +68,7 @@ export function QmsTrFlujoPage() {
   const [aRevertir, setARevertir] = useState<Tanda | null>(null)
 
   const estado = useFlujoEstado()
+  const puedeOperar = estado.data?.puede_operar ?? false
   const paises = useFlujoPaises()
   const pais = params.get("pais") ?? paises.data?.[0]?.codigo
   const periodos = useFlujoPeriodos(pais)
@@ -161,7 +162,7 @@ export function QmsTrFlujoPage() {
           </p>
           <div className="mt-1.5">{estado.data && <EstadoLoop estado={estado.data} />}</div>
         </div>
-        {esAdmin && (
+        {puedeOperar && (
           <div className="ml-auto flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => vuelta.mutate(undefined, {
               onSuccess: () => toast.success("Vuelta lista: el flujo revisó los hitos de todos los países"),
@@ -267,7 +268,7 @@ export function QmsTrFlujoPage() {
                   </Vacio>
                 ) : ordenadas.length === 0 ? (
                   <Vacio icon={<Workflow />} titulo="Ninguna tanda en este período"
-                    accion={esAdmin && <Button onClick={() => setOverride(true)}><Rocket /> Lanzar QMS-TR</Button>}>
+                    accion={puedeOperar && <Button onClick={() => setOverride(true)}><Rocket /> Lanzar QMS-TR</Button>}>
                     El flujo arma una tanda cuando DC registra el hito 4. Si necesitas correr antes, lánzala a mano.
                   </Vacio>
                 ) : (
@@ -277,7 +278,7 @@ export function QmsTrFlujoPage() {
                       tanda={t}
                       nombres={nombres}
                       modo={modo ?? "simulacion"}
-                      esAdmin={esAdmin}
+                      esAdmin={puedeOperar}
                       verRun={canViewDatabricksRun}
                       origen={t.tanda_origen ? porId.get(t.tanda_origen) : undefined}
                       ocupado={accion.isPending && accion.variables?.tid === t.id ? accion.variables.accion : null}

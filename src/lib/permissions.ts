@@ -24,11 +24,6 @@ export interface Permissions {
    * permiso en la UI para no ofrecer un botón que terminaría en 403.
    */
   canTriggerCalibration: boolean
-  /**
-   * Acciones de administración del flujo automático de QMS-TR (override manual, revertir, pausar,
-   * reanudar, reintentar, simular cierre de ticket, forzar vuelta). La API exige `admin` (JAA-1435).
-   */
-  canAdminQmsTrFlujo: boolean
 }
 
 export function getPermissions(roles: string[]): Permissions {
@@ -38,6 +33,5 @@ export function getPermissions(roles: string[]): Permissions {
   return {
     canViewDatabricksRun: isAdmin,
     canTriggerCalibration: isAdmin || isSpecialist,
-    canAdminQmsTrFlujo: isAdmin,
   }
 }

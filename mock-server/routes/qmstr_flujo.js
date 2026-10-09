@@ -589,7 +589,7 @@ function buscar(req, res) {
 router.get("/qmstr_flujo/estado", (_req, res) => {
   res.json({
     enabled: true, modo: MODO(), paises: PAISES.map((p) => p.codigo), intervalo_segundos: INTERVALO_S,
-    ultima_vuelta: st.ultimaVuelta, resultado: st.resultado, error_config: null, activo: true, config_error: null,
+    ultima_vuelta: st.ultimaVuelta, resultado: st.resultado, error_config: null, puede_operar: true, activo: true, config_error: null,
   })
 })
 

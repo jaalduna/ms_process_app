@@ -43,7 +43,7 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
 
   it("estado, países y períodos con los conteos de hitos", async () => {
     const { body: estado } = await get("/estado")
-    expect(estado).toMatchObject({ enabled: true, modo: "simulacion", paises: ["EC", "BO"], intervalo_segundos: 300 })
+    expect(estado).toMatchObject({ enabled: true, modo: "simulacion", paises: ["EC", "BO"], intervalo_segundos: 300, puede_operar: true })
     const { body: paises } = await get("/paises")
     expect(paises[0]).toEqual({ codigo: "EC", nombre: "ecuador", etiqueta: "Ecuador" })
     const { body: periodos } = await get("/periodos?pais=EC")

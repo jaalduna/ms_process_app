@@ -17,10 +17,4 @@ describe("getPermissions", () => {
   it("sin roles asignados = perfil base sin permisos de admin", () => {
     expect(getPermissions([]).canViewDatabricksRun).toBe(false)
   })
-
-  it("solo admin administra el flujo automático de QMS-TR (JAA-1435)", () => {
-    expect(getPermissions(["Admin"]).canAdminQmsTrFlujo).toBe(true)
-    expect(getPermissions(["qmstr_specialist"]).canAdminQmsTrFlujo).toBe(false)
-    expect(getPermissions(["usuario"]).canAdminQmsTrFlujo).toBe(false)
-  })
 })
