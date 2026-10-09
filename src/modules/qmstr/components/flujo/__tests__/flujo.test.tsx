@@ -1,0 +1,131 @@
+import { describe, expect, it, vi } from "vitest"
+import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { nBases, periodoLabel, relativo } from "../formato"
+import { Stepper } from "../TandaCard"
+import { TableroBases } from "../TableroBases"
+import { bloqueo } from "../bloqueo"
+import { pollTandas } from "../../../hooks/useQmsTrFlujo"
+import type { FlujoBase, Tanda } from "../../../types"
+
+const base = (producto: number, estado: FlujoBase["estado"], extra: Partial<FlujoBase> = {}): FlujoBase => ({
+  producto, nombre: `Base ${producto}`, h3: "2026-09-26T10:00:00-03:00", h4: "2026-10-01T09:00:00-03:00", h4_anulado: false,
+  h10: null, fuera_de_alcance: false, estado, tanda_id: null, tanda_numero: null, tanda_estado: null, jira_key: null,
+  historial: [], ...extra,
+})
+
+const tanda = (extra: Partial<Tanda>): Tanda => ({
+  id: "t", pais: "EC", periodo: "202609", numero: 1, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
+  h4_hasta: "2026-10-01T12:00:00Z", estado: "detectada", estado_previo: null, pausada: false, qms_run_id: null, jira_key: null,
+  envio: {}, bypass: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
+  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", snapshot_desde: null, progreso: null, ...extra,
+})
+
+describe("formato del flujo QMS-TR", () => {
+  it("período AAAAMM en palabras; uno inválido es un error, no un texto vacío", () => {
+    expect(periodoLabel("202609")).toBe("septiembre 2026")
+    expect(() => periodoLabel("202613")).toThrow(/período inválido/)
+  })
+  it("tiempo relativo", () => {
+    const ahora = Date.parse("2026-10-08T15:00:00Z")
+    expect(relativo("2026-10-08T14:57:00Z", ahora)).toBe("hace 3 min")
+    expect(relativo("2026-10-08T13:00:00Z", ahora)).toBe("hace 2 h")
+    expect(relativo("2026-10-08T14:59:57Z", ahora)).toBe("recién")
+    // una vuelta que llegó después del último tic de `ahora` sigue siendo pasada
+    expect(relativo("2026-10-08T15:00:17Z", ahora)).toBe("recién")
+  })
+  it("cuenta bases en singular y plural", () => {
+    expect(nBases(1)).toBe("1 base")
+    expect(nBases(3)).toBe("3 bases")
+  })
+  it("polling: 10 s con tandas avanzando, 60 s si están quietas o pausadas", () => {
+    expect(pollTandas([tanda({ estado: "corriendo" })])).toBe(10_000)
+    expect(pollTandas([tanda({ estado: "corriendo", pausada: true })])).toBe(60_000)
+    expect(pollTandas([tanda({ estado: "cerrada" })])).toBe(60_000)
+  })
+})
+
+describe("Stepper", () => {
+  it("marca el paso actual y en revisión manual el paso donde se detuvo", () => {
+    const { rerender, container } = render(<Stepper tanda={tanda({ estado: "en_dq" })} />)
+    const estado = (p: string) => container.querySelector(`[data-paso="${p}"]`)?.getAttribute("data-estado")
+    expect(estado("corriendo")).toBe("hecho")
+    expect(estado("en_dq")).toBe("actual")
+    expect(estado("cerrada")).toBe("pendiente")
+    rerender(<Stepper tanda={tanda({ estado: "revision_manual", estado_previo: "verificando" })} />)
+    expect(estado("verificando")).toBe("error")
+  })
+  it("la reversión arma el zip inverso en vez de correr; solo correr salta directo a cerrada", () => {
+    const { container, rerender } = render(<Stepper tanda={tanda({ tipo: "reversion" })} />)
+    expect(container.querySelector('[data-paso="armando_reversion"]')).not.toBeNull()
+    expect(container.querySelector('[data-paso="corriendo"]')).toBeNull()
+    rerender(<Stepper tanda={tanda({ modo: "solo_correr" })} />)
+    expect([...container.querySelectorAll("[data-paso]")].map((e) => e.getAttribute("data-paso"))).toEqual(["detectada", "corriendo", "cerrada"])
+  })
+})
+
+describe("bloqueo de bases en el diálogo de lanzamiento", () => {
+  it("una base aplicada no se puede elegir en modo completo y dice cómo seguir; revertida y bypass sí", () => {
+    expect(bloqueo(base(1, "aplicada"), "completo")).toBe("Ya tiene QMS-TR aplicado: revírtela primero")
+    expect(bloqueo(base(1, "aplicada"), "solo_correr")).toBeNull()
+    expect(bloqueo(base(2, "revertida"), "completo")).toBeNull()
+    expect(bloqueo(base(4, "bypass"), "completo")).toBeNull()
+    expect(bloqueo(base(3, "pendiente"), "completo")).toBeNull()
+  })
+})
+
+describe("TableroBases", () => {
+  it("una celda por base, KPIs y la leyenda filtra", async () => {
+    const onFiltro = vi.fn()
+    const bases = [base(1, "aplicada"), base(2, "aplicada"), base(3, "retenida", { h4: null }), base(4, "en_proceso", { tanda_estado: "corriendo" })]
+    render(<TableroBases pais="Ecuador" periodo="202609" bases={bases} filtro={null} onFiltro={onFiltro} />)
+    expect(screen.getAllByRole("listitem").filter((e) => e.hasAttribute("data-estado"))).toHaveLength(4)
+    expect(screen.getByTestId("qf-kpi-h4")).toHaveTextContent("3/ 4")
+    expect(screen.getByTestId("qf-kpi-aplicadas")).toHaveTextContent("2")
+    await userEvent.click(screen.getByRole("button", { name: /Retenidas/ }))
+    expect(onFiltro).toHaveBeenCalledWith("retenida")
+  })
+})
+
+describe("TableroBases sin hito 4 en el período", () => {
+  it("muestra esperando liberación en vez de retenidas", () => {
+    const bases = [base(1, "esperando_liberacion", { h4: null }), base(2, "esperando_liberacion", { h4: null })]
+    render(<TableroBases pais="Bolivia" periodo="202610" bases={bases} filtro={null} onFiltro={vi.fn()} />)
+    expect(screen.getByTestId("qf-kpi-esperando-liberacion")).toHaveTextContent("2")
+    expect(screen.queryByTestId("qf-kpi-retenidas")).toBeNull()
+  })
+})
+
+describe("avisos en Jira", () => {
+  const aviso = (extra = {}) => ({
+    id: "a1", tanda_id: "t1", pais: "EC", periodo: "202609", tipo: "pase_mtr" as const, jira_key: "SIM-1",
+    texto: "QMS-TR quedó aplicado y validado. Pueden seguir con MTR.",
+    destinatarios: [{ account_id: "712020:abc", nombre: "Alejandro Peña" }],
+    publicado: false, modo: "simulacion" as const, at: "2026-10-08T15:00:00Z", ...extra,
+  })
+
+  it("un aviso simulado no enlaza al ticket y dice que no se publicó; uno real enlaza a Jira", async () => {
+    const { BandejaAvisos } = await import("../BandejaAvisos")
+    render(<BandejaAvisos avisos={[aviso(), aviso({ id: "a2", tipo: "observadores", jira_key: "LAT-4101", publicado: true, modo: "real" })]} tandas={[]} />)
+    const simulado = screen.getByTestId("qf-aviso-pase_mtr")
+    expect(simulado).toHaveTextContent("Simulado, no se publicó")
+    expect(simulado).toHaveTextContent("@Alejandro Peña")
+    expect(simulado.querySelector("a")).toBeNull()
+    const real = screen.getByTestId("qf-aviso-observadores")
+    expect(real).toHaveTextContent("Publicado en Jira")
+    expect(real.querySelector("a")).toHaveAttribute("href", "https://requestmanager.atlassian.net/browse/LAT-4101")
+  })
+
+  it("sin nombre ni ticket muestra el accountId abreviado y no inventa el enlace", async () => {
+    const { BandejaAvisos } = await import("../BandejaAvisos")
+    render(<BandejaAvisos avisos={[aviso({ jira_key: null, destinatarios: [{ account_id: "712020:0ce95529-7fe5-44d3", nombre: null }] })]} tandas={[]} />)
+    expect(screen.getByTestId("qf-aviso-pase_mtr")).toHaveTextContent("@712020:0ce95529…")
+    expect(screen.queryByTestId("qf-aviso-ticket")).toBeNull()
+  })
+
+  it("sin avisos muestra el estado vacío", async () => {
+    const { BandejaAvisos } = await import("../BandejaAvisos")
+    render(<BandejaAvisos avisos={[]} tandas={[]} />)
+    expect(screen.getByText("Todavía no hay avisos en este período")).toBeInTheDocument()
+  })
+})

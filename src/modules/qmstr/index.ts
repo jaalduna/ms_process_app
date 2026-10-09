@@ -7,6 +7,13 @@ export const qmstrModule: ModuleDefinition = {
   label: "QMS-TR",
   group: "pipeline",
   requiredRoles: ["admin", "qmstr_specialist", "qms_tr_specialist"],
-  navItems: [{ path: "/qms-tr", label: "QMS-TR" }],
-  routes: [{ path: "/qms-tr", component: lazy(() => import("./pages/QmsTrPage").then(m => ({ default: m.QmsTrPage }))) }],
+  navItems: [
+    { path: "/qms-tr", label: "QMS-TR" },
+    // JAA-1435: flujo automático (liberación -> corrida -> DQ -> J -> hito 10) con override y reversión.
+    { path: "/qms-tr/flujo", label: "Flujo QMS-TR" },
+  ],
+  routes: [
+    { path: "/qms-tr", component: lazy(() => import("./pages/QmsTrPage").then(m => ({ default: m.QmsTrPage }))) },
+    { path: "/qms-tr/flujo", component: lazy(() => import("./pages/QmsTrFlujoPage").then(m => ({ default: m.QmsTrFlujoPage }))) },
+  ],
 }

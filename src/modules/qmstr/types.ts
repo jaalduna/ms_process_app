@@ -133,3 +133,308 @@ export const STATUS_META: Record<string, { label: string; className: string }> =
   cancelled: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
 }
 
+
+// ---------------------------------------------------------------------------
+// Flujo automático de QMS-TR v1.1 (JAA-1435): contrato de `/qmstr_flujo` (docs/SPEC_flujo_qmstr_v1.1.md §2).
+// ---------------------------------------------------------------------------
+
+export type FlujoModo = "simulacion" | "real"
+
+/** GET /qmstr_flujo/estado */
+export interface FlujoEstado {
+  enabled: boolean
+  modo: FlujoModo
+  /** Códigos de país configurados (QMSTR_FLUJO_PAISES). */
+  paises: string[]
+  intervalo_segundos: number
+  ultima_vuelta: string | null
+  /** Resultado de la última vuelta por país ("ok" o el error). */
+  resultado: Record<string, string> | null
+  error_config: string | null
+  /** El usuario actual puede operar las acciones: admin siempre; specialist sólo en simulación. */
+  puede_operar: boolean
+  /** La tarea de fondo del flujo está corriendo (la API real; el mock no lo informa). */
+  activo?: boolean
+}
+
+/** GET /qmstr_flujo/paises */
+export interface FlujoPais {
+  codigo: string
+  nombre: string
+  etiqueta: string
+}
+
+/** GET /qmstr_flujo/periodos?pais= (últimos 6, más reciente primero). */
+export interface FlujoPeriodo {
+  periodo: string
+  h3: number
+  h4: number
+  h10: number
+  tandas: number
+}
+
+export type EstadoBase =
+  | "sin_hito4"
+  | "retenida"
+  | "esperando_liberacion"
+  | "pendiente"
+  | "en_proceso"
+  | "aplicada"
+  | "revertida"
+  | "bypass"
+  | "fuera_de_alcance"
+
+export type TipoTanda = "liberacion" | "manual" | "reversion"
+export type ModoTanda = "completo" | "solo_correr"
+export type EstadoTanda =
+  | "detectada"
+  | "corriendo"
+  | "armando_reversion"
+  | "enviando"
+  | "en_dq"
+  | "verificando"
+  | "hito10"
+  | "cerrada"
+  | "revision_manual"
+  | "sin_bases"
+
+export interface FlujoBaseEvento {
+  at: string
+  tanda_id: string
+  tipo: TipoTanda
+  evento: string
+}
+
+/** GET /qmstr_flujo/bases?pais=&periodo= — una fila por base (producto) del período. */
+export interface FlujoBase {
+  producto: number
+  nombre: string
+  h3: string | null
+  h4: string | null
+  h4_anulado: boolean
+  h10: string | null
+  fuera_de_alcance: boolean
+  estado: EstadoBase
+  tanda_id: string | null
+  tanda_numero: number | null
+  tanda_estado: EstadoTanda | null
+  jira_key: string | null
+  historial: FlujoBaseEvento[]
+}
+
+export interface TandaEvento {
+  at: string
+  estado: EstadoTanda
+  detalle: string | null
+}
+
+export interface TandaValidacion {
+  status?: "aplicado" | "parcial" | "no_aplicado"
+  checked?: number
+  applied?: number
+  pending?: number
+  mismatched?: number
+  validated_at?: string
+  validated_by?: string | null
+  by_sheet?: Record<string, { total: number; checked: number; applied: number; pending: number; mismatched: number }>
+}
+
+export interface TandaEnvio {
+  asignado?: boolean
+  adjunto?: boolean
+  comentario?: boolean
+  vinculo?: boolean
+  observadores?: boolean
+  aviso_mtr?: boolean
+  hito10?: boolean
+}
+
+/** Tanda = (país, período, número); todas las columnas de `qmstr_flujo_tandas`. */
+export interface Tanda {
+  id: string
+  pais: string
+  periodo: string
+  numero: number
+  categorias: number[]
+  productos: number[]
+  h4_desde: string
+  h4_hasta: string
+  estado: EstadoTanda
+  estado_previo: EstadoTanda | null
+  pausada: boolean
+  qms_run_id: string | null
+  jira_key: string | null
+  /**
+   * Progreso del envío a DQ y de los avisos en Jira, en llaves planas booleanas: `observadores` = MTR quedó como
+   * observador del ticket, `aviso_mtr` = comentario con la @mención publicado al validar o revertir la tanda.
+   */
+  envio: TandaEnvio
+  bypass: number[]
+  validacion: TandaValidacion
+  /**
+   * Motivo por el que la tanda no avanza. "sin permiso <SELECT|INSERT|UPDATE> sobre <tabla> en <país> ..." es un
+   * bloqueo por GRANT pendiente (JAA-1442): la tanda sigue sola cuando llega, no es una falla.
+   */
+  error: string | null
+  eventos: TandaEvento[]
+  created_at: string
+  updated_at: string
+  tipo: TipoTanda
+  modo: ModoTanda
+  creada_por: string | null
+  tanda_origen: string | null
+  /** Nota del lanzamiento manual o motivo de la reversión. */
+  nota: string | null
+  /** Modo del flujo con que se creó: sólo avanza (y se revierte) en ese mismo modo. */
+  ejecucion: FlujoModo
+  /** Instante desde el que se toma el snapshot de J: va después de lo aplicado o revertido. */
+  snapshot_desde: string | null
+  /** Progreso final guardado, solo cuando la corrida terminó (evita pedir /progreso). */
+  progreso: TandaProgreso | null
+}
+
+export interface TandaCreate {
+  pais: string
+  periodo: string
+  productos: number[]
+  modo: ModoTanda
+  forzar: boolean
+  nota: string
+}
+
+export interface TandaRevertir {
+  productos: number[]
+  motivo: string
+}
+
+export interface ProgresoForEach {
+  total: number
+  completadas: number
+  fallidas: number
+  activas: number
+}
+
+export interface ProgresoTarea {
+  clave: string
+  estado: string
+  inicio: string | null
+  fin: string | null
+  for_each?: ProgresoForEach
+}
+
+/** GET /qmstr_flujo/tandas/{tid}/progreso — run del job qms_tr_run en Databricks. */
+export interface TandaProgreso {
+  /** Entero en Databricks; un uuid con la API en modo fake; null mientras espera el snapshot de J. */
+  run_id: number | string | null
+  /** Estado de Databricks (RUNNING, SUCCESS, ...) o WAITING_SNAPSHOT antes de lanzar el run. */
+  estado: string
+  run_page_url: string | null
+  inicio: string | null
+  fin: string | null
+  productos_total: number
+  /** Sólo iteraciones completadas OK. */
+  productos_listos: number
+  /** Iteraciones fallidas; los productos quedan en bypass. */
+  productos_fallidos: number
+  /** Avance: (listos + fallidos) / total; 100 al terminar la corrida. */
+  porcentaje: number
+  tareas: ProgresoTarea[]
+}
+
+export type TipoAviso = "observadores" | "pase_mtr" | "reversion_aplicada"
+
+export const TIPO_AVISO_LABEL: Record<TipoAviso, string> = {
+  observadores: "Observador agregado",
+  pase_mtr: "Pase a MTR",
+  reversion_aplicada: "Reversión aplicada",
+}
+
+export interface AvisoDestinatario {
+  account_id: string
+  /** La API puede no resolver el nombre del usuario de Jira. */
+  nombre: string | null
+}
+
+/** GET /qmstr_flujo/avisos — avisos en el ticket de Jira (comentarios y observadores), publicados o simulados. */
+export interface FlujoAviso {
+  id: string
+  tanda_id: string
+  pais: string
+  periodo: string
+  tipo: TipoAviso
+  /** LAT-n en modo real; SIM-n en simulación (no existe en Jira); null si la tanda aún no tiene ticket. */
+  jira_key: string | null
+  texto: string
+  destinatarios: AvisoDestinatario[]
+  publicado: boolean
+  modo: FlujoModo
+  at: string
+}
+
+/** Estados en que la tanda sigue avanzando sola (ACTIVOS de la API + armando_reversion). */
+export const TANDA_ACTIVOS: EstadoTanda[] = [
+  "detectada", "corriendo", "armando_reversion", "enviando", "en_dq", "verificando", "hito10",
+]
+
+/** Camino feliz de cada tipo de tanda, en orden (lo que dibuja el stepper). */
+export const CAMINO_TANDA: Record<"corrida" | "reversion" | "solo_correr", EstadoTanda[]> = {
+  corrida: ["detectada", "corriendo", "enviando", "en_dq", "verificando", "hito10", "cerrada"],
+  reversion: ["detectada", "armando_reversion", "enviando", "en_dq", "verificando", "hito10", "cerrada"],
+  solo_correr: ["detectada", "corriendo", "cerrada"],
+}
+
+export function caminoDe(t: Pick<Tanda, "tipo" | "modo">): EstadoTanda[] {
+  if (t.tipo === "reversion") return CAMINO_TANDA.reversion
+  return t.modo === "solo_correr" ? CAMINO_TANDA.solo_correr : CAMINO_TANDA.corrida
+}
+
+export const ESTADO_TANDA_LABEL: Record<EstadoTanda, string> = {
+  detectada: "Detectada",
+  corriendo: "Corriendo",
+  armando_reversion: "Armando reversión",
+  enviando: "Enviando",
+  en_dq: "En DQ",
+  verificando: "Verificando en J",
+  hito10: "Hito 10",
+  cerrada: "Cerrada",
+  revision_manual: "Revisión manual",
+  sin_bases: "Sin bases",
+}
+
+export const TIPO_TANDA_LABEL: Record<TipoTanda, string> = {
+  liberacion: "Liberación",
+  manual: "Manual",
+  reversion: "Reversión",
+}
+
+/** Orden y etiqueta de los estados de base (leyenda del tablero). */
+export const ESTADOS_BASE: { estado: EstadoBase; label: string; ayuda: string }[] = [
+  { estado: "aplicada", label: "Aplicadas", ayuda: "QMS-TR quedó aplicado en la base" },
+  { estado: "en_proceso", label: "En proceso", ayuda: "La base está en una tanda que sigue avanzando" },
+  { estado: "pendiente", label: "Liberadas sin tanda", ayuda: "Tienen hito 4 y todavía no entran a una tanda" },
+  { estado: "retenida", label: "Retenidas", ayuda: "Tienen hito 3 pero no hito 4, y otras bases del período ya fueron liberadas" },
+  { estado: "esperando_liberacion", label: "Esperando liberación", ayuda: "Tienen hito 3 y ninguna base del período tiene hito 4 todavía" },
+  { estado: "revertida", label: "Revertidas", ayuda: "Se devolvieron a su estado anterior a QMS-TR" },
+  { estado: "bypass", label: "Sin cambios", ayuda: "El motor no propuso cambios: quedaron fuera del zip" },
+  { estado: "sin_hito4", label: "Sin hitos", ayuda: "Todavía sin hito 3 ni hito 4" },
+  { estado: "fuera_de_alcance", label: "Fuera de alcance", ayuda: "QMS-TR no corrige estas bases" },
+]
+
+export const ESTADO_BASE_LABEL: Record<EstadoBase, string> = {
+  aplicada: "Aplicada",
+  en_proceso: "En proceso",
+  pendiente: "Liberada",
+  retenida: "Retenida",
+  esperando_liberacion: "Esperando liberación",
+  revertida: "Revertida",
+  bypass: "Sin cambios",
+  sin_hito4: "Sin hitos",
+  fuera_de_alcance: "Fuera de alcance",
+}
+
+/** Nombres de las tareas del job qms_tr_run en el progreso (desconocidas se muestran tal cual). */
+export const TAREA_LABELS: Record<string, string> = {
+  ...STEP_LABELS,
+  hay_grandes: "¿Hay grandes?",
+  hay_normales: "¿Hay normales?",
+}

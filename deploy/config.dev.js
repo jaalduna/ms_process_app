@@ -22,7 +22,7 @@ window.__APP_CONFIG__ = {
     weighting: true,
     mtr: false,
     formato4: false,
-    qmstr: false,
+    qmstr: true,
     macrocac: true,
     traceability: false,
     parametros: false,
