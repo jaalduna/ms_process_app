@@ -60,6 +60,12 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(enCurso.historial[0].evento).toMatch(/tanda 4/)
   })
 
+  it("períodos cerrados: todas las bases aplicadas", async () => {
+    const { body: bases } = await get("/bases?pais=BO&periodo=202608")
+    expect(bases).toHaveLength(58)
+    expect(new Set(bases.map((b) => b.estado))).toEqual(new Set(["aplicada"]))
+  })
+
   it("la tanda corriendo entrega progreso Databricks con for_each", async () => {
     const { body: tandas } = await get("/tandas?pais=EC&periodo=202609&estado=corriendo")
     expect(tandas).toHaveLength(1)

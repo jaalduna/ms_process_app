@@ -153,7 +153,7 @@ function htmlPase(t) {
   const texto = t.tipo === "reversion"
     ? `La reversión de QMS-TR quedó aplicada en las bases ${lista}${resto} de ${p.etiqueta}.`
     : `QMS-TR quedó aplicado y validado en las bases ${lista}${resto}. Pueden seguir con MTR.`
-  return `<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#004A52;line-height:1.5"><p style="margin:0">Hola a todos, ${texto}</p><p style="margin:12px 0 0">Saludos,<br>QMS-TR</p></div>`
+  return `<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#004A52;line-height:1.5"><p style="margin:0">Hola a todos.</p><p style="margin:12px 0 0">${texto}</p><p style="margin:12px 0 0">Saludos,<br>QMS-TR</p></div>`
 }
 
 function correo(t, tipo, at = isoNow()) {
@@ -276,8 +276,9 @@ function sembrarPeriodoCerrado(pais, periodo, n) {
   }))
   st.bases[claveBases(pais, periodo)] = bases
   const productos = bases.map((b) => b.producto)
+  const h4s = bases.map((b) => b.h4).sort()
   const t = nuevaTanda({
-    pais, periodo, numero: 1, productos, h4_desde: bases[0].h4, h4_hasta: bases.at(-1).h4, estado: "cerrada",
+    pais, periodo, numero: 1, productos, h4_desde: h4s[0], h4_hasta: h4s.at(-1), estado: "cerrada",
     jira_key: `LAT-${3000 + Number(periodo.slice(4)) * 10 + (pais === "EC" ? 1 : 2)}`, qms_run_id: crypto.randomUUID(),
     envio: { asignado: true, adjunto: true, comentario: true, vinculo: true }, created_at: chile(y, m, 3, 10),
     updated_at: chile(y, m, 6, 11), validacion: { status: "aplicado", checked: 12, applied: 12, pending: 0, mismatched: 0 },
