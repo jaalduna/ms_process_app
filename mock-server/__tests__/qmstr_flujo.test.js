@@ -109,12 +109,14 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(correos.filter((c) => c.tanda_id === t.id).map((c) => c.tipo).sort()).toEqual(["pase_mtr", "resultados"])
   })
 
-  it("override manual: una base aplicada da 409 aunque venga forzar", async () => {
+  it("override manual: una base aplicada da 409 en modo completo aunque venga forzar", async () => {
     const { body: bases } = await get("/bases?pais=EC&periodo=202609")
     const aplicada = bases.find((b) => b.estado === "aplicada").producto
     const { status, body } = await post("/tandas", { pais: "EC", periodo: "202609", productos: [aplicada], forzar: true })
     expect(status).toBe(409)
     expect(body).toMatchObject({ error: "conflict", message: `La base ${aplicada} ya tiene QMS-TR aplicado; revírtela antes de volver a correrla` })
+    // en solo_correr no se aplica nada en J: se puede lanzar
+    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [aplicada], modo: "solo_correr" })).status).toBe(201)
   })
 
   it("revertir: solo bases del zip, una vez, y deja la base revertida", async () => {

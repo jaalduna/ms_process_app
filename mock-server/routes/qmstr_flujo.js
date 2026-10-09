@@ -650,7 +650,7 @@ router.post("/qmstr_flujo/tandas", (req, res) => {
   const fuera = productos.filter((p) => FUERA_DE_ALCANCE[pais].has(p))
   if (fuera.length) return error(res, 422, "validacion", `Bases fuera de alcance de QMS-TR: ${fuera.join(", ")}`)
   const estados = new Map(basesDe(pais, periodo).map((b) => [b.producto, b.estado]))
-  const aplicadas = productos.filter((p) => estados.get(p) === "aplicada")
+  const aplicadas = modo === "completo" ? productos.filter((p) => estados.get(p) === "aplicada") : []
   if (aplicadas.length) {
     const lista = aplicadas.join(", ")
     return error(res, 409, "conflict", `La base ${lista} ya tiene QMS-TR aplicado; revírtela antes de volver a correrla`)
