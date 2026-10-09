@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   accionTanda,
@@ -23,8 +24,28 @@ export function pollTandas(tandas: Tanda[] | undefined): number {
   return 60_000
 }
 
+/**
+ * Estado del loop: se vuelve a leer cada 60 s y al volver a la pestaña. Cuando `ultima_vuelta` cambia, el loop acaba
+ * de mirar los hitos: se invalidan las listas que dependen de él (períodos, tandas, bases, avisos).
+ */
 export function useFlujoEstado() {
-  return useQuery({ queryKey: [...KEY, "estado"], queryFn: getFlujoEstado, refetchInterval: 60_000 })
+  const qc = useQueryClient()
+  const q = useQuery({
+    queryKey: [...KEY, "estado"],
+    queryFn: getFlujoEstado,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  })
+  const vuelta = q.data?.ultima_vuelta
+  const previa = useRef(vuelta)
+  useEffect(() => {
+    if (previa.current === vuelta) return
+    const habia = previa.current !== undefined
+    previa.current = vuelta
+    if (!habia) return // primera lectura: las listas se cargan solas
+    for (const k of ["periodos", "tandas", "bases", "avisos"]) qc.invalidateQueries({ queryKey: [...KEY, k] })
+  }, [vuelta, qc])
+  return q
 }
 
 export function useFlujoPaises() {

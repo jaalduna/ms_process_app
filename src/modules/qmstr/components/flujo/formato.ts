@@ -64,6 +64,12 @@ export function relativo(iso: string, ahora: number): string {
   return `hace ${txt}`
 }
 
+/** El loop no responde: la última vuelta es más vieja que 3 intervalos. */
+export function loopSinResponder(ultimaVuelta: string | null, intervaloSegundos: number, ahora: number): boolean {
+  if (!ultimaVuelta) return false
+  return ahora - new Date(ultimaVuelta).getTime() > 3 * intervaloSegundos * 1000
+}
+
 /** "1 base", "3 bases". */
 export const nBases = (n: number) => `${n} ${n === 1 ? "base" : "bases"}`
 

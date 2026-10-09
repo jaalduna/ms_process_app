@@ -22,7 +22,7 @@ import { RevertirDialog } from "../components/flujo/RevertirDialog"
 import { TablaBases } from "../components/flujo/TablaBases"
 import { TableroBases } from "../components/flujo/TableroBases"
 import { TandaCard } from "../components/flujo/TandaCard"
-import { mensajeError, nBases, periodoLabel, relativo } from "../components/flujo/formato"
+import { loopSinResponder, mensajeError, nBases, periodoLabel, relativo } from "../components/flujo/formato"
 import { Chip, Vacio } from "../components/flujo/piezas"
 import { TANDA_ACTIVOS, type EstadoBase, type FlujoEstado, type Tanda, type TandaCreate } from "../types"
 
@@ -33,19 +33,26 @@ const ACCION_OK: Record<AccionTanda, string> = {
   simular_cierre_ticket: "con el ticket cerrado (simulado)",
 }
 
-function EstadoLoop({ estado }: { estado: FlujoEstado }) {
+export function EstadoLoop({ estado }: { estado: FlujoEstado }) {
   const ahora = useNow(true, 30_000)
   const min = Math.round(estado.intervalo_segundos / 60)
   if (estado.error_config) {
     return <Chip tone="var(--destructive)" dot="solid" title={estado.error_config}>Flujo detenido: {estado.error_config}</Chip>
   }
   if (!estado.enabled) return <Chip tone="var(--qf-bypass)" dot="solid">Flujo apagado</Chip>
+  const sinResponder = loopSinResponder(estado.ultima_vuelta, estado.intervalo_segundos, ahora)
   const errores = Object.entries(estado.resultado ?? {}).filter(([, r]) => r !== "ok")
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" data-testid="qf-loop"
       title={`El flujo revisa los hitos cada ${min} min`}>
       <CalendarClock className="size-3.5" />
       {estado.ultima_vuelta ? <>Última vuelta {relativo(estado.ultima_vuelta, ahora)}, cada {min} min</> : <>Sin vueltas todavía, cada {min} min</>}
+      {sinResponder && (
+        <Chip tone="var(--warning)" dot="solid" className="ml-1" data-testid="qf-loop-sin-respuesta"
+          title="La última vuelta es más vieja que 3 intervalos">
+          el loop no responde
+        </Chip>
+      )}
       {errores.length > 0 && <Chip tone="var(--destructive)" className="ml-1">{errores.map(([p]) => p).join(", ")} con error</Chip>}
     </span>
   )
