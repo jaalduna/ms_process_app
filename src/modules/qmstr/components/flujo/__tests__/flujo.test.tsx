@@ -65,10 +65,12 @@ describe("Stepper", () => {
 })
 
 describe("bloqueo de bases en el diálogo de lanzamiento", () => {
-  it("una base aplicada no se puede elegir y dice cómo seguir; una revertida sí", () => {
-    expect(bloqueo(base(1, "aplicada"))).toBe("Ya tiene QMS-TR aplicado: revírtela primero")
-    expect(bloqueo(base(2, "revertida"))).toBeNull()
-    expect(bloqueo(base(3, "pendiente"))).toBeNull()
+  it("una base aplicada no se puede elegir en modo completo y dice cómo seguir; revertida y bypass sí", () => {
+    expect(bloqueo(base(1, "aplicada"), "completo")).toBe("Ya tiene QMS-TR aplicado: revírtela primero")
+    expect(bloqueo(base(1, "aplicada"), "solo_correr")).toBeNull()
+    expect(bloqueo(base(2, "revertida"), "completo")).toBeNull()
+    expect(bloqueo(base(4, "bypass"), "completo")).toBeNull()
+    expect(bloqueo(base(3, "pendiente"), "completo")).toBeNull()
   })
 })
 

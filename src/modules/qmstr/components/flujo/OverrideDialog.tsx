@@ -54,6 +54,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
   const [modo, setModo] = useState<ModoTanda>("completo")
   const [nota, setNota] = useState("")
   const [revisar, setRevisar] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
 
   const periodos = useFlujoPeriodos(pais)
   // sin período elegido (recién se cambió el país): el más reciente
@@ -80,6 +81,15 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
   function cambiarPeriodo(p: string) {
     setPeriodo(p)
     setSel(new Set())
+  }
+  function cambiarModo(m: ModoTanda) {
+    setModo(m)
+    setAviso(null)
+    if (m !== "completo") return
+    const aplicadas = lista.filter((b) => sel.has(b.producto) && bloqueo(b, m))
+    if (aplicadas.length === 0) return
+    setSel(new Set([...sel].filter((p) => !aplicadas.some((b) => b.producto === p))))
+    setAviso(`Se quitaron ${aplicadas.length} ${aplicadas.length === 1 ? "base" : "bases"} con QMS-TR aplicado: en modo completo hay que revertirlas primero.`)
   }
   function alternar(p: number) {
     const s = new Set(sel)
@@ -124,7 +134,8 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
                   </button>
                 ))}
               </div>
-            </fieldset>
+              {aviso && <p role="status" className="mt-2 text-xs text-[var(--qf-retenida)]" data-testid="qf-override-aviso">{aviso}</p>}
+          </fieldset>
             <div>
               <label className="mb-1.5 block text-sm font-medium" htmlFor="qf-override-periodo">Período productivo</label>
               <Select value={periodo} onValueChange={cambiarPeriodo}>
@@ -174,7 +185,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
               ) : (
                 <ul className="divide-y">
                   {filtradas.map((b) => {
-                    const motivo = bloqueo(b)
+                    const motivo = bloqueo(b, modo)
                     const id = `qf-ov-${b.producto}`
                     return (
                       <li key={b.producto} className={cn("flex items-center gap-3 px-3 py-2", motivo ? "opacity-55" : "hover:bg-muted/50",
@@ -219,7 +230,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
             <legend className="mb-1.5 text-sm font-medium">Modo</legend>
             <div className="grid gap-2" role="radiogroup">
               {MODOS.map((m) => (
-                <button key={m.modo} type="button" role="radio" aria-checked={modo === m.modo} onClick={() => setModo(m.modo)}
+                <button key={m.modo} type="button" role="radio" aria-checked={modo === m.modo} onClick={() => cambiarModo(m.modo)}
                   data-testid={`qf-override-modo-${m.modo}`}
                   className={cn("rounded-xl border p-3 text-left transition-colors",
                     modo === m.modo ? "border-primary ring-1 ring-primary bg-[color-mix(in_oklch,var(--primary)_6%,transparent)]" : "hover:bg-muted/60")}>

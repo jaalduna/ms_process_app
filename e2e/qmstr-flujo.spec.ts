@@ -106,6 +106,17 @@ test.describe("Flujo QMS-TR", () => {
     await expect(fila.getByRole("checkbox")).toHaveAccessibleDescription(/revírtela primero/)
     await expect(fila.getByRole("checkbox")).not.toBeChecked()
     await expect(dlg.getByTestId("qf-override-revisar")).toHaveText(/Revisar 7 bases/)
+
+    // en "solo correr" no se aplica nada en J: la base aplicada sí se puede elegir; al volver a completo se quita con aviso
+    const testid = await fila.getByRole("checkbox").getAttribute("data-testid")
+    const cb = dlg.getByTestId(testid!)
+    await dlg.getByTestId("qf-override-modo-solo_correr").click()
+    await expect(cb).toBeEnabled()
+    await cb.click()
+    await expect(dlg.getByTestId("qf-override-revisar")).toHaveText(/Revisar 8 bases/)
+    await dlg.getByTestId("qf-override-modo-completo").click()
+    await expect(dlg.getByTestId("qf-override-aviso")).toContainText("Se quitaron 1 base")
+    await expect(dlg.getByTestId("qf-override-revisar")).toHaveText(/Revisar 7 bases/)
   })
 
   test("lanzar override: la tanda corre con progreso, llega a DQ y cierra al simular el ticket", async ({ page }) => {
