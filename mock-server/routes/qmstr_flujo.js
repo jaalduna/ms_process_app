@@ -649,6 +649,12 @@ router.post("/qmstr_flujo/tandas", (req, res) => {
   if (desconocidas.length) return error(res, 422, "validacion", `Bases que no existen en ${periodo}: ${desconocidas.join(", ")}`)
   const fuera = productos.filter((p) => FUERA_DE_ALCANCE[pais].has(p))
   if (fuera.length) return error(res, 422, "validacion", `Bases fuera de alcance de QMS-TR: ${fuera.join(", ")}`)
+  const estados = new Map(basesDe(pais, periodo).map((b) => [b.producto, b.estado]))
+  const aplicadas = productos.filter((p) => estados.get(p) === "aplicada")
+  if (aplicadas.length) {
+    const lista = aplicadas.join(", ")
+    return error(res, 409, "conflict", `La base ${lista} ya tiene QMS-TR aplicado; revírtela antes de volver a correrla`)
+  }
   const sinH4 = productos.filter((p) => !porId.get(p).h4 || porId.get(p).h4_anulado)
   if (sinH4.length && !forzar) {
     return error(res, 422, "validacion", `Estas bases no tienen hito 4 vigente: ${sinH4.join(", ")}. Marca "forzar" para lanzarlas igual.`)

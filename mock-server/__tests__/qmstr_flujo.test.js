@@ -109,6 +109,14 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(correos.filter((c) => c.tanda_id === t.id).map((c) => c.tipo).sort()).toEqual(["pase_mtr", "resultados"])
   })
 
+  it("override manual: una base aplicada da 409 aunque venga forzar", async () => {
+    const { body: bases } = await get("/bases?pais=EC&periodo=202609")
+    const aplicada = bases.find((b) => b.estado === "aplicada").producto
+    const { status, body } = await post("/tandas", { pais: "EC", periodo: "202609", productos: [aplicada], forzar: true })
+    expect(status).toBe(409)
+    expect(body).toMatchObject({ error: "conflict", message: `La base ${aplicada} ya tiene QMS-TR aplicado; revírtela antes de volver a correrla` })
+  })
+
   it("revertir: solo bases del zip, una vez, y deja la base revertida", async () => {
     const { body: tandas } = await get("/tandas?pais=EC&periodo=202609&tipo=liberacion&estado=cerrada")
     const t1 = tandas[0]
