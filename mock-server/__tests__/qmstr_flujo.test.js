@@ -85,8 +85,8 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     const ocupada = bases.find((b) => b.tanda_estado === "corriendo").producto
 
     expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [] })).status).toBe(422)
-    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [701] })).body.detail.message).toMatch(/fuera de alcance/)
-    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [ret] })).body.detail).toMatchObject({ error: "validacion", message: expect.stringMatching(/hito 4/) })
+    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [701] })).body.message).toMatch(/fuera de alcance/)
+    expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [ret] })).body).toMatchObject({ error: "validacion", message: expect.stringMatching(/hito 4/) })
     expect((await post("/tandas", { pais: "EC", periodo: "202609", productos: [ocupada] })).status).toBe(409)
 
     const { status, body: t } = await post("/tandas", {
@@ -169,13 +169,13 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(body.url).toMatch(/\/zip\/descarga\?token=/)
   })
 
-  it("contrato de la API real: errores en detail, correos en llaves planas y reversión sólo de tandas cerradas", async () => {
+  it("contrato de la API real: errores {error, message}, correos en llaves planas y reversión sólo de tandas cerradas", async () => {
     const { body: estado } = await get("/estado")
     expect(estado).toMatchObject({ activo: true, config_error: null, error_config: null })
 
     const { status, body: err } = await post("/tandas", { pais: "EC", periodo: "202613", productos: [1] })
     expect(status).toBe(422)
-    expect(err.detail).toMatchObject({ error: "validacion" })
+    expect(err).toMatchObject({ error: "validacion", message: expect.stringMatching(/AAAAMM/) })
 
     // la tanda 2 de EC está en DQ: la API no la revierte mientras sus bases siguen en curso
     const { body: [enDq] } = await get("/tandas?pais=EC&periodo=202609&estado=en_dq")

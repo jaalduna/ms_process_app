@@ -76,19 +76,7 @@ describe("TableroBases", () => {
   })
 })
 
-describe("errores y bandeja contra la forma de la API real", () => {
-  it("mensajeError lee {detail:{message}} de la API, {detail:[{msg}]} de FastAPI y {message} del mock", async () => {
-    const { AxiosError } = await import("axios")
-    const { mensajeError } = await import("../formato")
-    const err = (data: unknown) => new AxiosError("Request failed", "ERR", undefined, undefined,
-      { data, status: 422, statusText: "", headers: {}, config: {} as never })
-    expect(mensajeError(err({ detail: { error: "conflict", message: "bases en una tanda en curso: 101" } })))
-      .toBe("bases en una tanda en curso: 101")
-    expect(mensajeError(err({ detail: [{ msg: "String should have at least 1 character", loc: ["body", "motivo"] }] })))
-      .toBe("String should have at least 1 character")
-    expect(mensajeError(err({ message: "País no configurado" }))).toBe("País no configurado")
-  })
-
+describe("bandeja con los correos de la API real", () => {
   it("un correo sin destinatarios lo dice y uno en el hilo de la liberación se marca", async () => {
     const { BandejaCorreos } = await import("../BandejaCorreos")
     const correo = {

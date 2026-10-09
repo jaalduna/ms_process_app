@@ -46,14 +46,8 @@ export const TONO_TIPO: Record<TipoTanda, string> = {
 /** Mensaje legible de un error de la API ({error, message}) o de red. */
 export function mensajeError(e: unknown): string {
   if (e instanceof AxiosError) {
-    // La API responde {detail: {error, message}} en los errores de negocio y {detail: [{msg, loc}]} en
-    // los 422 de validación de FastAPI; el mock, {message}.
-    const d = e.response?.data as
-      | { message?: string; detail?: { message?: string } | { msg?: string }[] | string }
-      | undefined
-    const det = d?.detail
-    const deFastApi = Array.isArray(det) ? det.map((x) => x.msg).filter(Boolean).join("; ") : undefined
-    return d?.message ?? (typeof det === "string" ? det : Array.isArray(det) ? deFastApi : det?.message) ?? e.message
+    const d = e.response?.data as { message?: string; detail?: { message?: string } } | undefined
+    return d?.message ?? d?.detail?.message ?? e.message
   }
   return (e as Error).message
 }

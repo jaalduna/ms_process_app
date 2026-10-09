@@ -571,9 +571,9 @@ function progreso(t) {
 // Rutas
 // ---------------------------------------------------------------------------
 
-/** Como la API (HTTPException con detail dict): `{detail: {error, message}}`. */
+/** Como la API: su handler de HTTPException aplana el detail a `{error, message}`. */
 function error(res, status, code, message, extra = {}) {
-  return res.status(status).json({ detail: { error: code, message, ...extra } })
+  return res.status(status).json({ error: code, message, ...extra })
 }
 
 function buscar(req, res) {
