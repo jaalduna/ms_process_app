@@ -333,7 +333,11 @@ export interface TandaProgreso {
   inicio: string | null
   fin: string | null
   productos_total: number
+  /** Sólo iteraciones completadas OK. */
   productos_listos: number
+  /** Iteraciones fallidas; los productos quedan en bypass. */
+  productos_fallidos: number
+  /** Avance: (listos + fallidos) / total; 100 al terminar la corrida. */
   porcentaje: number
   tareas: ProgresoTarea[]
 }

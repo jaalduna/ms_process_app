@@ -82,6 +82,8 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(p.productos_total).toBe(26)
     const motor = p.tareas.find((t) => t.clave === "motor_normales")
     expect(motor.for_each.total).toBe(23)
+    expect(p.productos_fallidos).toBe(p.tareas.reduce((s, t) => s + (t.for_each?.fallidas ?? 0), 0))
+    expect(p.productos_listos).toBe(p.tareas.reduce((s, t) => s + (t.for_each?.completadas ?? 0), 0))
     expect(p.run_page_url).toMatch(/^https:\/\//)
   })
 

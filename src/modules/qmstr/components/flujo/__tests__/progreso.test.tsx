@@ -18,10 +18,10 @@ const tanda = (extra: Partial<Tanda>): Tanda => ({
   modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, snapshot_desde: null, progreso: null, ...extra,
 })
 
-const progreso = (listos: number, terminada: boolean): TandaProgreso => ({
+const progreso = (listos: number, terminada: boolean, fallidos = 0): TandaProgreso => ({
   run_id: 1, estado: terminada ? "TERMINATED" : "RUNNING", run_page_url: "https://x", inicio: "2026-10-08T15:00:00Z",
   fin: terminada ? "2026-10-08T15:20:00Z" : null, productos_total: 26, productos_listos: listos,
-  porcentaje: Math.round((listos / 26) * 100), tareas: [],
+  productos_fallidos: fallidos, porcentaje: Math.round(((listos + fallidos) / 26) * 100), tareas: [],
 })
 
 describe("progreso de la corrida en la tarjeta de la tanda", () => {
@@ -40,6 +40,32 @@ describe("progreso de la corrida en la tarjeta de la tanda", () => {
     rerender(card(tanda({ estado: "enviando" })))
     await waitFor(() => expect(screen.getByTestId("qf-progreso-fin")).toHaveTextContent("26 de 26 productos"))
     expect(getTandaProgreso).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("productos fallidos en la corrida", () => {
+  const card = (t: Tanda) => (
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <TandaCard tanda={t} nombres={new Map()} modo="simulacion" esAdmin={false} verRun={false} ocupado={null}
+        onAccion={() => {}} onRevertir={() => {}} />
+    </QueryClientProvider>
+  )
+  it("en vivo muestra las listas y el indicador de fallidas", async () => {
+    getTandaProgreso.mockResolvedValueOnce(progreso(12, false, 1))
+    render(card(tanda({ estado: "corriendo" })))
+    expect(await screen.findByText(/12 de 26 productos listos/)).toBeInTheDocument()
+    expect(screen.getByTestId("qf-progreso-fallidos")).toHaveTextContent("1 con error (quedan en bypass)")
+  })
+  it("sin fallidas no muestra el indicador", async () => {
+    getTandaProgreso.mockResolvedValueOnce(progreso(12, false))
+    render(card(tanda({ estado: "corriendo", id: "t-sin" })))
+    await screen.findByTestId("qf-progreso-pct")
+    expect(screen.queryByTestId("qf-progreso-fallidos")).toBeNull()
+  })
+  it("al terminar también lo indica", () => {
+    render(card(tanda({ estado: "cerrada", progreso: progreso(25, true, 1) })))
+    expect(screen.getByTestId("qf-progreso-fin")).toHaveTextContent("25 de 26 productos")
+    expect(screen.getByTestId("qf-progreso-fallidos")).toHaveTextContent("1 con error")
   })
 })
 
@@ -76,7 +102,7 @@ describe("corrida esperando el snapshot de J", () => {
   it("no muestra 0% ni un link vacío: dice que espera el snapshot", async () => {
     getTandaProgreso.mockResolvedValueOnce({
       run_id: null, estado: "WAITING_SNAPSHOT", run_page_url: null, inicio: null, fin: null,
-      productos_total: 1, productos_listos: 0, porcentaje: 0, tareas: [],
+      productos_total: 1, productos_listos: 0, productos_fallidos: 0, porcentaje: 0, tareas: [],
     })
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(

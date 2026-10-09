@@ -547,6 +547,7 @@ function progreso(t) {
   const inicioMs = c ? c.inicio - c.inicial * c.duracion : new Date(t.created_at).getTime() + MIN
   const duracion = c ? c.duracion : 40 * MIN
   const at = (x) => iso(inicioMs + x * duracion)
+  const flaky = total >= 4 && [...String(t.id)].reduce((h, ch) => h + ch.charCodeAt(0), 0) % 2 === 0
   const tareas = TAREAS.map((clave) => {
     const [a, b] = TRAMOS[clave]
     const estado = f >= b && (f > a || b === a) ? "SUCCESS" : f >= a ? "RUNNING" : "PENDING"
@@ -556,16 +557,20 @@ function progreso(t) {
       const avance = Math.max(0, Math.min(1, (f - a) / (b - a)))
       // los grandes tardan más: van un poco detrás
       const completadas = Math.min(n, Math.floor(n * (clave === "motor_grandes" ? avance ** 1.3 : avance)))
-      tarea.for_each = { total: n, completadas, fallidas: 0, activas: estado === "RUNNING" ? Math.min(8, n - completadas) : 0 }
+      // algunas tandas simulan 1 iteración fallida en motor_normales (el producto queda en bypass)
+      const fallidas = clave === "motor_normales" && flaky && completadas >= 2 ? 1 : 0
+      const ok = completadas - fallidas
+      tarea.for_each = { total: n, completadas: ok, fallidas, activas: estado === "RUNNING" ? Math.min(8, n - completadas) : 0 }
     }
     return tarea
   })
   const listos = tareas.filter((x) => x.for_each).reduce((s, x) => s + x.for_each.completadas, 0)
+  const fallidos = tareas.filter((x) => x.for_each).reduce((s, x) => s + x.for_each.fallidas, 0)
   const runId = c?.run_id ?? 905118273340012
   return {
     run_id: runId, estado: f >= 1 ? "TERMINATED" : "RUNNING",
     run_page_url: `https://adb-2125673683576002.2.azuredatabricks.net/#job/476494422826160/run/${runId}`,
-    inicio: at(0), fin: f >= 1 ? at(1) : null, productos_total: total, productos_listos: listos,
+    inicio: at(0), fin: f >= 1 ? at(1) : null, productos_total: total, productos_listos: listos, productos_fallidos: fallidos,
     porcentaje: Math.round(f * 100), tareas,
   }
 }

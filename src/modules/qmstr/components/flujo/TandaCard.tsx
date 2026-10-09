@@ -141,6 +141,11 @@ function ProgresoCorrida({ tanda, verRun }: { tanda: Tanda; verRun: boolean }) {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground" data-testid="qf-progreso-fin">
         <span className="inline-flex items-center gap-1.5"><CheckCheck className="size-3.5 text-[var(--qf-aplicada)]" />
           Corrida terminada: {p.productos_listos} de {p.productos_total} productos</span>
+        {p.productos_fallidos > 0 && (
+          <span className="font-medium text-warning" data-testid="qf-progreso-fallidos">
+            · {p.productos_fallidos} con error (quedan en bypass)
+          </span>
+        )}
         {p.fin && <span>a las {formatChile(p.fin)}</span>}
         {link}
       </div>
@@ -154,6 +159,11 @@ function ProgresoCorrida({ tanda, verRun }: { tanda: Tanda; verRun: boolean }) {
           <span className="text-sm text-muted-foreground">
             {p.productos_listos} de {p.productos_total} productos listos
           </span>
+          {p.productos_fallidos > 0 && (
+            <span className="text-sm font-medium text-warning" data-testid="qf-progreso-fallidos">
+              · {p.productos_fallidos} con error (quedan en bypass)
+            </span>
+          )}
         </div>
         {link}
       </div>
