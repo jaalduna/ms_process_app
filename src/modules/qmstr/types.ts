@@ -236,6 +236,16 @@ export interface TandaValidacion {
   by_sheet?: Record<string, { total: number; checked: number; applied: number; pending: number; mismatched: number }>
 }
 
+export interface TandaEnvio {
+  asignado?: boolean
+  adjunto?: boolean
+  comentario?: boolean
+  vinculo?: boolean
+  observadores?: boolean
+  aviso_mtr?: boolean
+  hito10?: boolean
+}
+
 /** Tanda = (país, período, número); todas las columnas de `qmstr_flujo_tandas`. */
 export interface Tanda {
   id: string
@@ -251,7 +261,11 @@ export interface Tanda {
   pausada: boolean
   qms_run_id: string | null
   jira_key: string | null
-  envio: Record<string, unknown>
+  /**
+   * Progreso del envío a DQ y de los avisos en Jira, en llaves planas booleanas: `observadores` = MTR quedó como
+   * observador del ticket, `aviso_mtr` = comentario con la @mención publicado al validar o revertir la tanda.
+   */
+  envio: TandaEnvio
   bypass: number[]
   validacion: TandaValidacion
   /**
@@ -270,28 +284,10 @@ export interface Tanda {
   nota: string | null
   /** Modo del flujo con que se creó: sólo avanza (y se revierte) en ese mismo modo. */
   ejecucion: FlujoModo
-  correos: TandaCorreos
   /** Instante desde el que se toma el snapshot de J: va después de lo aplicado o revertido. */
   snapshot_desde: string | null
   /** Progreso final guardado, solo cuando la corrida terminó (evita pedir /progreso). */
   progreso: TandaProgreso | null
-}
-
-/**
- * Progreso de los correos de la tanda, en llaves planas como `envio`: `<tipo>` = id del borrador,
- * `<tipo>_hilo` = message_id al que responde (o null si salió como correo nuevo) y
- * `<tipo>_enviado` = el paso de envío terminó (en simulación sólo queda en la bandeja).
- */
-export interface TandaCorreos {
-  resultados?: string
-  resultados_hilo?: string | null
-  resultados_enviado?: boolean
-  pase_mtr?: string
-  pase_mtr_hilo?: string | null
-  pase_mtr_enviado?: boolean
-  reversion_aplicada?: string
-  reversion_aplicada_hilo?: string | null
-  reversion_aplicada_enviado?: boolean
 }
 
 export interface TandaCreate {
@@ -342,23 +338,31 @@ export interface TandaProgreso {
   tareas: ProgresoTarea[]
 }
 
-export type TipoCorreo = "resultados" | "pase_mtr" | "reversion_aplicada"
+export type TipoAviso = "observadores" | "pase_mtr" | "reversion_aplicada"
 
-/** GET /qmstr_flujo/correos — bandeja (simulada o enviada). */
-export interface FlujoCorreo {
+export const TIPO_AVISO_LABEL: Record<TipoAviso, string> = {
+  observadores: "Observador agregado",
+  pase_mtr: "Pase a MTR",
+  reversion_aplicada: "Reversión aplicada",
+}
+
+export interface AvisoDestinatario {
+  account_id: string
+  nombre: string
+}
+
+/** GET /qmstr_flujo/avisos — avisos en el ticket de Jira (comentarios y observadores), publicados o simulados. */
+export interface FlujoAviso {
   id: string
   tanda_id: string
   pais: string
   periodo: string
-  tipo: TipoCorreo
-  /** message_id del correo al que responde (pase a MTR en el hilo de la liberación); null si es nuevo. */
-  en_respuesta_a: string | null
-  para: string[]
-  cc: string[]
-  asunto: string
-  html: string
-  adjuntos: string[]
-  enviado: boolean
+  tipo: TipoAviso
+  /** LAT-n en modo real; SIM-n en simulación (no existe en Jira). */
+  jira_key: string
+  texto: string
+  destinatarios: AvisoDestinatario[]
+  publicado: boolean
   modo: FlujoModo
   at: string
 }

@@ -1,7 +1,7 @@
 import { api, resolveDownloadUrl, type SignedDownloadUrl } from "@/lib/api"
 import type {
   FlujoBase,
-  FlujoCorreo,
+  FlujoAviso,
   FlujoEstado,
   FlujoPais,
   FlujoPeriodo,
@@ -66,8 +66,8 @@ export const getTandas = (params: { pais?: string; periodo?: string; tipo?: stri
   api.get<Tanda[]>(`${FLUJO}/tandas`, { params }).then((r) => r.data)
 export const getTandaProgreso = (tid: string) =>
   api.get<TandaProgreso>(`${FLUJO}/tandas/${tid}/progreso`).then((r) => r.data)
-export const getFlujoCorreos = (pais: string, periodo: string) =>
-  api.get<FlujoCorreo[]>(`${FLUJO}/correos`, { params: { pais, periodo } }).then((r) => r.data)
+export const getFlujoAvisos = (pais: string, periodo: string) =>
+  api.get<FlujoAviso[]>(`${FLUJO}/avisos`, { params: { pais, periodo } }).then((r) => r.data)
 
 export const crearTanda = (data: TandaCreate) => api.post<Tanda>(`${FLUJO}/tandas`, data).then((r) => r.data)
 export const revertirTanda = (tid: string, data: TandaRevertir) =>

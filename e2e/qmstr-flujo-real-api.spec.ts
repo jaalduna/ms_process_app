@@ -3,7 +3,7 @@ import path from "path"
 
 /**
  * Flujo QMS-TR (JAA-1435) contra la API REAL en modo fake, no contra el mock: es la prueba que
- * caza las divergencias mock vs API (contrato de Tanda, correos, errores, reglas de reversión).
+ * caza las divergencias mock vs API (contrato de Tanda, avisos en Jira, errores, reglas de reversión).
  *
  * RUNBOOK (gate manual de integración; la CI no levanta el backend Python):
  *   1. En ms-process-api, con un registry NUEVO (la API no tiene /test/reset), levantar
@@ -66,9 +66,9 @@ async function oscuro(browser: Browser) {
   await abrir(page, "dark")
   await page.waitForTimeout(800)
   await foto(page, "flujo_dark")
-  await page.getByTestId("qf-tab-correos").click()
-  await page.getByTestId("qf-bandeja").waitFor()
-  await foto(page, "correos_dark")
+  await page.getByTestId("qf-tab-avisos").click()
+  await page.getByTestId("qf-avisos").waitFor()
+  await foto(page, "avisos_dark")
   await ctx.close()
 }
 
@@ -76,7 +76,7 @@ test.describe("Flujo QMS-TR contra la API real (fake)", () => {
   test.skip(!REAL_BACKEND, "REAL_BACKEND no definido: este spec corre contra ms-process-api en modo fake")
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test("override de 3 bases → corrida con progreso → DQ → cierre simulado → correos → revertir 1 base", async ({ page, browser }) => {
+  test("override de 3 bases → corrida con progreso → DQ → cierre simulado → avisos → revertir 1 base", async ({ page, browser }) => {
     test.setTimeout(300_000)
     await abrir(page)
     await expect(page.getByTestId("qf-modo")).toHaveText(/Simulación/)
@@ -120,13 +120,13 @@ test.describe("Flujo QMS-TR contra la API real (fake)", () => {
     await expect(page.getByTestId("qf-kpi-aplicadas")).toContainText("2")
     await foto(page, "cerrada")
 
-    // bandeja: resultados y pase a MTR simulados (en simulación el pase sale como correo nuevo)
-    await page.getByTestId("qf-tab-correos").click()
-    const bandeja = page.getByTestId("qf-bandeja")
-    await expect(bandeja).toContainText("tanda 1 · resultados")
-    await expect(bandeja).toContainText("tanda 1 · pase a MTR")
-    await expect(page.getByTestId("qf-correo-preview")).toContainText("Simulado, no se envió")
-    await foto(page, "correos")
+    // avisos en el ticket: MTR como observador y el pase a MTR, simulados (nada se publica en Jira)
+    await page.getByTestId("qf-tab-avisos").click()
+    const avisos = page.getByTestId("qf-avisos")
+    await expect(avisos).toContainText("Tanda 1")
+    await expect(avisos.getByTestId("qf-aviso-observadores")).toContainText("Simulado, no se publicó")
+    await expect(avisos.getByTestId("qf-aviso-pase_mtr")).toContainText("@Alejandro Peña")
+    await foto(page, "avisos")
 
     // revertir 1 base del zip; la de bypass no aparece
     await page.getByTestId("qf-tab-tandas").click()

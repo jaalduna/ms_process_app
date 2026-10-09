@@ -37,10 +37,10 @@ for (const theme of ["light", "dark"]) {
   await page.waitForTimeout(300)
   await page.screenshot({ path: path.join(OUT, `override_${theme}.png`) })
   await page.keyboard.press("Escape")
-  await page.getByTestId("qf-tab-correos").click()
-  await page.getByTestId("qf-bandeja").waitFor()
+  await page.getByTestId("qf-tab-avisos").click()
+  await page.getByTestId("qf-avisos").waitFor()
   await page.waitForTimeout(300)
-  await page.screenshot({ path: path.join(OUT, `correos_${theme}.png`), fullPage: true })
+  await page.screenshot({ path: path.join(OUT, `avisos_${theme}.png`), fullPage: true })
   await ctx.close()
 }
 const { ctx, page } = await pagina(browser, "light", { width: 390, height: 844 })

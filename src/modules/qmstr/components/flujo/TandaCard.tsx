@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import {
-  Check, CheckCheck, ChevronDown, Download, ExternalLink, FlaskConical, Hourglass, Loader2, Pause, Play, Quote, RotateCcw, RotateCw, Ticket,
+  Check, CheckCheck, ChevronDown, Download, ExternalLink, Eye, FlaskConical, Hourglass, Loader2, Pause, Play, Quote, RotateCcw, RotateCw, Ticket,
   Undo2, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -23,12 +23,16 @@ const PASO_LABEL: Partial<Record<EstadoTanda, string>> = {
   detectada: "Detectada",
   corriendo: "Corrida",
   armando_reversion: "Zip inverso",
-  enviando: "Envío",
+  enviando: "Ticket a DQ",
   en_dq: "DQ",
   verificando: "Verificación",
   hito10: "Hito 10",
   cerrada: "Cerrada",
 }
+
+/** Una tanda completa cierra avisando a MTR en el ticket de Jira; "solo correr" no tiene ticket. */
+const pasoLabel = (paso: EstadoTanda, t: Pick<Tanda, "modo">) =>
+  paso === "cerrada" && t.modo === "completo" ? "Aviso a MTR en Jira" : (PASO_LABEL[paso] ?? ESTADO_TANDA_LABEL[paso])
 
 /** Stepper del camino de la tanda; en revisión manual marca en rojo el paso donde se detuvo. */
 export function Stepper({ tanda }: { tanda: Tanda }) {
@@ -70,7 +74,7 @@ export function Stepper({ tanda }: { tanda: Tanda }) {
               <span className={cn("h-0.5 w-6 sm:w-10", i === camino.length - 1 ? "invisible" : hecho ? "bg-primary" : "bg-border")} />
             </div>
             <span className={cn("mt-1.5 text-[11px] whitespace-nowrap", esActual ? "font-semibold text-foreground" : "text-muted-foreground")}>
-              {PASO_LABEL[paso] ?? ESTADO_TANDA_LABEL[paso]}
+              {pasoLabel(paso, tanda)}
             </span>
           </li>
         )
@@ -185,6 +189,25 @@ function ProgresoCorrida({ tanda, verRun }: { tanda: Tanda; verRun: boolean }) {
         {foreach.map((t) => <TareaForEach key={t.clave} t={t} />)}
       </div>
     </div>
+  )
+}
+
+/** Avisos que el flujo dejó en el ticket de Jira: MTR como observador y la mención al validar o revertir. */
+function AvisosJira({ tanda: t }: { tanda: Tanda }) {
+  if (!t.envio.observadores && !t.envio.aviso_mtr) return null
+  return (
+    <ul className="flex flex-wrap items-center gap-1.5" data-testid="qf-avisos-jira" aria-label="Avisos en Jira">
+      {t.envio.observadores && (
+        <li><Chip tone="var(--qf-en-proceso)" data-testid="qf-aviso-observadores"><Eye className="size-3" />MTR observa {t.jira_key}</Chip></li>
+      )}
+      {t.envio.aviso_mtr && (
+        <li>
+          <Chip tone="var(--qf-aplicada)" data-testid="qf-aviso-mtr-publicado">
+            <Check className="size-3" />{t.tipo === "reversion" ? "Reversión avisada a MTR en Jira" : "Aviso a MTR en Jira"}
+          </Chip>
+        </li>
+      )}
+    </ul>
   )
 }
 
@@ -333,6 +356,8 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
             <span className="block text-xs">Se toma después de lo aplicado o revertido.</span>
           </p>
         )}
+
+        <AvisosJira tanda={t} />
 
         {t.tipo !== "reversion" && t.qms_run_id && <ProgresoCorrida tanda={t} verRun={verRun} />}
 

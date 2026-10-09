@@ -141,8 +141,10 @@ test.describe("Flujo QMS-TR", () => {
     await expect(t5).toHaveAttribute("data-estado", "en_dq", { timeout: 90_000 })
     await t5.getByTestId("qf-accion-simular_cierre_ticket").click()
     await expect(t5).toHaveAttribute("data-estado", "cerrada", { timeout: 60_000 })
-    await page.getByTestId("qf-tab-correos").click()
-    await expect(page.getByTestId("qf-bandeja")).toContainText("tanda 5 · resultados")
+    await expect(t5.getByTestId("qf-aviso-mtr-publicado")).toBeVisible()
+    await page.getByTestId("qf-tab-avisos").click()
+    await expect(page.getByTestId("qf-avisos")).toContainText("Tanda 5")
+    await expect(page.getByTestId("qf-aviso-pase_mtr").first()).toContainText("Simulado, no se publicó")
   })
 
   test("revertir bases de una tanda cerrada", async ({ page }) => {

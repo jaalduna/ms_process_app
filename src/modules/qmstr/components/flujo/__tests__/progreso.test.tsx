@@ -15,7 +15,7 @@ const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t1", pais: "EC", periodo: "202609", numero: 4, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "corriendo", estado_previo: null, pausada: false, qms_run_id: "r1", jira_key: null,
   envio: {}, bypass: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
-  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, snapshot_desde: null, progreso: null, ...extra,
+  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", snapshot_desde: null, progreso: null, ...extra,
 })
 
 const progreso = (listos: number, terminada: boolean, fallidos = 0): TandaProgreso => ({

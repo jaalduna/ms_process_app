@@ -18,7 +18,7 @@ const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t", pais: "EC", periodo: "202609", numero: 1, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "detectada", estado_previo: null, pausada: false, qms_run_id: null, jira_key: null,
   envio: {}, bypass: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
-  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, snapshot_desde: null, progreso: null, ...extra,
+  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", snapshot_desde: null, progreso: null, ...extra,
 })
 
 describe("formato del flujo QMS-TR", () => {
@@ -87,16 +87,29 @@ describe("TableroBases", () => {
   })
 })
 
-describe("bandeja con los correos de la API real", () => {
-  it("un correo sin destinatarios lo dice y uno en el hilo de la liberación se marca", async () => {
-    const { BandejaCorreos } = await import("../BandejaCorreos")
-    const correo = {
-      id: "c1", tanda_id: "t", pais: "EC", periodo: "202609", tipo: "pase_mtr" as const, para: [], cc: [],
-      asunto: "RE: [ECU - 202609] Liberación Metodológica", html: "<p>Hola</p>", adjuntos: [], enviado: false,
-      modo: "simulacion" as const, at: "2026-10-08T15:00:00Z", en_respuesta_a: "AAMk-hilo",
-    }
-    render(<BandejaCorreos correos={[correo]} tandas={[]} />)
-    expect(screen.getByTestId("qf-correo-preview")).toHaveTextContent("sin destinatarios configurados")
-    expect(screen.getByTestId("qf-correo-preview")).toHaveTextContent("En el hilo de la liberación")
+describe("avisos en Jira", () => {
+  const aviso = (extra = {}) => ({
+    id: "a1", tanda_id: "t1", pais: "EC", periodo: "202609", tipo: "pase_mtr" as const, jira_key: "SIM-1",
+    texto: "QMS-TR quedó aplicado y validado. Pueden seguir con MTR.",
+    destinatarios: [{ account_id: "712020:abc", nombre: "Alejandro Peña" }],
+    publicado: false, modo: "simulacion" as const, at: "2026-10-08T15:00:00Z", ...extra,
+  })
+
+  it("un aviso simulado no enlaza al ticket y dice que no se publicó; uno real enlaza a Jira", async () => {
+    const { BandejaAvisos } = await import("../BandejaAvisos")
+    render(<BandejaAvisos avisos={[aviso(), aviso({ id: "a2", tipo: "observadores", jira_key: "LAT-4101", publicado: true, modo: "real" })]} tandas={[]} />)
+    const simulado = screen.getByTestId("qf-aviso-pase_mtr")
+    expect(simulado).toHaveTextContent("Simulado, no se publicó")
+    expect(simulado).toHaveTextContent("@Alejandro Peña")
+    expect(simulado.querySelector("a")).toBeNull()
+    const real = screen.getByTestId("qf-aviso-observadores")
+    expect(real).toHaveTextContent("Publicado en Jira")
+    expect(real.querySelector("a")).toHaveAttribute("href", "https://requestmanager.atlassian.net/browse/LAT-4101")
+  })
+
+  it("sin avisos muestra el estado vacío", async () => {
+    const { BandejaAvisos } = await import("../BandejaAvisos")
+    render(<BandejaAvisos avisos={[]} tandas={[]} />)
+    expect(screen.getByText("Todavía no hay avisos en este período")).toBeInTheDocument()
   })
 })

@@ -4,7 +4,7 @@ import {
   crearTanda,
   forzarVuelta,
   getFlujoBases,
-  getFlujoCorreos,
+  getFlujoAvisos,
   getFlujoEstado,
   getFlujoPaises,
   getFlujoPeriodos,
@@ -71,10 +71,10 @@ export function useTandaProgreso(tanda: Tanda) {
   })
 }
 
-export function useFlujoCorreos(pais: string | undefined, periodo: string | undefined) {
+export function useFlujoAvisos(pais: string | undefined, periodo: string | undefined) {
   return useQuery({
-    queryKey: [...KEY, "correos", pais, periodo],
-    queryFn: () => getFlujoCorreos(pais!, periodo!),
+    queryKey: [...KEY, "avisos", pais, periodo],
+    queryFn: () => getFlujoAvisos(pais!, periodo!),
     enabled: !!pais && !!periodo,
     refetchInterval: 30_000,
   })

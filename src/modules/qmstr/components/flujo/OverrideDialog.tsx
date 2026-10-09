@@ -21,8 +21,8 @@ const PRIORIDAD: EstadoBase[] = ["pendiente", "revertida", "retenida", "sin_hito
 const sinH4 = (b: FlujoBase) => !b.h4 || b.h4_anulado
 
 const MODOS: { modo: ModoTanda; titulo: string; texto: string }[] = [
-  { modo: "completo", titulo: "Completo", texto: "Corre, envía el zip a DQ con ticket y correo, verifica en J y registra el hito 10." },
-  { modo: "solo_correr", titulo: "Solo correr", texto: "Solo la corrida en Databricks, para probar. Sin correo, ticket ni hito 10." },
+  { modo: "completo", titulo: "Completo", texto: "Corre, envía el zip a DQ con ticket (MTR como observador), verifica en J, registra el hito 10 y avisa a MTR en el ticket." },
+  { modo: "solo_correr", titulo: "Solo correr", texto: "Solo la corrida en Databricks, para probar. Sin ticket, avisos ni hito 10." },
 ]
 
 interface OverrideDialogProps {
@@ -280,7 +280,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
           {nota.trim() && <p className="text-sm"><span className="text-muted-foreground">Nota:</span> {nota.trim()}</p>}
           <p className="text-sm text-muted-foreground">
             {modo === "completo"
-              ? "Cuando termine la corrida se envía el zip a DQ, se crea el ticket y se manda el correo de resultados."
+              ? "Cuando termine la corrida se envía el zip a DQ, se crea el ticket con MTR como observador."
               : "Al terminar la corrida la tanda se cierra sola: no se envía nada a DQ."}
           </p>
         </div>

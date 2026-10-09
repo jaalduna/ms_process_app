@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
-import { AlertOctagon, CalendarClock, FlaskConical, Inbox, Layers, Loader2, RefreshCw, Rocket, ShieldCheck, Table2, Workflow } from "lucide-react"
+import { AlertOctagon, BellRing, CalendarClock, FlaskConical, Layers, Loader2, RefreshCw, Rocket, ShieldCheck, Table2, Workflow } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -13,10 +13,10 @@ import { getPermissions } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import type { AccionTanda } from "../api"
 import {
-  useAccionTanda, useCrearTanda, useFlujoBases, useFlujoCorreos, useFlujoEstado, useFlujoPaises, useFlujoPeriodos,
+  useAccionTanda, useCrearTanda, useFlujoBases, useFlujoAvisos, useFlujoEstado, useFlujoPaises, useFlujoPeriodos,
   useFlujoTandas, useForzarVuelta, useRevertirTanda,
 } from "../hooks/useQmsTrFlujo"
-import { BandejaCorreos } from "../components/flujo/BandejaCorreos"
+import { BandejaAvisos } from "../components/flujo/BandejaAvisos"
 import { OverrideDialog } from "../components/flujo/OverrideDialog"
 import { RevertirDialog } from "../components/flujo/RevertirDialog"
 import { TablaBases } from "../components/flujo/TablaBases"
@@ -68,7 +68,7 @@ export function QmsTrFlujoPage() {
   const tandas = useFlujoTandas(pais, periodo)
   const hayActivas = (tandas.data ?? []).some((t) => TANDA_ACTIVOS.includes(t.estado) && !t.pausada)
   const bases = useFlujoBases(pais, periodo, hayActivas)
-  const correos = useFlujoCorreos(pais, periodo)
+  const avisos = useFlujoAvisos(pais, periodo)
 
   const crear = useCrearTanda()
   const revertir = useRevertirTanda()
@@ -139,12 +139,12 @@ export function QmsTrFlujoPage() {
             <Workflow className="size-6 text-primary" />
             <h1 className="font-display text-2xl font-bold tracking-tight">Flujo QMS-TR</h1>
             {modo === "simulacion" && (
-              <Chip tone="var(--qf-retenida)" dot="solid" data-testid="qf-modo" title="Databricks corre de verdad; Jira, correos y el hito 10 solo se simulan">
+              <Chip tone="var(--qf-retenida)" dot="solid" data-testid="qf-modo" title="Databricks corre de verdad; Jira (tickets y avisos) y el hito 10 solo se simulan">
                 <FlaskConical className="size-3" /> Simulación
               </Chip>
             )}
             {modo === "real" && (
-              <Chip tone="var(--qf-aplicada)" dot="pulse" data-testid="qf-modo" title="Crea tickets, envía correos y escribe el hito 10">
+              <Chip tone="var(--qf-aplicada)" dot="pulse" data-testid="qf-modo" title="Crea tickets, avisa a MTR en Jira y escribe el hito 10">
                 <ShieldCheck className="size-3" /> Real
               </Chip>
             )}
@@ -245,8 +245,8 @@ export function QmsTrFlujoPage() {
                 <TabsTrigger value="bases" className="rounded-lg" data-testid="qf-tab-bases">
                   <Table2 className="size-4" /> Bases <span className="tabular-nums opacity-60">{bases.data?.length ?? ""}</span>
                 </TabsTrigger>
-                <TabsTrigger value="correos" className="rounded-lg" data-testid="qf-tab-correos">
-                  <Inbox className="size-4" /> Correos <span className="tabular-nums opacity-60">{correos.data?.length ?? ""}</span>
+                <TabsTrigger value="avisos" className="rounded-lg" data-testid="qf-tab-avisos">
+                  <BellRing className="size-4" /> Avisos <span className="tabular-nums opacity-60">{avisos.data?.length ?? ""}</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -285,13 +285,13 @@ export function QmsTrFlujoPage() {
                 {bases.data && <TablaBases bases={bases.data} filtro={filtro} onFiltro={setFiltro} />}
               </TabsContent>
 
-              <TabsContent value="correos">
-                {correos.isLoading ? <Skeleton className="h-80 w-full rounded-2xl" /> : correos.error ? (
-                  <Vacio role="alert" icon={<AlertOctagon />} tono="var(--destructive)" titulo="No se pudo leer la bandeja"
-                    accion={<Button variant="outline" onClick={() => correos.refetch()}><RefreshCw /> Reintentar</Button>}>
-                    {mensajeError(correos.error)}
+              <TabsContent value="avisos">
+                {avisos.isLoading ? <Skeleton className="h-80 w-full rounded-2xl" /> : avisos.error ? (
+                  <Vacio role="alert" icon={<AlertOctagon />} tono="var(--destructive)" titulo="No se pudieron leer los avisos"
+                    accion={<Button variant="outline" onClick={() => avisos.refetch()}><RefreshCw /> Reintentar</Button>}>
+                    {mensajeError(avisos.error)}
                   </Vacio>
-                ) : <BandejaCorreos correos={correos.data ?? []} tandas={tandas.data ?? []} />}
+                ) : <BandejaAvisos avisos={avisos.data ?? []} tandas={tandas.data ?? []} />}
               </TabsContent>
             </Tabs>
           )}
