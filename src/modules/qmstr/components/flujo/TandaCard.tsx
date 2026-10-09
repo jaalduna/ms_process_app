@@ -16,6 +16,9 @@ import {
 import { TONO_TANDA, mensajeError, nBases, tono } from "./formato"
 import { Chip, ChipTanda, ChipTipo } from "./piezas"
 
+/** Bloqueo por GRANT pendiente (JAA-1442), distinto de una falla. */
+const SIN_PERMISO = /^sin permiso (SELECT|INSERT|UPDATE) sobre /
+
 const PASO_LABEL: Partial<Record<EstadoTanda, string>> = {
   detectada: "Detectada",
   corriendo: "Corrida",
@@ -105,10 +108,12 @@ function TareaForEach({ t }: { t: ProgresoTarea }) {
 
 /** Progreso del run de Databricks; se refresca cada 10 s mientras la tanda está corriendo. */
 function ProgresoCorrida({ tanda, verRun }: { tanda: Tanda; verRun: boolean }) {
-  const { data: p, isLoading, error } = useTandaProgreso(tanda)
+  const { data, isLoading, error } = useTandaProgreso(tanda)
+  // la corrida terminó: el backend ya trae el progreso final en la tanda
+  const p = tanda.progreso ?? data
   const corriendo = tanda.estado === "corriendo"
-  if (isLoading) return <Skeleton className="h-24 w-full rounded-xl" />
-  if (error) return <p className="text-sm text-destructive" role="alert">No se pudo leer el progreso de la corrida: {mensajeError(error)}</p>
+  if (isLoading && !p) return <Skeleton className="h-24 w-full rounded-xl" />
+  if (error && !p) return <p className="text-sm text-destructive" role="alert">No se pudo leer el progreso de la corrida: {mensajeError(error)}</p>
   if (!p) return null
   const simples = p.tareas.filter((t) => !t.for_each && !t.clave.startsWith("hay_"))
   const foreach = p.tareas.filter((t) => t.for_each)
@@ -298,10 +303,25 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
       <div className="space-y-5 px-5 py-4">
         <div className="-mx-5 overflow-x-auto px-5 pb-1"><Stepper tanda={t} /></div>
 
-        {t.error && (
+        {t.error && SIN_PERMISO.test(t.error) && (
+          <div role="status" data-testid="qf-bloqueo-permiso"
+            className="rounded-lg border border-[var(--qf-retenida)] bg-[color-mix(in_oklch,var(--qf-retenida)_10%,transparent)] px-3 py-2 text-sm">
+            <p className="font-medium">Esperando un permiso de datos</p>
+            <p>{t.error}</p>
+            <p className="mt-1 text-xs text-muted-foreground">No es una falla: la tanda sigue sola cuando llegue el GRANT.</p>
+          </div>
+        )}
+        {t.error && !SIN_PERMISO.test(t.error) && (
           <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2 text-sm text-destructive">
             {t.error}
           </div>
+        )}
+
+        {t.snapshot_desde && (
+          <p className="text-sm text-muted-foreground" data-testid="qf-snapshot-desde">
+            Snapshot de J desde {formatChile(t.snapshot_desde)}
+            <span className="block text-xs">Se toma después de lo aplicado o revertido.</span>
+          </p>
         )}
 
         {t.tipo !== "reversion" && t.qms_run_id && <ProgresoCorrida tanda={t} verRun={verRun} />}

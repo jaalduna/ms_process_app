@@ -65,7 +65,7 @@ export function useTandaProgreso(tanda: Tanda) {
     // la última lectura en vivo (que puede ser de hasta 10 s antes del fin, p. ej. "24 de 26 productos").
     queryKey: [...KEY, "progreso", tanda.id, corriendo],
     queryFn: () => getTandaProgreso(tanda.id),
-    enabled: tanda.tipo !== "reversion" && !!tanda.qms_run_id,
+    enabled: tanda.tipo !== "reversion" && !!tanda.qms_run_id && !tanda.progreso,
     refetchInterval: corriendo ? 10_000 : false,
     staleTime: corriendo ? 0 : 5 * 60_000,
   })

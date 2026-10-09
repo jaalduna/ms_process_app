@@ -38,6 +38,7 @@ test.describe("Flujo QMS-TR", () => {
     await expect(progreso).toBeVisible()
     await expect(t4.getByTestId("qf-progreso-pct")).toHaveText(/^\d+%$/)
     expect(Number(await progreso.getAttribute("data-porcentaje"))).toBeGreaterThanOrEqual(35)
+    await expect(t4.getByTestId("qf-snapshot-desde")).toContainText("Snapshot de J desde")
     await expect(progreso.locator('[data-tarea="motor_normales"]')).toContainText("/23")
     await expect(t4.getByTestId("qf-stepper").locator('[data-paso="corriendo"]')).toHaveAttribute("data-estado", "actual")
 

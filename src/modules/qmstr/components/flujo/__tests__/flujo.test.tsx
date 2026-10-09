@@ -18,7 +18,7 @@ const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t", pais: "EC", periodo: "202609", numero: 1, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "detectada", estado_previo: null, pausada: false, qms_run_id: null, jira_key: null,
   envio: {}, bypass: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
-  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, ...extra,
+  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, snapshot_desde: null, progreso: null, ...extra,
 })
 
 describe("formato del flujo QMS-TR", () => {

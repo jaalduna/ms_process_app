@@ -15,7 +15,7 @@ const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t1", pais: "EC", periodo: "202609", numero: 4, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "corriendo", estado_previo: null, pausada: false, qms_run_id: "r1", jira_key: null,
   envio: {}, bypass: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
-  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, ...extra,
+  modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", correos: {}, snapshot_desde: null, progreso: null, ...extra,
 })
 
 const progreso = (listos: number, terminada: boolean): TandaProgreso => ({
@@ -40,6 +40,35 @@ describe("progreso de la corrida en la tarjeta de la tanda", () => {
     rerender(card(tanda({ estado: "enviando" })))
     await waitFor(() => expect(screen.getByTestId("qf-progreso-fin")).toHaveTextContent("26 de 26 productos"))
     expect(getTandaProgreso).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("campos nuevos de la tanda", () => {
+  const card = (t: Tanda) => (
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <TandaCard tanda={t} nombres={new Map()} modo="simulacion" esAdmin={false} verRun={false} ocupado={null}
+        onAccion={() => {}} onRevertir={() => {}} />
+    </QueryClientProvider>
+  )
+  it("con progreso final en la tanda no pide /progreso", async () => {
+    getTandaProgreso.mockClear()
+    render(card(tanda({ estado: "cerrada", progreso: progreso(26, true) })))
+    expect(await screen.findByTestId("qf-progreso-fin")).toHaveTextContent("26 de 26 productos")
+    expect(getTandaProgreso).not.toHaveBeenCalled()
+  })
+  it("muestra desde cuándo se toma el snapshot de J", () => {
+    render(card(tanda({ snapshot_desde: "2026-10-08T15:00:00Z" })))
+    expect(screen.getByTestId("qf-snapshot-desde")).toHaveTextContent(/Snapshot de J desde/)
+  })
+  it("un GRANT pendiente es un bloqueo ámbar, no una falla", () => {
+    render(card(tanda({ estado: "hito10", error: "sin permiso UPDATE sobre t.x en Ecuador (pedir GRANT, ver JAA-1442)" })))
+    expect(screen.getByTestId("qf-bloqueo-permiso")).toHaveTextContent("sin permiso UPDATE")
+    expect(screen.queryByRole("alert")).toBeNull()
+  })
+  it("otro error sigue siendo una alerta", () => {
+    render(card(tanda({ error: "falló la corrida" })))
+    expect(screen.getByRole("alert")).toHaveTextContent("falló la corrida")
+    expect(screen.queryByTestId("qf-bloqueo-permiso")).toBeNull()
   })
 })
 

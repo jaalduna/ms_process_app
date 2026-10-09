@@ -254,6 +254,10 @@ export interface Tanda {
   envio: Record<string, unknown>
   bypass: number[]
   validacion: TandaValidacion
+  /**
+   * Motivo por el que la tanda no avanza. "sin permiso <SELECT|INSERT|UPDATE> sobre <tabla> en <país> ..." es un
+   * bloqueo por GRANT pendiente (JAA-1442): la tanda sigue sola cuando llega, no es una falla.
+   */
   error: string | null
   eventos: TandaEvento[]
   created_at: string
@@ -267,6 +271,10 @@ export interface Tanda {
   /** Modo del flujo con que se creó: sólo avanza (y se revierte) en ese mismo modo. */
   ejecucion: FlujoModo
   correos: TandaCorreos
+  /** Instante desde el que se toma el snapshot de J: va después de lo aplicado o revertido. */
+  snapshot_desde: string | null
+  /** Progreso final guardado, solo cuando la corrida terminó (evita pedir /progreso). */
+  progreso: TandaProgreso | null
 }
 
 /**
