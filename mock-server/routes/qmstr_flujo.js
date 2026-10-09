@@ -9,7 +9,7 @@ import crypto from "crypto"
  * - GET  /tandas?pais&periodo&tipo&estado, /tandas/:tid, /tandas/:tid/progreso, /tandas/:tid/zip
  * - POST /tandas (override manual), /tandas/:tid/revertir, /tandas/:tid/{pausar,reanudar,reintentar}
  * - POST /tandas/:tid/simular_cierre_ticket, /vuelta
- * - GET  /correos?pais&periodo
+ * - GET  /avisos?pais&periodo
  *
  * Las tandas avanzan "solas" de forma perezosa: cada lectura las empuja por la máquina de estados según el
  * reloj (paso = MOCK_STEP_INTERVAL_MS). En `en_dq` esperan a que alguien simule el cierre del ticket, igual que
@@ -77,13 +77,14 @@ function siguiente(periodo) {
   return m === 12 ? [y + 1, 1] : [y, m + 1]
 }
 
+const ENVIO_DQ = { asignado: true, adjunto: true, comentario: true, vinculo: true }
 const PERIODO_ACTUAL = "202609"
 
 // ---------------------------------------------------------------------------
 // Estado en memoria
 // ---------------------------------------------------------------------------
 
-/** @type {{bases: Record<string, object[]>, tandas: Map<string, object>, correos: object[], ultimaVuelta: string|null, resultado: object|null, jiraSeq: number}} */
+/** @type {{bases: Record<string, object[]>, tandas: Map<string, object>, avisos: object[], ultimaVuelta: string|null, resultado: object|null, jiraSeq: number}} */
 let st
 
 const claveBases = (pais, periodo) => `${pais}:${periodo}`
@@ -99,7 +100,7 @@ function nuevaTanda(campos) {
     validacion: campos.validacion ?? {}, error: campos.error ?? null, eventos: campos.eventos ?? [],
     created_at: campos.created_at ?? ahora, updated_at: campos.updated_at ?? ahora,
     tipo: campos.tipo ?? "liberacion", modo: campos.modo ?? "completo", creada_por: campos.creada_por ?? "qmstr_flujo",
-    tanda_origen: campos.tanda_origen ?? null, snapshot_desde: campos.snapshot_desde ?? null, correos: campos.correos ?? {}, nota: campos.nota ?? null,
+    tanda_origen: campos.tanda_origen ?? null, snapshot_desde: campos.snapshot_desde ?? null, nota: campos.nota ?? null,
     // como la API: la tanda sólo avanza en el modo del flujo en que se creó
     ejecucion: campos.ejecucion ?? MODO(),
     // privados: reloj de la corrida y del próximo avance
@@ -132,57 +133,30 @@ function filasPorHoja(n) {
   return { Imputaciones: n * 37, "Cantidad envasados": n * 2, Factores: n * 61, Exclusiones: n * 9 }
 }
 
-function htmlResultados(t) {
-  const p = PAIS[t.pais]
-  const filas = filasPorHoja(t.productos.length - t.bypass.length)
-  const reversion = t.tipo === "reversion"
-  const intro = reversion
-    ? `Hola Jorge, va el zip de reversión de QMS-TR para ${p.etiqueta} ${t.periodo}: deja ${t.productos.length} bases como estaban antes de la corrida original.`
-    : `Hola Jorge, va el zip de QMS-TR de ${p.etiqueta} ${t.periodo} (tanda ${t.numero}) con ${t.productos.length - t.bypass.length} bases corregidas.`
-  const excl = t.bypass.length
-    ? `<p style="margin:12px 0 0">Quedaron fuera del zip: ${t.bypass.map((b) => `${b} ${nombreBase(t.pais, b)}`).join(", ")} (sin cambios del motor).</p>`
-    : ""
-  return `<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#004A52;line-height:1.5">
-<p style="margin:0 0 12px">${intro} El ticket a DQ va en paralelo.</p>
-<table style="border-collapse:collapse;font-size:13px">
-<thead><tr><th style="text-align:left;padding:4px 16px 4px 0;border-bottom:1px solid #cfe3e5">Hoja</th><th style="text-align:right;padding:4px 0;border-bottom:1px solid #cfe3e5">Filas</th></tr></thead>
-<tbody>${Object.entries(filas).map(([h, n]) => `<tr><td style="padding:4px 16px 4px 0">${h}</td><td style="text-align:right">${reversion && h === "Imputaciones" ? 0 : n.toLocaleString("es-CL")}</td></tr>`).join("")}</tbody>
-</table>${excl}
-<p style="margin:12px 0 0">Saludos,<br>QMS-TR</p></div>`
-}
+const MTR = { account_id: "712020:3c1f7a52-8d6e-4b0a-9a57-1e2c4d5f6a70", nombre: "Alejandro Peña" }
 
-function htmlPase(t) {
-  const p = PAIS[t.pais]
-  const lista = t.productos.filter((x) => !t.bypass.includes(x)).slice(0, 6).map((x) => nombreBase(t.pais, x)).join(", ")
-  const resto = t.productos.length - t.bypass.length > 6 ? ` y ${t.productos.length - t.bypass.length - 6} más` : ""
-  const texto = t.tipo === "reversion"
-    ? `La reversión de QMS-TR quedó aplicada en las bases ${lista}${resto} de ${p.etiqueta}.`
-    : `QMS-TR quedó aplicado y validado en las bases ${lista}${resto}. Pueden seguir con MTR.`
-  return `<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#004A52;line-height:1.5"><p style="margin:0">Hola a todos.</p><p style="margin:12px 0 0">${texto}</p><p style="margin:12px 0 0">Saludos,<br>QMS-TR</p></div>`
-}
-
-function correo(t, tipo, at = isoNow()) {
+/**
+ * Aviso en el ticket de Jira (observador agregado o comentario con @mención). Como la API: en simulación no se
+ * toca Jira, el aviso queda registrado con `publicado: false`.
+ */
+function aviso(t, tipo, at = isoNow()) {
   const p = PAIS[t.pais]
   const reversion = t.tipo === "reversion"
-  // Como la API (orquestador._asunto): en simulación no se lee el buzón, así que el pase a MTR sale
-  // siempre como correo nuevo; en modo real responde a todos en el hilo de la liberación metodológica.
-  const enHilo = (tipo === "pase_mtr" || tipo === "reversion_aplicada") && MODO() === "real"
-  const que = tipo === "resultados" ? (reversion ? "reversión" : "resultados") : reversion ? "reversión aplicada" : "pase a MTR"
-  const asunto = enHilo
-    ? `RE: [${p.cod_asunto} - ${t.periodo}] Liberación Metodológica`
-    : `[QMS-TR] ${p.etiqueta} ${t.periodo} · tanda ${t.numero} · ${que}${tipo === "resultados" && t.jira_key ? ` · ${t.jira_key}` : ""}`
-  const hilo = enHilo ? `AAMkAD-liberacion-${t.pais}-${t.periodo}` : null
-  const c = {
-    id: crypto.randomUUID(), tanda_id: t.id, pais: t.pais, periodo: t.periodo, tipo, en_respuesta_a: hilo,
-    para: tipo === "resultados" ? ["jorge.urdaneta@numerator.com"] : ["dc-latam@numerator.com", "mtr-latam@numerator.com"],
-    cc: tipo === "resultados" ? ["joaquin.aldunate@numerator.com"] : ["jorge.urdaneta@numerator.com"],
-    asunto, html: tipo === "resultados" ? htmlResultados(t) : htmlPase(t),
-    adjuntos: tipo === "resultados" ? [`qms_tr_${p.nombre}_${t.periodo}_${reversion ? "reversion" : `tanda${t.numero}`}.zip`] : [],
-    enviado: MODO() === "real", modo: MODO(), at,
+  const hechas = t.productos.filter((x) => !t.bypass.includes(x))
+  const lista = hechas.slice(0, 6).map((x) => nombreBase(t.pais, x)).join(", ")
+  const resto = hechas.length > 6 ? ` y ${hechas.length - 6} más` : ""
+  const texto = {
+    observadores: `Se agregó a ${MTR.nombre} (MTR) como observador de ${t.jira_key}.`,
+    pase_mtr: `@${MTR.nombre} QMS-TR quedó aplicado y validado en las bases ${lista}${resto} de ${p.etiqueta}. Pueden seguir con MTR.`,
+    reversion_aplicada: `@${MTR.nombre} La reversión de QMS-TR quedó aplicada en las bases ${lista}${resto} de ${p.etiqueta}.`,
+  }[tipo]
+  const a = {
+    id: crypto.randomUUID(), tanda_id: t.id, pais: t.pais, periodo: t.periodo, tipo, jira_key: t.jira_key, texto,
+    destinatarios: [MTR], publicado: MODO() === "real", modo: MODO(), at,
   }
-  st.correos.push(c)
-  t.correos = { ...t.correos, [tipo]: c.id, [`${tipo}_hilo`]: hilo, [`${tipo}_enviado`]: true }
-  return c
+  st.avisos.push(a)
+  t.envio = { ...t.envio, [tipo === "observadores" ? "observadores" : "aviso_mtr"]: true }
+  return a
 }
 
 function nuevaJira() {
@@ -210,7 +184,7 @@ function avanzar(t) {
       if (t.pausada || fraccion(t, ahora) < 1) return
       const fin = t._corrida.inicio + (1 - t._corrida.inicial) * t._corrida.duracion
       if (t.modo === "solo_correr") {
-        mover(t, "cerrada", "corrida terminada; modo solo correr: sin correo, ticket ni hito 10", iso(fin))
+        mover(t, "cerrada", "corrida terminada; modo solo correr: sin ticket, avisos ni hito 10", iso(fin))
         t._sigEn = null
         return
       }
@@ -239,8 +213,8 @@ function avanzar(t) {
       case "enviando":
         t.jira_key = t.jira_key ?? nuevaJira()
         t.envio = { asignado: true, adjunto: true, comentario: true, vinculo: true }
-        correo(t, "resultados", at)
-        mover(t, "en_dq", `${t.jira_key} creado y asignado a DQ${MODO() === "simulacion" ? " (simulado)" : ""}; correo de resultados enviado`, at)
+        aviso(t, "observadores", at)
+        mover(t, "en_dq", `${t.jira_key} creado y asignado a DQ${MODO() === "simulacion" ? " (simulado)" : ""}; MTR agregado como observador`, at)
         t._sigEn = null // espera el cierre del ticket
         return
       case "en_dq":
@@ -269,7 +243,10 @@ function avanzar(t) {
         mover(t, "cerrada", MODO() === "simulacion"
           ? `hito 10 simulado: se habría ${verbo} en ${n} bases`
           : `hito 10 ${verbo} en ${n} bases`, at)
-        if (t.modo === "completo") correo(t, t.tipo === "reversion" ? "reversion_aplicada" : "pase_mtr", at)
+        if (t.modo === "completo") {
+          aviso(t, t.tipo === "reversion" ? "reversion_aplicada" : "pase_mtr", at)
+          evento(t, `aviso a MTR en ${t.jira_key}${MODO() === "simulacion" ? " (simulado)" : ""}`, at)
+        }
         t._sigEn = null
         return
       }
@@ -301,7 +278,7 @@ function sembrarPeriodoCerrado(pais, periodo, n) {
   const t = nuevaTanda({
     pais, periodo, numero: 1, productos, h4_desde: h4s[0], h4_hasta: h4s.at(-1), estado: "cerrada",
     jira_key: `LAT-${3000 + Number(periodo.slice(4)) * 10 + (pais === "EC" ? 1 : 2)}`, qms_run_id: crypto.randomUUID(),
-    envio: { asignado: true, adjunto: true, comentario: true, vinculo: true }, created_at: chile(y, m, 3, 10),
+    envio: ENVIO_DQ, created_at: chile(y, m, 3, 10),
     updated_at: chile(y, m, 6, 11), validacion: { status: "aplicado", checked: 12, applied: 12, pending: 0, mismatched: 0 },
     eventos: [
       { at: chile(y, m, 3, 10), estado: "detectada", detalle: `liberación de ${n} bases` },
@@ -309,6 +286,8 @@ function sembrarPeriodoCerrado(pais, periodo, n) {
     ],
   })
   st.tandas.set(t.id, t)
+  aviso(t, "observadores", chile(y, m, 3, 10, 5))
+  aviso(t, "pase_mtr", chile(y, m, 6, 11))
 }
 
 /**
@@ -354,56 +333,56 @@ function sembrarEcuador() {
   const t1 = nuevaTanda({
     pais: "EC", periodo: PERIODO_ACTUAL, numero: 1, productos: g.t1, bypass: [g.t1[17]], h4_desde: d1, h4_hasta: h1,
     estado: "cerrada", jira_key: "SIM-1", qms_run_id: crypto.randomUUID(), created_at: chile(2026, 10, 1, 10, 5),
-    envio: { asignado: true, adjunto: true, comentario: true, vinculo: true },
+    envio: ENVIO_DQ,
     validacion: { status: "no_aplicado", checked: 12, applied: 0, pending: 12, mismatched: 0 },
     eventos: [
       { at: chile(2026, 10, 1, 10, 5), estado: "detectada", detalle: "liberación de 38 bases (hito 4 entre 09:00 y 09:56)" },
       { at: chile(2026, 10, 1, 10, 6), estado: "corriendo", detalle: "corrida qms_tr_run lanzada (38 productos)" },
       { at: chile(2026, 10, 1, 10, 48), estado: "enviando", detalle: "corrida terminada; 1 base sin cambios del motor queda en bypass" },
-      { at: chile(2026, 10, 1, 10, 50), estado: "en_dq", detalle: "SIM-1 creado y asignado a DQ (simulado); correo de resultados enviado" },
+      { at: chile(2026, 10, 1, 10, 50), estado: "en_dq", detalle: "SIM-1 creado y asignado a DQ (simulado); MTR agregado como observador" },
       { at: chile(2026, 10, 2, 16, 12), estado: "verificando", detalle: "SIM-1 marcado como resuelto por dev@localhost" },
       { at: chile(2026, 10, 2, 16, 14), estado: "hito10", detalle: "verificación en J: no aplicado (esperable en simulación, DQ no aplicó nada); sigue a hito 10" },
       { at: chile(2026, 10, 2, 16, 15), estado: "cerrada", detalle: "hito 10 simulado: se habría registrado en 37 bases" },
     ],
   })
   st.tandas.set(t1.id, t1)
-  correo(t1, "resultados", chile(2026, 10, 1, 10, 50))
-  correo(t1, "pase_mtr", chile(2026, 10, 2, 16, 15))
+  aviso(t1, "observadores", chile(2026, 10, 1, 10, 50))
+  aviso(t1, "pase_mtr", chile(2026, 10, 2, 16, 15))
 
   const [d2, h2] = rango("EC", g.t2)
   const t2 = nuevaTanda({
     pais: "EC", periodo: PERIODO_ACTUAL, numero: 2, productos: g.t2, h4_desde: d2, h4_hasta: h2, estado: "en_dq",
     jira_key: "SIM-2", qms_run_id: crypto.randomUUID(), created_at: chile(2026, 10, 3, 11, 2),
-    envio: { asignado: true, adjunto: true, comentario: true, vinculo: true },
+    envio: ENVIO_DQ,
     eventos: [
       { at: chile(2026, 10, 3, 11, 2), estado: "detectada", detalle: "liberación de 22 bases (hito 4 entre 10:00 y 10:57)" },
       { at: chile(2026, 10, 3, 11, 3), estado: "corriendo", detalle: "corrida qms_tr_run lanzada (22 productos)" },
       { at: chile(2026, 10, 3, 11, 31), estado: "enviando", detalle: "corrida terminada (22 productos)" },
-      { at: chile(2026, 10, 3, 11, 33), estado: "en_dq", detalle: "SIM-2 creado y asignado a DQ (simulado); correo de resultados enviado" },
+      { at: chile(2026, 10, 3, 11, 33), estado: "en_dq", detalle: "SIM-2 creado y asignado a DQ (simulado); MTR agregado como observador" },
     ],
   })
   st.tandas.set(t2.id, t2)
-  correo(t2, "resultados", chile(2026, 10, 3, 11, 33))
+  aviso(t2, "observadores", chile(2026, 10, 3, 11, 33))
 
   // reversión de 2 bases de la tanda 1, pedida por DC
   const revertidas = [g.t1[3], g.t1[11]]
   const tr = nuevaTanda({
     pais: "EC", periodo: PERIODO_ACTUAL, numero: 3, productos: revertidas, h4_desde: d1, h4_hasta: h1, estado: "cerrada",
     tipo: "reversion", tanda_origen: t1.id, creada_por: "joaquin.aldunate@numerator.com", jira_key: "SIM-3",
-    created_at: chile(2026, 10, 4, 9, 20), envio: { asignado: true, adjunto: true, comentario: true, vinculo: true },
+    created_at: chile(2026, 10, 4, 9, 20), envio: ENVIO_DQ,
     eventos: [
       { at: chile(2026, 10, 4, 9, 20), estado: "detectada", detalle: `reversión de ${revertidas.length} bases de la tanda 1 por joaquin.aldunate@numerator.com: Pedido de DC por correo 04/10` },
       { at: chile(2026, 10, 4, 9, 21), estado: "armando_reversion", detalle: "armando el zip inverso desde el snapshot pre de la corrida original" },
       { at: chile(2026, 10, 4, 9, 23), estado: "enviando", detalle: "zip de reversión listo (2 bases, 214 factores, 3 bajas de imputación)" },
-      { at: chile(2026, 10, 4, 9, 24), estado: "en_dq", detalle: "SIM-3 creado y asignado a DQ (simulado); correo de resultados enviado" },
+      { at: chile(2026, 10, 4, 9, 24), estado: "en_dq", detalle: "SIM-3 creado y asignado a DQ (simulado); MTR agregado como observador" },
       { at: chile(2026, 10, 5, 12, 2), estado: "verificando", detalle: "SIM-3 marcado como resuelto por joaquin.aldunate@numerator.com" },
       { at: chile(2026, 10, 5, 12, 3), estado: "hito10", detalle: "J coincide con los valores pre en la muestra (12/12)" },
       { at: chile(2026, 10, 5, 12, 4), estado: "cerrada", detalle: "hito 10 simulado: se habría anulado en 2 bases" },
     ],
   })
   st.tandas.set(tr.id, tr)
-  correo(tr, "resultados", chile(2026, 10, 4, 9, 24))
-  correo(tr, "reversion_aplicada", chile(2026, 10, 5, 12, 4))
+  aviso(tr, "observadores", chile(2026, 10, 4, 9, 24))
+  aviso(tr, "reversion_aplicada", chile(2026, 10, 5, 12, 4))
 
   // la que está corriendo ahora: 20 min de corrida, va en 35 %
   const [d3, h3] = rango("EC", g.t3)
@@ -429,26 +408,26 @@ function sembrarBolivia() {
   const t1 = nuevaTanda({
     pais: "BO", periodo: PERIODO_ACTUAL, numero: 1, productos: g.t1, h4_desde: d1, h4_hasta: h1, estado: "revision_manual",
     estado_previo: "verificando", jira_key: "SIM-4", qms_run_id: crypto.randomUUID(), created_at: chile(2026, 10, 2, 12),
-    envio: { asignado: true, adjunto: true, comentario: true, vinculo: true },
+    envio: ENVIO_DQ,
     error: "verificación en J: parcial (8/12) — 3 factores pendientes y 1 distinto en Galletas dulces",
     validacion: { status: "parcial", checked: 12, applied: 8, pending: 3, mismatched: 1 },
     eventos: [
       { at: chile(2026, 10, 2, 12, 0), estado: "detectada", detalle: "liberación de 30 bases" },
       { at: chile(2026, 10, 2, 12, 1), estado: "corriendo", detalle: "corrida qms_tr_run lanzada (30 productos)" },
       { at: chile(2026, 10, 2, 12, 39), estado: "enviando", detalle: "corrida terminada (30 productos)" },
-      { at: chile(2026, 10, 2, 12, 41), estado: "en_dq", detalle: "SIM-4 creado y asignado a DQ (simulado); correo de resultados enviado" },
+      { at: chile(2026, 10, 2, 12, 41), estado: "en_dq", detalle: "SIM-4 creado y asignado a DQ (simulado); MTR agregado como observador" },
       { at: chile(2026, 10, 6, 10, 15), estado: "verificando", detalle: "SIM-4 marcado como resuelto por dev@localhost" },
       { at: chile(2026, 10, 6, 10, 18), estado: "revision_manual", detalle: "verificación en J: parcial (8/12)" },
     ],
   })
   st.tandas.set(t1.id, t1)
-  correo(t1, "resultados", chile(2026, 10, 2, 12, 41))
+  aviso(t1, "observadores", chile(2026, 10, 2, 12, 41))
 
   const [d2, h2] = rango("BO", g.t2)
   const t2 = nuevaTanda({
     pais: "BO", periodo: PERIODO_ACTUAL, numero: 2, productos: g.t2, h4_desde: d2, h4_hasta: h2, estado: "hito10",
     jira_key: "SIM-5", qms_run_id: crypto.randomUUID(), created_at: chile(2026, 10, 5, 17), pausada: false,
-    envio: { asignado: true, adjunto: true, comentario: true, vinculo: true },
+    envio: ENVIO_DQ,
     validacion: { status: "no_aplicado", checked: 12, applied: 0, pending: 12, mismatched: 0 },
     eventos: [
       { at: chile(2026, 10, 5, 17, 0), estado: "detectada", detalle: "liberación de 15 bases" },
@@ -464,11 +443,11 @@ function sembrarBolivia() {
   t2._sigEn = Date.now()
   t2.eventos.push({ at: chile(2026, 10, 7, 9, 40), estado: "hito10", detalle: "pausada por dev@localhost: revisar con DC antes del hito 10" })
   st.tandas.set(t2.id, t2)
-  correo(t2, "resultados", chile(2026, 10, 5, 17, 24))
+  aviso(t2, "observadores", chile(2026, 10, 5, 17, 24))
 }
 
 export function resetQmstrFlujo() {
-  st = { bases: {}, tandas: new Map(), correos: [], ultimaVuelta: iso(Date.now() - 3 * MIN), resultado: { EC: "ok", BO: "ok" }, jiraSeq: 5 }
+  st = { bases: {}, tandas: new Map(), avisos: [], ultimaVuelta: iso(Date.now() - 3 * MIN), resultado: { EC: "ok", BO: "ok" }, jiraSeq: 5 }
   sembrarEcuador()
   sembrarBolivia()
   for (const p of PAISES) {
@@ -808,11 +787,11 @@ router.get("/qmstr_flujo/tandas/:tid/zip/descarga", (req, res) => {
   res.send(Buffer.from(`QMS-TR mock ${nombre}\n`))
 })
 
-router.get("/qmstr_flujo/correos", (req, res) => {
+router.get("/qmstr_flujo/avisos", (req, res) => {
   tandas()
   const { pais, periodo } = req.query
-  res.json(st.correos
-    .filter((c) => (!pais || c.pais === pais) && (!periodo || c.periodo === periodo))
+  res.json(st.avisos
+    .filter((a) => (!pais || a.pais === pais) && (!periodo || a.periodo === periodo))
     .sort((a, b) => b.at.localeCompare(a.at)))
 })
 

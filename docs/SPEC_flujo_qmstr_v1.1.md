@@ -15,11 +15,12 @@ contra `PRAGMA table_info`, nunca destructivo).
 Columnas nuevas en `qmstr_flujo_tandas`:
 - `tipo TEXT NOT NULL DEFAULT 'liberacion'` ∈ `liberacion | manual | reversion`
 - `modo TEXT NOT NULL DEFAULT 'completo'` ∈ `completo | solo_correr`
-  - `solo_correr`: corrida Databricks y nada más; al completar la corrida va a `cerrada` (sin correo, sin
-    ticket, sin hito 10). Sirve para probar.
+  - `solo_correr`: corrida Databricks y nada más; al completar la corrida va a `cerrada` (sin ticket, sin
+    avisos, sin hito 10). Sirve para probar.
 - `creada_por TEXT` (email del usuario o `qmstr_flujo`)
 - `tanda_origen TEXT` (id de la tanda que se revierte, sólo `reversion`)
-- `correos TEXT NOT NULL DEFAULT '{}'` (JSON: progreso de envíos de correo, igual patrón que `envio`)
+- `envio` (JSON de llaves booleanas) gana `observadores` (MTR agregado como observador del ticket) y
+  `aviso_mtr` (comentario con @mención publicado al validar o revertir la tanda)
 
 ### 1.2 Re-liberación automática (fix de `procesadas`)
 Hoy `TandaStore.procesadas` = {(periodo, categoria)} ⇒ una base que ya pasó nunca vuelve a dispararse.
@@ -59,26 +60,21 @@ Precondición: la tanda origen está `cerrada` (o `hito10`/`verificando`) y los 
 - **verificando** en reversión: compara J actual vs valores pre (muestra `muestra_validacion`).
 - **hito10** en reversión: **anula** el hito 10 de esas bases (`UPDATE ... SET DtAnulacion = GETDATE()
   WHERE Ano, Mes, IdHito=10, IdPainel=1, IdProduto IN (...) AND DtAnulacion IS NULL`). No escribe hito 10.
-- Correos y ticket en reversión con textos propios ("Reversión QMS-TR …").
+- Ticket y avisos en reversión con textos propios ("Reversión QMS-TR …").
 Estado por base derivado (ver 2.4): `aplicada → revertida → (re-liberada) aplicada`.
 Una base revertida vuelve a correr por re-liberación automática (1.2) o por override manual (1.3).
 
-### 1.5 Correos (Outlook vía Microsoft Graph)
-Interfaz `Correo` con dos implementaciones: `GraphCorreo` (client credentials, `Mail.Send` +
-`Mail.ReadWrite` app-only sobre el buzón `QMSTR_CORREO_BUZON`; tenant/client/secret por settings) y
-`BandejaSimulada` (no envía; persiste el mensaje en `qmstr_flujo_correos` para mostrarlo en la UI).
-Dos correos por tanda `completo`:
-1. **Resultados** — al completar la corrida (paso `enviando`, antes del ticket o junto con él; persistir
-   `correos.resultados = message_id` antes de seguir, idempotente). Para: `QMSTR_CORREO_PARA` (Jorge),
-   CC `QMSTR_CORREO_CC`. Asunto `[QMS-TR] <PAÍS> <AAAAMM> · tanda <n> · resultados` (+ key Jira cuando
-   exista). Cuerpo HTML breve y humano (1-3 oraciones + tabla bases/filas por hoja + bases excluidas),
-   adjunto el zip.
-2. **Pase a MTR** — después del hito 10: reply-all en el hilo de la liberación metodológica. Búsqueda del
-   hilo: en el buzón, asunto que contenga `[<COD> - <AAAAMM>]` y `Liberación Metodológica` (normalizar
-   espacios dobles y acentos), el más reciente. Texto: "QMS-TR quedó aplicado y validado en las bases …
-   Pueden seguir con MTR." Si no se encuentra el hilo ⇒ correo nuevo a `QMSTR_CORREO_PASE_PARA` y evento
-   en la bitácora (no error).
-Códigos de país en asunto: AR, BO, BR, CAM, CL, CO, ECU, MX, PE.
+### 1.5 Avisos en Jira (el flujo ya no envía correos)
+Los avisos van por el ticket de DQ (`Jira.agregar_observador` / `Jira.comentar` con @mención). Alejandro Peña
+(MTR) es el destinatario (`account_id` de Jira). Tres avisos por tanda `completo`:
+1. **observadores** — al crear el ticket (paso `enviando`): MTR queda como observador (watcher).
+   `envio.observadores = true`, idempotente.
+2. **pase_mtr** — tras el hito 10: comentario con @mención "QMS-TR quedó aplicado y validado en las bases …
+   Pueden seguir con MTR." `envio.aviso_mtr = true`.
+3. **reversion_aplicada** — en una tanda de reversión, mismo momento que el pase: "La reversión de QMS-TR
+   quedó aplicada en las bases …".
+Cada aviso se registra (`qmstr_flujo_avisos`) con `publicado` (false en simulación: nada se escribe en Jira,
+el ticket es `SIM-n`) y `modo`.
 
 ### 1.6 Modo de ejecución (seguridad)
 Setting `QMSTR_FLUJO_MODO` ∈ `simulacion | real` (default `simulacion`). En `simulacion`:
@@ -86,9 +82,9 @@ Setting `QMSTR_FLUJO_MODO` ∈ `simulacion | real` (default `simulacion`). En `s
 - Jira: `JiraSimulado` — no crea tickets; registra lo que haría y genera key `SIM-<n>`; su estado avanza a
   "resuelto" cuando un admin lo marca desde la UI (`POST /qmstr_flujo/tandas/{tid}/simular_cierre_ticket`)
   o tras `QMSTR_FLUJO_SIM_TICKET_SEGUNDOS` si está configurado.
-- Correo: `BandejaSimulada`.
+- Avisos: se registran con `publicado: false`; no se agrega observador ni se comenta en Jira.
 - Hitos: lectura **real**; escritura/anulación del hito 10 **no se ejecuta**, se registra lo que se habría
-  escrito (evento + tabla `qmstr_flujo_correos`/bitácora).
+  escrito (evento + bitácora).
 - Verificación en J: real (sólo lectura). En simulación, como DQ no aplicó nada, la verificación dará
   "no aplicado"; en simulación el resultado se anota y la tanda sigue a hito10 (no va a revisión manual).
 `GET /qmstr_flujo/estado` devuelve `modo`.
@@ -126,7 +122,7 @@ plausible para la UI.
 
 ### 2.5 Tandas
 - `GET /tandas?pais=&periodo=&tipo=&estado=` → `Tanda[]` (todas las columnas, incluidas `tipo, modo,
-  creada_por, tanda_origen, correos`).
+  creada_por, tanda_origen`; `envio` incluye `observadores` y `aviso_mtr`).
 - `GET /tandas/{tid}` → `Tanda`.
 - `POST /tandas` body `{"pais":"EC","periodo":"202609","productos":[50,51],"modo":"completo","forzar":false,
   "nota":"…"}` → 201 `Tanda`; 409 conflicto, 422 validación (`{"error":"…","message":"…"}`).
@@ -141,8 +137,9 @@ plausible para la UI.
             "for_each":{"total":95,"completadas":30,"fallidas":0,"activas":8}}]}
 ```
 - `GET /tandas/{tid}/zip` → URL firmada de descarga (patrón JAA-757) del zip (corrida o reversión).
-- `GET /correos?pais=&periodo=` → bandeja (simulada o enviada): `[{"id","tanda_id","tipo":"resultados|pase_mtr",
-  "para":[],"cc":[],"asunto","html","adjuntos":["…zip"],"enviado":bool,"modo":"simulacion","at"}]`.
+- `GET /avisos?pais=&periodo=` → avisos en Jira (publicados o simulados): `[{"id","tanda_id","pais","periodo",
+  "tipo":"observadores|pase_mtr|reversion_aplicada","jira_key":"LAT-1|SIM-1","texto",
+  "destinatarios":[{"account_id","nombre"}],"publicado":bool,"modo":"simulacion|real","at"}]`.
 - `POST /vuelta` (existente).
 
 ## 3. Frontend (`ms_process_app`, módulo `src/modules/qmstr/`)
@@ -160,7 +157,9 @@ de lanzamiento existente:
    "seleccionar liberadas", advertencia si una base no tiene hito 4 ⇒ requiere `forzar`), modo completo /
    solo correr, nota. Confirmación clara antes de enviar.
 5. **Revertir**: diálogo desde una tanda cerrada: elegir bases + motivo, confirmación.
-6. **Bandeja de correos**: lista con vista previa HTML (útil en simulación).
+6. **Avisos**: lista cronológica por tanda de lo dejado en el ticket de Jira (observador agregado, pase a MTR,
+   reversión aplicada): key enlazable (`SIM-n` sin link), texto del comentario, destinatarios con @ y estado
+   "Publicado en Jira" / "Simulado, no se publicó". La tarjeta de tanda muestra "Aviso a MTR en Jira" como último paso.
 Diseño: moderno, atractivo y amigable (que den ganas de usarlo), identidad Worldpanel (CLAUDE.md global:
 light `--primary` Deep Teal #004A52, dark Worldpanel Blue #00A8B8; estados semánticos propios, NO verde/
 amarillo de marca), modo oscuro, responsive, estados vacíos/cargando/error cuidados, micro-animaciones

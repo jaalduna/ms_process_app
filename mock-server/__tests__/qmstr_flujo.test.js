@@ -114,8 +114,8 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(resuelta.estado).toBe("en_dq")
     expect(t).toMatchObject({ nota: "prueba", ejecucion: "simulacion" })
     await esperar(async () => (await get(`/tandas/${t.id}`)).body.estado === "cerrada")
-    const { body: correos } = await get("/correos?pais=EC&periodo=202609")
-    expect(correos.filter((c) => c.tanda_id === t.id).map((c) => c.tipo).sort()).toEqual(["pase_mtr", "resultados"])
+    const { body: avisos } = await get("/avisos?pais=EC&periodo=202609")
+    expect(avisos.filter((a) => a.tanda_id === t.id).map((a) => a.tipo).sort()).toEqual(["observadores", "pase_mtr"])
   })
 
   it("override manual: una base aplicada da 409 en modo completo aunque venga forzar", async () => {
@@ -145,7 +145,7 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(bases.find((b) => b.producto === base).estado).toBe("revertida")
   })
 
-  it("solo correr: cierra sin correo ni ticket, no deja la base aplicada y no se puede revertir", async () => {
+  it("solo correr: cierra sin ticket ni avisos, no deja la base aplicada y no se puede revertir", async () => {
     const { body: bases } = await get("/bases?pais=EC&periodo=202609")
     const pend = bases.filter((b) => b.estado === "pendiente").map((b) => b.producto)
     const { body: t } = await post("/tandas", { pais: "EC", periodo: "202609", productos: pend, modo: "solo_correr" })
@@ -154,8 +154,8 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
       return body.estado === "cerrada" ? body : null
     }, 5000)
     expect(cerrada.jira_key).toBeNull()
-    const { body: correos } = await get("/correos?pais=EC&periodo=202609")
-    expect(correos.filter((c) => c.tanda_id === t.id)).toEqual([])
+    const { body: avisos } = await get("/avisos?pais=EC&periodo=202609")
+    expect(avisos.filter((a) => a.tanda_id === t.id)).toEqual([])
     const { body: despues } = await get("/bases?pais=EC&periodo=202609")
     expect(new Set(despues.filter((b) => pend.includes(b.producto)).map((b) => b.estado))).toEqual(new Set(["pendiente"]))
     expect((await post(`/tandas/${t.id}/revertir`, { productos: [pend[0]], motivo: "x" })).status).toBe(409)
@@ -188,7 +188,7 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(body.url).toMatch(/\/zip\/descarga\?token=/)
   })
 
-  it("contrato de la API real: errores {error, message}, correos en llaves planas y reversión sólo de tandas cerradas", async () => {
+  it("contrato de la API real: errores {error, message}, avisos en Jira y reversión sólo de tandas cerradas", async () => {
     const { body: estado } = await get("/estado")
     expect(estado).toMatchObject({ activo: true, config_error: null, error_config: null })
 
@@ -213,13 +213,15 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
       const { body } = await get(`/tandas/${t.id}`)
       return body.estado === "cerrada" ? body : null
     }, 5000)
-    expect(cerrada.correos).toMatchObject({
-      resultados: expect.any(String), resultados_hilo: null, resultados_enviado: true,
-      pase_mtr: expect.any(String), pase_mtr_hilo: null, pase_mtr_enviado: true,
+    expect(cerrada.correos).toBeUndefined()
+    expect(cerrada.envio).toMatchObject({ observadores: true, aviso_mtr: true })
+    const { body: avisos } = await get("/avisos?pais=EC&periodo=202609")
+    const pase = avisos.find((a) => a.tanda_id === t.id && a.tipo === "pase_mtr")
+    // en simulación el comentario no se publica en Jira y el ticket es SIM-n
+    expect(pase).toMatchObject({
+      publicado: false, modo: "simulacion", jira_key: cerrada.jira_key,
+      destinatarios: [{ account_id: expect.stringMatching(/^712020:/), nombre: "Alejandro Peña" }],
+      texto: expect.stringContaining("@Alejandro Peña"),
     })
-    const { body: correos } = await get("/correos?pais=EC&periodo=202609")
-    const pase = correos.find((c) => c.id === cerrada.correos.pase_mtr)
-    // en simulación no se busca el hilo de la liberación: sale como correo nuevo
-    expect(pase).toMatchObject({ en_respuesta_a: null, enviado: false, asunto: `[QMS-TR] Ecuador 202609 · tanda ${t.numero} · pase a MTR` })
   })
 })
