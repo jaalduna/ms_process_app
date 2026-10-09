@@ -133,3 +133,255 @@ export const STATUS_META: Record<string, { label: string; className: string }> =
   cancelled: { label: "Cancelado", className: "bg-muted text-muted-foreground" },
 }
 
+
+// ---------------------------------------------------------------------------
+// Flujo automático de QMS-TR v1.1 (JAA-1435): contrato de `/qmstr_flujo` (docs/SPEC_flujo_qmstr_v1.1.md §2).
+// ---------------------------------------------------------------------------
+
+export type FlujoModo = "simulacion" | "real"
+
+/** GET /qmstr_flujo/estado */
+export interface FlujoEstado {
+  enabled: boolean
+  modo: FlujoModo
+  /** Códigos de país configurados (QMSTR_FLUJO_PAISES). */
+  paises: string[]
+  intervalo_segundos: number
+  ultima_vuelta: string | null
+  /** Resultado de la última vuelta por país ("ok" o el error). */
+  resultado: Record<string, string> | null
+  error_config: string | null
+}
+
+/** GET /qmstr_flujo/paises */
+export interface FlujoPais {
+  codigo: string
+  nombre: string
+  etiqueta: string
+}
+
+/** GET /qmstr_flujo/periodos?pais= (últimos 6, más reciente primero). */
+export interface FlujoPeriodo {
+  periodo: string
+  h3: number
+  h4: number
+  h10: number
+  tandas: number
+}
+
+export type EstadoBase =
+  | "sin_hito4"
+  | "retenida"
+  | "pendiente"
+  | "en_proceso"
+  | "aplicada"
+  | "revertida"
+  | "bypass"
+  | "fuera_de_alcance"
+
+export type TipoTanda = "liberacion" | "manual" | "reversion"
+export type ModoTanda = "completo" | "solo_correr"
+export type EstadoTanda =
+  | "detectada"
+  | "corriendo"
+  | "armando_reversion"
+  | "enviando"
+  | "en_dq"
+  | "verificando"
+  | "hito10"
+  | "cerrada"
+  | "revision_manual"
+  | "sin_bases"
+
+export interface FlujoBaseEvento {
+  at: string
+  tanda_id: string
+  tipo: TipoTanda
+  evento: string
+}
+
+/** GET /qmstr_flujo/bases?pais=&periodo= — una fila por base (producto) del período. */
+export interface FlujoBase {
+  producto: number
+  nombre: string
+  h3: string | null
+  h4: string | null
+  h4_anulado: boolean
+  h10: string | null
+  fuera_de_alcance: boolean
+  estado: EstadoBase
+  tanda_id: string | null
+  tanda_numero: number | null
+  tanda_estado: EstadoTanda | null
+  jira_key: string | null
+  historial: FlujoBaseEvento[]
+}
+
+export interface TandaEvento {
+  at: string
+  estado: EstadoTanda
+  detalle: string | null
+}
+
+export interface TandaValidacion {
+  status?: "aplicado" | "parcial" | "no_aplicado"
+  checked?: number
+  applied?: number
+  pending?: number
+  mismatched?: number
+}
+
+/** Tanda = (país, período, número); todas las columnas de `qmstr_flujo_tandas`. */
+export interface Tanda {
+  id: string
+  pais: string
+  periodo: string
+  numero: number
+  categorias: number[]
+  productos: number[]
+  h4_desde: string
+  h4_hasta: string
+  estado: EstadoTanda
+  estado_previo: EstadoTanda | null
+  pausada: boolean
+  qms_run_id: string | null
+  jira_key: string | null
+  envio: Record<string, unknown>
+  bypass: number[]
+  validacion: TandaValidacion
+  error: string | null
+  eventos: TandaEvento[]
+  created_at: string
+  updated_at: string
+  tipo: TipoTanda
+  modo: ModoTanda
+  creada_por: string | null
+  tanda_origen: string | null
+  /** Progreso de los correos: tipo -> message_id. */
+  correos: Partial<Record<TipoCorreo, string>>
+}
+
+export interface TandaCreate {
+  pais: string
+  periodo: string
+  productos: number[]
+  modo: ModoTanda
+  forzar: boolean
+  nota: string
+}
+
+export interface TandaRevertir {
+  productos: number[]
+  motivo: string
+}
+
+export interface ProgresoForEach {
+  total: number
+  completadas: number
+  fallidas: number
+  activas: number
+}
+
+export interface ProgresoTarea {
+  clave: string
+  estado: string
+  inicio: string | null
+  fin: string | null
+  for_each?: ProgresoForEach
+}
+
+/** GET /qmstr_flujo/tandas/{tid}/progreso — run del job qms_tr_run en Databricks. */
+export interface TandaProgreso {
+  run_id: number
+  estado: string
+  run_page_url: string
+  inicio: string | null
+  fin: string | null
+  productos_total: number
+  productos_listos: number
+  porcentaje: number
+  tareas: ProgresoTarea[]
+}
+
+export type TipoCorreo = "resultados" | "pase_mtr"
+
+/** GET /qmstr_flujo/correos — bandeja (simulada o enviada). */
+export interface FlujoCorreo {
+  id: string
+  tanda_id: string
+  tipo: TipoCorreo
+  para: string[]
+  cc: string[]
+  asunto: string
+  html: string
+  adjuntos: string[]
+  enviado: boolean
+  modo: FlujoModo
+  at: string
+}
+
+/** Estados en que la tanda sigue avanzando sola (ACTIVOS de la API + armando_reversion). */
+export const TANDA_ACTIVOS: EstadoTanda[] = [
+  "detectada", "corriendo", "armando_reversion", "enviando", "en_dq", "verificando", "hito10",
+]
+
+/** Camino feliz de cada tipo de tanda, en orden (lo que dibuja el stepper). */
+export const CAMINO_TANDA: Record<"corrida" | "reversion" | "solo_correr", EstadoTanda[]> = {
+  corrida: ["detectada", "corriendo", "enviando", "en_dq", "verificando", "hito10", "cerrada"],
+  reversion: ["detectada", "armando_reversion", "enviando", "en_dq", "verificando", "hito10", "cerrada"],
+  solo_correr: ["detectada", "corriendo", "cerrada"],
+}
+
+export function caminoDe(t: Pick<Tanda, "tipo" | "modo">): EstadoTanda[] {
+  if (t.tipo === "reversion") return CAMINO_TANDA.reversion
+  return t.modo === "solo_correr" ? CAMINO_TANDA.solo_correr : CAMINO_TANDA.corrida
+}
+
+export const ESTADO_TANDA_LABEL: Record<EstadoTanda, string> = {
+  detectada: "Detectada",
+  corriendo: "Corriendo",
+  armando_reversion: "Armando reversión",
+  enviando: "Enviando",
+  en_dq: "En DQ",
+  verificando: "Verificando en J",
+  hito10: "Hito 10",
+  cerrada: "Cerrada",
+  revision_manual: "Revisión manual",
+  sin_bases: "Sin bases",
+}
+
+export const TIPO_TANDA_LABEL: Record<TipoTanda, string> = {
+  liberacion: "Liberación",
+  manual: "Manual",
+  reversion: "Reversión",
+}
+
+/** Orden y etiqueta de los estados de base (leyenda del tablero). */
+export const ESTADOS_BASE: { estado: EstadoBase; label: string; ayuda: string }[] = [
+  { estado: "aplicada", label: "Aplicadas", ayuda: "QMS-TR quedó aplicado en la base" },
+  { estado: "en_proceso", label: "En proceso", ayuda: "La base está en una tanda que sigue avanzando" },
+  { estado: "pendiente", label: "Liberadas sin tanda", ayuda: "Tienen hito 4 y todavía no entran a una tanda" },
+  { estado: "retenida", label: "Retenidas", ayuda: "Tienen hito 3 pero no hito 4" },
+  { estado: "revertida", label: "Revertidas", ayuda: "Se devolvieron a su estado anterior a QMS-TR" },
+  { estado: "bypass", label: "Sin cambios", ayuda: "El motor no propuso cambios: quedaron fuera del zip" },
+  { estado: "sin_hito4", label: "Sin hitos", ayuda: "Todavía sin hito 3 ni hito 4" },
+  { estado: "fuera_de_alcance", label: "Fuera de alcance", ayuda: "QMS-TR no corrige estas bases" },
+]
+
+export const ESTADO_BASE_LABEL: Record<EstadoBase, string> = {
+  aplicada: "Aplicada",
+  en_proceso: "En proceso",
+  pendiente: "Liberada",
+  retenida: "Retenida",
+  revertida: "Revertida",
+  bypass: "Sin cambios",
+  sin_hito4: "Sin hitos",
+  fuera_de_alcance: "Fuera de alcance",
+}
+
+/** Nombres de las tareas del job qms_tr_run en el progreso (desconocidas se muestran tal cual). */
+export const TAREA_LABELS: Record<string, string> = {
+  ...STEP_LABELS,
+  hay_grandes: "¿Hay grandes?",
+  hay_normales: "¿Hay normales?",
+}
