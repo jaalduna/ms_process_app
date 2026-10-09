@@ -8,6 +8,7 @@ import pricesRouter, { pricesStore } from "./routes/prices.js"
 import weightingRouter, { weightingStore } from "./routes/weighting.js"
 import mtrRouter, { mtrStore } from "./routes/mtr.js"
 import qmsTrRouter from "./routes/qms_tr.js"
+import qmstrFlujoRouter from "./routes/qmstr_flujo.js"
 import formato4Router, { formato4Store } from "./routes/formato4.js"
 import eligibilityRouter, { eligibilityStore } from "./routes/eligibility.js"
 import processesRouter from "./routes/processes.js"
@@ -111,6 +112,7 @@ app.use("/api/v1", pricesRouter)
 app.use("/api/v1", weightingRouter)
 app.use("/api/v1", mtrRouter)
 app.use("/api/v1", qmsTrRouter)
+app.use("/api/v1", qmstrFlujoRouter)
 app.use("/api/v1", formato4Router)
 app.use("/api/v1", eligibilityRouter)
 app.use("/api/v1", processesRouter)
