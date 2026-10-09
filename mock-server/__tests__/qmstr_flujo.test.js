@@ -66,6 +66,13 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(new Set(bases.map((b) => b.estado))).toEqual(new Set(["aplicada"]))
   })
 
+  it("la tanda trae snapshot_desde y, una vez terminada, el progreso final guardado", async () => {
+    const { body: tandas } = await get("/tandas?pais=EC&periodo=202609")
+    expect(tandas.find((t) => t.estado === "corriendo")).toMatchObject({ progreso: null, snapshot_desde: expect.any(String) })
+    const cerrada = tandas.find((t) => t.estado === "cerrada" && t.tipo !== "reversion")
+    expect(cerrada.progreso).toMatchObject({ estado: "TERMINATED", porcentaje: 100 })
+  })
+
   it("la tanda corriendo entrega progreso Databricks con for_each", async () => {
     const { body: tandas } = await get("/tandas?pais=EC&periodo=202609&estado=corriendo")
     expect(tandas).toHaveLength(1)

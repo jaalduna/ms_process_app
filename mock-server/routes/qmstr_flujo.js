@@ -99,7 +99,7 @@ function nuevaTanda(campos) {
     validacion: campos.validacion ?? {}, error: campos.error ?? null, eventos: campos.eventos ?? [],
     created_at: campos.created_at ?? ahora, updated_at: campos.updated_at ?? ahora,
     tipo: campos.tipo ?? "liberacion", modo: campos.modo ?? "completo", creada_por: campos.creada_por ?? "qmstr_flujo",
-    tanda_origen: campos.tanda_origen ?? null, correos: campos.correos ?? {}, nota: campos.nota ?? null,
+    tanda_origen: campos.tanda_origen ?? null, snapshot_desde: campos.snapshot_desde ?? null, correos: campos.correos ?? {}, nota: campos.nota ?? null,
     // como la API: la tanda sólo avanza en el modo del flujo en que se creó
     ejecucion: campos.ejecucion ?? MODO(),
     // privados: reloj de la corrida y del próximo avance
@@ -108,7 +108,10 @@ function nuevaTanda(campos) {
 }
 
 function publica(t) {
-  return Object.fromEntries(Object.entries(t).filter(([k]) => !k.startsWith("_")))
+  const base = Object.fromEntries(Object.entries(t).filter(([k]) => !k.startsWith("_")))
+  // como la API: el progreso final queda guardado en la tanda cuando la corrida terminó
+  const terminada = t.qms_run_id && t.tipo !== "reversion" && t.estado !== "corriendo" && t.estado !== "detectada"
+  return { ...base, progreso: terminada ? progreso(t) : null }
 }
 
 function evento(t, detalle, at = isoNow()) {
@@ -408,7 +411,7 @@ function sembrarEcuador() {
   const inicio = ahora - 0.35 * duracion
   const t3 = nuevaTanda({
     pais: "EC", periodo: PERIODO_ACTUAL, numero: 4, productos: g.t3, h4_desde: d3, h4_hasta: h3, estado: "corriendo",
-    qms_run_id: crypto.randomUUID(), created_at: iso(inicio - 2 * MIN),
+    qms_run_id: crypto.randomUUID(), created_at: iso(inicio - 2 * MIN), snapshot_desde: iso(inicio - 3 * 60 * MIN),
     _corrida: { inicio, inicial: 0, duracion, run_id: 731204558812734 },
     eventos: [
       { at: iso(inicio - 2 * MIN), estado: "detectada", detalle: "liberación de 26 bases (hito 4 entre 15:00 y 15:57)" },
