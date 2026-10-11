@@ -345,7 +345,7 @@ export type TipoAviso = "observadores" | "pase_mtr" | "reversion_aplicada"
 
 export const TIPO_AVISO_LABEL: Record<TipoAviso, string> = {
   observadores: "Observador agregado",
-  pase_mtr: "Pase a MTR",
+  pase_mtr: "Verificado en J",
   reversion_aplicada: "Reversión aplicada",
 }
 

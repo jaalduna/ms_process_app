@@ -99,7 +99,7 @@ describe("TableroBases sin hito 4 en el período", () => {
 describe("avisos en Jira", () => {
   const aviso = (extra = {}) => ({
     id: "a1", tanda_id: "t1", pais: "EC", periodo: "202609", tipo: "pase_mtr" as const, jira_key: "SIM-1",
-    texto: "QMS-TR quedó aplicado y validado. Pueden seguir con MTR.",
+    texto: "QMS-TR quedó aplicado y verificado en J.",
     destinatarios: [{ account_id: "712020:abc", nombre: "Alejandro Peña" }],
     publicado: false, modo: "simulacion" as const, at: "2026-10-08T15:00:00Z", ...extra,
   })
