@@ -219,7 +219,19 @@ export interface FlujoBase {
   tanda_numero: number | null
   tanda_estado: EstadoTanda | null
   jira_key: string | null
+  /** Por qué la base quedó sin ajustes en su tanda (falla del motor, tope MWP, equivalencia atípica); null si no. */
+  motivo_bypass: string | null
+  /** Lo que la corrida pidió revisar de la base antes del ticket (sigue en el zip); null si nada. */
+  revisar: string | null
   historial: FlujoBaseEvento[]
+}
+
+/** Base que la corrida pide revisar antes del ticket (`manifest.revisar`). */
+export interface TandaRevisar {
+  producto: number
+  motivo: string
+  d_vol_pct?: number
+  veces_fuera_de_caja?: number
 }
 
 export interface TandaEvento {
@@ -270,6 +282,10 @@ export interface Tanda {
    */
   envio: TandaEnvio
   bypass: number[]
+  /** producto -> por qué quedó sin ajustes (`manifest.fallidas` de la corrida). */
+  bypass_motivos: Record<string, string>
+  /** Bases del zip que la corrida pide revisar antes del ticket. */
+  revisar: TandaRevisar[]
   validacion: TandaValidacion
   /**
    * Motivo por el que la tanda no avanza. "sin permiso <SELECT|INSERT|UPDATE> sobre <tabla> en <país> ..." es un
@@ -415,7 +431,7 @@ export const ESTADOS_BASE: { estado: EstadoBase; label: string; ayuda: string }[
   { estado: "retenida", label: "Retenidas", ayuda: "Tienen hito 3 pero no hito 4, y otras bases del período ya fueron liberadas" },
   { estado: "esperando_liberacion", label: "Esperando liberación", ayuda: "Tienen hito 3 y ninguna base del período tiene hito 4 todavía" },
   { estado: "revertida", label: "Revertidas", ayuda: "Se devolvieron a su estado anterior a QMS-TR" },
-  { estado: "bypass", label: "Sin cambios", ayuda: "El motor no propuso cambios: quedaron fuera del zip" },
+  { estado: "bypass", label: "Sin ajustes", ayuda: "Quedaron fuera del zip de la corrida; el motivo está en cada base" },
   { estado: "sin_hito4", label: "Sin hitos", ayuda: "Todavía sin hito 3 ni hito 4" },
   { estado: "fuera_de_alcance", label: "Fuera de alcance", ayuda: "QMS-TR no corrige estas bases" },
 ]
@@ -427,7 +443,7 @@ export const ESTADO_BASE_LABEL: Record<EstadoBase, string> = {
   retenida: "Retenida",
   esperando_liberacion: "Esperando liberación",
   revertida: "Revertida",
-  bypass: "Sin cambios",
+  bypass: "Sin ajustes",
   sin_hito4: "Sin hitos",
   fuera_de_alcance: "Fuera de alcance",
 }

@@ -1,11 +1,11 @@
 import { Fragment, useMemo, useState } from "react"
-import { ChevronRight, Search, X } from "lucide-react"
+import { ChevronRight, Search, TriangleAlert, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { formatChile } from "../../time"
 import { ESTADO_BASE_LABEL, ESTADO_TANDA_LABEL, type EstadoBase, type FlujoBase } from "../../types"
-import { ChipBase, Vacio } from "./piezas"
+import { Chip, ChipBase, Vacio } from "./piezas"
 
 function Hora({ iso, anulado }: { iso: string | null; anulado?: boolean }) {
   if (!iso) return <span className="text-muted-foreground/60">—</span>
@@ -84,7 +84,19 @@ export function TablaBases({ bases, filtro, onFiltro }: TablaBasesProps) {
                         <span className="mr-2 text-xs text-muted-foreground tabular-nums">{b.producto}</span>
                         <span className="font-medium">{b.nombre}</span>
                       </TableCell>
-                      <TableCell><ChipBase estado={b.estado} /></TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <ChipBase estado={b.estado} />
+                          {b.revisar && (
+                            <Chip tone="var(--qf-retenida)" title={b.revisar} data-testid="qf-revisar">
+                              <TriangleAlert className="size-3" /> Revisar
+                            </Chip>
+                          )}
+                        </div>
+                        {b.motivo_bypass && (
+                          <p className="mt-1 max-w-80 text-xs text-muted-foreground" data-testid="qf-motivo-bypass">{b.motivo_bypass}</p>
+                        )}
+                      </TableCell>
                       <TableCell className="text-xs"><Hora iso={b.h3} /></TableCell>
                       <TableCell className="text-xs"><Hora iso={b.h4} anulado={b.h4_anulado} /></TableCell>
                       <TableCell className="text-xs"><Hora iso={b.h10} /></TableCell>
@@ -102,6 +114,9 @@ export function TablaBases({ bases, filtro, onFiltro }: TablaBasesProps) {
                       <TableRow className="bg-muted/40 hover:bg-muted/40">
                         <TableCell />
                         <TableCell colSpan={6} className="pb-4">
+                          {b.revisar && (
+                            <p className="mb-2 text-xs"><span className="font-semibold">Revisar antes del ticket:</span> {b.revisar}</p>
+                          )}
                           {b.historial.length === 0 ? (
                             <p className="text-xs text-muted-foreground">Esta base todavía no pasa por QMS-TR.</p>
                           ) : (

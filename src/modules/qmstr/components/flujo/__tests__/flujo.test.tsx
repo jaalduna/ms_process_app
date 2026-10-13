@@ -10,14 +10,14 @@ import type { FlujoBase, Tanda } from "../../../types"
 
 const base = (producto: number, estado: FlujoBase["estado"], extra: Partial<FlujoBase> = {}): FlujoBase => ({
   producto, nombre: `Base ${producto}`, h3: "2026-09-26T10:00:00-03:00", h4: "2026-10-01T09:00:00-03:00", h4_anulado: false,
-  h10: null, fuera_de_alcance: false, estado, tanda_id: null, tanda_numero: null, tanda_estado: null, jira_key: null,
+  h10: null, fuera_de_alcance: false, estado, tanda_id: null, tanda_numero: null, tanda_estado: null, jira_key: null, motivo_bypass: null, revisar: null,
   historial: [], ...extra,
 })
 
 const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t", pais: "EC", periodo: "202609", numero: 1, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "detectada", estado_previo: null, pausada: false, qms_run_id: null, jira_key: null,
-  envio: {}, bypass: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
+  envio: {}, bypass: [], bypass_motivos: {}, revisar: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
   modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", snapshot_desde: null, progreso: null, ...extra,
 })
 
@@ -127,5 +127,23 @@ describe("avisos en Jira", () => {
     const { BandejaAvisos } = await import("../BandejaAvisos")
     render(<BandejaAvisos avisos={[]} tandas={[]} />)
     expect(screen.getByText("Todavía no hay avisos en este período")).toBeInTheDocument()
+  })
+})
+
+describe("TablaBases: motivo del bypass y bases a revisar", () => {
+  it("muestra por qué la base quedó sin ajustes y marca la que hay que revisar", async () => {
+    const { TablaBases } = await import("../TablaBases")
+    const motivo = "equivalencia de volumen MWP atípica (factor PV→MWP ×10 o más …): no se corrige"
+    const revisar = "volumen país al tope del motor y fuera de su caja histórica: revisar el dato"
+    render(<TablaBases filtro={null} onFiltro={() => {}} bases={[
+      base(201, "bypass", { motivo_bypass: motivo }),
+      base(252, "en_proceso", { revisar }),
+      base(250, "en_proceso"),
+    ]} />)
+    expect(screen.getByTestId("qf-motivo-bypass")).toHaveTextContent(motivo)
+    const chips = screen.getAllByTestId("qf-revisar")
+    expect(chips).toHaveLength(1)
+    expect(chips[0]).toHaveAttribute("title", revisar)
+    expect(screen.getAllByText("Sin ajustes").length).toBeGreaterThan(0)
   })
 })

@@ -367,7 +367,13 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
             <ChevronDown className={cn("size-4 transition-transform", verBases && "rotate-180")} />
             {nBases(t.productos.length)}
           </button>
-          {t.bypass.length > 0 && <span className="text-muted-foreground">{t.bypass.length} sin cambios del motor</span>}
+          {t.bypass.length > 0 && <span className="text-muted-foreground">{t.bypass.length} sin ajustes</span>}
+          {t.revisar.length > 0 && (
+            <Chip tone="var(--qf-retenida)" data-testid="qf-tanda-revisar"
+              title={t.revisar.map((r) => `${r.producto}: ${r.motivo}`).join("\n")}>
+              {t.revisar.length === 1 ? "1 base a revisar" : `${t.revisar.length} bases a revisar`} antes del ticket
+            </Chip>
+          )}
           {v.status && (
             <span className="text-muted-foreground">
               Verificación en J: {v.applied ?? 0} de {v.checked ?? 0} aplicados
@@ -378,7 +384,11 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
         {verBases && (
           <ul className="flex flex-wrap gap-1.5" data-testid="qf-tanda-bases">
             {t.productos.map((p) => (
-              <li key={p} className={cn("rounded-md border px-2 py-0.5 text-xs", t.bypass.includes(p) && "border-dashed text-muted-foreground")}>
+              <li key={p}
+                title={t.bypass_motivos[String(p)] ?? t.revisar.find((r) => r.producto === p)?.motivo}
+                className={cn("rounded-md border px-2 py-0.5 text-xs",
+                  t.bypass.includes(p) && "border-dashed text-muted-foreground",
+                  t.revisar.some((r) => r.producto === p) && "border-[var(--qf-retenida)]")}>
                 <span className="text-muted-foreground tabular-nums">{p}</span> {nombres.get(p) ?? ""}
               </li>
             ))}
