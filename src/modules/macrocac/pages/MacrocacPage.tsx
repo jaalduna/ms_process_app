@@ -9,6 +9,7 @@ import {
   Eye,
   FileDown,
   FileSpreadsheet,
+  ListChecks,
   Loader2,
   Upload,
   X,
@@ -49,6 +50,7 @@ import {
 import type {
   MacrocacFormatoCheck,
   MacrocacMotivoResumen,
+  MacrocacResultRow,
   MacrocacRun,
   MacrocacRunError,
   MacrocacUpload,
@@ -229,17 +231,28 @@ export function MacrocacPage() {
     resetFileInput()
   }
 
-  const handleConfirmar = () => {
+  /**
+   * Lanza un run sobre el archivo subido. `simular` valida sin escribir;
+   * `confirmarAdvertencias` es la segunda vuelta de un lote que quedó en
+   * `requiere_confirmacion` (QA 2026-09-28, Jorge: avisar y dejar decidir).
+   */
+  const lanzar = (opciones: { simular?: boolean; confirmarAdvertencias?: boolean }) => {
     if (!upload) return
-    setConfirmOpen(false)
-    runMutation.mutate(upload.upload_id, {
-      onSuccess: (data) => setRunId(data.run_id),
-    })
+    downloadMutation.reset()
+    runMutation.mutate(
+      { uploadId: upload.upload_id, ...opciones },
+      { onSuccess: (data) => setRunId(data.run_id) },
+    )
   }
 
-  const puedeAplicar = upload !== null && formato?.ok === true && !runMutation.isPending
+  const handleConfirmar = () => {
+    setConfirmOpen(false)
+    lanzar({})
+  }
+
   const enCurso = run !== null && run.status === "running"
-  const exitoso = run?.status === "succeeded"
+  const puedeAplicar =
+    upload !== null && formato?.ok === true && !runMutation.isPending && !enCurso
 
   return (
     <div className="space-y-6">
@@ -517,27 +530,43 @@ export function MacrocacPage() {
           <span className="text-xs text-muted-foreground">
             {upload ? "Listo para aplicar los cambios." : "Sube un archivo válido para habilitar la ejecución."}
           </span>
-          <Button
-            data-testid="macrocac-aplicar"
-            disabled={!puedeAplicar}
-            onClick={() => setConfirmOpen(true)}
-          >
-            {runMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <DatabaseZap className="h-4 w-4" />
-            )}
-            Aplicar cambios
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {/* Corre el motor completo sin escribir: rechazos, recálculos y
+                advertencias tal como quedarían al aplicar. */}
+            <Button
+              variant="outline"
+              data-testid="macrocac-validar"
+              disabled={!puedeAplicar}
+              onClick={() => lanzar({ simular: true })}
+            >
+              <ListChecks className="h-4 w-4" />
+              Validar sin aplicar
+            </Button>
+            <Button
+              data-testid="macrocac-aplicar"
+              disabled={!puedeAplicar}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {runMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <DatabaseZap className="h-4 w-4" />
+              )}
+              Aplicar cambios
+            </Button>
+          </div>
         </div>
 
         {run && (
           <RunStatus
             run={run}
-            enCurso={enCurso}
-            exitoso={exitoso}
             descargando={downloadMutation.isPending}
             onDescargar={() => downloadMutation.mutate({ runId: run.run_id, pais: run.pais })}
+            onConfirmarAdvertencias={() => lanzar({ confirmarAdvertencias: true })}
+            onCancelar={() => {
+              setRunId(null)
+              runMutation.reset()
+            }}
           />
         )}
 
@@ -720,18 +749,23 @@ function ConfirmacionDialog({
 /** Estado del run, y la descarga del reporte cuando termina bien. */
 function RunStatus({
   run,
-  enCurso,
-  exitoso,
   descargando,
   onDescargar,
+  onConfirmarAdvertencias,
+  onCancelar,
 }: {
   run: MacrocacRun
-  enCurso: boolean
-  exitoso: boolean
   descargando: boolean
   onDescargar: () => void
+  onConfirmarAdvertencias: () => void
+  onCancelar: () => void
 }) {
-  if (enCurso) {
+  const filas = run.resultado_lote ?? []
+  const rechazadas = filas.filter((f) => !f.ok).length
+  const conAdvertencia = filas.filter((f) => f.ok && f.advertencias).length
+  const aceptadas = filas.length - rechazadas
+
+  if (run.status === "running") {
     return (
       <div
         className="flex items-center gap-2 rounded-lg border border-blue-600/30 bg-blue-600/5 px-3 py-2 text-sm"
@@ -739,41 +773,94 @@ function RunStatus({
       >
         <Loader2 className="h-4 w-4 shrink-0 animate-spin text-blue-600" />
         <span>
-          Run <span className="font-mono">{run.run_id}</span> — aplicando cambios…
+          Run <span className="font-mono">{run.run_id}</span> —{" "}
+          {run.simular ? "validando sin aplicar…" : "aplicando cambios…"}
         </span>
       </div>
     )
   }
 
-  if (exitoso) {
-    const filas = run.resultado_lote ?? []
-    const conError = filas.filter((f) => !f.ok).length
+  const descargar = (
+    <Button
+      variant="outline"
+      size="sm"
+      data-testid="macrocac-descargar-reporte"
+      disabled={descargando}
+      onClick={onDescargar}
+    >
+      {descargando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+      Descargar reporte
+    </Button>
+  )
+
+  if (run.status === "requiere_confirmacion") {
+    // QA 2026-09-28 (Jorge): ajustes históricos y cambios de período se avisan
+    // antes, y el usuario decide. El motor no escribió nada en esta vuelta.
     return (
       <div
-        className="space-y-2 rounded-lg border border-emerald-600/30 bg-emerald-600/5 px-3 py-2 text-sm"
+        className="space-y-3 rounded-lg border border-amber-600/30 bg-amber-600/5 px-3 py-2 text-sm"
+        data-testid="macrocac-run-status"
+      >
+        <div className="flex items-start gap-2 text-amber-700">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span data-testid="macrocac-requiere-confirmacion">
+            {conAdvertencia} {conAdvertencia === 1 ? "acto tiene" : "actos tienen"} advertencias.
+            No se aplicó ningún cambio: revisa las advertencias y confirma para aplicar el lote
+            {rechazadas > 0 &&
+              ` (${rechazadas} ${rechazadas === 1 ? "fila rechazada no se aplica" : "filas rechazadas no se aplican"})`}
+            .
+          </span>
+        </div>
+        <ResultadoDetalle filas={filas} />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            data-testid="macrocac-confirmar-advertencias"
+            onClick={onConfirmarAdvertencias}
+          >
+            <DatabaseZap className="h-4 w-4" />
+            Confirmar y aplicar
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            data-testid="macrocac-cancelar-advertencias"
+            onClick={onCancelar}
+          >
+            Cancelar
+          </Button>
+          {descargar}
+        </div>
+      </div>
+    )
+  }
+
+  if (run.status === "succeeded") {
+    return (
+      <div
+        className={`space-y-2 rounded-lg border px-3 py-2 text-sm ${
+          run.simular ? "border-blue-600/30 bg-blue-600/5" : "border-emerald-600/30 bg-emerald-600/5"
+        }`}
         data-testid="macrocac-run-status"
       >
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-          <span>
-            Cambios aplicados — {filas.length} {filas.length === 1 ? "fila" : "filas"}
-            {conError > 0 && `, ${conError} con error`}
+          {run.simular ? (
+            <ListChecks className="h-4 w-4 shrink-0 text-blue-600" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+          )}
+          <span data-testid="macrocac-run-resumen">
+            {run.simular
+              ? `Validación sin aplicar — ${aceptadas} se aplicarían, ${rechazadas} rechazadas`
+              : `Cambios aplicados — ${filas.length} ${filas.length === 1 ? "fila" : "filas"}${
+                  rechazadas > 0 ? `, ${rechazadas} con error` : ""
+                }`}
+            {conAdvertencia > 0 && `, ${conAdvertencia} con advertencia`}
+            {run.simular && ". No se escribió nada."}
           </span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          data-testid="macrocac-descargar-reporte"
-          disabled={descargando}
-          onClick={onDescargar}
-        >
-          {descargando ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          Descargar reporte
-        </Button>
+        <ResultadoDetalle filas={filas} />
+        {descargar}
       </div>
     )
   }
@@ -785,6 +872,64 @@ function RunStatus({
     >
       <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
       <span>La ejecución falló. {run.error_message ?? ""}</span>
+    </div>
+  )
+}
+
+/** Tope de filas que se listan; el detalle completo está en el reporte. */
+const LIMITE_DETALLE = 200
+
+/**
+ * Filas rechazadas (con el motivo) y filas con advertencia. QA 2026-09-28
+ * (Jorge): el rechazo tiene que decir el motivo exacto sin abrir el reporte.
+ */
+function ResultadoDetalle({ filas }: { filas: MacrocacResultRow[] }) {
+  const [abierto, setAbierto] = useState(false)
+  const relevantes = filas.filter((f) => !f.ok || f.advertencias)
+  if (relevantes.length === 0) return null
+  const mostradas = relevantes.slice(0, LIMITE_DETALLE)
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        className="text-primary inline-flex items-center gap-1 text-xs underline-offset-4 hover:underline"
+        onClick={() => setAbierto((v) => !v)}
+        data-testid="macrocac-detalle-toggle"
+      >
+        {abierto ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        Ver rechazos y advertencias ({relevantes.length})
+      </button>
+      {abierto && (
+        <div className="max-h-80 overflow-auto rounded-md border border-border bg-card">
+          <table className="w-full text-xs" data-testid="macrocac-detalle">
+            <thead className="sticky top-0 bg-muted text-left">
+              <tr>
+                <th className="px-2 py-1 font-medium">IdAto</th>
+                <th className="px-2 py-1 font-medium">Acción</th>
+                <th className="px-2 py-1 font-medium">Detalle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mostradas.map((f) => (
+                <tr key={f.IdAto} className="border-t border-border align-top">
+                  <td className="px-2 py-1 font-mono">{f.IdAto}</td>
+                  <td className="px-2 py-1">{ACCION_LABEL[f.accion] ?? f.accion}</td>
+                  <td
+                    className={`px-2 py-1 ${f.ok ? "text-amber-700" : "text-destructive"}`}
+                  >
+                    {f.ok ? f.advertencias : (f.observacion ?? f.mensaje)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {relevantes.length > LIMITE_DETALLE && (
+            <p className="text-muted-foreground px-2 py-1 text-xs">
+              Se muestran {LIMITE_DETALLE} de {relevantes.length}; el resto está en el reporte.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

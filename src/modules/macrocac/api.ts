@@ -63,11 +63,23 @@ export async function getVistaPrevia(uploadId: string): Promise<MacrocacVistaPre
   throw new MacrocacApiError<MacrocacVistaPreviaError>(response.status, response.data)
 }
 
+export interface CreateMacrocacRunParams {
+  uploadId: string
+  /** Validar y reportar sin escribir. */
+  simular?: boolean
+  /** El usuario ya vio las advertencias del lote y decide seguir. */
+  confirmarAdvertencias?: boolean
+}
+
 /** Trigger an execution against a previously uploaded correction file. */
-export async function createMacrocacRun(uploadId: string): Promise<MacrocacRun> {
+export async function createMacrocacRun({
+  uploadId,
+  simular = false,
+  confirmarAdvertencias = false,
+}: CreateMacrocacRunParams): Promise<MacrocacRun> {
   const response = await api.post(
     "/macrocac/runs",
-    { upload_id: uploadId },
+    { upload_id: uploadId, simular, confirmar_advertencias: confirmarAdvertencias },
     { validateStatus: () => true },
   )
   if (response.status === 201) return response.data as MacrocacRun
