@@ -152,7 +152,7 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
     const res = await fetch(`${baseUrl}/macrocac/runs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ upload_id: upload.upload_id }),
+      body: JSON.stringify({ upload_id: upload.upload_id, confirmar_advertencias: true }),
     })
     const { run_id } = await res.json()
 
@@ -237,7 +237,7 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
     const res = await fetch(`${baseUrl}/macrocac/runs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ upload_id: upload.upload_id }),
+      body: JSON.stringify({ upload_id: upload.upload_id, confirmar_advertencias: true }),
     })
     expect(res.status).toBe(201)
     const body = await res.json()
@@ -266,7 +266,7 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
     const first = await fetch(`${baseUrl}/macrocac/runs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ upload_id: upload.upload_id }),
+      body: JSON.stringify({ upload_id: upload.upload_id, confirmar_advertencias: true }),
     })
     expect(first.status).toBe(201)
     const firstBody = await first.json()
@@ -293,7 +293,7 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
     const create = await fetch(`${baseUrl}/macrocac/runs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ upload_id: upload.upload_id }),
+      body: JSON.stringify({ upload_id: upload.upload_id, confirmar_advertencias: true }),
     })
     const { run_id } = await create.json()
 
@@ -324,7 +324,7 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
     await fetch(`${baseUrl}/macrocac/runs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ upload_id: upload.upload_id }),
+      body: JSON.stringify({ upload_id: upload.upload_id, confirmar_advertencias: true }),
     })
     const res = await fetch(`${baseUrl}/macrocac/runs`)
     expect(res.status).toBe(200)
@@ -346,7 +346,7 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
     const create = await fetch(`${baseUrl}/macrocac/runs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ upload_id: upload.upload_id }),
+      body: JSON.stringify({ upload_id: upload.upload_id, confirmar_advertencias: true }),
     })
     const { run_id } = await create.json()
 
@@ -362,7 +362,7 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
     const create = await fetch(`${baseUrl}/macrocac/runs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ upload_id: upload.upload_id }),
+      body: JSON.stringify({ upload_id: upload.upload_id, confirmar_advertencias: true }),
     })
     const { run_id } = await create.json()
 
@@ -388,5 +388,40 @@ describe("macrocac API (mock-server, JAA-1048 contract)", () => {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
     expect(diff.headers.get("content-disposition")).toContain("reporte_bo_diff.xlsx")
+  })
+
+  // -------------------------------------------------------------------------
+  // QA 2026-09-28: simular y confirmar advertencias (mismo contrato que pythoncac 0.2.0)
+  // -------------------------------------------------------------------------
+  async function runHastaTerminar(body) {
+    process.env.MOCK_STEP_INTERVAL_MS = "20"
+    const upload = await uploadValid()
+    const res = await fetch(`${baseUrl}/macrocac/runs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ upload_id: upload.upload_id, ...body }),
+    })
+    const { run_id } = await res.json()
+    for (let i = 0; i < 100; i++) {
+      const r = await (await fetch(`${baseUrl}/macrocac/runs/${run_id}`)).json()
+      if (r.status !== "running") return r
+      await new Promise((ok) => setTimeout(ok, 10))
+    }
+    throw new Error("el run no terminó")
+  }
+
+  it("sin confirmar, un lote con advertencias queda en requiere_confirmacion", async () => {
+    const run = await runHastaTerminar({})
+    expect(run.status).toBe("requiere_confirmacion")
+    expect(run.resultado_lote.some((r) => r.advertencias)).toBe(true)
+    expect(run.resultado_lote.find((r) => !r.ok).observacion).toMatch(/CAMBIO RECHAZADO/)
+    expect(run.resultado_lote.every((r) => !r.ok || r.mensaje.startsWith("SE "))).toBe(true)
+  })
+
+  it("simular termina en succeeded marcado como simulación, sin escribir", async () => {
+    const run = await runHastaTerminar({ simular: true })
+    expect(run.status).toBe("succeeded")
+    expect(run.simular).toBe(true)
+    expect(run.resultado_lote.some((r) => r.mensaje === "ACTUALIZADO")).toBe(false)
   })
 })

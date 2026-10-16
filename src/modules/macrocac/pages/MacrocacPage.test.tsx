@@ -91,6 +91,7 @@ const RUN_RUNNING = {
   run_id: "run_macrocac_abc123",
   status: "running",
   dry_run: true,
+  simular: false,
   pais: "BO",
   tabla: "_test_J_AtosCompra_New_v1",
   upload_id: "upl_macrocac_1",
@@ -561,7 +562,9 @@ describe("MacrocacPage", () => {
     await user.click(screen.getByTestId("macrocac-aplicar"))
     await user.click(await screen.findByTestId("macrocac-confirm-aceptar"))
 
-    await waitFor(() => expect(mockCreateRun.mock.calls[0]?.[0]).toBe("upl_macrocac_1"))
+    await waitFor(() =>
+      expect(mockCreateRun.mock.calls[0]?.[0]).toEqual({ uploadId: "upl_macrocac_1" }),
+    )
     const status = await screen.findByTestId("macrocac-run-status")
     expect(status).toHaveTextContent("run_macrocac_abc123")
     expect(status).toHaveTextContent("aplicando cambios")
@@ -773,5 +776,107 @@ describe("MacrocacPage — observaciones QA 2026-09", () => {
       "Sin credenciales SQL.",
     )
     expect(screen.getByTestId("macrocac-aplicar")).toBeEnabled()
+  })
+
+  // ------------------------------------------------- QA 2026-09-28: validar y confirmar
+  const FILAS_CON_ADVERTENCIA = [
+    {
+      IdAto: 900001, ok: true, mensaje: "SE ACTUALIZARÍA", accion: "M",
+      observacion: "Se actualizó Preco", advertencias: "Ajuste histórico: período 202607 cerrado",
+    },
+    {
+      IdAto: 900002, ok: false, mensaje: "Validación de negocio no superada", accion: "M",
+      observacion: "CAMBIO RECHAZADO. Canal: IdCanal=8 está inactivo", advertencias: null,
+    },
+  ]
+
+  it("validar sin aplicar lanza un run simulado y dice que no escribió nada", async () => {
+    mockUpload.mockResolvedValue(UPLOAD_RESP)
+    mockCreateRun.mockResolvedValue({ ...RUN_RUNNING, simular: true })
+    mockGetRun.mockResolvedValue({
+      ...RUN_SUCCEEDED, simular: true, resultado_lote: FILAS_CON_ADVERTENCIA,
+    })
+    const user = userEvent.setup()
+    await renderPage()
+
+    await subirArchivo(user)
+    await screen.findByTestId("macrocac-upload-chip")
+    await user.click(screen.getByTestId("macrocac-validar"))
+
+    await waitFor(() =>
+      expect(mockCreateRun.mock.calls[0]?.[0]).toEqual({ uploadId: "upl_macrocac_1", simular: true }),
+    )
+    const resumen = await screen.findByTestId("macrocac-run-resumen")
+    expect(resumen).toHaveTextContent("1 se aplicarían, 1 rechazadas, 1 con advertencia")
+    expect(resumen).toHaveTextContent("No se escribió nada")
+    // Validar no abre la confirmación de aplicar.
+    expect(screen.queryByTestId("macrocac-confirm-dialog")).not.toBeInTheDocument()
+  })
+
+  it("el detalle muestra el motivo del rechazo y la advertencia", async () => {
+    mockUpload.mockResolvedValue(UPLOAD_RESP)
+    mockCreateRun.mockResolvedValue({ ...RUN_RUNNING, simular: true })
+    mockGetRun.mockResolvedValue({
+      ...RUN_SUCCEEDED, simular: true, resultado_lote: FILAS_CON_ADVERTENCIA,
+    })
+    const user = userEvent.setup()
+    await renderPage()
+
+    await subirArchivo(user)
+    await screen.findByTestId("macrocac-upload-chip")
+    await user.click(screen.getByTestId("macrocac-validar"))
+    await user.click(await screen.findByTestId("macrocac-detalle-toggle"))
+
+    const detalle = screen.getByTestId("macrocac-detalle")
+    expect(detalle).toHaveTextContent("CAMBIO RECHAZADO. Canal: IdCanal=8 está inactivo")
+    expect(detalle).toHaveTextContent("Ajuste histórico: período 202607 cerrado")
+  })
+
+  it("con advertencias sin confirmar no aplica y deja confirmar", async () => {
+    mockUpload.mockResolvedValue(UPLOAD_RESP)
+    mockCreateRun.mockResolvedValue(RUN_RUNNING)
+    mockGetRun.mockResolvedValue({
+      ...RUN_SUCCEEDED, status: "requiere_confirmacion", resultado_lote: FILAS_CON_ADVERTENCIA,
+    })
+    const user = userEvent.setup()
+    await renderPage()
+
+    await subirArchivo(user)
+    await screen.findByTestId("macrocac-upload-chip")
+    await user.click(screen.getByTestId("macrocac-aplicar"))
+    await user.click(await screen.findByTestId("macrocac-confirm-aceptar"))
+
+    const aviso = await screen.findByTestId("macrocac-requiere-confirmacion")
+    expect(aviso).toHaveTextContent("1 acto tiene advertencias")
+    expect(aviso).toHaveTextContent("No se aplicó ningún cambio")
+
+    mockGetRun.mockResolvedValue(RUN_SUCCEEDED)
+    await user.click(screen.getByTestId("macrocac-confirmar-advertencias"))
+    await waitFor(() =>
+      expect(mockCreateRun.mock.calls[1]?.[0]).toEqual({
+        uploadId: "upl_macrocac_1", confirmarAdvertencias: true,
+      }),
+    )
+  })
+
+  it("cancelar las advertencias descarta el run sin aplicar", async () => {
+    mockUpload.mockResolvedValue(UPLOAD_RESP)
+    mockCreateRun.mockResolvedValue(RUN_RUNNING)
+    mockGetRun.mockResolvedValue({
+      ...RUN_SUCCEEDED, status: "requiere_confirmacion", resultado_lote: FILAS_CON_ADVERTENCIA,
+    })
+    const user = userEvent.setup()
+    await renderPage()
+
+    await subirArchivo(user)
+    await screen.findByTestId("macrocac-upload-chip")
+    await user.click(screen.getByTestId("macrocac-aplicar"))
+    await user.click(await screen.findByTestId("macrocac-confirm-aceptar"))
+    await user.click(await screen.findByTestId("macrocac-cancelar-advertencias"))
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("macrocac-run-status")).not.toBeInTheDocument(),
+    )
+    expect(mockCreateRun).toHaveBeenCalledTimes(1)
   })
 })

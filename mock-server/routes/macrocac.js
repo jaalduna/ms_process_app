@@ -198,20 +198,29 @@ router.get("/macrocac/plantilla", (_req, res) => {
 // Uploads
 // ---------------------------------------------------------------------------
 
-function synthesizeResultadoLote() {
+function synthesizeResultadoLote({ escribe }) {
   // 14 rows, coherent with correcciones_bo.xlsx: a mix of M(odify)/E(rase)
-  // actions, one deliberate failure so the UI has a realistic error to show.
+  // actions, one deliberate failure so the UI has a realistic error to show,
+  // and one historical adjustment (IdAto 900004) that needs confirmation
+  // (QA 2026-09-28) — same shape as pythoncac 0.2.0.
   const rows = []
   for (let i = 1; i <= 14; i++) {
     const accion = ["M", "E", "X"][i % 3]
     const ok = i !== 9
+    const hecho = { M: "ACTUALIZADO", E: "ELIMINADO", X: "EXCLUIDO" }[accion]
+    const pendiente = { M: "SE ACTUALIZARÍA", E: "SE ELIMINARÍA", X: "SE EXCLUIRÍA" }[accion]
     rows.push({
       IdAto: 900000 + i,
       ok,
-      mensaje: ok
-        ? { M: "Actualizado correctamente.", E: "Eliminado correctamente.", X: "Excluido correctamente." }[accion]
-        : "No se encontró IdAto en la tabla destino.",
+      mensaje: ok ? (escribe ? hecho : pendiente) : "Validación de negocio no superada",
       accion,
+      observacion: ok
+        ? null
+        : "CAMBIO RECHAZADO. Canal: IdCanal=8 (Todo Fácil Supermercado) está inactivo en dbo.A_Canal (FlgAtivo=0).",
+      advertencias:
+        i === 4
+          ? "Ajuste histórico: el período del acto (202607) ya está cerrado para su producto (último cierre 202609)."
+          : null,
     })
   }
   return rows
@@ -346,16 +355,19 @@ function motivoCambioLabel(flgMotivo) {
 // ---------------------------------------------------------------------------
 
 function serializeRun(run) {
-  const { _resultadoLote, ...rest } = run
-  return { ...rest, resultado_lote: run.status === "succeeded" ? _resultadoLote : null }
+  const { _resultadoLote, _confirmar, ...rest } = run
+  return { ...rest, resultado_lote: run.status === "running" || run.status === "failed" ? null : _resultadoLote }
 }
 
 function advanceRun(runId) {
   const run = runs.get(runId)
-  if (!run || run.status === "succeeded") return
-  run.status = "succeeded"
+  if (!run || run.status !== "running") return
+  // Sin confirmar, un lote con advertencias no escribe (como el motor real):
+  // el lote sintético siempre trae una, así que "Aplicar" pide confirmación.
+  const escribe = !run.simular && run._confirmar
+  run.status = !run.simular && !run._confirmar ? "requiere_confirmacion" : "succeeded"
   run.completed_at = isoNow()
-  run._resultadoLote = synthesizeResultadoLote()
+  run._resultadoLote = synthesizeResultadoLote({ escribe })
   activeRunByKey.delete(activeKey(run.pais, run.tabla))
 }
 
@@ -368,7 +380,13 @@ function startProgression(runId) {
 }
 
 router.post("/macrocac/runs", (req, res) => {
-  const { upload_id: uploadId, per_ini: perIni, per_fin: perFin } = req.body || {}
+  const {
+    upload_id: uploadId,
+    per_ini: perIni,
+    per_fin: perFin,
+    simular = false,
+    confirmar_advertencias: confirmar = false,
+  } = req.body || {}
   const upload = uploadId ? uploads.get(uploadId) : null
   if (!upload) {
     return res.status(404).json({ error: "not_found", message: `Upload '${uploadId}' no encontrado.` })
@@ -392,6 +410,7 @@ router.post("/macrocac/runs", (req, res) => {
     // El motor real aplica y confirma; el mock imita ese contrato, no un
     // dry-run que no existe.
     dry_run: false,
+    simular: Boolean(simular),
     pais: upload.pais,
     tabla: upload.tabla,
     upload_id: upload.upload_id,
@@ -400,6 +419,7 @@ router.post("/macrocac/runs", (req, res) => {
     created_at: now,
     completed_at: null,
     _resultadoLote: null,
+    _confirmar: Boolean(confirmar),
   }
   runs.set(runId, run)
   activeRunByKey.set(key, runId)
@@ -442,7 +462,7 @@ function serveReporte(suffix) {
         .status(404)
         .json({ error: "not_found", message: `Run '${req.params.runId}' no encontrado.` })
     }
-    if (run.status !== "succeeded") {
+    if (run.status !== "succeeded" && run.status !== "requiere_confirmacion") {
       return res.status(409).json({
         error: "run_not_finished",
         message: `El run '${run.run_id}' todavía no termina (status: ${run.status}).`,

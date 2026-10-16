@@ -341,17 +341,25 @@ export interface MacrocacVistaPreviaError {
   message: string
 }
 
-/** Estados terminales del run: dejan de pollear y habilitan (o no) la descarga. */
-export const MACROCAC_TERMINAL_STATUSES = ["succeeded", "failed"] as const
+/**
+ * Estados terminales del run: dejan de pollear y habilitan (o no) la descarga.
+ *
+ * `requiere_confirmacion` (QA 2026-09-28): el lote traía advertencias —ajuste
+ * histórico, cambio de período— y el motor no escribió nada; la UI las muestra
+ * y el usuario decide si reenvía con `confirmar_advertencias`.
+ */
+export const MACROCAC_TERMINAL_STATUSES = ["succeeded", "failed", "requiere_confirmacion"] as const
 
 export function isTerminal(status: string | undefined): boolean {
-  return status === "succeeded" || status === "failed"
+  return (MACROCAC_TERMINAL_STATUSES as readonly string[]).includes(status ?? "")
 }
 
 export interface MacrocacRun {
   run_id: string
   status: string
   dry_run: boolean
+  /** Corrida de validación: no escribió nada. */
+  simular: boolean
   pais: string
   tabla: string
   upload_id: string
@@ -365,12 +373,16 @@ export interface MacrocacRun {
   error_message?: string | null
 }
 
-/** Una fila del `resultado_lote`. Solo estos cuatro campos están garantizados. */
+/** Una fila del `resultado_lote`. */
 export interface MacrocacResultRow {
   IdAto: number
   ok: boolean
   mensaje: string
   accion: string
+  /** Motivo del rechazo, o el detalle de lo que se recalculó. */
+  observacion?: string | null
+  /** Avisos que hay que confirmar (ajuste histórico, cambio de período). */
+  advertencias?: string | null
 }
 
 export interface MacrocacMissingColumnsError {
