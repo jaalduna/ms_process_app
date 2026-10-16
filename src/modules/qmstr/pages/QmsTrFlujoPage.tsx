@@ -17,6 +17,7 @@ import {
   useFlujoTandas, useForzarVuelta, useRevertirTanda,
 } from "../hooks/useQmsTrFlujo"
 import { BandejaAvisos } from "../components/flujo/BandejaAvisos"
+import { DetalleBase } from "../components/flujo/DetalleBase"
 import { OverrideDialog } from "../components/flujo/OverrideDialog"
 import { RevertirDialog } from "../components/flujo/RevertirDialog"
 import { TablaBases } from "../components/flujo/TablaBases"
@@ -66,6 +67,8 @@ export function QmsTrFlujoPage() {
   const [filtro, setFiltro] = useState<EstadoBase | null>(null)
   const [override, setOverride] = useState(false)
   const [aRevertir, setARevertir] = useState<Tanda | null>(null)
+  /** Producto con el detalle abierto (se lee de `bases` para que se actualice con el polling). */
+  const [detalle, setDetalle] = useState<number | null>(null)
 
   const estado = useFlujoEstado()
   const puedeOperar = estado.data?.puede_operar ?? false
@@ -90,6 +93,14 @@ export function QmsTrFlujoPage() {
     return [...(tandas.data ?? [])].sort((a, b) => Number(vivas(b)) - Number(vivas(a)) || b.numero - a.numero)
   }, [tandas.data])
   const porId = useMemo(() => new Map((tandas.data ?? []).map((t) => [t.id, t])), [tandas.data])
+  const baseDetalle = bases.data?.find((b) => b.producto === detalle) ?? null
+
+  function verTanda(numero: number) {
+    setDetalle(null)
+    setTab("tandas")
+    // la pestaña monta las tarjetas en el próximo render
+    requestAnimationFrame(() => document.querySelector(`[data-testid="qf-tanda-${numero}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }))
+  }
 
   function elegir(nuevo: { pais?: string; periodo?: string }) {
     const p = new URLSearchParams(params)
@@ -100,12 +111,14 @@ export function QmsTrFlujoPage() {
     if (nuevo.periodo) p.set("periodo", nuevo.periodo)
     setParams(p, { replace: true })
     setFiltro(null)
+    setDetalle(null)
   }
 
   function lanzar(data: TandaCreate) {
     crear.mutate(data, {
       onSuccess: (t) => {
         setOverride(false)
+        setDetalle(null)
         setFiltro(null)
         setParams({ pais: t.pais, periodo: t.periodo }, { replace: true })
         setTab("tandas")
@@ -158,7 +171,7 @@ export function QmsTrFlujoPage() {
             )}
           </div>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Cada liberación metodológica pasa sola por QMS-TR: corrida, envío a DQ, verificación en J y hito 10.
+            Cada liberación metodológica pasa sola por QMS-TR: corrida, validaciones internas, ticket a DQ y hito 10.
           </p>
           <div className="mt-1.5">{estado.data && <EstadoLoop estado={estado.data} />}</div>
         </div>
@@ -236,7 +249,7 @@ export function QmsTrFlujoPage() {
             </Vacio>
           ) : bases.data && bases.data.length > 0 ? (
             <TableroBases pais={etiqueta?.etiqueta ?? pais} periodo={periodo} bases={bases.data} filtro={filtro}
-              onFiltro={(f) => { setFiltro(f); if (f) setTab("bases") }} />
+              onFiltro={(f) => { setFiltro(f); if (f) setTab("bases") }} onSeleccionar={(b) => setDetalle(b.producto)} />
           ) : (
             <Vacio icon={<Layers />} titulo={`Sin hitos en ${periodoLabel(periodo)}`}>
               Todavía no hay hitos 3 ni 4 para este período. Apenas DC libere, las bases aparecen acá.
@@ -309,6 +322,11 @@ export function QmsTrFlujoPage() {
       {paises.data && pais && (
         <OverrideDialog open={override} onOpenChange={setOverride} paises={paises.data} paisInicial={pais}
           periodoInicial={periodo ?? ""} lanzando={crear.isPending} onLanzar={lanzar} />
+      )}
+      {pais && periodo && (
+        <DetalleBase base={baseDetalle} pais={pais} paisEtiqueta={etiqueta?.etiqueta ?? pais} periodo={periodo}
+          puedeOperar={puedeOperar} lanzando={crear.isPending} onOpenChange={(o) => { if (!o) setDetalle(null) }}
+          onLanzar={lanzar} onVerTanda={verTanda} />
       )}
       <RevertirDialog
         tanda={aRevertir}

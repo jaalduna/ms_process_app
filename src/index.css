@@ -264,7 +264,13 @@
   from { background-position: 0 0; }
   to { background-position: 28px 0; }
 }
+/* Latido de las celdas del tablero con la base en QMS-TR: sube y baja la intensidad, sin cambiar de tamaño. */
+@keyframes qf-latido {
+  0%, 100% { opacity: 0.5; box-shadow: 0 0 0 0 transparent; filter: saturate(0.8); }
+  50% { opacity: 1; box-shadow: 0 0 9px 1px color-mix(in oklch, var(--tone) 80%, transparent); filter: saturate(1.25) brightness(1.15); }
+}
 .qf-pulse { animation: qf-pulse 1.8s ease-in-out infinite; }
+.qf-latido { animation: qf-latido 1.6s ease-in-out infinite; }
 .qf-ring { animation: qf-ring 1.6s ease-out infinite; }
 .qf-bar-live {
   background-image: repeating-linear-gradient(115deg, transparent 0 10px, rgb(255 255 255 / 0.18) 10px 14px);
@@ -272,5 +278,5 @@
   animation: qf-shimmer 1.1s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .qf-pulse, .qf-ring, .qf-bar-live { animation: none; }
+  .qf-pulse, .qf-ring, .qf-bar-live, .qf-latido { animation: none; }
 }

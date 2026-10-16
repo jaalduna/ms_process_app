@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { formatChile } from "../../time"
-import { ESTADO_BASE_LABEL, ESTADO_TANDA_LABEL, type EstadoBase, type FlujoBase } from "../../types"
+import { ESTADOS_BASE, ESTADO_TANDA_LABEL, type EstadoBase, type FlujoBase } from "../../types"
 import { Chip, ChipBase, Vacio } from "./piezas"
 
 function Hora({ iso, anulado }: { iso: string | null; anulado?: boolean }) {
@@ -42,7 +42,7 @@ export function TablaBases({ bases, filtro, onFiltro }: TablaBasesProps) {
         {filtro && (
           <button type="button" onClick={() => onFiltro(null)}
             className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs hover:bg-muted">
-            Solo {ESTADO_BASE_LABEL[filtro].toLowerCase()} <X className="size-3" />
+            Solo: {ESTADOS_BASE.find((e) => e.estado === filtro)?.label} <X className="size-3" />
           </button>
         )}
         <span className="ml-auto text-xs text-muted-foreground tabular-nums">{filas.length} de {bases.length}</span>
@@ -86,7 +86,7 @@ export function TablaBases({ bases, filtro, onFiltro }: TablaBasesProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <ChipBase estado={b.estado} />
+                          <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} />
                           {b.revisar && (
                             <Chip tone="var(--qf-retenida)" title={b.revisar} data-testid="qf-revisar">
                               <TriangleAlert className="size-3" /> Revisar

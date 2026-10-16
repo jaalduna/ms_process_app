@@ -40,6 +40,20 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     }
     throw new Error("timeout")
   }
+  /** Lleva una tanda recién lanzada hasta DQ: si queda en revisión antes del ticket, envía igual las observadas. */
+  const hastaDq = async (tid) => {
+    const t = await esperar(async () => {
+      const { body } = await get(`/tandas/${tid}`)
+      return ["en_revision", "en_dq"].includes(body.estado) ? body : null
+    }, 5000)
+    for (const r of t.estado === "en_revision" ? t.revisar : []) {
+      await post(`/tandas/${tid}/revision`, { producto: r.producto, decision: "enviar" })
+    }
+    return esperar(async () => {
+      const { body } = await get(`/tandas/${tid}`)
+      return body.estado === "en_dq" ? body : null
+    }, 5000)
+  }
 
   it("estado, países y períodos con los conteos de hitos", async () => {
     const { body: estado } = await get("/estado")
@@ -111,10 +125,7 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect(status).toBe(201)
     expect(t).toMatchObject({ tipo: "manual", modo: "completo", estado: "detectada", numero: 5, creada_por: "dev@localhost" })
     expect(t.eventos[0].detalle).toMatch(/forzada sin hito 4/)
-    const enDq = await esperar(async () => {
-      const { body } = await get(`/tandas/${t.id}`)
-      return body.estado === "en_dq" ? body : null
-    }, 5000)
+    const enDq = await hastaDq(t.id)
     expect(enDq.jira_key).toMatch(/^SIM-/)
     // como la API: el ticket queda resuelto y la tanda sigue en DQ hasta la vuelta siguiente
     const { body: resuelta } = await post(`/tandas/${t.id}/simular_cierre_ticket`)
@@ -171,7 +182,7 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
   it("pausar congela la tanda y reanudar la suelta; reintentar saca de revisión manual", async () => {
     const { body: [bo] } = await get("/tandas?pais=BO&periodo=202609&estado=revision_manual")
     const { body: re } = await post(`/tandas/${bo.id}/reintentar`)
-    expect(re.estado).toBe("verificando")
+    expect(re.estado).toBe("enviando")
     // una corrida corta (paso de 5 ms => 900 ms): pausada, el progreso y el estado no se mueven
     const { body: bases } = await get("/bases?pais=EC&periodo=202609")
     const pend = bases.filter((b) => b.estado === "pendiente").map((b) => b.producto)
@@ -184,7 +195,26 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     expect((await get(`/tandas/${t.id}`)).body.estado).toBe("corriendo")
     expect((await get(`/tandas/${t.id}/progreso`)).body.porcentaje).toBe(antes)
     expect((await post(`/tandas/${t.id}/reanudar`)).body.pausada).toBe(false)
-    await esperar(async () => (await get(`/tandas/${t.id}`)).body.estado === "en_dq", 5000)
+    await hastaDq(t.id)
+  })
+
+  it("revisión antes del ticket: excluir pide motivo y deja la base sin ajustes; sin decidir todas no hay ticket", async () => {
+    const { body: [bo] } = await get("/tandas?pais=BO&periodo=202609&estado=en_revision")
+    const [a, b] = bo.revisar.map((r) => r.producto)
+    expect((await post(`/tandas/${bo.id}/revision`, { producto: a, decision: "excluir", motivo: " " })).status).toBe(422)
+    expect((await post(`/tandas/${bo.id}/revision`, { producto: 1, decision: "enviar" })).status).toBe(422)
+    const { body: una } = await post(`/tandas/${bo.id}/revision`, { producto: a, decision: "excluir", motivo: "equivalencia ×1000" })
+    expect(una.revision[String(a)]).toMatchObject({ decision: "excluir", motivo: "equivalencia ×1000" })
+    await new Promise((r) => setTimeout(r, 100))
+    expect((await get(`/tandas/${bo.id}`)).body).toMatchObject({ estado: "en_revision", jira_key: null })
+    await post(`/tandas/${bo.id}/revision`, { producto: b, decision: "enviar" })
+    const enDq = await esperar(async () => {
+      const { body } = await get(`/tandas/${bo.id}`)
+      return body.estado === "en_dq" ? body : null
+    })
+    expect(enDq.bypass).toContain(a)
+    expect(enDq.bypass_motivos[String(a)]).toMatch(/excluida en la revisión antes del ticket: equivalencia ×1000/)
+    expect((await post(`/tandas/${bo.id}/revision`, { producto: b, decision: "excluir", motivo: "x" })).status).toBe(409)
   })
 
   it("zip: URL firmada solo cuando la tanda ya pasó la corrida", async () => {
@@ -214,7 +244,7 @@ describe("flujo QMS-TR (mock-server, JAA-1435)", () => {
     const { body: bases } = await get("/bases?pais=EC&periodo=202609")
     const pend = bases.filter((b) => b.estado === "pendiente").map((b) => b.producto)
     const { body: t } = await post("/tandas", { pais: "EC", periodo: "202609", productos: pend })
-    await esperar(async () => (await get(`/tandas/${t.id}`)).body.estado === "en_dq", 5000)
+    await hastaDq(t.id)
     await post(`/tandas/${t.id}/simular_cierre_ticket`)
     const cerrada = await esperar(async () => {
       const { body } = await get(`/tandas/${t.id}`)

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { ESTADO_BASE_LABEL, ESTADO_TANDA_LABEL, TIPO_TANDA_LABEL, type EstadoBase, type EstadoTanda, type TipoTanda } from "../../types"
+import { ESTADO_BASE_AYUDA, ESTADO_BASE_LABEL, ESTADO_TANDA_LABEL, ETAPA_BASE_LABEL, TIPO_TANDA_LABEL, type EstadoBase, type EstadoTanda, type TipoTanda } from "../../types"
 import { TONO_BASE, TONO_TANDA, TONO_TIPO, tono } from "./formato"
 
 /** Chip tonal (fondo suave + texto contrastado). El tono es una variable CSS de la vista. */
@@ -22,10 +22,13 @@ export function Chip({ tone, children, className, dot, ...rest }: {
   )
 }
 
-export function ChipBase({ estado }: { estado: EstadoBase }) {
+/** Estado de la base; en QMS-TR dice en qué paso va su tanda. El tooltip explica qué significa. */
+export function ChipBase({ estado, tandaEstado }: { estado: EstadoBase; tandaEstado?: EstadoTanda | null }) {
+  const etapa = estado === "en_proceso" && tandaEstado ? ETAPA_BASE_LABEL[tandaEstado] : undefined
   return (
-    <Chip tone={TONO_BASE[estado]} dot={estado === "en_proceso" ? "pulse" : "solid"} data-estado={estado}>
-      {ESTADO_BASE_LABEL[estado]}
+    <Chip tone={TONO_BASE[estado]} dot={estado === "en_proceso" ? "pulse" : "solid"} data-estado={estado}
+      title={ESTADO_BASE_AYUDA[estado]}>
+      {etapa ?? ESTADO_BASE_LABEL[estado]}
     </Chip>
   )
 }

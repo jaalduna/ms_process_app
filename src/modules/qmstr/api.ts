@@ -11,6 +11,7 @@ import type {
   Tanda,
   TandaCreate,
   TandaProgreso,
+  TandaDecisionCreate,
   TandaRevertir,
 } from "./types"
 
@@ -72,6 +73,9 @@ export const getFlujoAvisos = (pais: string, periodo: string) =>
 export const crearTanda = (data: TandaCreate) => api.post<Tanda>(`${FLUJO}/tandas`, data).then((r) => r.data)
 export const revertirTanda = (tid: string, data: TandaRevertir) =>
   api.post<Tanda>(`${FLUJO}/tandas/${tid}/revertir`, data).then((r) => r.data)
+
+export const decidirRevision = (tid: string, data: TandaDecisionCreate) =>
+  api.post<Tanda>(`${FLUJO}/tandas/${tid}/revision`, data).then((r) => r.data)
 
 export type AccionTanda = "pausar" | "reanudar" | "reintentar" | "simular_cierre_ticket"
 export const accionTanda = (tid: string, accion: AccionTanda) =>

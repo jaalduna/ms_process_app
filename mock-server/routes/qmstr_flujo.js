@@ -7,7 +7,7 @@ import crypto from "crypto"
  *
  * - GET  /estado, /paises, /periodos?pais, /bases?pais&periodo
  * - GET  /tandas?pais&periodo&tipo&estado, /tandas/:tid, /tandas/:tid/progreso, /tandas/:tid/zip
- * - POST /tandas (override manual), /tandas/:tid/revertir, /tandas/:tid/{pausar,reanudar,reintentar}
+ * - POST /tandas (override manual), /tandas/:tid/revertir, /tandas/:tid/revision, /tandas/:tid/{pausar,reanudar,reintentar}
  * - POST /tandas/:tid/simular_cierre_ticket, /vuelta
  * - GET  /avisos?pais&periodo
  *
@@ -25,9 +25,11 @@ const MODO = () => (process.env.MOCK_QMSTR_MODO === "real" ? "real" : "simulacio
 const INTERVALO_S = 300
 const USUARIO = "dev@localhost"
 
-export const ESTADOS = ["detectada", "corriendo", "armando_reversion", "enviando", "en_dq", "verificando", "hito10",
-  "cerrada", "revision_manual", "sin_bases"]
-const ACTIVOS = new Set(["detectada", "corriendo", "armando_reversion", "enviando", "en_dq", "verificando", "hito10"])
+export const ESTADOS = ["detectada", "corriendo", "armando_reversion", "validando", "en_revision", "enviando", "en_dq",
+  "hito10", "cerrada", "revision_manual", "sin_bases"]
+const ACTIVOS = new Set(["detectada", "corriendo", "armando_reversion", "validando", "en_revision", "enviando", "en_dq", "hito10"])
+/** Lo que el guard de la corrida pide revisar (como `productos_a_revisar` de QMS-TR, caso México 201). */
+const MOTIVO_REVISAR = "volumen país al tope del motor y fuera de su caja histórica: revisar el dato (equivalencia, unidades) antes de entregar"
 
 const PAISES = [
   { codigo: "EC", nombre: "ecuador", etiqueta: "Ecuador", cod_asunto: "ECU" },
@@ -97,7 +99,8 @@ function nuevaTanda(campos) {
     h4_desde: campos.h4_desde, h4_hasta: campos.h4_hasta, estado: campos.estado ?? "detectada",
     estado_previo: campos.estado_previo ?? null, pausada: false, qms_run_id: campos.qms_run_id ?? null,
     jira_key: campos.jira_key ?? null, envio: campos.envio ?? {}, bypass: campos.bypass ?? [],
-    validacion: campos.validacion ?? {}, error: campos.error ?? null, eventos: campos.eventos ?? [],
+    bypass_motivos: campos.bypass_motivos ?? {}, revisar: campos.revisar ?? [],
+    revision: campos.revision ?? {}, error: campos.error ?? null, eventos: campos.eventos ?? [],
     created_at: campos.created_at ?? ahora, updated_at: campos.updated_at ?? ahora,
     tipo: campos.tipo ?? "liberacion", modo: campos.modo ?? "completo", creada_por: campos.creada_por ?? "qmstr_flujo",
     tanda_origen: campos.tanda_origen ?? null, snapshot_desde: campos.snapshot_desde ?? null, nota: campos.nota ?? null,
@@ -147,7 +150,7 @@ function aviso(t, tipo, at = isoNow()) {
   const resto = hechas.length > 6 ? ` y ${hechas.length - 6} más` : ""
   const texto = {
     observadores: `Observadores agregados al ticket ${t.jira_key}.`,
-    pase_mtr: `@${MTR.nombre} QMS-TR quedó aplicado y validado en las bases ${lista}${resto} de ${p.etiqueta}. Pueden seguir con MTR.`,
+    pase_mtr: `@${MTR.nombre} QMS-TR quedó aplicado en las bases ${lista}${resto} de ${p.etiqueta} (ticket ${t.jira_key} cerrado).`,
     reversion_aplicada: `@${MTR.nombre} La reversión de QMS-TR quedó aplicada en las bases ${lista}${resto} de ${p.etiqueta}.`,
   }[tipo]
   const a = {
@@ -188,8 +191,8 @@ function avanzar(t) {
         t._sigEn = null
         return
       }
-      mover(t, "enviando", `corrida terminada (${t.productos.length} productos)`, iso(fin))
-      t._sigEn = fin + 3 * STEP()
+      mover(t, "validando", `corrida completada (${t.productos.length} productos)`, iso(fin))
+      t._sigEn = fin + 2 * STEP()
       continue
     }
     if (ahora < t._sigEn) return
@@ -206,6 +209,32 @@ function avanzar(t) {
           t._sigEn = null
         }
         break
+      case "validando": {
+        // como el AutoFake de la API: con dos bases o más, la última sale observada
+        const obs = t.productos.length >= 2
+          ? [{ producto: t.productos.at(-1), d_vol_pct: -19.9, veces_fuera_de_caja: 2.6, motivo: MOTIVO_REVISAR }]
+          : []
+        t.revisar = obs
+        if (obs.length) {
+          mover(t, "en_revision", `${obs.length} bases a revisar antes del ticket: ${obs.map((r) => `${r.producto} (${r.motivo})`).join("; ")}`, at)
+          t._sigEn = null // espera las decisiones
+          return
+        }
+        mover(t, "enviando", "validaciones internas sin observaciones", at)
+        t._sigEn = t._sigEn + 2 * STEP()
+        break
+      }
+      case "en_revision": {
+        const excl = Object.entries(t.revision).filter(([, d]) => d.decision === "excluir")
+        for (const [p, d] of excl) {
+          t.bypass = [...new Set([...t.bypass, Number(p)])]
+          t.bypass_motivos = { ...t.bypass_motivos, [p]: `excluida en la revisión antes del ticket: ${d.motivo}` }
+        }
+        const van = Object.entries(t.revision).filter(([, d]) => d.decision === "enviar").map(([p]) => p)
+        mover(t, "enviando", `revisión terminada: ${[excl.length ? `excluidas ${excl.map(([p]) => p).join(", ")}` : "", van.length ? `van igual ${van.join(", ")}` : ""].filter(Boolean).join("; ")}`, at)
+        t._sigEn = t._sigEn + 2 * STEP()
+        break
+      }
       case "armando_reversion":
         mover(t, "enviando", `zip de reversión listo (${t.productos.length} bases)`, at)
         t._sigEn = t._sigEn + 3 * STEP()
@@ -219,23 +248,9 @@ function avanzar(t) {
         return
       case "en_dq":
         if (!t._ticketResuelto) return
-        mover(t, "verificando", `${t.jira_key} resuelto${MODO() === "simulacion" ? " (simulado)" : ""}`, at)
+        mover(t, "hito10", `${t.jira_key} resuelto${MODO() === "simulacion" ? " (simulado)" : ""}: se da por aplicado`, at)
         t._sigEn = t._sigEn + 2 * STEP()
         break
-      case "verificando": {
-        // como la API (validacion.Resultado.resumen): totales + detalle por hoja
-        const ok = MODO() === "simulacion" ? 0 : 3
-        const by_sheet = Object.fromEntries(["Imputaciones", "Cantidad envasados", "Factores", "Exclusiones"]
-          .map((h) => [h, { total: 3, checked: 3, applied: ok, pending: 3 - ok, mismatched: 0 }]))
-        t.validacion = MODO() === "simulacion"
-          ? { status: "no_aplicado", checked: 12, applied: 0, pending: 12, mismatched: 0, validated_at: at, validated_by: "qmstr_flujo", by_sheet }
-          : { status: "aplicado", checked: 12, applied: 12, pending: 0, mismatched: 0, validated_at: at, validated_by: "qmstr_flujo", by_sheet }
-        mover(t, "hito10", MODO() === "simulacion"
-          ? "verificación en J: no aplicado (esperable en simulación, DQ no aplicó nada); sigue a hito 10"
-          : "cambios aplicados en J (12/12)", at)
-        t._sigEn = t._sigEn + 2 * STEP()
-        break
-      }
       case "hito10": {
         t.envio = { ...t.envio, hito10: true }
         const n = t.productos.length - t.bypass.length
@@ -279,7 +294,7 @@ function sembrarPeriodoCerrado(pais, periodo, n) {
     pais, periodo, numero: 1, productos, h4_desde: h4s[0], h4_hasta: h4s.at(-1), estado: "cerrada",
     jira_key: `LAT-${3000 + Number(periodo.slice(4)) * 10 + (pais === "EC" ? 1 : 2)}`, qms_run_id: crypto.randomUUID(),
     envio: ENVIO_DQ, created_at: chile(y, m, 3, 10),
-    updated_at: chile(y, m, 6, 11), validacion: { status: "aplicado", checked: 12, applied: 12, pending: 0, mismatched: 0 },
+    updated_at: chile(y, m, 6, 11),
     eventos: [
       { at: chile(y, m, 3, 10), estado: "detectada", detalle: `liberación de ${n} bases` },
       { at: chile(y, m, 6, 11), estado: "cerrada", detalle: `hito 10 registrado en ${n} bases` },
@@ -331,17 +346,22 @@ function sembrarEcuador() {
 
   const [d1, h1] = rango("EC", g.t1)
   const t1 = nuevaTanda({
-    pais: "EC", periodo: PERIODO_ACTUAL, numero: 1, productos: g.t1, bypass: [g.t1[17]], h4_desde: d1, h4_hasta: h1,
+    pais: "EC", periodo: PERIODO_ACTUAL, numero: 1, productos: g.t1, bypass: [g.t1[17]],
+    bypass_motivos: { [String(g.t1[17])]: "equivalencia de volumen MWP atípica (factor PV→MWP ×10 o más en artículos a granel): no se corrige" },
+    revisar: [{ producto: g.t1[3], d_vol_pct: -20, veces_fuera_de_caja: 2.6,
+      motivo: "volumen país al tope del motor y fuera de su caja histórica: revisar el dato (equivalencia, unidades) antes de entregar" }],
+    h4_desde: d1, h4_hasta: h1,
     estado: "cerrada", jira_key: "SIM-1", qms_run_id: crypto.randomUUID(), created_at: chile(2026, 10, 1, 10, 5),
-    envio: ENVIO_DQ,
-    validacion: { status: "no_aplicado", checked: 12, applied: 0, pending: 12, mismatched: 0 },
+    envio: ENVIO_DQ, revision: { [String(g.t1[3])]: { decision: "enviar", motivo: "DC confirmó la caída de volumen", por: USUARIO, at: chile(2026, 10, 1, 10, 49) } },
     eventos: [
       { at: chile(2026, 10, 1, 10, 5), estado: "detectada", detalle: "liberación de 38 bases (hito 4 entre 09:00 y 09:56)" },
       { at: chile(2026, 10, 1, 10, 6), estado: "corriendo", detalle: "corrida qms_tr_run lanzada (38 productos)" },
-      { at: chile(2026, 10, 1, 10, 48), estado: "enviando", detalle: "corrida terminada; 1 base sin cambios del motor queda en bypass" },
+      { at: chile(2026, 10, 1, 10, 48), estado: "validando", detalle: "corrida completada; 1 base sin cambios del motor queda en bypass" },
+      { at: chile(2026, 10, 1, 10, 48), estado: "en_revision", detalle: `1 bases a revisar antes del ticket: ${g.t1[3]} (${MOTIVO_REVISAR})` },
+      { at: chile(2026, 10, 1, 10, 49), estado: "en_revision", detalle: `${USUARIO}: base ${g.t1[3]} → enviar (DC confirmó la caída de volumen)` },
+      { at: chile(2026, 10, 1, 10, 49), estado: "enviando", detalle: `revisión terminada: van igual ${g.t1[3]}` },
       { at: chile(2026, 10, 1, 10, 50), estado: "en_dq", detalle: "SIM-1 creado y asignado a DQ (simulado); MTR agregado como observador" },
-      { at: chile(2026, 10, 2, 16, 12), estado: "verificando", detalle: "SIM-1 marcado como resuelto por dev@localhost" },
-      { at: chile(2026, 10, 2, 16, 14), estado: "hito10", detalle: "verificación en J: no aplicado (esperable en simulación, DQ no aplicó nada); sigue a hito 10" },
+      { at: chile(2026, 10, 2, 16, 12), estado: "hito10", detalle: "SIM-1 resuelto (simulado): se da por aplicado" },
       { at: chile(2026, 10, 2, 16, 15), estado: "cerrada", detalle: "hito 10 simulado: se habría registrado en 37 bases" },
     ],
   })
@@ -357,7 +377,8 @@ function sembrarEcuador() {
     eventos: [
       { at: chile(2026, 10, 3, 11, 2), estado: "detectada", detalle: "liberación de 22 bases (hito 4 entre 10:00 y 10:57)" },
       { at: chile(2026, 10, 3, 11, 3), estado: "corriendo", detalle: "corrida qms_tr_run lanzada (22 productos)" },
-      { at: chile(2026, 10, 3, 11, 31), estado: "enviando", detalle: "corrida terminada (22 productos)" },
+      { at: chile(2026, 10, 3, 11, 31), estado: "validando", detalle: "corrida completada (22 productos)" },
+      { at: chile(2026, 10, 3, 11, 31), estado: "enviando", detalle: "validaciones internas sin observaciones" },
       { at: chile(2026, 10, 3, 11, 33), estado: "en_dq", detalle: "SIM-2 creado y asignado a DQ (simulado); MTR agregado como observador" },
     ],
   })
@@ -375,8 +396,7 @@ function sembrarEcuador() {
       { at: chile(2026, 10, 4, 9, 21), estado: "armando_reversion", detalle: "armando el zip inverso desde el snapshot pre de la corrida original" },
       { at: chile(2026, 10, 4, 9, 23), estado: "enviando", detalle: "zip de reversión listo (2 bases, 214 factores, 3 bajas de imputación)" },
       { at: chile(2026, 10, 4, 9, 24), estado: "en_dq", detalle: "SIM-3 creado y asignado a DQ (simulado); MTR agregado como observador" },
-      { at: chile(2026, 10, 5, 12, 2), estado: "verificando", detalle: "SIM-3 marcado como resuelto por joaquin.aldunate@numerator.com" },
-      { at: chile(2026, 10, 5, 12, 3), estado: "hito10", detalle: "J coincide con los valores pre en la muestra (12/12)" },
+      { at: chile(2026, 10, 5, 12, 2), estado: "hito10", detalle: "SIM-3 resuelto (simulado): se da por aplicado" },
       { at: chile(2026, 10, 5, 12, 4), estado: "cerrada", detalle: "hito 10 simulado: se habría anulado en 2 bases" },
     ],
   })
@@ -406,42 +426,36 @@ function sembrarBolivia() {
   ])
   const [d1, h1] = rango("BO", g.t1)
   const t1 = nuevaTanda({
-    pais: "BO", periodo: PERIODO_ACTUAL, numero: 1, productos: g.t1, h4_desde: d1, h4_hasta: h1, estado: "revision_manual",
-    estado_previo: "verificando", jira_key: "SIM-4", qms_run_id: crypto.randomUUID(), created_at: chile(2026, 10, 2, 12),
-    envio: ENVIO_DQ,
-    error: "verificación en J: parcial (8/12) — 3 factores pendientes y 1 distinto en Galletas dulces",
-    validacion: { status: "parcial", checked: 12, applied: 8, pending: 3, mismatched: 1 },
+    pais: "BO", periodo: PERIODO_ACTUAL, numero: 1, productos: g.t1, h4_desde: d1, h4_hasta: h1, estado: "en_revision",
+    qms_run_id: crypto.randomUUID(), created_at: chile(2026, 10, 2, 12),
+    revisar: [
+      { producto: g.t1[4], d_vol_pct: -20, veces_fuera_de_caja: 2.6, motivo: MOTIVO_REVISAR },
+      { producto: g.t1[9], motivo: "Excel, hoja Cantidad envasados: 4 filas con cantidad nueva no positiva" },
+    ],
     eventos: [
       { at: chile(2026, 10, 2, 12, 0), estado: "detectada", detalle: "liberación de 30 bases" },
       { at: chile(2026, 10, 2, 12, 1), estado: "corriendo", detalle: "corrida qms_tr_run lanzada (30 productos)" },
-      { at: chile(2026, 10, 2, 12, 39), estado: "enviando", detalle: "corrida terminada (30 productos)" },
-      { at: chile(2026, 10, 2, 12, 41), estado: "en_dq", detalle: "SIM-4 creado y asignado a DQ (simulado); MTR agregado como observador" },
-      { at: chile(2026, 10, 6, 10, 15), estado: "verificando", detalle: "SIM-4 marcado como resuelto por dev@localhost" },
-      { at: chile(2026, 10, 6, 10, 18), estado: "revision_manual", detalle: "verificación en J: parcial (8/12)" },
+      { at: chile(2026, 10, 2, 12, 39), estado: "validando", detalle: "corrida completada (30 productos)" },
+      { at: chile(2026, 10, 2, 12, 40), estado: "en_revision", detalle: `2 bases a revisar antes del ticket: ${g.t1[4]}, ${g.t1[9]}` },
     ],
   })
   st.tandas.set(t1.id, t1)
-  aviso(t1, "observadores", chile(2026, 10, 2, 12, 41))
 
   const [d2, h2] = rango("BO", g.t2)
   const t2 = nuevaTanda({
-    pais: "BO", periodo: PERIODO_ACTUAL, numero: 2, productos: g.t2, h4_desde: d2, h4_hasta: h2, estado: "hito10",
+    pais: "BO", periodo: PERIODO_ACTUAL, numero: 2, productos: g.t2, h4_desde: d2, h4_hasta: h2, estado: "revision_manual",
+    estado_previo: "enviando", error: "DQ canceló el ticket SIM-5",
     jira_key: "SIM-5", qms_run_id: crypto.randomUUID(), created_at: chile(2026, 10, 5, 17), pausada: false,
     envio: ENVIO_DQ,
-    validacion: { status: "no_aplicado", checked: 12, applied: 0, pending: 12, mismatched: 0 },
     eventos: [
       { at: chile(2026, 10, 5, 17, 0), estado: "detectada", detalle: "liberación de 15 bases" },
       { at: chile(2026, 10, 5, 17, 1), estado: "corriendo", detalle: "corrida qms_tr_run lanzada (15 productos)" },
-      { at: chile(2026, 10, 5, 17, 22), estado: "enviando", detalle: "corrida terminada (15 productos)" },
+      { at: chile(2026, 10, 5, 17, 22), estado: "validando", detalle: "corrida completada (15 productos)" },
+      { at: chile(2026, 10, 5, 17, 22), estado: "enviando", detalle: "validaciones internas sin observaciones" },
       { at: chile(2026, 10, 5, 17, 24), estado: "en_dq", detalle: "SIM-5 creado y asignado a DQ (simulado)" },
-      { at: chile(2026, 10, 7, 9, 30), estado: "verificando", detalle: "SIM-5 marcado como resuelto por dev@localhost" },
-      { at: chile(2026, 10, 7, 9, 31), estado: "hito10", detalle: "verificación en J: no aplicado (esperable en simulación)" },
+      { at: chile(2026, 10, 7, 9, 30), estado: "revision_manual", detalle: "DQ canceló el ticket SIM-5" },
     ],
   })
-  t2.pausada = true
-  t2._pausaEn = Date.now()
-  t2._sigEn = Date.now()
-  t2.eventos.push({ at: chile(2026, 10, 7, 9, 40), estado: "hito10", detalle: "pausada por dev@localhost: revisar con DC antes del hito 10" })
   st.tandas.set(t2.id, t2)
   aviso(t2, "observadores", chile(2026, 10, 5, 17, 24))
 }
@@ -502,6 +516,17 @@ function estadoBase(b, ts, hayH4Periodo) {
   return { estado: "aplicada", tanda: ultima }
 }
 
+/** Como la API (`tablero._motivo_y_revisar`): motivo del último bypass de la base y lo que su última tanda pidió revisar. */
+function motivoYRevisar(producto, ts) {
+  const conBypass = ts.filter((t) => t.bypass.includes(producto))
+  const ultima = ts.at(-1)
+  const r = (ultima?.revisar ?? []).find((x) => x.producto === producto)
+  return {
+    motivo_bypass: conBypass.length ? (conBypass.at(-1).bypass_motivos[String(producto)] ?? null) : null,
+    revisar: r ? r.motivo : null,
+  }
+}
+
 function basesDe(pais, periodo) {
   const ts = tandasDe(pais, periodo)
   const bs = st.bases[claveBases(pais, periodo)] ?? []
@@ -517,7 +542,7 @@ function basesDe(pais, periodo) {
     })
     return {
       ...b, estado, tanda_id: tanda?.id ?? null, tanda_numero: tanda?.numero ?? null, tanda_estado: tanda?.estado ?? null,
-      jira_key: tanda?.jira_key ?? null, historial,
+      jira_key: tanda?.jira_key ?? null, historial, ...motivoYRevisar(b.producto, ts),
     }
   })
 }
@@ -693,7 +718,7 @@ router.post("/qmstr_flujo/tandas/:tid/revertir", (req, res) => {
   if (origen.ejecucion !== MODO()) {
     return error(res, 409, "conflict", `la tanda se corrió en modo ${origen.ejecucion} y el flujo está en modo ${MODO()}`)
   }
-  // La API acepta verificando/hito10 en REVERSIBLES, pero sus propias bases siguen en una tanda en curso
+  // La API acepta hito10 en REVERSIBLES, pero sus propias bases siguen en una tanda en curso
   // y responde 409: en la práctica sólo se revierte una tanda cerrada.
   if (origen.estado !== "cerrada") {
     return error(res, 409, "conflict", `bases en una tanda en curso: ${productos.join(", ")} (la tanda ${origen.numero} está ${origen.estado})`)
@@ -725,6 +750,24 @@ router.post("/qmstr_flujo/tandas/:tid/revertir", (req, res) => {
   evento(t, `reversión de ${productos.length} bases de la tanda ${origen.numero} por ${USUARIO}: ${String(motivo).trim()}`)
   st.tandas.set(t.id, t)
   res.status(201).json(publica(t))
+})
+
+router.post("/qmstr_flujo/tandas/:tid/revision", (req, res) => {
+  const t = buscar(req, res)
+  if (!t) return
+  const { producto, decision, motivo = "" } = req.body ?? {}
+  if (t.estado !== "en_revision") return error(res, 409, "conflict", `la tanda está en ${t.estado}, no en revisión antes del ticket`)
+  if (!["enviar", "excluir"].includes(decision)) return error(res, 422, "validacion", `decisión inválida: '${decision}' (enviar o excluir)`)
+  if (!t.revisar.some((r) => r.producto === Number(producto))) {
+    return error(res, 422, "validacion", `la base ${producto} no está entre las observadas de la tanda`)
+  }
+  if (decision === "excluir" && !String(motivo).trim()) return error(res, 422, "validacion", "indica por qué se excluye la base")
+  const m = String(motivo).trim()
+  t.revision = { ...t.revision, [String(producto)]: { decision, motivo: m, por: USUARIO, at: isoNow() } }
+  evento(t, `${USUARIO}: base ${producto} → ${decision}${m ? ` (${m})` : ""}`)
+  // como la API: con todas decididas, la vuelta siguiente arma el ticket
+  if (t.revisar.every((r) => String(r.producto) in t.revision)) t._sigEn = Date.now() + STEP()
+  res.json(publica(t))
 })
 
 router.post("/qmstr_flujo/tandas/:tid/pausar", (req, res) => {

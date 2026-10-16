@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { AlertTriangle, ArrowLeft, Loader2, Rocket, Search, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -13,6 +13,7 @@ import { formatChile } from "../../time"
 import type { EstadoBase, FlujoBase, FlujoPais, ModoTanda, TandaCreate } from "../../types"
 import { mensajeError, periodoLabel } from "./formato"
 import { bloqueo } from "./bloqueo"
+import { MODOS } from "./modos"
 import { ChipBase } from "./piezas"
 
 /** Orden de la lista: primero las candidatas naturales (liberadas), al final las que no se pueden elegir. */
@@ -20,10 +21,18 @@ const PRIORIDAD: EstadoBase[] = ["pendiente", "revertida", "retenida", "esperand
 
 const sinH4 = (b: FlujoBase) => !b.h4 || b.h4_anulado
 
-const MODOS: { modo: ModoTanda; titulo: string; texto: string }[] = [
-  { modo: "completo", titulo: "Completo", texto: "Corre, envía el zip a DQ con ticket (MTR como observador), verifica en J, registra el hito 10 y avisa a MTR en el ticket." },
-  { modo: "solo_correr", titulo: "Solo correr", texto: "Solo la corrida en Databricks, para probar. Sin ticket, avisos ni hito 10." },
+/** Filtro de la lista: todas, las elegidas, o las excluidas (liberadas y elegibles que quedan fuera de la tanda). */
+type Vista = "todas" | "elegidas" | "fuera"
+const VISTAS: { vista: Vista; titulo: string }[] = [
+  { vista: "todas", titulo: "Todas" },
+  { vista: "elegidas", titulo: "Elegidas" },
+  { vista: "fuera", titulo: "Excluidas" },
 ]
+const VACIA: Record<Vista, string> = {
+  todas: "",
+  elegidas: "Todavía no eliges ninguna base.",
+  fuera: "No excluiste ninguna base liberada: van todas.",
+}
 
 interface OverrideDialogProps {
   open: boolean
@@ -50,6 +59,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
   const [periodoSel, setPeriodo] = useState(periodoInicial)
   const [sel, setSel] = useState<Set<number>>(new Set())
   const [q, setQ] = useState("")
+  const [vista, setVista] = useState<Vista>("todas")
   const [forzar, setForzar] = useState(false)
   const [modo, setModo] = useState<ModoTanda>("completo")
   const [nota, setNota] = useState("")
@@ -61,14 +71,19 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
   const periodo = periodoSel || periodos.data?.[0]?.periodo || ""
   const bases = useFlujoBases(pais, periodo, false)
   const lista = useMemo(() => bases.data ?? [], [bases.data])
+  // excluida = liberada y elegible en este modo, pero no elegida: lo que conviene revisar antes de lanzar
+  const excluida = useCallback((b: FlujoBase) => !sel.has(b.producto) && !sinH4(b) && !bloqueo(b, modo), [sel, modo])
   const filtradas = useMemo(() => {
     const t = q.trim().toLowerCase()
     return lista
+      .filter((b) => vista === "todas" || (vista === "elegidas" ? sel.has(b.producto) : excluida(b)))
       .filter((b) => !t || b.nombre.toLowerCase().includes(t) || String(b.producto).includes(t))
       .sort((a, b) => PRIORIDAD.indexOf(a.estado) - PRIORIDAD.indexOf(b.estado) || a.producto - b.producto)
-  }, [lista, q])
+  }, [lista, q, vista, sel, excluida])
   const liberadas = lista.filter((b) => b.estado === "pendiente")
   const elegidas = lista.filter((b) => sel.has(b.producto))
+  const fuera = lista.filter(excluida)
+  const cuenta: Record<Vista, number> = { todas: lista.length, elegidas: elegidas.length, fuera: fuera.length }
   const elegidasSinH4 = elegidas.filter(sinH4)
   const etiquetaPais = paises.find((p) => p.codigo === pais)?.etiqueta ?? pais
   const listo = elegidas.length > 0 && (elegidasSinH4.length === 0 || forzar)
@@ -110,7 +125,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
         <DialogDescription>
           {revisar
             ? "Así va a quedar la tanda manual. Entra al mismo flujo que una liberación."
-            : "Elige el país, el período productivo y las bases. Las liberadas sin tanda son las candidatas naturales."}
+            : "Elige el país, el período productivo y las bases. Las listas para QMS-TR (con liberación metodológica y sin tanda) son las candidatas naturales."}
         </DialogDescription>
       </DialogHeader>
 
@@ -161,15 +176,27 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
               <div className="ml-auto flex gap-1.5">
                 <Button type="button" size="sm" variant="secondary" disabled={liberadas.length === 0}
                   onClick={() => setSel(new Set([...sel, ...liberadas.map((b) => b.producto)]))} data-testid="qf-override-liberadas">
-                  <Sparkles /> Elegir liberadas ({liberadas.length})
+                  <Sparkles /> Elegir listas para QMS-TR ({liberadas.length})
                 </Button>
                 {sel.size > 0 && <Button type="button" size="sm" variant="ghost" onClick={() => setSel(new Set())}>Limpiar</Button>}
               </div>
             </div>
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o código"
-                className="pl-8" aria-label="Buscar bases" data-testid="qf-override-buscar" />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-48 flex-1">
+                <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o código"
+                  className="pl-8" aria-label="Buscar bases" data-testid="qf-override-buscar" />
+              </div>
+              <div className="flex rounded-lg border p-0.5" role="radiogroup" aria-label="Mostrar bases" data-testid="qf-override-vista">
+                {VISTAS.map((v) => (
+                  <button key={v.vista} type="button" role="radio" aria-checked={vista === v.vista} onClick={() => setVista(v.vista)}
+                    data-testid={`qf-override-vista-${v.vista}`}
+                    className={cn("rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                      vista === v.vista ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
+                    {v.titulo} <span className="tabular-nums opacity-80">{cuenta[v.vista]}</span>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="min-h-48 max-h-80 flex-1 overflow-y-auto rounded-xl border bg-card lg:max-h-none" data-testid="qf-override-bases">
               {periodos.error ? (
@@ -181,7 +208,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
               ) : bases.error ? (
                 <p role="alert" className="p-4 text-sm text-destructive">No se pudieron leer las bases de {etiquetaPais} {periodo}: {mensajeError(bases.error)}</p>
               ) : filtradas.length === 0 ? (
-                <p className="p-6 text-center text-sm text-muted-foreground">Ninguna base coincide con “{q}”.</p>
+                <p className="p-6 text-center text-sm text-muted-foreground">{q.trim() ? `Ninguna base coincide con “${q}”.` : VACIA[vista]}</p>
               ) : (
                 <ul className="divide-y">
                   {filtradas.map((b) => {
@@ -199,7 +226,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
                             {motivo ?? (sinH4(b) ? (b.h4_anulado ? "Hito 4 anulado" : "Sin hito 4") : `Hito 4 ${formatChile(b.h4!)}`)}
                           </span>
                         </label>
-                        <ChipBase estado={b.estado} />
+                        <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} />
                       </li>
                     )
                   })}
@@ -273,6 +300,18 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
               </li>
             ))}
           </ul>
+          {fuera.length > 0 && (
+            <div data-testid="qf-override-resumen-fuera">
+              <p className="mb-1.5 text-sm font-medium">Liberadas que excluiste <span className="font-normal text-muted-foreground tabular-nums">({fuera.length})</span></p>
+              <ul className="flex flex-wrap gap-1.5">
+                {fuera.map((b) => (
+                  <li key={b.producto} className="rounded-md border border-dashed px-2 py-0.5 text-xs text-muted-foreground">
+                    <span className="tabular-nums">{b.producto}</span> {b.nombre}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {elegidasSinH4.length > 0 && (
             <p className="flex items-center gap-2 text-sm"><AlertTriangle className="size-4 text-[var(--qf-retenida)]" />
               Forzada: {elegidasSinH4.length} sin hito 4.</p>

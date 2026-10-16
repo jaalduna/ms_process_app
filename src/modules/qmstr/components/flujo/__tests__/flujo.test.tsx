@@ -17,7 +17,7 @@ const base = (producto: number, estado: FlujoBase["estado"], extra: Partial<Fluj
 const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t", pais: "EC", periodo: "202609", numero: 1, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "detectada", estado_previo: null, pausada: false, qms_run_id: null, jira_key: null,
-  envio: {}, bypass: [], bypass_motivos: {}, revisar: [], validacion: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
+  envio: {}, bypass: [], bypass_motivos: {}, revisar: [], revision: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
   modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", snapshot_desde: null, progreso: null, ...extra,
 })
 
@@ -52,8 +52,16 @@ describe("Stepper", () => {
     expect(estado("corriendo")).toBe("hecho")
     expect(estado("en_dq")).toBe("actual")
     expect(estado("cerrada")).toBe("pendiente")
-    rerender(<Stepper tanda={tanda({ estado: "revision_manual", estado_previo: "verificando" })} />)
-    expect(estado("verificando")).toBe("error")
+    rerender(<Stepper tanda={tanda({ estado: "revision_manual", estado_previo: "enviando" })} />)
+    expect(estado("enviando")).toBe("error")
+    expect(container.querySelector('[data-paso="verificando"]')).toBeNull() // ya no se verifica en J
+  })
+  it("la revisión antes del ticket es el paso de validación", () => {
+    const { container } = render(<Stepper tanda={tanda({ estado: "en_revision" })} />)
+    const paso = container.querySelector('[data-paso="validando"]')
+    expect(paso?.getAttribute("data-estado")).toBe("actual")
+    expect(paso).toHaveTextContent("Revisión")
+    expect(container.querySelector('[data-paso="corriendo"]')?.getAttribute("data-estado")).toBe("hecho")
   })
   it("la reversión arma el zip inverso en vez de correr; solo correr salta directo a cerrada", () => {
     const { container, rerender } = render(<Stepper tanda={tanda({ tipo: "reversion" })} />)
@@ -78,8 +86,8 @@ describe("TableroBases", () => {
   it("una celda por base, KPIs y la leyenda filtra", async () => {
     const onFiltro = vi.fn()
     const bases = [base(1, "aplicada"), base(2, "aplicada"), base(3, "retenida", { h4: null }), base(4, "en_proceso", { tanda_estado: "corriendo" })]
-    render(<TableroBases pais="Ecuador" periodo="202609" bases={bases} filtro={null} onFiltro={onFiltro} />)
-    expect(screen.getAllByRole("listitem").filter((e) => e.hasAttribute("data-estado"))).toHaveLength(4)
+    render(<TableroBases pais="Ecuador" periodo="202609" bases={bases} filtro={null} onFiltro={onFiltro} onSeleccionar={vi.fn()} />)
+    expect(screen.getAllByTestId(/^qf-celda-/)).toHaveLength(4)
     expect(screen.getByTestId("qf-kpi-h4")).toHaveTextContent("3/ 4")
     expect(screen.getByTestId("qf-kpi-aplicadas")).toHaveTextContent("2")
     await userEvent.click(screen.getByRole("button", { name: /Retenidas/ }))
@@ -87,10 +95,26 @@ describe("TableroBases", () => {
   })
 })
 
+describe("TableroBases: celdas", () => {
+  it("cada celda abre el detalle de su base y las que están en QMS-TR laten (salvo apagadas por el filtro)", async () => {
+    const onSeleccionar = vi.fn()
+    const bases = [base(1, "aplicada"), base(4, "en_proceso", { tanda_estado: "en_revision" })]
+    const { rerender } = render(<TableroBases pais="Chile" periodo="202609" bases={bases} filtro={null} onFiltro={vi.fn()} onSeleccionar={onSeleccionar} />)
+    const celda = screen.getByTestId("qf-celda-4")
+    expect(celda).toHaveClass("qf-latido")
+    expect(celda).toHaveAccessibleName(/En revisión antes del ticket/)
+    expect(screen.getByTestId("qf-celda-1")).not.toHaveClass("qf-latido")
+    await userEvent.click(celda)
+    expect(onSeleccionar).toHaveBeenCalledWith(bases[1])
+    rerender(<TableroBases pais="Chile" periodo="202609" bases={bases} filtro="aplicada" onFiltro={vi.fn()} onSeleccionar={onSeleccionar} />)
+    expect(screen.getByTestId("qf-celda-4")).not.toHaveClass("qf-latido")
+  })
+})
+
 describe("TableroBases sin hito 4 en el período", () => {
   it("muestra esperando liberación en vez de retenidas", () => {
     const bases = [base(1, "esperando_liberacion", { h4: null }), base(2, "esperando_liberacion", { h4: null })]
-    render(<TableroBases pais="Bolivia" periodo="202610" bases={bases} filtro={null} onFiltro={vi.fn()} />)
+    render(<TableroBases pais="Bolivia" periodo="202610" bases={bases} filtro={null} onFiltro={vi.fn()} onSeleccionar={vi.fn()} />)
     expect(screen.getByTestId("qf-kpi-esperando-liberacion")).toHaveTextContent("2")
     expect(screen.queryByTestId("qf-kpi-retenidas")).toBeNull()
   })
@@ -144,6 +168,6 @@ describe("TablaBases: motivo del bypass y bases a revisar", () => {
     const chips = screen.getAllByTestId("qf-revisar")
     expect(chips).toHaveLength(1)
     expect(chips[0]).toHaveAttribute("title", revisar)
-    expect(screen.getAllByText("Sin ajustes").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Sin ajustes de QMS-TR").length).toBeGreaterThan(0)
   })
 })

@@ -190,9 +190,10 @@ export type EstadoTanda =
   | "detectada"
   | "corriendo"
   | "armando_reversion"
+  | "validando"
+  | "en_revision"
   | "enviando"
   | "en_dq"
-  | "verificando"
   | "hito10"
   | "cerrada"
   | "revision_manual"
@@ -226,7 +227,7 @@ export interface FlujoBase {
   historial: FlujoBaseEvento[]
 }
 
-/** Base que la corrida pide revisar antes del ticket (`manifest.revisar`). */
+/** Base observada antes del ticket: `manifest.revisar` de la corrida o un problema en el Excel que se envía. */
 export interface TandaRevisar {
   producto: number
   motivo: string
@@ -240,15 +241,18 @@ export interface TandaEvento {
   detalle: string | null
 }
 
-export interface TandaValidacion {
-  status?: "aplicado" | "parcial" | "no_aplicado"
-  checked?: number
-  applied?: number
-  pending?: number
-  mismatched?: number
-  validated_at?: string
-  validated_by?: string | null
-  by_sheet?: Record<string, { total: number; checked: number; applied: number; pending: number; mismatched: number }>
+/** Decisión del operador sobre una base observada en la revisión antes del ticket. */
+export interface TandaDecision {
+  decision: "enviar" | "excluir"
+  motivo: string
+  por: string
+  at: string
+}
+
+export interface TandaDecisionCreate {
+  producto: number
+  decision: TandaDecision["decision"]
+  motivo: string
 }
 
 export interface TandaEnvio {
@@ -284,9 +288,13 @@ export interface Tanda {
   bypass: number[]
   /** producto -> por qué quedó sin ajustes (`manifest.fallidas` de la corrida). */
   bypass_motivos: Record<string, string>
-  /** Bases del zip que la corrida pide revisar antes del ticket. */
+  /**
+   * Bases observadas en las validaciones internas antes del ticket (lo que pide la corrida y lo que se ve en el
+   * Excel). Con alguna sin decidir, la tanda queda `en_revision`.
+   */
   revisar: TandaRevisar[]
-  validacion: TandaValidacion
+  /** producto -> decisión del operador (enviar igual o excluir con motivo). */
+  revision: Record<string, TandaDecision>
   /**
    * Motivo por el que la tanda no avanza. "sin permiso <SELECT|INSERT|UPDATE> sobre <tabla> en <país> ..." es un
    * bloqueo por GRANT pendiente (JAA-1442): la tanda sigue sola cuando llega, no es una falla.
@@ -361,7 +369,7 @@ export type TipoAviso = "observadores" | "pase_mtr" | "reversion_aplicada"
 
 export const TIPO_AVISO_LABEL: Record<TipoAviso, string> = {
   observadores: "Observador agregado",
-  pase_mtr: "Verificado en J",
+  pase_mtr: "QMS-TR aplicado",
   reversion_aplicada: "Reversión aplicada",
 }
 
@@ -389,13 +397,13 @@ export interface FlujoAviso {
 
 /** Estados en que la tanda sigue avanzando sola (ACTIVOS de la API + armando_reversion). */
 export const TANDA_ACTIVOS: EstadoTanda[] = [
-  "detectada", "corriendo", "armando_reversion", "enviando", "en_dq", "verificando", "hito10",
+  "detectada", "corriendo", "armando_reversion", "validando", "en_revision", "enviando", "en_dq", "hito10",
 ]
 
 /** Camino feliz de cada tipo de tanda, en orden (lo que dibuja el stepper). */
 export const CAMINO_TANDA: Record<"corrida" | "reversion" | "solo_correr", EstadoTanda[]> = {
-  corrida: ["detectada", "corriendo", "enviando", "en_dq", "verificando", "hito10", "cerrada"],
-  reversion: ["detectada", "armando_reversion", "enviando", "en_dq", "verificando", "hito10", "cerrada"],
+  corrida: ["detectada", "corriendo", "validando", "enviando", "en_dq", "hito10", "cerrada"],
+  reversion: ["detectada", "armando_reversion", "enviando", "en_dq", "hito10", "cerrada"],
   solo_correr: ["detectada", "corriendo", "cerrada"],
 }
 
@@ -405,15 +413,16 @@ export function caminoDe(t: Pick<Tanda, "tipo" | "modo">): EstadoTanda[] {
 }
 
 export const ESTADO_TANDA_LABEL: Record<EstadoTanda, string> = {
-  detectada: "Detectada",
-  corriendo: "Corriendo",
+  detectada: "Por correr",
+  corriendo: "Corrida en Databricks",
   armando_reversion: "Armando reversión",
-  enviando: "Enviando",
-  en_dq: "En DQ",
-  verificando: "Verificando en J",
-  hito10: "Hito 10",
+  validando: "Validando antes del ticket",
+  en_revision: "En revisión antes del ticket",
+  enviando: "Creando ticket",
+  en_dq: "Ticket en DQ",
+  hito10: "Registrando hito 10",
   cerrada: "Cerrada",
-  revision_manual: "Revisión manual",
+  revision_manual: "Requiere revisión",
   sin_bases: "Sin bases",
 }
 
@@ -423,29 +432,36 @@ export const TIPO_TANDA_LABEL: Record<TipoTanda, string> = {
   reversion: "Reversión",
 }
 
-/** Orden y etiqueta de los estados de base (leyenda del tablero). */
-export const ESTADOS_BASE: { estado: EstadoBase; label: string; ayuda: string }[] = [
-  { estado: "aplicada", label: "Aplicadas", ayuda: "QMS-TR quedó aplicado en la base" },
-  { estado: "en_proceso", label: "En proceso", ayuda: "La base está en una tanda que sigue avanzando" },
-  { estado: "pendiente", label: "Liberadas sin tanda", ayuda: "Tienen hito 4 y todavía no entran a una tanda" },
-  { estado: "retenida", label: "Retenidas", ayuda: "Tienen hito 3 pero no hito 4, y otras bases del período ya fueron liberadas" },
-  { estado: "esperando_liberacion", label: "Esperando liberación", ayuda: "Tienen hito 3 y ninguna base del período tiene hito 4 todavía" },
-  { estado: "revertida", label: "Revertidas", ayuda: "Se devolvieron a su estado anterior a QMS-TR" },
-  { estado: "bypass", label: "Sin ajustes", ayuda: "Quedaron fuera del zip de la corrida; el motivo está en cada base" },
-  { estado: "sin_hito4", label: "Sin hitos", ayuda: "Todavía sin hito 3 ni hito 4" },
-  { estado: "fuera_de_alcance", label: "Fuera de alcance", ayuda: "QMS-TR no corrige estas bases" },
+/**
+ * Estados de base en el orden del proceso: DC distribuye (hito 3) y libera (hito 4), QMS-TR corre, DQ aplica el
+ * ticket y queda el hito 10. `label` va en plural en la leyenda; `chip` en singular en cada base; `ayuda` es el tooltip.
+ */
+export const ESTADOS_BASE: { estado: EstadoBase; label: string; chip: string; ayuda: string }[] = [
+  { estado: "aplicada", label: "QMS-TR aplicado", chip: "QMS-TR aplicado", ayuda: "DQ cerró el ticket con los ajustes y quedó registrado el hito 10" },
+  { estado: "en_proceso", label: "En QMS-TR", chip: "En QMS-TR", ayuda: "Está en una tanda que sigue avanzando: corrida, revisión antes del ticket, ticket en DQ o hito 10" },
+  { estado: "pendiente", label: "Listas para QMS-TR", chip: "Lista para QMS-TR", ayuda: "DC registró la liberación metodológica (hito 4) y todavía no entra a una corrida" },
+  { estado: "retenida", label: "Retenidas por DC", chip: "Retenida por DC", ayuda: "DC distribuyó los actos (hito 3) pero no la liberó (hito 4), y otras bases del período ya están liberadas" },
+  { estado: "esperando_liberacion", label: "Esperando liberación de DC", chip: "Esperando liberación de DC", ayuda: "DC distribuyó los actos (hito 3); ninguna base del período tiene todavía la liberación metodológica (hito 4)" },
+  { estado: "revertida", label: "QMS-TR revertido", chip: "QMS-TR revertido", ayuda: "Se devolvió a como estaba antes de QMS-TR y se anuló su hito 10; se puede volver a correr" },
+  { estado: "bypass", label: "Sin ajustes de QMS-TR", chip: "Sin ajustes de QMS-TR", ayuda: "La corrida no la corrigió (falló o no pasó un control) o se excluyó en la revisión, y no va en el ticket; el motivo está en la base" },
+  { estado: "sin_hito4", label: "Sin distribución de DC", chip: "Sin distribución de DC", ayuda: "DC todavía no registra la distribución de actos (hito 3) ni la liberación (hito 4)" },
+  { estado: "fuera_de_alcance", label: "Excluidas de QMS-TR", chip: "Excluida de QMS-TR", ayuda: "Por acuerdo, QMS-TR no corrige esta base (fashion, tabaco)" },
 ]
 
-export const ESTADO_BASE_LABEL: Record<EstadoBase, string> = {
-  aplicada: "Aplicada",
-  en_proceso: "En proceso",
-  pendiente: "Liberada",
-  retenida: "Retenida",
-  esperando_liberacion: "Esperando liberación",
-  revertida: "Revertida",
-  bypass: "Sin ajustes",
-  sin_hito4: "Sin hitos",
-  fuera_de_alcance: "Fuera de alcance",
+export const ESTADO_BASE_LABEL = Object.fromEntries(ESTADOS_BASE.map((e) => [e.estado, e.chip])) as Record<EstadoBase, string>
+export const ESTADO_BASE_AYUDA = Object.fromEntries(ESTADOS_BASE.map((e) => [e.estado, e.ayuda])) as Record<EstadoBase, string>
+
+/** Etiqueta de una base en QMS-TR según el paso de su tanda (más concreta que "En QMS-TR"). */
+export const ETAPA_BASE_LABEL: Partial<Record<EstadoTanda, string>> = {
+  detectada: "Por correr",
+  corriendo: "En corrida",
+  armando_reversion: "Armando reversión",
+  validando: "Validando antes del ticket",
+  en_revision: "En revisión antes del ticket",
+  enviando: "Creando ticket",
+  en_dq: "Ticket en DQ",
+  hito10: "Registrando hito 10",
+  revision_manual: "Requiere revisión",
 }
 
 /** Nombres de las tareas del job qms_tr_run en el progreso (desconocidas se muestran tal cual). */

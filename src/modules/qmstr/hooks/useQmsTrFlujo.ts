@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   accionTanda,
   crearTanda,
+  decidirRevision,
   forzarVuelta,
   getFlujoBases,
   getFlujoAvisos,
@@ -14,7 +15,7 @@ import {
   revertirTanda,
   type AccionTanda,
 } from "../api"
-import { TANDA_ACTIVOS, type Tanda, type TandaCreate, type TandaRevertir } from "../types"
+import { TANDA_ACTIVOS, type Tanda, type TandaCreate, type TandaDecisionCreate, type TandaRevertir } from "../types"
 
 const KEY = ["qmstr_flujo"] as const
 
@@ -116,6 +117,23 @@ export function useRevertirTanda() {
   return useMutation({
     mutationFn: ({ tid, ...d }: TandaRevertir & { tid: string }) => revertirTanda(tid, d),
     onSuccess: invalidar,
+  })
+}
+
+/**
+ * Decide una base observada en la revisión antes del ticket. Con la última decidida se fuerza una vuelta para que el
+ * ticket salga ya y no en la vuelta siguiente (hasta 5 min); si ya hay una vuelta en curso, esa misma lo envía.
+ */
+export function useDecidirRevision() {
+  const invalidar = useInvalidar()
+  return useMutation({
+    mutationFn: ({ tid, ...d }: TandaDecisionCreate & { tid: string }) => decidirRevision(tid, d),
+    onSuccess: (t) => {
+      if (t.revisar.every((r) => String(r.producto) in t.revision)) {
+        void forzarVuelta().catch(() => undefined).finally(invalidar)
+      }
+      return invalidar()
+    },
   })
 }
 

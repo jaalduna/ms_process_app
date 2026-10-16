@@ -109,14 +109,15 @@ test.describe("Flujo QMS-TR contra la API real (fake)", () => {
     await foto(page, "corriendo")
     await expect(t1.getByTestId("qf-progreso-fin")).toBeVisible({ timeout: 90_000 })
 
-    // la corrida terminó: ticket SIM-n, la última base sin cambios del motor (bypass)
+    // la corrida terminó: el entregable fake observa la última base y la tanda espera la revisión antes del ticket
+    await hastaEstado(page, 1, "en_revision")
+    const [observada] = await t1.locator('[data-testid^="qf-revision-enviar-"]').all()
+    await observada.click()
     await hastaEstado(page, 1, "en_dq")
     await expect(t1).toContainText(/SIM-\d+/)
-    await expect(t1).toContainText("1 sin cambios del motor")
     await t1.getByTestId("qf-accion-simular_cierre_ticket").click()
     await expect(page.getByText(/con el ticket cerrado/)).toBeVisible()
     await hastaEstado(page, 1, "cerrada")
-    await expect(t1).toContainText(/Verificación en J: \d+ de \d+ aplicados/)
     await expect(page.getByTestId("qf-kpi-aplicadas")).toContainText("2")
     await foto(page, "cerrada")
 

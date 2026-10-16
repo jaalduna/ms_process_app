@@ -1,17 +1,19 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import {
-  Check, CheckCheck, ChevronDown, Download, ExternalLink, Eye, FlaskConical, Hourglass, Loader2, Pause, Play, Quote, RotateCcw, RotateCw, Ticket,
-  Undo2, X,
+  Ban, Check, CheckCheck, ChevronDown, ClipboardCheck, Download, ExternalLink, Eye, FlaskConical, Hourglass, Loader2, Pause, Play, Quote,
+  RotateCcw, RotateCw, Send, Ticket, Undo2, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { downloadTandaZip, type AccionTanda } from "../../api"
-import { useTandaProgreso } from "../../hooks/useQmsTrFlujo"
+import { useDecidirRevision, useTandaProgreso } from "../../hooks/useQmsTrFlujo"
 import { formatChile } from "../../time"
 import {
   ESTADO_TANDA_LABEL, TANDA_ACTIVOS, TAREA_LABELS, caminoDe, type EstadoTanda, type FlujoModo, type ProgresoTarea, type Tanda,
+  type TandaRevisar,
 } from "../../types"
 import { TONO_TANDA, mensajeError, nBases, tono } from "./formato"
 import { Chip, ChipTanda, ChipTipo } from "./piezas"
@@ -23,22 +25,28 @@ const PASO_LABEL: Partial<Record<EstadoTanda, string>> = {
   detectada: "Detectada",
   corriendo: "Corrida",
   armando_reversion: "Zip inverso",
+  validando: "Validación",
   enviando: "Ticket a DQ",
   en_dq: "DQ",
-  verificando: "Verificación",
   hito10: "Hito 10",
   cerrada: "Cerrada",
 }
 
 /** Una tanda completa cierra avisando a MTR en el ticket de Jira; "solo correr" no tiene ticket. */
-const pasoLabel = (paso: EstadoTanda, t: Pick<Tanda, "modo">) =>
-  paso === "cerrada" && t.modo === "completo" ? "Aviso a MTR en Jira" : (PASO_LABEL[paso] ?? ESTADO_TANDA_LABEL[paso])
+const pasoLabel = (paso: EstadoTanda, t: Pick<Tanda, "modo" | "estado">) => {
+  if (paso === "cerrada" && t.modo === "completo") return "Aviso a MTR en Jira"
+  if (paso === "validando" && t.estado === "en_revision") return "Revisión"
+  return PASO_LABEL[paso] ?? ESTADO_TANDA_LABEL[paso]
+}
+
+/** La revisión antes del ticket es el mismo paso del stepper que la validación que la abre. */
+const pasoDe = (e: EstadoTanda): EstadoTanda => (e === "en_revision" ? "validando" : e)
 
 /** Stepper del camino de la tanda; en revisión manual marca en rojo el paso donde se detuvo. */
 export function Stepper({ tanda }: { tanda: Tanda }) {
   const camino = caminoDe(tanda)
   const enRevision = tanda.estado === "revision_manual"
-  const actual = enRevision ? camino.indexOf(tanda.estado_previo ?? "detectada") : camino.indexOf(tanda.estado)
+  const actual = camino.indexOf(pasoDe(enRevision ? (tanda.estado_previo ?? "detectada") : tanda.estado))
   const cerrada = tanda.estado === "cerrada"
   return (
     <ol className="flex min-w-max items-start" data-testid="qf-stepper" aria-label="Avance de la tanda">
@@ -192,6 +200,110 @@ function ProgresoCorrida({ tanda, verRun }: { tanda: Tanda; verRun: boolean }) {
   )
 }
 
+function detalleRevisar(r: TandaRevisar) {
+  const partes = []
+  if (r.d_vol_pct !== undefined) partes.push(`volumen ${r.d_vol_pct > 0 ? "+" : ""}${r.d_vol_pct}%`)
+  if (r.veces_fuera_de_caja !== undefined) partes.push(`${r.veces_fuera_de_caja}× fuera de su caja`)
+  return partes.join(" · ")
+}
+
+/**
+ * Revisión antes del ticket: las bases que las validaciones internas observaron (lo que pidió la corrida y lo que se vio
+ * en el Excel). Cada una se envía igual o se excluye con motivo; el ticket sale cuando están todas decididas.
+ */
+function RevisionAntesDelTicket({ tanda: t, nombres, esAdmin }: { tanda: Tanda; nombres: Map<number, string>; esAdmin: boolean }) {
+  const decidir = useDecidirRevision()
+  const [excluyendo, setExcluyendo] = useState<number | null>(null)
+  const [motivo, setMotivo] = useState("")
+  const abierta = t.estado === "en_revision"
+  const decididas = t.revisar.filter((r) => String(r.producto) in t.revision).length
+
+  function mandar(producto: number, decision: "enviar" | "excluir", m = "") {
+    decidir.mutate({ tid: t.id, producto, decision, motivo: m }, {
+      onSuccess: (nueva) => {
+        setExcluyendo(null)
+        setMotivo("")
+        const listas = nueva.revisar.every((r) => String(r.producto) in nueva.revision)
+        toast.success(`Base ${producto}: ${decision === "excluir" ? "excluida del ticket" : "va en el ticket"}`
+          + (listas ? ". Revisión lista: el ticket sale en esta vuelta" : ""))
+      },
+      onError: (e) => toast.error(`No se pudo guardar la decisión de la base ${producto}: ${mensajeError(e)}`),
+    })
+  }
+
+  return (
+    <section data-testid="qf-revision" aria-label="Revisión antes del ticket"
+      className={cn("space-y-3 rounded-xl border p-4", abierta ? "border-[var(--qf-retenida)] bg-[color-mix(in_oklch,var(--qf-retenida)_7%,transparent)]" : "bg-muted/25")}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="inline-flex items-center gap-2 font-medium">
+          <ClipboardCheck className="size-4 text-[var(--qf-retenida)]" />
+          {abierta ? "Revisión antes del ticket" : "Revisión antes del ticket (cerrada)"}
+        </p>
+        <span className="text-xs text-muted-foreground tabular-nums" data-testid="qf-revision-cuenta">
+          {decididas} de {t.revisar.length} decididas
+        </span>
+      </div>
+      {abierta && (
+        <p className="text-sm text-muted-foreground">
+          Las validaciones internas observaron {t.revisar.length === 1 ? "esta base" : "estas bases"}. Envíala igual o exclúyela
+          con un motivo; la excluida queda sin ajustes y sale del zip. El ticket a DQ se crea cuando estén todas decididas.
+        </p>
+      )}
+      <ul className="space-y-2">
+        {t.revisar.map((r) => {
+          const d = t.revision[String(r.producto)]
+          const detalle = detalleRevisar(r)
+          return (
+            <li key={r.producto} data-testid={`qf-revision-${r.producto}`} data-decision={d?.decision ?? "pendiente"}
+              className="space-y-2 rounded-lg border bg-card px-3 py-2.5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 flex-1 basis-64">
+                  <p className="text-sm font-medium">
+                    <span className="text-muted-foreground tabular-nums">{r.producto}</span> {nombres.get(r.producto) ?? ""}
+                    {detalle && <span className="ml-2 text-xs font-normal text-muted-foreground">{detalle}</span>}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{r.motivo}</p>
+                </div>
+                {d && (
+                  <Chip tone={d.decision === "excluir" ? "var(--qf-bypass)" : "var(--qf-aplicada)"} title={`${d.por}, ${formatChile(d.at)}`}>
+                    {d.decision === "excluir" ? <><Ban className="size-3" />Excluida</> : <><Send className="size-3" />Va en el ticket</>}
+                  </Chip>
+                )}
+              </div>
+              {d?.motivo && <p className="text-xs text-muted-foreground">Motivo: {d.motivo} · {d.por}</p>}
+              {abierta && esAdmin && excluyendo !== r.producto && (
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant={d?.decision === "enviar" ? "default" : "outline"} disabled={decidir.isPending}
+                    onClick={() => mandar(r.producto, "enviar")} data-testid={`qf-revision-enviar-${r.producto}`}>
+                    <Send /> Enviar igual
+                  </Button>
+                  <Button size="sm" variant={d?.decision === "excluir" ? "default" : "outline"} disabled={decidir.isPending}
+                    onClick={() => { setExcluyendo(r.producto); setMotivo(d?.decision === "excluir" ? d.motivo : "") }}
+                    data-testid={`qf-revision-excluir-${r.producto}`}>
+                    <Ban /> Excluir
+                  </Button>
+                </div>
+              )}
+              {abierta && esAdmin && excluyendo === r.producto && (
+                <form className="flex flex-wrap items-center gap-2"
+                  onSubmit={(e) => { e.preventDefault(); if (motivo.trim()) mandar(r.producto, "excluir", motivo.trim()) }}>
+                  <Input autoFocus value={motivo} onChange={(e) => setMotivo(e.target.value)} className="h-8 min-w-0 flex-1 basis-60"
+                    placeholder="Por qué se excluye (p. ej. equivalencia ×1000, confirmar con DC)" aria-label={`Motivo para excluir la base ${r.producto}`}
+                    data-testid={`qf-revision-motivo-${r.producto}`} />
+                  <Button size="sm" type="submit" disabled={!motivo.trim() || decidir.isPending} data-testid={`qf-revision-confirmar-${r.producto}`}>
+                    {decidir.isPending ? <Loader2 className="animate-spin" /> : <Ban />} Excluir del ticket
+                  </Button>
+                  <Button size="sm" type="button" variant="ghost" onClick={() => setExcluyendo(null)}>Cancelar</Button>
+                </form>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
 /** Avisos que el flujo dejó en el ticket de Jira: MTR como observador y la mención al validar o revertir. */
 function AvisosJira({ tanda: t }: { tanda: Tanda }) {
   if (!t.envio.observadores && !t.envio.aviso_mtr) return null
@@ -263,11 +375,10 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
   const zipListo = !["detectada", "corriendo", "armando_reversion", "sin_bases"].includes(t.estado)
   // Una tanda sólo avanza (y se revierte) en el modo del flujo en que se creó.
   const deOtroModo = t.ejecucion !== modo
-  // Sólo una tanda cerrada: mientras verifica o registra el hito 10 sus bases siguen en curso y la API
+  // Sólo una tanda cerrada: mientras registra el hito 10 sus bases siguen en curso y la API
   // responde 409 (el hito 10 se escribiría después de anularlo). Solo correr no envía nada a DQ: no
   // hay cambios en J que revertir.
   const revertible = t.tipo !== "reversion" && t.modo !== "solo_correr" && t.estado === "cerrada" && !deOtroModo
-  const v = t.validacion
 
   async function bajar() {
     setBajando(true)
@@ -361,6 +472,10 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
 
         {t.tipo !== "reversion" && t.qms_run_id && <ProgresoCorrida tanda={t} verRun={verRun} />}
 
+        {t.revisar.length > 0 && (t.estado === "en_revision" || Object.keys(t.revision).length > 0) && (
+          <RevisionAntesDelTicket tanda={t} nombres={nombres} esAdmin={esAdmin} />
+        )}
+
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <button type="button" onClick={() => setVerBases(!verBases)} aria-expanded={verBases}
             className="inline-flex items-center gap-1 font-medium text-foreground hover:text-primary">
@@ -368,17 +483,11 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
             {nBases(t.productos.length)}
           </button>
           {t.bypass.length > 0 && <span className="text-muted-foreground">{t.bypass.length} sin ajustes</span>}
-          {t.revisar.length > 0 && (
+          {t.revisar.length > 0 && t.estado !== "en_revision" && (
             <Chip tone="var(--qf-retenida)" data-testid="qf-tanda-revisar"
               title={t.revisar.map((r) => `${r.producto}: ${r.motivo}`).join("\n")}>
-              {t.revisar.length === 1 ? "1 base a revisar" : `${t.revisar.length} bases a revisar`} antes del ticket
+              {t.revisar.length === 1 ? "1 base observada" : `${t.revisar.length} bases observadas`} antes del ticket
             </Chip>
-          )}
-          {v.status && (
-            <span className="text-muted-foreground">
-              Verificación en J: {v.applied ?? 0} de {v.checked ?? 0} aplicados
-              {modo === "simulacion" && v.status === "no_aplicado" && " (esperable en simulación)"}
-            </span>
           )}
         </div>
         {verBases && (
