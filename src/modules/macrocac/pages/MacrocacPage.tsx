@@ -905,7 +905,7 @@ function ResultadoDetalle({ filas }: { filas: MacrocacResultRow[] }) {
             <thead className="sticky top-0 bg-muted text-left">
               <tr>
                 <th className="px-2 py-1 font-medium">IdAto</th>
-                <th className="px-2 py-1 font-medium">Acción</th>
+                <th className="px-2 py-1 font-medium">Accion</th>
                 <th className="px-2 py-1 font-medium">Detalle</th>
               </tr>
             </thead>
@@ -934,19 +934,32 @@ function ResultadoDetalle({ filas }: { filas: MacrocacResultRow[] }) {
   )
 }
 
-/** Columnas de contexto que se muestran siempre, en este orden. */
+/**
+ * Columnas de contexto que se muestran siempre, en este orden. Con el nombre de
+ * la columna en J_AtosCompra_New y Periodo en vez de Ano/Mes (QA 2026-10-16).
+ */
 const CONTEXTO_VISTA: { col: string; label: string }[] = [
-  { col: "IdDomicilio", label: "Hogar" },
-  { col: "Data_Compra", label: "Fecha" },
-  { col: "IdArtigo", label: "Artículo" },
-  { col: "IdProduto", label: "Producto" },
-  { col: "IdCanal", label: "Canal" },
+  { col: "Periodo", label: "Periodo" },
+  { col: "IdDomicilio", label: "IdDomicilio" },
+  { col: "Data_Compra", label: "Data_Compra" },
+  { col: "IdArtigo", label: "IdArtigo" },
+  { col: "IdProduto", label: "IdProduto" },
+  { col: "IdCanal", label: "IdCanal" },
 ]
 
+/**
+ * Los códigos no cambian (hay plantillas en circulación); la etiqueta dice qué
+ * hace cada uno para no confundir el borrado con la baja lógica (QA 2026-10-16).
+ */
 const ACCION_LABEL: Record<string, string> = {
   M: "Modificar",
-  E: "Eliminar",
-  X: "Excluir",
+  E: "Eliminar (borra el acto)",
+  X: "Excluir (FACTOR_RW = 0)",
+}
+
+/** En granel la cantidad va a VOL_UNITARIO y COEF_XX; Quantidade queda en 1. */
+function esGranel(v: unknown): boolean {
+  return v === true || v === 1 || v === "1" || String(v).toLowerCase() === "true"
 }
 
 function fmt(v: unknown): string {
@@ -1013,7 +1026,7 @@ function VistaPrevia({ uploadId }: { uploadId: string }) {
                   <thead className="sticky top-0 bg-muted text-left">
                     <tr>
                       <th className="px-2 py-1 font-medium">IdAto</th>
-                      <th className="px-2 py-1 font-medium">Acción</th>
+                      <th className="px-2 py-1 font-medium">Accion</th>
                       {/* Cambios va antes del contexto: es lo que hay que revisar,
                           y la tabla no cabe entera en el ancho de la tarjeta. */}
                       <th className="px-2 py-1 font-medium">Cambios</th>
@@ -1070,6 +1083,11 @@ function FilaVistaPrevia({ item }: { item: MacrocacVistaPreviaItem }) {
                 <span className="text-muted-foreground">{col}:</span>{" "}
                 <span className="font-mono">{fmt(actual[col])}</span> →{" "}
                 <span className="font-mono font-medium">{fmt(nuevo)}</span>
+                {col === "Quantidade" && esGranel(actual.FlgGranel) && (
+                  <span className="text-muted-foreground" data-testid="macrocac-vista-previa-granel">
+                    {" "}(granel: ajuste de COEF_XX y VOL_UNITARIO)
+                  </span>
+                )}
               </li>
             ))}
           </ul>

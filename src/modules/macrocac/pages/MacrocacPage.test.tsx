@@ -762,6 +762,38 @@ describe("MacrocacPage — observaciones QA 2026-09", () => {
     expect(screen.getByTestId("macrocac-vista-previa-toggle")).toHaveTextContent("1 no encontrados")
   })
 
+  it("usa los nombres de J_AtosCompra_New, muestra Periodo y avisa el ajuste de COEF_XX en granel (QA 2026-10-16)", async () => {
+    mockUpload.mockResolvedValue(UPLOAD_RESP)
+    mockGetVistaPrevia.mockResolvedValue({
+      upload_id: "upl_macrocac_1",
+      pais: "BO",
+      tabla: "_test_J_AtosCompra_New_v1",
+      total: 2,
+      mostrados: 2,
+      no_encontrados: 0,
+      items: [
+        {
+          IdAto: 22526957, flg: "M", encontrado: true,
+          actual: { Periodo: 202611, IdDomicilio: 11317, Data_Compra: "2026-11-28", IdArtigo: 127133, Quantidade: 1, FlgGranel: true },
+          cambios: { Quantidade: 100 },
+        },
+        { IdAto: 2, flg: "E", encontrado: true, actual: { IdDomicilio: 6 }, cambios: {} },
+      ],
+    })
+    const user = userEvent.setup()
+    await renderPage()
+    await subirArchivo(user)
+    await user.click(await screen.findByTestId("macrocac-vista-previa-toggle"))
+
+    const tabla = await screen.findByTestId("macrocac-vista-previa-tabla")
+    const encabezados = Array.from(tabla.querySelectorAll("th")).map((th) => th.textContent)
+    expect(encabezados).toEqual(["IdAto", "Accion", "Cambios", "Periodo", "IdDomicilio", "Data_Compra", "IdArtigo", "IdProduto", "IdCanal"])
+    const filas = await screen.findAllByTestId("macrocac-vista-previa-fila")
+    expect(filas[0]).toHaveTextContent("202611")
+    expect(filas[0]).toHaveTextContent("Quantidade: 1 → 100 (granel: ajuste de COEF_XX y VOL_UNITARIO)")
+    expect(filas[1]).toHaveTextContent("Eliminar (borra el acto)")
+  })
+
   it("si la vista previa falla lo muestra y no bloquea aplicar", async () => {
     mockUpload.mockResolvedValue(UPLOAD_RESP)
     mockGetVistaPrevia.mockRejectedValue(

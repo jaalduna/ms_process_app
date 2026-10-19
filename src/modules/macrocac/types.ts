@@ -171,34 +171,34 @@ export interface MacrocacField {
 
 /** Únicas dos que el backend exige (routes/macrocac.py) y sin las cuales el motor no arranca. */
 export const MACROCAC_REQUIRED_FIELDS: MacrocacField[] = [
-  { key: "IdAto", label: "Id del acto", aliases: ["IdAto"] },
-  { key: "Flg", label: "Acción (M/E/X)", aliases: ["Flg", "FLG", "flg", "accion", "Accion", "ACCION", "Acción"] },
+  { key: "IdAto", label: "IdAto", aliases: ["IdAto"] },
+  { key: "Flg", label: "Accion (M/E/X)", aliases: ["Flg", "FLG", "flg", "accion", "Accion", "ACCION", "Acción"] },
 ]
 
 /** Opcionales: celda vacía = no cambiar ese campo (`set_cambio`, core.py:162). */
 export const MACROCAC_OPTIONAL_FIELDS: MacrocacField[] = [
-  { key: "NewPreco", label: "Precio", aliases: ["NewPreco", "Preco", "Nuevo_Preco"] },
-  { key: "NewQuantidade", label: "Cantidad", aliases: ["NewQuantidade", "Quantidade", "Nueva_Quantidade"] },
-  { key: "NewPacksComprados", label: "Packs comprados", aliases: ["NewPacksComprados", "NewPacksComprado", "NewPack_Comprado", "Pack_comprado", "Pack_Comprado", "PacksComprados", "Nuevo_Pack_Comprado"] },
-  { key: "NewUnidadesPack", label: "Unidades por pack", aliases: ["NewUnidadesPack", "NewUnidadesPacks", "NewUnidades_Packs", "Unidades_packs", "Unidades_Packs", "UnidadesPack", "Nuevo_Unidades_Packs"] },
-  { key: "NewForma_Compra", label: "Forma de compra", aliases: ["NewForma_Compra", "NewFormaCompra", "NewIdFCompra", "FORMA_COMPRA", "FormaCompra", "Forma_Compra", "Nuevo_IdFCompra"] },
-  { key: "NewIdCanal", label: "Canal", aliases: ["NewIdCanal", "IdCanal", "Nuevo_IdCanal"] },
+  { key: "NewPreco", label: "Preco", aliases: ["NewPreco", "Preco", "Nuevo_Preco"] },
+  { key: "NewQuantidade", label: "Quantidade", aliases: ["NewQuantidade", "Quantidade", "Nueva_Quantidade"] },
+  { key: "NewPacksComprados", label: "PacksComprados", aliases: ["NewPacksComprados", "NewPacksComprado", "NewPack_Comprado", "Pack_comprado", "Pack_Comprado", "PacksComprados", "Nuevo_Pack_Comprado"] },
+  { key: "NewUnidadesPack", label: "UnidadesPack", aliases: ["NewUnidadesPack", "NewUnidadesPacks", "NewUnidades_Packs", "Unidades_packs", "Unidades_Packs", "UnidadesPack", "Nuevo_Unidades_Packs"] },
+  { key: "NewForma_Compra", label: "FORMA_COMPRA", aliases: ["NewForma_Compra", "NewFormaCompra", "NewIdFCompra", "FORMA_COMPRA", "FormaCompra", "Forma_Compra", "Nuevo_IdFCompra"] },
+  { key: "NewIdCanal", label: "IdCanal", aliases: ["NewIdCanal", "IdCanal", "Nuevo_IdCanal"] },
   // QA 2026-09 (Jorge): faltaban en la plantilla. El motor ya los leía
   // (core.py, bloque de campos enteros); Acceso_Canal entra al IdVenue.
-  { key: "NewAcceso_Canal", label: "Acceso del canal", aliases: ["NewAcceso_Canal", "NewIdAcceso", "Acceso_Canal", "Acceso_canal", "Nuevo_IdAcceso"] },
-  { key: "NewForma_Pagto", label: "Forma de pago", aliases: ["NewForma_Pagto", "NewIdFPagto", "Forma_Pagto", "Forma_pagto", "Nuevo_IdFPagto"] },
-  { key: "NewIdArtigo", label: "Artículo", aliases: ["NewIdArtigo", "IdArtigo", "Nuevo_IdArtigo"] },
-  { key: "NewIdPromocao", label: "Promoción", aliases: ["NewIdPromocao", "NewidPromocao", "IdPromocao", "idPromocao", "Nuevo_IdPromocao"] },
-  { key: "NewDataCompra", label: "Fecha de compra", aliases: ["NewDataCompra", "NewData_Compra", "Data_Compra", "Nueva_Data_Compra"] },
-  { key: "IdIndividuo", label: "Individuo", aliases: ["IdIndividuo", "NewIdIndividuo", "Nuevo_IdIndividuo"] },
-  { key: "NewIdDomicilio", label: "Hogar", aliases: ["NewIdDomicilio", "IdDomicilio", "Nuevo_IdDomicilio"] },
-  { key: "NewValuePM", label: "Value PM", aliases: ["NewValuePM", "NewVALUE_PM", "VALUE_PM", "ValuePM", "Nuevo_VALUE_PM"] },
-  { key: "NewSEQ", label: "Secuencia", aliases: ["NewSEQ", "SEQ", "Nuevo_SEQ"] },
+  { key: "NewAcceso_Canal", label: "IdAcceso", aliases: ["NewAcceso_Canal", "NewIdAcceso", "Acceso_Canal", "Acceso_canal", "Nuevo_IdAcceso"] },
+  { key: "NewForma_Pagto", label: "Forma_Pagto", aliases: ["NewForma_Pagto", "NewIdFPagto", "Forma_Pagto", "Forma_pagto", "Nuevo_IdFPagto"] },
+  { key: "NewIdArtigo", label: "IdArtigo", aliases: ["NewIdArtigo", "IdArtigo", "Nuevo_IdArtigo"] },
+  { key: "NewIdPromocao", label: "IdPromocao", aliases: ["NewIdPromocao", "NewidPromocao", "IdPromocao", "idPromocao", "Nuevo_IdPromocao"] },
+  { key: "NewDataCompra", label: "Data_Compra", aliases: ["NewDataCompra", "NewData_Compra", "Data_Compra", "Nueva_Data_Compra"] },
+  { key: "IdIndividuo", label: "IdIndividuo", aliases: ["IdIndividuo", "NewIdIndividuo", "Nuevo_IdIndividuo"] },
+  { key: "NewIdDomicilio", label: "IdDomicilio", aliases: ["NewIdDomicilio", "IdDomicilio", "Nuevo_IdDomicilio"] },
+  { key: "NewValuePM", label: "VALUE_PM", aliases: ["NewValuePM", "NewVALUE_PM", "VALUE_PM", "ValuePM", "Nuevo_VALUE_PM"] },
+  { key: "NewSEQ", label: "SEQ", aliases: ["NewSEQ", "SEQ", "Nuevo_SEQ"] },
   // `Flg_Motivo` y `Auxiliar` son los nombres que pidió Jorge para la plantilla
   // (2026-08-05) y coinciden con las llaves que el trigger lee del
   // SESSION_CONTEXT. Los viejos siguen como alias: hay archivos en circulación.
-  { key: "Flg_Motivo", label: "Motivo del cambio", aliases: ["Flg_Motivo", "MotivoCambio", "Motivo_Cambio", "Motivo"] },
-  { key: "Auxiliar", label: "Detalle adicional", aliases: ["Auxiliar", "Motivo_Otros", "MotivoOtros", "motivo_otros"] },
+  { key: "Flg_Motivo", label: "Flg_Motivo", aliases: ["Flg_Motivo", "MotivoCambio", "Motivo_Cambio", "Motivo"] },
+  { key: "Auxiliar", label: "Auxiliar", aliases: ["Auxiliar", "Motivo_Otros", "MotivoOtros", "motivo_otros"] },
 ]
 
 /** El encabezado del Excel, ya normalizado igual que lo hace el motor (`.strip()`). */
