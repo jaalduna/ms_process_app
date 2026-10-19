@@ -15,6 +15,7 @@ import { resetWeightingParams } from "./weighting-params.js"
 import { seedProcessConfig } from "./process_config.js"
 import { resetMacrocac } from "./macrocac.js"
 import { seedSyncJobs } from "../fixtures/seed.js"
+import { resetIteracion } from "./iteracion.js"
 
 const router = Router()
 
@@ -32,6 +33,7 @@ router.post("/test/reset", (_req, res) => {
   mtrStore.reset()
   resetQmsTrJobs()
   resetQmstrFlujo()
+  resetIteracion()
   formato4Store.reset()
   eligibilityStore.reset()
   processStore.reset()
