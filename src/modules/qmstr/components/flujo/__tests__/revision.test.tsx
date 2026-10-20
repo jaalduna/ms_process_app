@@ -9,6 +9,7 @@ const forzarVuelta = vi.fn(() => Promise.resolve({}))
 vi.mock("../../../api", () => ({
   getTandaProgreso: vi.fn(),
   downloadTandaZip: vi.fn(),
+  downloadTandaReporte: vi.fn(() => Promise.resolve()),
   decidirRevision: (tid: string, d: TandaDecisionCreate) => decidirRevision(tid, d),
   forzarVuelta: () => forzarVuelta(),
 }))
@@ -111,5 +112,28 @@ describe("detalle de una base", () => {
     render(<DetalleBase {...props} base={base()} puedeOperar={false} onLanzar={vi.fn()} />)
     expect(screen.queryByTestId("qf-detalle-lanzar")).toBeNull()
     expect(screen.getByTestId("qf-detalle-sin-historial")).toBeVisible()
+  })
+})
+
+
+describe("entrega directa con PythonCac: sin zip ni ticket", () => {
+  it("la tanda cerrada ofrece el reporte y no el zip; la revisión es antes de aplicar", async () => {
+    const { rerender } = render(conQuery(<TandaCard tanda={tanda({ estado: "cerrada", revisar: [] })} nombres={new Map()} modo="simulacion"
+      entrega="pythoncac" esAdmin verRun={false} ocupado={null} onAccion={() => {}} onRevertir={() => {}} />))
+    expect(screen.getByTestId("qf-accion-reporte")).toHaveTextContent("Descargar reporte")
+    expect(screen.queryByTestId("qf-accion-zip")).not.toBeInTheDocument()
+    rerender(conQuery(<TandaCard tanda={tanda({})} nombres={new Map()} modo="simulacion" entrega="pythoncac" esAdmin verRun={false}
+      ocupado={null} onAccion={() => {}} onRevertir={() => {}} />))
+    expect(screen.getByTestId("qf-revision")).toHaveTextContent("Revisión antes de aplicar")
+    expect(screen.getByTestId("qf-revision")).not.toHaveTextContent(/zip|ticket/i)
+  })
+
+  it("el detalle de la base no habla de ticket, zip ni hito 10", () => {
+    render(conQuery(<DetalleBase base={base({ estado: "aplicada", revisar: "dato a revisar" })} pais="BO" paisEtiqueta="Bolivia" periodo="202608"
+      puedeOperar lanzando={false} onOpenChange={() => {}} onLanzar={() => {}} onVerTanda={() => {}} entrega="pythoncac" />))
+    const detalle = screen.getByTestId("qf-detalle")
+    expect(detalle).toHaveTextContent("aplicó los ajustes en J con PythonCac")
+    expect(detalle).toHaveTextContent("Observada antes de aplicar")
+    expect(detalle).not.toHaveTextContent(/zip|ticket|hito 10/i)
   })
 })

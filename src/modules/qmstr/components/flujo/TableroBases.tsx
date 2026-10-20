@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { formatChile } from "../../time"
-import { ESTADOS_BASE, ESTADO_BASE_LABEL, ETAPA_BASE_LABEL, type EstadoBase, type EstadoTanda, type FlujoBase } from "../../types"
+import { ESTADOS_BASE, ESTADO_BASE_LABEL, ETAPA_BASE_LABEL, type Entrega, type EstadoBase, type EstadoTanda, type FlujoBase } from "../../types"
 import { TONO_BASE, periodoLabel, tono } from "./formato"
 
 const ORDEN = ESTADOS_BASE.map((e) => e.estado)
@@ -16,6 +16,13 @@ const ETAPAS: { clave: string; label: string; tone: string; incluye: (b: FlujoBa
   { clave: "cerrada", label: "Terminadas", tone: "var(--qf-aplicada)", incluye: (b) => ["aplicada", "bypass", "revertida"].includes(b.estado) },
 ]
 
+/** Con entrega PythonCac no hay ticket ni hito 10: una sola etapa de aplicación en J. */
+const ETAPAS_PYTHONCAC = [
+  ...ETAPAS.filter((e) => !["dq", "hito10"].includes(e.clave)).slice(0, 3),
+  { clave: "aplicando", label: "Aplicando en J", tone: "color-mix(in oklch, var(--qf-en-proceso) 55%, var(--qf-pendiente))", incluye: (b: FlujoBase) => en(b, ["aplicando"]) },
+  ETAPAS[ETAPAS.length - 1],
+]
+
 function en(b: FlujoBase, estados: EstadoTanda[]) {
   return b.estado === "en_proceso" && !!b.tanda_estado && estados.includes(b.tanda_estado)
 }
@@ -28,6 +35,7 @@ interface TableroBasesProps {
   onFiltro: (e: EstadoBase | null) => void
   /** Abre el detalle de la base (estado, hitos, historial y lanzamiento). */
   onSeleccionar: (b: FlujoBase) => void
+  entrega?: Entrega
 }
 
 /**
@@ -35,7 +43,8 @@ interface TableroBasesProps {
  * liberación de un vistazo), los KPIs y la barra por etapa. La leyenda filtra la tabla de bases; cada celda abre el
  * detalle de su base. Las celdas de bases en QMS-TR laten mientras su tanda avanza.
  */
-export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSeleccionar }: TableroBasesProps) {
+export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSeleccionar, entrega = "ticket" }: TableroBasesProps) {
+  const pasos = entrega === "pythoncac" ? ETAPAS_PYTHONCAC : ETAPAS
   const ordenadas = useMemo(
     () => [...bases].sort((a, b) => ORDEN.indexOf(a.estado) - ORDEN.indexOf(b.estado) || a.producto - b.producto),
     [bases],
@@ -55,7 +64,7 @@ export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSelecci
       ? { label: "retenidas por DC", valor: cuenta.retenida, testid: "qf-kpi-retenidas", estado: "retenida" as const }
       : { label: "esperando liberación de DC", valor: cuenta.esperando_liberacion, testid: "qf-kpi-esperando-liberacion", estado: "esperando_liberacion" as const },
   ]
-  const etapas = ETAPAS.map((e) => ({ ...e, n: bases.filter(e.incluye).length }))
+  const etapas = pasos.map((e) => ({ ...e, n: bases.filter(e.incluye).length }))
   const totalEtapas = etapas.reduce((s, e) => s + e.n, 0)
 
   return (

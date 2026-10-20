@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { downloadTandaZip, type AccionTanda } from "../../api"
+import { downloadTandaReporte, downloadTandaZip, type AccionTanda } from "../../api"
 import { useDecidirRevision, useTandaProgreso } from "../../hooks/useQmsTrFlujo"
 import { formatChile } from "../../time"
 import {
@@ -215,8 +215,13 @@ function detalleRevisar(r: TandaRevisar) {
  * Revisión antes del ticket: las bases que las validaciones internas observaron (lo que pidió la corrida y lo que se vio
  * en el Excel). Cada una se envía igual o se excluye con motivo; el ticket sale cuando están todas decididas.
  */
-function RevisionAntesDelTicket({ tanda: t, nombres, esAdmin }: { tanda: Tanda; nombres: Map<number, string>; esAdmin: boolean }) {
+function RevisionAntesDelTicket(
+  { tanda: t, nombres, esAdmin, entrega }: { tanda: Tanda; nombres: Map<number, string>; esAdmin: boolean; entrega: Entrega },
+) {
   const decidir = useDecidirRevision()
+  // con entrega PythonCac la revisión es antes de aplicar en J, no antes del ticket
+  const directo = entrega === "pythoncac"
+  const titulo = directo ? "Revisión antes de aplicar" : "Revisión antes del ticket"
   const [excluyendo, setExcluyendo] = useState<number | null>(null)
   const [motivo, setMotivo] = useState("")
   const abierta = t.estado === "en_revision"
@@ -228,20 +233,21 @@ function RevisionAntesDelTicket({ tanda: t, nombres, esAdmin }: { tanda: Tanda; 
         setExcluyendo(null)
         setMotivo("")
         const listas = nueva.revisar.every((r) => String(r.producto) in nueva.revision)
-        toast.success(`Base ${producto}: ${decision === "excluir" ? "excluida del ticket" : "va en el ticket"}`
-          + (listas ? ". Revisión lista: el ticket sale en esta vuelta" : ""))
+        toast.success(directo
+          ? `Base ${producto}: ${decision === "excluir" ? "excluida" : "se aplica igual"}` + (listas ? ". Revisión lista: se aplica en esta vuelta" : "")
+          : `Base ${producto}: ${decision === "excluir" ? "excluida del ticket" : "va en el ticket"}` + (listas ? ". Revisión lista: el ticket sale en esta vuelta" : ""))
       },
       onError: (e) => toast.error(`No se pudo guardar la decisión de la base ${producto}: ${mensajeError(e)}`),
     })
   }
 
   return (
-    <section data-testid="qf-revision" aria-label="Revisión antes del ticket"
+    <section data-testid="qf-revision" aria-label={titulo}
       className={cn("space-y-3 rounded-xl border p-4", abierta ? "border-[var(--qf-retenida)] bg-[color-mix(in_oklch,var(--qf-retenida)_7%,transparent)]" : "bg-muted/25")}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="inline-flex items-center gap-2 font-medium">
           <ClipboardCheck className="size-4 text-[var(--qf-retenida)]" />
-          {abierta ? "Revisión antes del ticket" : "Revisión antes del ticket (cerrada)"}
+          {abierta ? titulo : `${titulo} (cerrada)`}
         </p>
         <span className="text-xs text-muted-foreground tabular-nums" data-testid="qf-revision-cuenta">
           {decididas} de {t.revisar.length} decididas
@@ -249,8 +255,10 @@ function RevisionAntesDelTicket({ tanda: t, nombres, esAdmin }: { tanda: Tanda; 
       </div>
       {abierta && (
         <p className="text-sm text-muted-foreground">
-          Las validaciones internas observaron {t.revisar.length === 1 ? "esta base" : "estas bases"}. Envíala igual o exclúyela
-          con un motivo; la excluida queda sin ajustes y sale del zip. El ticket a DQ se crea cuando estén todas decididas.
+          Las validaciones internas observaron {t.revisar.length === 1 ? "esta base" : "estas bases"}.{" "}
+          {directo
+            ? "Aplícala igual o exclúyela con un motivo; la excluida queda sin ajustes. La tanda se aplica en J cuando estén todas decididas."
+            : "Envíala igual o exclúyela con un motivo; la excluida queda sin ajustes y sale del zip. El ticket a DQ se crea cuando estén todas decididas."}
         </p>
       )}
       <ul className="space-y-2">
@@ -270,7 +278,7 @@ function RevisionAntesDelTicket({ tanda: t, nombres, esAdmin }: { tanda: Tanda; 
                 </div>
                 {d && (
                   <Chip tone={d.decision === "excluir" ? "var(--qf-bypass)" : "var(--qf-aplicada)"} title={`${d.por}, ${formatChile(d.at)}`}>
-                    {d.decision === "excluir" ? <><Ban className="size-3" />Excluida</> : <><Send className="size-3" />Va en el ticket</>}
+                    {d.decision === "excluir" ? <><Ban className="size-3" />Excluida</> : <><Send className="size-3" />{directo ? "Va igual" : "Va en el ticket"}</>}
                   </Chip>
                 )}
               </div>
@@ -279,7 +287,7 @@ function RevisionAntesDelTicket({ tanda: t, nombres, esAdmin }: { tanda: Tanda; 
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant={d?.decision === "enviar" ? "default" : "outline"} disabled={decidir.isPending}
                     onClick={() => mandar(r.producto, "enviar")} data-testid={`qf-revision-enviar-${r.producto}`}>
-                    <Send /> Enviar igual
+                    <Send /> {directo ? "Aplicar igual" : "Enviar igual"}
                   </Button>
                   <Button size="sm" variant={d?.decision === "excluir" ? "default" : "outline"} disabled={decidir.isPending}
                     onClick={() => { setExcluyendo(r.producto); setMotivo(d?.decision === "excluir" ? d.motivo : "") }}
@@ -295,7 +303,7 @@ function RevisionAntesDelTicket({ tanda: t, nombres, esAdmin }: { tanda: Tanda; 
                     placeholder="Por qué se excluye (p. ej. equivalencia ×1000, confirmar con DC)" aria-label={`Motivo para excluir la base ${r.producto}`}
                     data-testid={`qf-revision-motivo-${r.producto}`} />
                   <Button size="sm" type="submit" disabled={!motivo.trim() || decidir.isPending} data-testid={`qf-revision-confirmar-${r.producto}`}>
-                    {decidir.isPending ? <Loader2 className="animate-spin" /> : <Ban />} Excluir del ticket
+                    {decidir.isPending ? <Loader2 className="animate-spin" /> : <Ban />} {directo ? "Excluir" : "Excluir del ticket"}
                   </Button>
                   <Button size="sm" type="button" variant="ghost" onClick={() => setExcluyendo(null)}>Cancelar</Button>
                 </form>
@@ -386,12 +394,16 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
   // hay cambios en J que revertir.
   const revertible = t.tipo !== "reversion" && t.modo !== "solo_correr" && t.estado === "cerrada" && !deOtroModo
 
+  // con entrega PythonCac no hay zip que bajar: el reporte de lo aplicado, cuando la tanda se cerró
+  const directo = entrega === "pythoncac"
+  const reporteListo = directo && t.modo === "completo" && t.estado === "cerrada"
+
   async function bajar() {
     setBajando(true)
     try {
-      await downloadTandaZip(t.id)
+      await (directo ? downloadTandaReporte(t.id) : downloadTandaZip(t.id))
     } catch (e) {
-      toast.error(`No se pudo descargar el zip: ${mensajeError(e)}`)
+      toast.error(`No se pudo descargar ${directo ? "el reporte" : "el zip"}: ${mensajeError(e)}`)
     } finally {
       setBajando(false)
     }
@@ -476,10 +488,15 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
 
         <AvisosJira tanda={t} />
 
-        {t.tipo !== "reversion" && t.qms_run_id && <ProgresoCorrida tanda={t} verRun={verRun} />}
+        {t.tipo !== "reversion" && t.qms_run_id && !t.run_tag_existente && <ProgresoCorrida tanda={t} verRun={verRun} />}
+        {t.run_tag_existente && (
+          <p className="text-sm text-muted-foreground" data-testid="qf-reusa-corrida">
+            Reusa la corrida <span className="font-mono text-xs">{t.run_tag_existente}</span>: no se corrió el motor.
+          </p>
+        )}
 
         {t.revisar.length > 0 && (t.estado === "en_revision" || Object.keys(t.revision).length > 0) && (
-          <RevisionAntesDelTicket tanda={t} nombres={nombres} esAdmin={esAdmin} />
+          <RevisionAntesDelTicket tanda={t} nombres={nombres} esAdmin={esAdmin} entrega={entrega} />
         )}
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -492,7 +509,7 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
           {t.revisar.length > 0 && t.estado !== "en_revision" && (
             <Chip tone="var(--qf-retenida)" data-testid="qf-tanda-revisar"
               title={t.revisar.map((r) => `${r.producto}: ${r.motivo}`).join("\n")}>
-              {t.revisar.length === 1 ? "1 base observada" : `${t.revisar.length} bases observadas`} antes del ticket
+              {t.revisar.length === 1 ? "1 base observada" : `${t.revisar.length} bases observadas`} antes {entrega === "pythoncac" ? "de aplicar" : "del ticket"}
             </Chip>
           )}
         </div>
@@ -522,10 +539,16 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
       </div>
 
       <footer className="flex flex-wrap items-center justify-end gap-2 border-t bg-muted/25 px-5 py-3">
-        {zipListo && (
+        {!directo && zipListo && (
           <Button variant="ghost" size="sm" onClick={bajar} disabled={bajando} data-testid="qf-accion-zip">
             {bajando ? <Loader2 className="animate-spin" /> : <Download />}
             Descargar zip
+          </Button>
+        )}
+        {reporteListo && (
+          <Button variant="ghost" size="sm" onClick={bajar} disabled={bajando} data-testid="qf-accion-reporte">
+            {bajando ? <Loader2 className="animate-spin" /> : <Download />}
+            Descargar reporte
           </Button>
         )}
         {esAdmin && (

@@ -273,6 +273,8 @@ export interface TandaEnvio {
 
 /** Tanda = (país, período, número); todas las columnas de `qmstr_flujo_tandas`. */
 export interface Tanda {
+  /** Tanda manual que reusa una corrida ya hecha (su run_tag): no corrió el motor. */
+  run_tag_existente?: string | null
   id: string
   pais: string
   periodo: string
@@ -484,6 +486,17 @@ export const ESTADOS_BASE: { estado: EstadoBase; label: string; chip: string; ay
 
 export const ESTADO_BASE_LABEL = Object.fromEntries(ESTADOS_BASE.map((e) => [e.estado, e.chip])) as Record<EstadoBase, string>
 export const ESTADO_BASE_AYUDA = Object.fromEntries(ESTADOS_BASE.map((e) => [e.estado, e.ayuda])) as Record<EstadoBase, string>
+/** Con entrega PythonCac (sin ticket ni hito 10) la ayuda de algunos estados cambia. */
+export const ESTADO_BASE_AYUDA_PYTHONCAC: Partial<Record<EstadoBase, string>> = {
+  aplicada: "El aplicativo aplicó los ajustes en J con PythonCac",
+  en_proceso: "Está en una tanda que sigue avanzando: corrida, revisión antes de aplicar o aplicación en J",
+  revertida: "Se devolvió en J a como estaba antes de QMS-TR; se puede volver a correr",
+  bypass: "La corrida no la corrigió (falló o no pasó un control), PythonCac la rechazó o se excluyó en la revisión; el motivo está en el detalle",
+}
+
+export function ayudaEstadoBase(estado: EstadoBase, entrega: Entrega): string {
+  return (entrega === "pythoncac" && ESTADO_BASE_AYUDA_PYTHONCAC[estado]) || ESTADO_BASE_AYUDA[estado]
+}
 
 /** Etiqueta de una base en QMS-TR según el paso de su tanda (más concreta que "En QMS-TR"). */
 export const ETAPA_BASE_LABEL: Partial<Record<EstadoTanda, string>> = {
