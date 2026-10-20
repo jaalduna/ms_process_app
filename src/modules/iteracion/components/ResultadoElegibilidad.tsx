@@ -23,6 +23,21 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
     onAjustes({ regiones_cerradas: cerradas })
   }
 
+  if (resultado.parcial) {
+    return (
+      <div className="rounded-lg border px-4 py-3 text-sm" data-testid="it-elg-parcial">
+        <div className="font-semibold">Este país publica solo la marca de elegibilidad</div>
+        <p>
+          Su proceso de imputación todavía no está habilitado (según la documentación de Luan): la corrida calcula qué
+          hogares son elegibles y publica esa marca, sin imputar ni reemplazar.
+        </p>
+      </div>
+    )
+  }
+  const conPublicado = resultado.regiones.some((r) => r.publicado != null)
+  // escala de la barra hasta 120 %: la marca vertical es la muestra ideal (100 %)
+  const ESCALA = 1.2
+
   return (
     <div className="space-y-5">
       <div
@@ -32,14 +47,15 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
       >
         <div className="font-semibold">Revisión antes de imputar</div>
         <p className="text-sm">
-          Con estos parámetros se imputarían <strong>{num(resultado.revision.hogares_imputar)} hogares</strong> en{" "}
+          Con estos parámetros se imputarían <strong>{num(resultado.revision.hogares_imputar)} hogares</strong>
+          {resultado.revision.actos_imputar != null && ` (${num(resultado.revision.actos_imputar)} actos)`} en{" "}
           {resultado.revision.regiones_con_imputacion} regiones. Nada se escribe hasta aprobar.
         </p>
       </div>
 
       <Seccion
         titulo="Muestra por región contra la muestra ideal"
-        detalle={`R_Regiones · la marca vertical es el mínimo para estar OK (${pct(resultado.f_ok, 0)})`}
+        detalle="R_Regiones · la marca vertical es la muestra ideal (100 %); OK desde 100 %, justo desde 90 %"
       >
         <Table>
           <TableHeader>
@@ -48,7 +64,13 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
               <TableHead className="text-right">Ideal</TableHead>
               <TableHead className="text-right">Natural</TableHead>
               <TableHead className="text-right">Imputados</TableHead>
+              {conPublicado && <TableHead className="text-right">Reemplazos</TableHead>}
               <TableHead className="min-w-36">Cumplimiento</TableHead>
+              {conPublicado && (
+                <TableHead className="text-right" title="Elegibles publicados en MorDom para este período">
+                  Publicado
+                </TableHead>
+              )}
               <TableHead>Estado</TableHead>
               <TableHead>
                 <span className="sr-only">Acción</span>
@@ -65,21 +87,30 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
                   <TableCell className="text-right tabular-nums">{num(r.ideal)}</TableCell>
                   <TableCell className="text-right tabular-nums">{num(r.natural)}</TableCell>
                   <TableCell className="text-right tabular-nums">{num(r.imputados)}</TableCell>
+                  {conPublicado && <TableCell className="text-right tabular-nums">{num(r.reemplazos ?? 0)}</TableCell>}
                   <TableCell>
                     <div className="relative h-2.5 rounded-full bg-muted" aria-hidden>
                       <div
                         className="absolute inset-y-0 left-0 rounded-full"
-                        style={{ width: `${Math.min(100, r.cumplimiento * 100)}%`, background: e.relleno }}
+                        style={{ width: `${Math.min(100, (r.cumplimiento / ESCALA) * 100)}%`, background: e.relleno }}
                       />
-                      <div
-                        className="absolute -inset-y-1 w-0.5 bg-foreground"
-                        style={{ left: `${resultado.f_ok * 100}%` }}
-                      />
+                      <div className="absolute -inset-y-1 w-0.5 bg-foreground" style={{ left: `${100 / ESCALA}%` }} />
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground tabular-nums">
                       {pct(r.cumplimiento)} · {num(r.final)} final
                     </div>
                   </TableCell>
+                  {conPublicado && (
+                    <TableCell className="text-right tabular-nums">
+                      {r.publicado == null ? "—" : num(r.publicado)}
+                      {r.publicado != null && r.publicado !== r.final && (
+                        <span className="block text-xs text-muted-foreground">
+                          {r.final - r.publicado > 0 ? "+" : ""}
+                          {num(r.final - r.publicado)} esta vuelta
+                        </span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell className="font-semibold" style={textoTono(e.tono)}>
                     {e.texto}
                   </TableCell>
@@ -101,8 +132,14 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
       </Seccion>
 
       <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
-        <Seccion titulo="Tendencia del % imputado" detalle="Últimos cierres publicados y esta vuelta">
-          <Tendencia puntos={resultado.tendencia} />
+        <Seccion
+          titulo={resultado.tendencia.length ? "Tendencia del % imputado" : "Contra lo publicado"}
+          detalle={resultado.tendencia.length ? "Últimos cierres publicados y esta vuelta" : "Elegibles de esta vuelta contra los publicados del período"}
+        >
+          {resultado.tendencia.length > 0 && <Tendencia puntos={resultado.tendencia} />}
+          {resultado.comparaciones.length === 0 && (
+            <p className="text-sm text-muted-foreground">El período no tiene elegibilidad publicada para comparar.</p>
+          )}
           <div className="grid grid-cols-3 gap-2">
             {resultado.comparaciones.map((c) => (
               <div key={c.etiqueta} className="rounded-md bg-muted px-3 py-2">
