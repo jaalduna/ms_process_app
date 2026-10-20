@@ -5,6 +5,7 @@ import {
   crearTanda,
   decidirRevision,
   forzarVuelta,
+  getBloqueosReversion,
   getFlujoBases,
   getFlujoAvisos,
   getFlujoEstado,
@@ -110,6 +111,16 @@ function useInvalidar() {
 export function useCrearTanda() {
   const invalidar = useInvalidar()
   return useMutation({ mutationFn: (d: TandaCreate) => crearTanda(d), onSuccess: invalidar })
+}
+
+/** Bases de una tanda que no se pueden revertir (cambios en J posteriores a QMS-TR). Se lee al abrir el diálogo. */
+export function useBloqueosReversion(tid: string) {
+  return useQuery({
+    queryKey: [...KEY, "bloqueos", tid],
+    queryFn: () => getBloqueosReversion(tid),
+    staleTime: 0,
+    retry: false,
+  })
 }
 
 export function useRevertirTanda() {

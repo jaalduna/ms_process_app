@@ -144,7 +144,11 @@ export type FlujoModo = "simulacion" | "real"
 export interface FlujoEstado {
   enabled: boolean
   modo: FlujoModo
-  /** Códigos de país configurados (QMSTR_FLUJO_PAISES). */
+  /**
+   * Cómo se entregan los ajustes (QMSTR_FLUJO_ENTREGA): "ticket" = zip a DQ por Jira; "pythoncac" = DC lanza la
+   * tanda y el aplicativo aplica en J con PythonCac, sin ticket, hito 10 ni aviso a MTR (RACI v2).
+   */
+  entrega?: Entrega
   paises: string[]
   intervalo_segundos: number
   ultima_vuelta: string | null
@@ -185,6 +189,7 @@ export type EstadoBase =
   | "fuera_de_alcance"
 
 export type TipoTanda = "liberacion" | "manual" | "reversion"
+export type Entrega = "ticket" | "pythoncac"
 export type ModoTanda = "completo" | "solo_correr"
 export type EstadoTanda =
   | "detectada"
@@ -193,6 +198,7 @@ export type EstadoTanda =
   | "validando"
   | "en_revision"
   | "enviando"
+  | "aplicando"
   | "en_dq"
   | "hito10"
   | "cerrada"
@@ -324,11 +330,31 @@ export interface TandaCreate {
   modo: ModoTanda
   forzar: boolean
   nota: string
+  /** Reusar una corrida ya hecha (su run_tag) en vez de correr el motor. */
+  run_tag?: string
 }
 
 export interface TandaRevertir {
   productos: number[]
   motivo: string
+  /** El operador vio el aviso de cambios en J posteriores a QMS-TR y confirma pisarlos. */
+  confirmar_cambios_posteriores?: boolean
+}
+
+/**
+ * Cambios en J posteriores a QMS-TR en los actos que QMS-TR tocó en una base (auditoría de J): DC, cuestionamientos,
+ * reglas de MKA. Una base con cambios posteriores no se puede revertir.
+ */
+export interface BloqueoReversion {
+  actos: number
+  cambios: number
+  /** Flg_Motivo → cantidad de cambios */
+  motivos: Record<string, number>
+  /** columna (o "DELETE") → cantidad de cambios */
+  columnas: Record<string, number>
+  usuarios: string[]
+  desde: string | null
+  hasta: string | null
 }
 
 export interface ProgresoForEach {
@@ -397,19 +423,26 @@ export interface FlujoAviso {
 
 /** Estados en que la tanda sigue avanzando sola (ACTIVOS de la API + armando_reversion). */
 export const TANDA_ACTIVOS: EstadoTanda[] = [
-  "detectada", "corriendo", "armando_reversion", "validando", "en_revision", "enviando", "en_dq", "hito10",
+  "detectada", "corriendo", "armando_reversion", "validando", "en_revision", "enviando", "aplicando", "en_dq", "hito10",
 ]
 
 /** Camino feliz de cada tipo de tanda, en orden (lo que dibuja el stepper). */
-export const CAMINO_TANDA: Record<"corrida" | "reversion" | "solo_correr", EstadoTanda[]> = {
+export const CAMINO_TANDA: Record<
+  "corrida" | "reversion" | "solo_correr" | "corrida_pythoncac" | "reversion_pythoncac",
+  EstadoTanda[]
+> = {
   corrida: ["detectada", "corriendo", "validando", "enviando", "en_dq", "hito10", "cerrada"],
   reversion: ["detectada", "armando_reversion", "enviando", "en_dq", "hito10", "cerrada"],
   solo_correr: ["detectada", "corriendo", "cerrada"],
+  // entrega directa: el aplicativo aplica en J con PythonCac y la tanda se cierra (DC confirma el pase a MTR)
+  corrida_pythoncac: ["detectada", "corriendo", "validando", "aplicando", "cerrada"],
+  reversion_pythoncac: ["detectada", "aplicando", "cerrada"],
 }
 
-export function caminoDe(t: Pick<Tanda, "tipo" | "modo">): EstadoTanda[] {
-  if (t.tipo === "reversion") return CAMINO_TANDA.reversion
-  return t.modo === "solo_correr" ? CAMINO_TANDA.solo_correr : CAMINO_TANDA.corrida
+export function caminoDe(t: Pick<Tanda, "tipo" | "modo">, entrega: Entrega = "ticket"): EstadoTanda[] {
+  if (t.modo === "solo_correr") return CAMINO_TANDA.solo_correr
+  if (entrega === "pythoncac") return t.tipo === "reversion" ? CAMINO_TANDA.reversion_pythoncac : CAMINO_TANDA.corrida_pythoncac
+  return t.tipo === "reversion" ? CAMINO_TANDA.reversion : CAMINO_TANDA.corrida
 }
 
 export const ESTADO_TANDA_LABEL: Record<EstadoTanda, string> = {
@@ -419,6 +452,7 @@ export const ESTADO_TANDA_LABEL: Record<EstadoTanda, string> = {
   validando: "Validando antes del ticket",
   en_revision: "En revisión antes del ticket",
   enviando: "Creando ticket",
+  aplicando: "Aplicando en J",
   en_dq: "Ticket en DQ",
   hito10: "Registrando hito 10",
   cerrada: "Cerrada",
@@ -459,6 +493,7 @@ export const ETAPA_BASE_LABEL: Partial<Record<EstadoTanda, string>> = {
   validando: "Validando antes del ticket",
   en_revision: "En revisión antes del ticket",
   enviando: "Creando ticket",
+  aplicando: "Aplicando en J",
   en_dq: "Ticket en DQ",
   hito10: "Registrando hito 10",
   revision_manual: "Requiere revisión",

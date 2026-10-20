@@ -12,7 +12,7 @@ import { downloadTandaZip, type AccionTanda } from "../../api"
 import { useDecidirRevision, useTandaProgreso } from "../../hooks/useQmsTrFlujo"
 import { formatChile } from "../../time"
 import {
-  ESTADO_TANDA_LABEL, TANDA_ACTIVOS, TAREA_LABELS, caminoDe, type EstadoTanda, type FlujoModo, type ProgresoTarea, type Tanda,
+  ESTADO_TANDA_LABEL, TANDA_ACTIVOS, TAREA_LABELS, caminoDe, type Entrega, type EstadoTanda, type FlujoModo, type ProgresoTarea, type Tanda,
   type TandaRevisar,
 } from "../../types"
 import { TONO_TANDA, mensajeError, nBases, tono } from "./formato"
@@ -27,14 +27,18 @@ const PASO_LABEL: Partial<Record<EstadoTanda, string>> = {
   armando_reversion: "Zip inverso",
   validando: "Validación",
   enviando: "Ticket a DQ",
+  aplicando: "Aplicación en J",
   en_dq: "DQ",
   hito10: "Hito 10",
   cerrada: "Cerrada",
 }
 
-/** Una tanda completa cierra avisando a MTR en el ticket de Jira; "solo correr" no tiene ticket. */
-const pasoLabel = (paso: EstadoTanda, t: Pick<Tanda, "modo" | "estado">) => {
-  if (paso === "cerrada" && t.modo === "completo") return "Aviso a MTR en Jira"
+/**
+ * Con ticket, una tanda completa cierra avisando a MTR en Jira; "solo correr" no tiene ticket. Con entrega PythonCac
+ * no hay aviso: DC confirma el pase a MTR.
+ */
+const pasoLabel = (paso: EstadoTanda, t: Pick<Tanda, "modo" | "estado">, entrega: Entrega) => {
+  if (paso === "cerrada" && t.modo === "completo" && entrega === "ticket") return "Aviso a MTR en Jira"
   if (paso === "validando" && t.estado === "en_revision") return "Revisión"
   return PASO_LABEL[paso] ?? ESTADO_TANDA_LABEL[paso]
 }
@@ -43,8 +47,8 @@ const pasoLabel = (paso: EstadoTanda, t: Pick<Tanda, "modo" | "estado">) => {
 const pasoDe = (e: EstadoTanda): EstadoTanda => (e === "en_revision" ? "validando" : e)
 
 /** Stepper del camino de la tanda; en revisión manual marca en rojo el paso donde se detuvo. */
-export function Stepper({ tanda }: { tanda: Tanda }) {
-  const camino = caminoDe(tanda)
+export function Stepper({ tanda, entrega = "ticket" }: { tanda: Tanda; entrega?: Entrega }) {
+  const camino = caminoDe(tanda, entrega)
   const enRevision = tanda.estado === "revision_manual"
   const actual = camino.indexOf(pasoDe(enRevision ? (tanda.estado_previo ?? "detectada") : tanda.estado))
   const cerrada = tanda.estado === "cerrada"
@@ -82,7 +86,7 @@ export function Stepper({ tanda }: { tanda: Tanda }) {
               <span className={cn("h-0.5 w-6 sm:w-10", i === camino.length - 1 ? "invisible" : hecho ? "bg-primary" : "bg-border")} />
             </div>
             <span className={cn("mt-1.5 text-[11px] whitespace-nowrap", esActual ? "font-semibold text-foreground" : "text-muted-foreground")}>
-              {pasoLabel(paso, tanda)}
+              {pasoLabel(paso, tanda, entrega)}
             </span>
           </li>
         )
@@ -359,6 +363,8 @@ interface TandaCardProps {
   tanda: Tanda
   nombres: Map<number, string>
   modo: FlujoModo
+  /** Cómo entrega el flujo (QMSTR_FLUJO_ENTREGA): define los pasos que se dibujan. */
+  entrega?: Entrega
   esAdmin: boolean
   /** Link al run de Databricks (solo admins, como en el resto de la app). */
   verRun: boolean
@@ -368,7 +374,7 @@ interface TandaCardProps {
   onRevertir: () => void
 }
 
-export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, ocupado, onAccion, onRevertir }: TandaCardProps) {
+export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin, verRun, origen, ocupado, onAccion, onRevertir }: TandaCardProps) {
   const [verBases, setVerBases] = useState(false)
   const [bajando, setBajando] = useState(false)
   const activa = TANDA_ACTIVOS.includes(t.estado)
@@ -445,7 +451,7 @@ export function TandaCard({ tanda: t, nombres, modo, esAdmin, verRun, origen, oc
       </header>
 
       <div className="space-y-5 px-5 py-4">
-        <div className="-mx-5 overflow-x-auto px-5 pb-1"><Stepper tanda={t} /></div>
+        <div className="-mx-5 overflow-x-auto px-5 pb-1"><Stepper tanda={t} entrega={entrega} /></div>
 
         {t.error && SIN_PERMISO.test(t.error) && (
           <div role="status" data-testid="qf-bloqueo-permiso"

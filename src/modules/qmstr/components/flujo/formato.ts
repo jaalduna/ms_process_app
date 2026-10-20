@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react"
 import { AxiosError } from "axios"
-import type { EstadoBase, EstadoTanda, TipoTanda } from "../../types"
+import type { BloqueoReversion, EstadoBase, EstadoTanda, TipoTanda } from "../../types"
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
   "noviembre", "diciembre"]
@@ -32,6 +32,7 @@ export const TONO_TANDA: Record<EstadoTanda, string> = {
   validando: "var(--qf-en-proceso)",
   en_revision: "var(--qf-retenida)",
   enviando: "var(--qf-pendiente)",
+  aplicando: "var(--qf-en-proceso)",
   en_dq: "var(--qf-pendiente)",
   hito10: "var(--qf-pendiente)",
   cerrada: "var(--qf-aplicada)",
@@ -76,3 +77,17 @@ export const nBases = (n: number) => `${n} ${n === 1 ? "base" : "bases"}`
 
 /** Estilo inline que fija el tono (`--tone`) que usan .qf-tone y las clases bg-[var(--tone)]. */
 export const tono = (t: string) => ({ "--tone": t }) as CSSProperties
+
+const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+
+/** Aviso de una base bloqueada: cuántos actos, por qué motivos, quiénes y cuándo. */
+export function avisoBloqueo(b: BloqueoReversion): string {
+  const motivos = Object.entries(b.motivos)
+    .map(([m, n]) => `motivo ${m} (${n})`)
+    .join(", ")
+  const quienes = b.usuarios.map((u) => u.replace(/^WP\\/i, "")).join(", ")
+  const cuando = b.desde && b.hasta ? (diaMes(b.desde) === diaMes(b.hasta) ? diaMes(b.desde) : `${diaMes(b.desde)}–${diaMes(b.hasta)}`) : ""
+  return [`${b.actos} ${b.actos === 1 ? "acto cambiado" : "actos cambiados"} en J después de QMS-TR`, motivos, quienes && `por ${quienes}`, cuando]
+    .filter(Boolean)
+    .join(" · ")
+}

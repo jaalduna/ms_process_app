@@ -136,10 +136,10 @@ export function QmsTrFlujoPage() {
     })
   }
 
-  function confirmarReversion(productos: number[], motivo: string) {
+  function confirmarReversion(productos: number[], motivo: string, confirmarCambiosPosteriores: boolean) {
     if (!aRevertir) return
     const origen = aRevertir
-    revertir.mutate({ tid: origen.id, productos, motivo }, {
+    revertir.mutate({ tid: origen.id, productos, motivo, confirmar_cambios_posteriores: confirmarCambiosPosteriores }, {
       onSuccess: (t) => {
         setARevertir(null)
         toast.success(`Reversión en marcha (tanda ${t.numero}): ${nBases(productos.length)} de la tanda ${origen.numero}`)
@@ -150,6 +150,7 @@ export function QmsTrFlujoPage() {
 
   const errorCarga = estado.error ?? paises.error
   const modo = estado.data?.modo
+  const entrega = estado.data?.entrega ?? "ticket"
 
   return (
     <div className="qf mx-auto max-w-7xl space-y-6 p-4 sm:p-6" data-testid="qf-page">
@@ -282,7 +283,9 @@ export function QmsTrFlujoPage() {
                 ) : ordenadas.length === 0 ? (
                   <Vacio icon={<Workflow />} titulo="Ninguna tanda en este período"
                     accion={puedeOperar && <Button onClick={() => setOverride(true)}><Rocket /> Lanzar QMS-TR</Button>}>
-                    El flujo arma una tanda cuando DC registra el hito 4. Si necesitas correr antes, lánzala a mano.
+                    {entrega === "pythoncac"
+                      ? "Cuando DC libere las bases, lanza la tanda: el aplicativo corre QMS-TR y aplica los cambios en J."
+                      : "El flujo arma una tanda cuando DC registra el hito 4. Si necesitas correr antes, lánzala a mano."}
                   </Vacio>
                 ) : (
                   ordenadas.map((t) => (
@@ -291,6 +294,7 @@ export function QmsTrFlujoPage() {
                       tanda={t}
                       nombres={nombres}
                       modo={modo ?? "simulacion"}
+                      entrega={entrega}
                       esAdmin={puedeOperar}
                       verRun={canViewDatabricksRun}
                       origen={t.tanda_origen ? porId.get(t.tanda_origen) : undefined}
@@ -320,7 +324,7 @@ export function QmsTrFlujoPage() {
       )}
 
       {paises.data && pais && (
-        <OverrideDialog open={override} onOpenChange={setOverride} paises={paises.data} paisInicial={pais}
+        <OverrideDialog open={override} onOpenChange={setOverride} paises={paises.data} paisInicial={pais} entrega={entrega}
           periodoInicial={periodo ?? ""} lanzando={crear.isPending} onLanzar={lanzar} />
       )}
       {pais && periodo && (
@@ -330,6 +334,7 @@ export function QmsTrFlujoPage() {
       )}
       <RevertirDialog
         tanda={aRevertir}
+        entrega={entrega}
         yaRevertidas={new Set((tandas.data ?? []).filter((t) => t.tipo === "reversion" && t.tanda_origen === aRevertir?.id).flatMap((t) => t.productos))}
         nombres={nombres}
         revirtiendo={revertir.isPending}

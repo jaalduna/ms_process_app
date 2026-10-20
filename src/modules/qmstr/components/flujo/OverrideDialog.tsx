@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useFlujoBases, useFlujoPeriodos } from "../../hooks/useQmsTrFlujo"
 import { formatChile } from "../../time"
-import type { EstadoBase, FlujoBase, FlujoPais, ModoTanda, TandaCreate } from "../../types"
+import type { Entrega, EstadoBase, FlujoBase, FlujoPais, ModoTanda, TandaCreate } from "../../types"
 import { mensajeError, periodoLabel } from "./formato"
 import { bloqueo } from "./bloqueo"
 import { MODOS } from "./modos"
@@ -42,6 +42,8 @@ interface OverrideDialogProps {
   periodoInicial: string
   lanzando: boolean
   onLanzar: (data: TandaCreate) => void
+  /** Cómo entrega el flujo: con PythonCac no hay zip ni ticket. */
+  entrega?: Entrega
 }
 
 /** "Lanzar QMS-TR": país -> período -> bases -> modo y nota -> confirmación. */
@@ -54,7 +56,7 @@ export function OverrideDialog(props: OverrideDialogProps) {
   )
 }
 
-function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: OverrideDialogProps) {
+function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, entrega = "ticket" }: OverrideDialogProps) {
   const [pais, setPais] = useState(paisInicial)
   const [periodoSel, setPeriodo] = useState(periodoInicial)
   const [sel, setSel] = useState<Set<number>>(new Set())
@@ -63,6 +65,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
   const [forzar, setForzar] = useState(false)
   const [modo, setModo] = useState<ModoTanda>("completo")
   const [nota, setNota] = useState("")
+  const [runTag, setRunTag] = useState("")
   const [revisar, setRevisar] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
 
@@ -113,7 +116,8 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
     setSel(s)
   }
   function lanzar() {
-    onLanzar({ pais, periodo, productos: [...sel].sort((a, b) => a - b), modo, forzar: elegidasSinH4.length > 0 && forzar, nota: nota.trim() })
+    onLanzar({ pais, periodo, productos: [...sel].sort((a, b) => a - b), modo, forzar: elegidasSinH4.length > 0 && forzar, nota: nota.trim(),
+      ...(runTag.trim() ? { run_tag: runTag.trim() } : {}) })
   }
 
   return (
@@ -280,6 +284,14 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
             <Textarea id="qf-override-nota" value={nota} onChange={(e) => setNota(e.target.value)} rows={2}
               placeholder="Ej.: DC re-liberó Café molido por correo" data-testid="qf-override-nota" />
           </div>
+
+          <div>
+            <label htmlFor="qf-override-runtag" className="mb-1.5 block text-sm font-medium">
+              Reusar una corrida <span className="font-normal text-muted-foreground">(opcional: no corre el motor)</span>
+            </label>
+            <Input id="qf-override-runtag" value={runTag} onChange={(e) => setRunTag(e.target.value)}
+              placeholder="run_tag, ej.: bolivia_202608_prueba_pythoncac" data-testid="qf-override-runtag" />
+          </div>
           </div>
         </div>
       ) : (
@@ -317,8 +329,15 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar }: 
               Forzada: {elegidasSinH4.length} sin hito 4.</p>
           )}
           {nota.trim() && <p className="text-sm"><span className="text-muted-foreground">Nota:</span> {nota.trim()}</p>}
+          {runTag.trim() && (
+            <p className="text-sm" data-testid="qf-override-resumen-runtag">
+              <span className="text-muted-foreground">Reusa la corrida:</span> {runTag.trim()} (no se corre el motor)
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">
-            {modo === "completo"
+            {modo === "completo" && entrega === "pythoncac"
+              ? "Cuando termine la corrida, el aplicativo aplica los cambios en J con PythonCac. Las bases que PythonCac rechace quedan fuera, con su motivo."
+              : modo === "completo"
               ? "Cuando termine la corrida se envía el zip a DQ, se crea el ticket con MTR como observador."
               : "Al terminar la corrida la tanda se cierra sola: no se envía nada a DQ."}
           </p>

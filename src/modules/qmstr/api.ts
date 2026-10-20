@@ -13,6 +13,7 @@ import type {
   TandaProgreso,
   TandaDecisionCreate,
   TandaRevertir,
+  BloqueoReversion,
 } from "./types"
 
 export function getQmsTrRuns(params?: { country?: string; limit?: number }) {
@@ -71,6 +72,10 @@ export const getFlujoAvisos = (pais: string, periodo: string) =>
   api.get<FlujoAviso[]>(`${FLUJO}/avisos`, { params: { pais, periodo } }).then((r) => r.data)
 
 export const crearTanda = (data: TandaCreate) => api.post<Tanda>(`${FLUJO}/tandas`, data).then((r) => r.data)
+export const getBloqueosReversion = (tid: string) =>
+  api
+    .get<{ bloqueos: Record<string, BloqueoReversion> }>(`${FLUJO}/tandas/${tid}/reversion/bloqueos`)
+    .then((r) => r.data.bloqueos)
 export const revertirTanda = (tid: string, data: TandaRevertir) =>
   api.post<Tanda>(`${FLUJO}/tandas/${tid}/revertir`, data).then((r) => r.data)
 
