@@ -84,27 +84,3 @@ test("calibracion history: grid + eye→detail + table-picker download", async (
   expect(file.suggestedFilename()).toMatch(/\.csv$/)
 })
 
-test("elegibilidad history: button on card + grid + eye→detail + Phase A download", async ({ page }) => {
-  await login(page)
-  await navigateTo(page, "Elegibilidad", /elegibilidad/)
-
-  // Mexico has a seeded "ready" run with Phase A results.
-  const card = page.locator('[data-slot="card"]').filter({ hasText: "Mexico" })
-  await expect(card).toBeVisible({ timeout: 10_000 })
-  await card.getByRole("button", { name: /ver historial de elegibilidad/i }).click()
-
-  const history = page.getByRole("dialog").filter({ hasText: "Historial de Elegibilidad" })
-  await expect(history).toBeVisible({ timeout: 10_000 })
-  await assertGrid(history)
-
-  // Eye → EligibilityDetailModal.
-  await history.getByTitle("Ver detalle").first().click()
-  await expect(page.getByText("Detalle Elegibilidad")).toBeVisible({ timeout: 10_000 })
-  await page.keyboard.press("Escape")
-
-  // Download → Phase A results file.
-  const dl = page.waitForEvent("download", { timeout: 15_000 })
-  await history.getByTitle("Descargar resultados (Phase A)").first().click()
-  const file = await dl
-  expect(file.suggestedFilename()).toMatch(/eligibility_results_.*\.csv$/)
-})

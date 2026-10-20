@@ -1,0 +1,541 @@
+openapi: 3.0.3
+info:
+  title: ms-process-api — flujo iterativo de Elegibilidad y Pesaje
+  version: 1.0.0
+  description: |
+    Contrato de `/iteracion` (specs/SPEC-iteracion.md). Lo implementan la API (ms-process-api,
+    `routes/iteracion.py`) y el mock-server (`mock-server/routes/iteracion.js`).
+    `tests/test_contract.py` de la API verifica que cada operación esté ruteada.
+servers:
+  - url: /api/v1
+
+components:
+  parameters:
+    proceso:
+      name: proceso
+      in: path
+      required: true
+      schema: { type: string, enum: [elegibilidad, pesaje] }
+    pais:
+      name: pais
+      in: path
+      required: true
+      description: Id en minúscula de GET /iteracion/{proceso}/paises (p. ej. brasil, mexico_ooh)
+      schema: { type: string }
+    periodo:
+      name: periodo
+      in: path
+      required: true
+      schema: { type: string, pattern: '^\d{4}(0[1-9]|1[0-2])$' }
+    escenarioId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Error:
+      description: Error con código y mensaje
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: { type: string }
+        message: { type: string }
+
+    Engine:
+      type: string
+      enum: [simulated, databricks]
+
+    Pais:
+      type: object
+      required: [id, label, panel]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        panel: { type: string, enum: [hogares, ooh] }
+
+    Preparacion:
+      type: object
+      required: [proceso, pais, periodo, engine, estado, tablas, validaciones, dependencias]
+      properties:
+        proceso: { type: string, enum: [elegibilidad, pesaje] }
+        pais: { type: string }
+        periodo: { type: string }
+        engine: { $ref: '#/components/schemas/Engine' }
+        estado: { type: string, enum: [sin_preparar, preparando, lista, error] }
+        preparado_en: { type: string, format: date-time, nullable: true }
+        version_silver: { type: string, nullable: true }
+        fuente: { type: string }
+        tablas:
+          type: array
+          items:
+            type: object
+            required: [nombre, estado]
+            properties:
+              nombre: { type: string }
+              filas: { type: integer, nullable: true }
+              estado: { type: string, enum: [lista, pendiente, error] }
+        validaciones:
+          type: array
+          items:
+            type: object
+            required: [id, titulo, detalle, nivel]
+            properties:
+              id: { type: string }
+              titulo: { type: string }
+              detalle: { type: string }
+              nivel: { type: string, enum: [ok, aviso, error] }
+        dependencias:
+          type: array
+          items:
+            type: object
+            required: [proceso, estado, detalle]
+            properties:
+              proceso: { type: string }
+              estado: { type: string, enum: [publicada, pendiente] }
+              detalle: { type: string }
+
+    ParamDef:
+      type: object
+      required: [clave, etiqueta, ayuda, tipo]
+      properties:
+        clave: { type: string }
+        etiqueta: { type: string }
+        ayuda: { type: string }
+        tipo: { type: string, enum: [rango, entero, booleano] }
+        min: { type: number }
+        max: { type: number }
+        paso: { type: number }
+        formato: { type: string, enum: [pct, num, percentil] }
+
+    Valores:
+      type: object
+      additionalProperties:
+        oneOf: [{ type: number }, { type: boolean }]
+
+    Parametros:
+      type: object
+      required: [definiciones, valores, referencia]
+      properties:
+        definiciones: { type: array, items: { $ref: '#/components/schemas/ParamDef' } }
+        valores: { $ref: '#/components/schemas/Valores' }
+        referencia:
+          type: object
+          required: [etiqueta, valores]
+          properties:
+            etiqueta: { type: string }
+            valores: { $ref: '#/components/schemas/Valores' }
+
+    Ajustes:
+      type: object
+      description: |
+        Elegibilidad: `{ regiones_cerradas: string[] }`.
+        Pesaje: `{ idpesos: string[], juntas_vetadas: string[] }`.
+      properties:
+        regiones_cerradas: { type: array, items: { type: string } }
+        idpesos: { type: array, items: { type: string } }
+        juntas_vetadas: { type: array, items: { type: string } }
+
+    SimulacionRequest:
+      type: object
+      properties:
+        parametros: { $ref: '#/components/schemas/Valores' }
+        ajustes: { $ref: '#/components/schemas/Ajustes' }
+
+    Kpi:
+      type: object
+      required: [id, etiqueta, valor, formato]
+      properties:
+        id: { type: string }
+        etiqueta: { type: string }
+        valor: { type: number }
+        formato: { type: string, enum: [num, pct, err, seg] }
+        nota: { type: string }
+        estado: { type: string, enum: [ok, aviso, error, neutro] }
+
+    ResultadoElegibilidad:
+      type: object
+      required: [tipo, f_ok, regiones, revision, tendencia, comparaciones, donantes]
+      properties:
+        tipo: { type: string, enum: [elegibilidad] }
+        f_ok: { type: number }
+        regiones:
+          type: array
+          items:
+            type: object
+            required: [id, nombre, ideal, natural, imputados, final, cumplimiento, estado]
+            properties:
+              id: { type: string }
+              nombre: { type: string }
+              ideal: { type: integer }
+              natural: { type: integer }
+              imputados: { type: integer }
+              final: { type: integer }
+              cumplimiento: { type: number, description: Fracción (0.987 = 98,7%) }
+              estado: { type: string, enum: [ok, justo, deficit, cerrada] }
+        revision:
+          type: object
+          required: [hogares_imputar, regiones_con_imputacion]
+          properties:
+            hogares_imputar: { type: integer }
+            regiones_con_imputacion: { type: integer }
+        tendencia:
+          type: array
+          items:
+            type: object
+            required: [periodo, pct_imputado, actual]
+            properties:
+              periodo: { type: string }
+              pct_imputado: { type: number, description: Fracción }
+              actual: { type: boolean }
+        comparaciones:
+          type: array
+          items:
+            type: object
+            required: [etiqueta, delta_pp]
+            properties:
+              etiqueta: { type: string }
+              delta_pp: { type: number }
+        donantes:
+          type: array
+          items:
+            type: object
+            required: [usos, hogares]
+            properties:
+              usos: { type: integer }
+              hogares: { type: integer }
+
+    ResultadoPesaje:
+      type: object
+      required: [tipo, unidad, meta_error, idpesos, histograma, juntas]
+      properties:
+        tipo: { type: string, enum: [pesaje] }
+        unidad: { type: string, enum: [hogar, individuo] }
+        meta_error: { type: number, description: Fracción (0.001 = 0,1%) }
+        idpesos:
+          type: array
+          items:
+            type: object
+            required: [id, nombre, pesados, error_inicial, error_final, outliers, juntas, diferencia_actual]
+            properties:
+              id: { type: string }
+              nombre: { type: string }
+              pesados: { type: integer }
+              error_inicial: { type: number }
+              error_final: { type: number }
+              outliers: { type: integer }
+              juntas: { type: integer }
+              diferencia_actual: { type: integer }
+        histograma:
+          type: object
+          required: [periodo_anterior, anterior, actual, fuera]
+          properties:
+            periodo_anterior: { type: string }
+            anterior: { type: array, items: { type: number } }
+            actual: { type: array, items: { type: number } }
+            fuera: { type: array, items: { type: boolean } }
+        juntas:
+          type: array
+          items:
+            type: object
+            required: [id, region, detalle, vetada]
+            properties:
+              id: { type: string }
+              region: { type: string }
+              detalle: { type: string }
+              vetada: { type: boolean }
+
+    Simulacion:
+      type: object
+      required: [engine, duracion_ms, generado_en, kpis, resultado]
+      properties:
+        engine: { $ref: '#/components/schemas/Engine' }
+        duracion_ms: { type: integer }
+        generado_en: { type: string, format: date-time }
+        kpis: { type: array, items: { $ref: '#/components/schemas/Kpi' } }
+        resultado:
+          oneOf:
+            - $ref: '#/components/schemas/ResultadoElegibilidad'
+            - $ref: '#/components/schemas/ResultadoPesaje'
+          discriminator: { propertyName: tipo }
+
+    Escenario:
+      type: object
+      required: [id, nombre, es_referencia, creado_por, creado_en, parametros, ajustes, resumen]
+      properties:
+        id: { type: string }
+        nombre: { type: string }
+        es_referencia: { type: boolean }
+        creado_por: { type: string }
+        creado_en: { type: string, format: date-time }
+        parametros: { $ref: '#/components/schemas/Valores' }
+        ajustes: { $ref: '#/components/schemas/Ajustes' }
+        resumen: { type: array, items: { $ref: '#/components/schemas/Kpi' } }
+
+    Publicacion:
+      type: object
+      required: [estado, engine, escenario_id, destino, plan, chequeos, puede_enviar, puede_aprobar, bitacora]
+      properties:
+        estado: { type: string, enum: [borrador, pendiente, publicada] }
+        engine: { $ref: '#/components/schemas/Engine' }
+        escenario_id: { type: string, nullable: true }
+        destino: { type: string, enum: [sql, kronos], nullable: true }
+        plan:
+          type: array
+          items:
+            type: object
+            required: [paso, tabla, cambio]
+            properties:
+              paso: { type: integer }
+              tabla: { type: string }
+              cambio: { type: string }
+        chequeos:
+          type: array
+          items:
+            type: object
+            required: [texto, nivel]
+            properties:
+              texto: { type: string }
+              nivel: { type: string, enum: [ok, aviso, error, pendiente] }
+        enviado_por: { type: string, nullable: true }
+        aprobado_por: { type: string, nullable: true }
+        puede_enviar: { type: boolean }
+        puede_aprobar: { type: boolean }
+        bitacora:
+          type: array
+          description: Más reciente primero
+          items:
+            type: object
+            required: [en, usuario, texto]
+            properties:
+              en: { type: string, format: date-time }
+              usuario: { type: string }
+              texto: { type: string }
+
+paths:
+  /iteracion/{proceso}/paises:
+    get:
+      summary: Países del proceso (Pesaje incluye los paneles OOH)
+      parameters: [{ $ref: '#/components/parameters/proceso' }]
+      responses:
+        '200':
+          description: Países
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [paises]
+                properties:
+                  paises: { type: array, items: { $ref: '#/components/schemas/Pais' } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/preparacion:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+    get:
+      summary: Estado de la preparación de datos (silver)
+      responses:
+        '200':
+          description: Preparación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Preparacion' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    post:
+      summary: Preparar los datos del país y período
+      responses:
+        '202':
+          description: Preparación iniciada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Preparacion' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/parametros:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+    get:
+      summary: Definiciones, valores y referencia de los parámetros
+      responses:
+        '200':
+          description: Parámetros
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Parametros' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/simulacion:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+    post:
+      summary: Simular con parámetros y ajustes sobre los datos preparados
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SimulacionRequest' }
+      responses:
+        '200':
+          description: Resultado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Simulacion' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/escenarios:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+    get:
+      summary: Escenarios guardados y el elegido
+      responses:
+        '200':
+          description: Escenarios
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [escenarios, elegido_id]
+                properties:
+                  escenarios: { type: array, items: { $ref: '#/components/schemas/Escenario' } }
+                  elegido_id: { type: string, nullable: true }
+    post:
+      summary: Guardar un escenario (la API re-simula y guarda el resumen)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre]
+              properties:
+                nombre: { type: string }
+                parametros: { $ref: '#/components/schemas/Valores' }
+                ajustes: { $ref: '#/components/schemas/Ajustes' }
+      responses:
+        '201':
+          description: Escenario creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Escenario' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/escenarios/{id}/elegir:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+      - $ref: '#/components/parameters/escenarioId'
+    post:
+      summary: Elegir el escenario que va a aprobación
+      responses:
+        '200':
+          description: Escenario elegido
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [elegido_id]
+                properties:
+                  elegido_id: { type: string }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/publicacion:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+    get:
+      summary: Estado de la publicación, plan de escritura y bitácora
+      responses:
+        '200':
+          description: Publicación
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Publicacion' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/publicacion/enviar:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+    post:
+      summary: Enviar el escenario a aprobación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [escenario_id]
+              properties:
+                escenario_id: { type: string }
+                destino: { type: string, enum: [sql, kronos], description: Solo Pesaje }
+      responses:
+        '200':
+          description: Publicación pendiente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Publicacion' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/publicacion/aprobar:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+    post:
+      summary: Aprobar y publicar (responsable; no el mismo que envió, salvo admin)
+      responses:
+        '200':
+          description: Publicada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Publicacion' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /iteracion/{proceso}/{pais}/{periodo}/publicacion/devolver:
+    parameters:
+      - $ref: '#/components/parameters/proceso'
+      - $ref: '#/components/parameters/pais'
+      - $ref: '#/components/parameters/periodo'
+    post:
+      summary: Devolver el envío a borrador con un comentario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comentario]
+              properties:
+                comentario: { type: string }
+      responses:
+        '200':
+          description: Vuelve a borrador
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Publicacion' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
