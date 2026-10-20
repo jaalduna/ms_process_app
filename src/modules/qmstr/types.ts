@@ -507,10 +507,10 @@ export function labelEstadoBase(estado: EstadoBase, entrega: Entrega): string {
 export const ESTADO_BASE_AYUDA_PYTHONCAC: Partial<Record<EstadoBase, string>> = {
   pendiente: "Calibración dio el sign-off (hito 3) y todavía no entra a una corrida, o se recalibró después de su última corrida",
   sin_hito4: "Calibración todavía no registra el sign-off de la base (hito 3)",
-  aplicada: "El aplicativo aplicó los ajustes en J con PythonCac",
+  aplicada: "El aplicativo aplicó los ajustes en J",
   en_proceso: "Está en una tanda que sigue avanzando: corrida, revisión antes de aplicar o aplicación en J",
   revertida: "Se devolvió en J a como estaba antes de QMS-TR; se puede volver a correr",
-  bypass: "La corrida no la corrigió (falló o no pasó un control), PythonCac la rechazó o se excluyó en la revisión; el motivo está en el detalle",
+  bypass: "La corrida no la corrigió (falló o no pasó un control), no pasó la validación previa a escribir en J o se excluyó en la revisión; el motivo está en el detalle",
 }
 
 export function ayudaEstadoBase(estado: EstadoBase, entrega: Entrega): string {

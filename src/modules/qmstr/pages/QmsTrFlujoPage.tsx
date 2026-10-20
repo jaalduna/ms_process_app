@@ -173,7 +173,7 @@ export function QmsTrFlujoPage() {
           </div>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             {entrega === "pythoncac"
-              ? "DC lanza QMS-TR cuando libera las bases: corrida, validaciones internas y aplicación directa en J con PythonCac."
+              ? "DC lanza QMS-TR después del sign-off de calibración: el aplicativo corre QMS-TR, lo valida y aplica los ajustes directo en J."
               : "Cada liberación metodológica pasa sola por QMS-TR: corrida, validaciones internas, ticket a DQ y hito 10."}
           </p>
           <div className="mt-1.5">{estado.data && <EstadoLoop estado={estado.data} />}</div>

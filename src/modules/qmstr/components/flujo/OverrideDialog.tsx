@@ -345,7 +345,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
           )}
           <p className="text-sm text-muted-foreground">
             {modo === "completo" && entrega === "pythoncac"
-              ? "Cuando termine la corrida, el aplicativo aplica los cambios en J con PythonCac. Las bases que PythonCac rechace quedan fuera, con su motivo."
+              ? "Cuando termine la corrida, el aplicativo QMS-TR valida y aplica los cambios en J. Las bases que no pasen la validación previa quedan fuera, con su motivo."
               : modo === "completo"
               ? "Cuando termine la corrida se envía el zip a DQ, se crea el ticket con MTR como observador."
               : "Al terminar la corrida la tanda se cierra sola: no se envía nada a DQ."}

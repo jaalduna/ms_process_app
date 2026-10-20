@@ -63,7 +63,7 @@ function Contenido({ tanda, yaRevertidas, nombres, revirtiendo, onRevertir, entr
         </DialogTitle>
         <DialogDescription>
           {entrega === "pythoncac"
-            ? "El aplicativo devuelve en J los valores previos a QMS-TR con PythonCac y da de baja los actos que creó."
+            ? "El aplicativo QMS-TR devuelve en J los valores previos a QMS-TR y da de baja los actos que creó."
             : "Se arma un zip inverso con los valores de J previos a la corrida y va a DQ igual que una tanda. El hito 10 de esas bases se anula."}
         </DialogDescription>
       </DialogHeader>

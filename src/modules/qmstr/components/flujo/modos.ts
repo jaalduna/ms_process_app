@@ -11,7 +11,7 @@ export function modosDe(entrega: Entrega): typeof MODOS {
   if (entrega !== "pythoncac") return MODOS
   return MODOS.map((m) =>
     m.modo === "completo"
-      ? { ...m, texto: "Corre, valida y aplica los cambios en J con PythonCac. Las bases que PythonCac rechace quedan fuera, con su motivo." }
+      ? { ...m, texto: "Corre, valida y aplica los cambios en J. Las bases que no pasen la validación previa quedan fuera, con su motivo." }
       : { ...m, texto: "Solo la corrida en Databricks, para probar. No aplica nada en J." },
   )
 }
