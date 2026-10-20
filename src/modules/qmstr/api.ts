@@ -89,6 +89,12 @@ export const accionTanda = (tid: string, accion: AccionTanda) =>
 export const forzarVuelta = () => api.post<Record<string, string>>(`${FLUJO}/vuelta`).then((r) => r.data)
 
 /** Descarga el zip de la tanda (corrida o reversión) con la URL firmada (patrón JAA-757). */
+/** Reporte de la tanda aplicada con PythonCac (Excel: resumen, detalle por acto y rechazos). */
+export async function downloadTandaReporte(tid: string): Promise<void> {
+  const { data } = await api.get<SignedDownloadUrl>(`${FLUJO}/tandas/${tid}/reporte`)
+  window.location.assign(resolveDownloadUrl(data.url))
+}
+
 export async function downloadTandaZip(tid: string): Promise<void> {
   const { data } = await api.get<SignedDownloadUrl>(`${FLUJO}/tandas/${tid}/zip`)
   window.location.assign(resolveDownloadUrl(data.url))

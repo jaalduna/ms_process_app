@@ -172,7 +172,9 @@ export function QmsTrFlujoPage() {
             )}
           </div>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Cada liberación metodológica pasa sola por QMS-TR: corrida, validaciones internas, ticket a DQ y hito 10.
+            {entrega === "pythoncac"
+              ? "DC lanza QMS-TR cuando libera las bases: corrida, validaciones internas y aplicación directa en J con PythonCac."
+              : "Cada liberación metodológica pasa sola por QMS-TR: corrida, validaciones internas, ticket a DQ y hito 10."}
           </p>
           <div className="mt-1.5">{estado.data && <EstadoLoop estado={estado.data} />}</div>
         </div>
@@ -250,7 +252,7 @@ export function QmsTrFlujoPage() {
             </Vacio>
           ) : bases.data && bases.data.length > 0 ? (
             <TableroBases pais={etiqueta?.etiqueta ?? pais} periodo={periodo} bases={bases.data} filtro={filtro}
-              onFiltro={(f) => { setFiltro(f); if (f) setTab("bases") }} onSeleccionar={(b) => setDetalle(b.producto)} />
+              onFiltro={(f) => { setFiltro(f); if (f) setTab("bases") }} onSeleccionar={(b) => setDetalle(b.producto)} entrega={entrega} />
           ) : (
             <Vacio icon={<Layers />} titulo={`Sin hitos en ${periodoLabel(periodo)}`}>
               Todavía no hay hitos 3 ni 4 para este período. Apenas DC libere, las bases aparecen acá.
@@ -330,7 +332,7 @@ export function QmsTrFlujoPage() {
       {pais && periodo && (
         <DetalleBase base={baseDetalle} pais={pais} paisEtiqueta={etiqueta?.etiqueta ?? pais} periodo={periodo}
           puedeOperar={puedeOperar} lanzando={crear.isPending} onOpenChange={(o) => { if (!o) setDetalle(null) }}
-          onLanzar={lanzar} onVerTanda={verTanda} />
+          onLanzar={lanzar} onVerTanda={verTanda} entrega={entrega} />
       )}
       <RevertirDialog
         tanda={aRevertir}

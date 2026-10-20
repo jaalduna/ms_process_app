@@ -6,10 +6,10 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { formatChile } from "../../time"
-import { ESTADO_BASE_AYUDA, ESTADO_TANDA_LABEL, TIPO_TANDA_LABEL, type FlujoBase, type ModoTanda, type TandaCreate } from "../../types"
+import { ESTADO_TANDA_LABEL, TIPO_TANDA_LABEL, ayudaEstadoBase, type Entrega, type FlujoBase, type ModoTanda, type TandaCreate } from "../../types"
 import { bloqueo } from "./bloqueo"
 import { periodoLabel } from "./formato"
-import { MODOS } from "./modos"
+import { modosDe } from "./modos"
 import { Chip, ChipBase } from "./piezas"
 
 interface DetalleBaseProps {
@@ -22,6 +22,8 @@ interface DetalleBaseProps {
   onOpenChange: (open: boolean) => void
   onLanzar: (data: TandaCreate) => void
   onVerTanda: (numero: number) => void
+  /** Cómo entrega el flujo: con PythonCac no hay ticket ni hito 10. */
+  entrega?: Entrega
 }
 
 /** Detalle de una base al hacer clic en su celda del tablero: estado, hitos, tanda actual, historial y lanzarla sola. */
@@ -48,7 +50,8 @@ function Hito({ label, at, anulado }: { label: string; at: string | null; anulad
   )
 }
 
-function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando, onLanzar, onVerTanda }: DetalleBaseProps & { base: FlujoBase }) {
+function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando, onLanzar, onVerTanda, entrega = "ticket" }: DetalleBaseProps & { base: FlujoBase }) {
+  const directo = entrega === "pythoncac"
   const [modo, setModo] = useState<ModoTanda>("completo")
   const [nota, setNota] = useState("")
   const [forzar, setForzar] = useState(false)
@@ -68,7 +71,7 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
           <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} />
           {b.jira_key && <Chip tone="var(--qf-pendiente)" className="font-semibold"><Ticket className="size-3" />{b.jira_key}</Chip>}
         </div>
-        <p className="text-sm text-muted-foreground">{ESTADO_BASE_AYUDA[b.estado]}</p>
+        <p className="text-sm text-muted-foreground">{ayudaEstadoBase(b.estado, entrega)}</p>
       </SheetHeader>
 
       <div className="space-y-6 p-4">
@@ -82,7 +85,7 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
             {b.revisar && (
               <p className="flex gap-2 rounded-lg border border-[var(--qf-retenida)] bg-[color-mix(in_oklch,var(--qf-retenida)_8%,transparent)] px-3 py-2 text-sm">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--qf-retenida)]" />
-                <span><span className="font-medium">Observada antes del ticket:</span> {b.revisar}</span>
+                <span><span className="font-medium">{directo ? "Observada antes de aplicar:" : "Observada antes del ticket:"}</span> {b.revisar}</span>
               </p>
             )}
           </div>
@@ -93,7 +96,7 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
           <dl className="divide-y">
             <Hito label="Distribución de DC (hito 3)" at={b.h3} />
             <Hito label="Liberación de DC (hito 4)" at={b.h4} anulado={b.h4_anulado} />
-            <Hito label="QMS-TR (hito 10)" at={b.h10} />
+            {!directo && <Hito label="QMS-TR (hito 10)" at={b.h10} />}
           </dl>
         </section>
 
@@ -135,7 +138,7 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
           <section aria-label="Lanzar esta base" className="space-y-3 rounded-xl border bg-muted/25 p-4" data-testid="qf-detalle-lanzar">
             <h3 className="font-display text-base font-semibold">Correr solo esta base</h3>
             <div className="grid gap-2" role="radiogroup" aria-label="Modo">
-              {MODOS.map((m) => (
+              {modosDe(entrega).map((m) => (
                 <button key={m.modo} type="button" role="radio" aria-checked={modo === m.modo} onClick={() => setModo(m.modo)}
                   data-testid={`qf-detalle-modo-${m.modo}`}
                   className={cn("rounded-lg border bg-card p-2.5 text-left transition-colors",

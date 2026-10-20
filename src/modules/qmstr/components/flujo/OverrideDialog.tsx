@@ -13,7 +13,7 @@ import { formatChile } from "../../time"
 import type { Entrega, EstadoBase, FlujoBase, FlujoPais, ModoTanda, TandaCreate } from "../../types"
 import { mensajeError, periodoLabel } from "./formato"
 import { bloqueo } from "./bloqueo"
-import { MODOS } from "./modos"
+import { modosDe } from "./modos"
 import { ChipBase } from "./piezas"
 
 /** Orden de la lista: primero las candidatas naturales (liberadas), al final las que no se pueden elegir. */
@@ -260,7 +260,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
           <fieldset>
             <legend className="mb-1.5 text-sm font-medium">Modo</legend>
             <div className="grid gap-2" role="radiogroup">
-              {MODOS.map((m) => (
+              {modosDe(entrega).map((m) => (
                 <button key={m.modo} type="button" role="radio" aria-checked={modo === m.modo} onClick={() => cambiarModo(m.modo)}
                   data-testid={`qf-override-modo-${m.modo}`}
                   className={cn("rounded-xl border p-3 text-left transition-colors",
