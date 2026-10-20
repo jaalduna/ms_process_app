@@ -102,13 +102,13 @@ describe("TableroBases", () => {
     await userEvent.click(screen.getByRole("button", { name: /Retenidas/ }))
     expect(onFiltro).toHaveBeenCalledWith("retenida")
   })
-  it("con PythonCac el KPI es de bases calibradas (hito 3) y no hay retenidas por hito 4", () => {
+  it("con PythonCac el KPI es de bases con distribución de actos (hito 3) y no hay retenidas por hito 4", () => {
     const bases = [base(1, "pendiente", { h4: null }), base(2, "sin_hito4", { h3: null, h4: null })]
     render(<TableroBases pais="Chile" periodo="202609" bases={bases} filtro={null} onFiltro={vi.fn()} onSeleccionar={vi.fn()} entrega="pythoncac" />)
     expect(screen.getByTestId("qf-kpi-h3")).toHaveTextContent("1/ 2")
     expect(screen.queryByTestId("qf-kpi-h4")).toBeNull()
-    expect(screen.getByTestId("qf-kpi-sin-calibracion")).toHaveTextContent("1")
-    expect(screen.getByTestId("qf-leyenda")).toHaveTextContent("Sin sign-off de calibración")
+    expect(screen.getByTestId("qf-kpi-sin-distribucion")).toHaveTextContent("1")
+    expect(screen.getByTestId("qf-leyenda")).toHaveTextContent("Sin distribución de actos")
   })
 })
 

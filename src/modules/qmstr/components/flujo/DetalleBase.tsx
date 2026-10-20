@@ -95,7 +95,7 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
         <section aria-label="Hitos">
           <h3 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Hitos</h3>
           <dl className="divide-y">
-            <Hito label={directo ? "Sign-off de calibración (hito 3)" : "Distribución de DC (hito 3)"} at={b.h3} />
+            <Hito label={directo ? "Distribución de actos (hito 3)" : "Distribución de DC (hito 3)"} at={b.h3} />
             <Hito label="Liberación de DC (hito 4)" at={b.h4} anulado={b.h4_anulado} />
             {!directo && <Hito label="QMS-TR (hito 10)" at={b.h10} />}
           </dl>
