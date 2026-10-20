@@ -273,7 +273,7 @@ function FilaRegion({ r, abierta, excluida, conPublicado, onDetalle, onAlternar 
   ]
   return (
     <li data-testid={`it-region-${r.id}`} className={cn(excluida && "bg-muted/50")}>
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,2fr)_auto_auto] items-center gap-3 px-3 py-2 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_8rem_auto]">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,2fr)_auto_auto] items-center gap-3 px-3 py-2 sm:grid-cols-[minmax(0,10rem)_minmax(7rem,1fr)_6.5rem_auto]">
         <button
           type="button"
           onClick={onDetalle}
@@ -300,7 +300,7 @@ function FilaRegion({ r, abierta, excluida, conPublicado, onDetalle, onAlternar 
         <Button
           variant={excluida ? "secondary" : "outline"}
           size="sm"
-          className="w-36"
+          className="min-w-[7.5rem] px-2"
           onClick={onAlternar}
           aria-pressed={excluida}
           aria-label={excluida ? `Volver a imputar en ${r.nombre}` : `No imputar en ${r.nombre}`}
