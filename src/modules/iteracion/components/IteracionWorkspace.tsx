@@ -95,7 +95,7 @@ export function IteracionWorkspace({ config }: { config: ConfigProceso }) {
         <SelectorPais paises={paises.data} valor={pais} onChange={(p) => ir({ pais: p, paso: "preparar" })} />
       )}
 
-      <AvisoMotor engine={engine} />
+      <AvisoMotor engine={engine} proceso={config.proceso} />
 
       <nav aria-label="Pasos" className="flex flex-wrap gap-1 border-b">
         {PASOS.map((p, i) => {
