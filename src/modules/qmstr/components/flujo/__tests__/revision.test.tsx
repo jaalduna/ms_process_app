@@ -132,7 +132,7 @@ describe("entrega directa con PythonCac: sin zip ni ticket", () => {
     render(conQuery(<DetalleBase base={base({ estado: "aplicada", revisar: "dato a revisar" })} pais="BO" paisEtiqueta="Bolivia" periodo="202608"
       puedeOperar lanzando={false} onOpenChange={() => {}} onLanzar={() => {}} onVerTanda={() => {}} entrega="pythoncac" />))
     const detalle = screen.getByTestId("qf-detalle")
-    expect(detalle).toHaveTextContent("aplicó los ajustes en J con PythonCac")
+    expect(detalle).toHaveTextContent("El aplicativo aplicó los ajustes en J")
     expect(detalle).toHaveTextContent("Observada antes de aplicar")
     expect(detalle).not.toHaveTextContent(/zip|ticket|hito 10/i)
   })
