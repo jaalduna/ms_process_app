@@ -170,9 +170,11 @@ function Regiones({ regiones, onAlternar }: { regiones: RegionElegibilidad[]; on
       </div>
 
       {filas.length === 0 ? (
-        <p className="text-sm" role="status">
-          {q ? "Ninguna región coincide." : "Todas las regiones están OK."}
-        </p>
+        q && (
+          <p className="text-sm" role="status">
+            Ninguna región coincide.
+          </p>
+        )
       ) : (
         <ul className="divide-y rounded-md border" data-testid="it-regiones">
           {filas.map((r) => (
@@ -194,7 +196,10 @@ function Regiones({ regiones, onAlternar }: { regiones: RegionElegibilidad[]; on
           className="w-full rounded-md border border-dashed px-3 py-2 text-left text-sm text-muted-foreground hover:bg-accent"
           data-testid="it-regiones-ok"
         >
-          {plegadas === 1 ? "y 1 región OK" : `y ${plegadas} regiones OK`} · <span className="underline">ver</span>
+          {filas.length === 0
+            ? plegadas === 1 ? "La única región está OK" : `Las ${plegadas} regiones están OK`
+            : plegadas === 1 ? "y 1 región OK" : `y ${plegadas} regiones OK`}{" "}
+          · <span className="underline">ver</span>
         </button>
       )}
     </Seccion>

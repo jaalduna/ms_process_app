@@ -40,9 +40,11 @@ export const TONO: Record<Nivel | "neutro" | "pendiente", string> = {
   pendiente: "var(--muted-foreground)",
 }
 
-/** Texto en un tono semántico, mezclado con el foreground para que pase contraste en ambos modos. */
+/** Texto en un tono semántico, mezclado con el foreground para que pase contraste en ambos modos.
+ * En oklab y no en oklch: en oklch el ámbar (70°) y el foreground azulado (240°) interpolan el tono
+ * por el camino corto y el aviso salía verde. */
 export const textoTono = (tono: string): CSSProperties => ({
-  color: `color-mix(in oklch, ${tono} 62%, var(--foreground))`,
+  color: `color-mix(in oklab, ${tono} 62%, var(--foreground))`,
 })
 
 export function periodoLabel(p: string): string {
