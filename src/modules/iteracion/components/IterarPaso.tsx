@@ -21,7 +21,7 @@ export function IterarPaso({
   parametros: Parametros | undefined
   valores: ValoresParametros | undefined
   ajustes: Ajustes
-  simulacion: { data: Simulacion | undefined; isFetching: boolean; error: unknown }
+  simulacion: { data: Simulacion | undefined; isFetching: boolean; error: unknown; espera?: number | null }
   onValores: (v: ValoresParametros) => void
   onAjustes: (a: Ajustes) => void
   onVerComparacion: () => void
@@ -118,7 +118,9 @@ export function IterarPaso({
         <div className="flex min-h-5 items-center justify-end text-xs text-muted-foreground" role="status">
           {simulacion.isFetching ? (
             <span className="inline-flex items-center gap-1.5">
-              <Loader2 className="size-3.5 animate-spin" aria-hidden /> {manual ? "Corriendo el Pesaje…" : "Recalculando…"}
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />{" "}
+              {manual ? "Corriendo el proceso real…" : "Recalculando…"}
+              {simulacion.espera != null && simulacion.espera > 0 && ` ${simulacion.espera} s`}
             </span>
           ) : sim ? (
             <span>

@@ -203,6 +203,8 @@ export interface Escenario {
 export interface Escenarios {
   escenarios: Escenario[]
   elegido_id: string | null
+  /** Motor real: el escenario de referencia todavía se está calculando. */
+  calculando?: boolean
 }
 
 export interface Publicacion {

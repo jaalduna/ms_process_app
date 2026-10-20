@@ -2,6 +2,7 @@ import { Check } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
@@ -29,6 +30,14 @@ export function CompararPaso({ config, cierre, parametros, onIterar, onPublicar 
     )
   }
   if (isLoading || !data || !parametros) return <Skeleton className="h-64 rounded-xl" />
+  if (data.calculando) {
+    return (
+      <p className="inline-flex items-center gap-2 text-sm text-muted-foreground" role="status">
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+        Calculando el escenario de referencia con el proceso real… se actualiza solo.
+      </p>
+    )
+  }
 
   const columnasKpi = data.escenarios[0]?.resumen ?? []
 
