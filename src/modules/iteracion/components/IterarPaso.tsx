@@ -124,8 +124,8 @@ export function IterarPaso({
             </span>
           ) : sim ? (
             <span>
-              {manual && sim.duracion_ms < 1000
-                ? "Resultado ya calculado con estos parámetros"
+              {manual
+                ? "Calculado con el proceso real"
                 : `Calculado en ${(sim.duracion_ms / 1000).toLocaleString("es-CL", { maximumFractionDigits: 1 })} s`}
             </span>
           ) : null}
