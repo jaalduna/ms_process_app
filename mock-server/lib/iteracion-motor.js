@@ -170,21 +170,22 @@ const UNIVERSO_PANEL = {
 }
 
 export const PESAJE_DEFS = [
-  { clave: "P_BOUNDS", etiqueta: "Percentil del límite", ayuda: "p2 / p98 por defecto", tipo: "rango", min: 0.01, max: 0.05, paso: 0.01, formato: "percentil" },
-  { clave: "F_BOUNDS", etiqueta: "Holgura sobre el límite", ayuda: "Margen sobre los percentiles históricos", tipo: "rango", min: 0, max: 0.3, paso: 0.05, formato: "pct" },
-  { clave: "MAX_ROUNDS_COLAPSO", etiqueta: "Máx. juntas por período", ayuda: "Rondas de colapso de celdas", tipo: "entero", min: 0, max: 30, paso: 1, formato: "num" },
-  { clave: "JERARQUIA_MIN_COLAPSO", etiqueta: "Jerarquía mínima para juntar", ayuda: "Variables más altas se juntan antes", tipo: "entero", min: 1, max: 4, paso: 1, formato: "num" },
-  { clave: "CORRECAO_BOUNDS", etiqueta: "Corregir límites si quedan outliers", ayuda: "Segunda pasada del IPF con límites corregidos", tipo: "booleano" },
+  // Mismos parámetros y valores que el Pesaje de producción (modules/param_configs.py) y la API.
+  { clave: "P_BOUNDS", etiqueta: "Percentil del límite", ayuda: "Límites de peso de cada celda: percentiles p y 100−p de sus pesos en los últimos 12 meses (2 = p2 / p98)", tipo: "entero", min: 1, max: 10, paso: 1, formato: "percentil" },
+  { clave: "F_BOUNDS", etiqueta: "Factor sobre el límite", ayuda: "Multiplica el límite superior y divide el inferior (1,1 = 10 % de margen)", tipo: "rango", min: 1, max: 1.5, paso: 0.05, formato: "num" },
+  { clave: "MAX_ROUNDS_COLAPSO", etiqueta: "Máx. rondas de juntas", ayuda: "Rondas de juntas automáticas permitidas por período", tipo: "entero", min: 0, max: 100, paso: 1, formato: "num" },
+  { clave: "JERARQUIA_MIN_COLAPSO", etiqueta: "Jerarquía mínima de junta", ayuda: "Nivel de celda desde el que se permite juntar", tipo: "entero", min: 1, max: 3, paso: 1, formato: "num" },
+  { clave: "CORRECAO_BOUNDS", etiqueta: "Corregir límites si quedan outliers", ayuda: "Repite el ajuste con corrección de límites", tipo: "booleano" },
 ]
-export const PESAJE_REFERENCIA = { P_BOUNDS: 0.02, F_BOUNDS: 0.1, MAX_ROUNDS_COLAPSO: 10, JERARQUIA_MIN_COLAPSO: 2, CORRECAO_BOUNDS: true }
+export const PESAJE_REFERENCIA = { P_BOUNDS: 2, F_BOUNDS: 1.1, MAX_ROUNDS_COLAPSO: 50, JERARQUIA_MIN_COLAPSO: 1, CORRECAO_BOUNDS: true }
 export const PESAJE_AJUSTES_DEFAULT = { idpesos: ["1", "3", "7"], juntas_vetadas: [] }
 
 /** Meta del IPF: error final bajo 0,001% (fracción). */
 const META_ERROR = 0.00001
 
 function calcularIpf(p, vetadas, factor) {
-  const outBase = Math.round(48 * (p.P_BOUNDS / 0.05) * (1 - (p.F_BOUNDS / 0.3) * 0.8) * factor)
-  const cand = Math.max(0, Math.min(p.MAX_ROUNDS_COLAPSO, Math.ceil(outBase / 2) - (p.JERARQUIA_MIN_COLAPSO - 2)))
+  const outBase = Math.round(48 * (p.P_BOUNDS / 5) * (1 - ((p.F_BOUNDS - 1) / 0.5) * 0.8) * factor)
+  const cand = Math.max(0, Math.min(p.MAX_ROUNDS_COLAPSO, Math.ceil(outBase / 2) - (p.JERARQUIA_MIN_COLAPSO - 1)))
   const vet = vetadas.filter((id) => Number(id.slice(1)) <= cand).length
   const acept = cand - vet
   let out = Math.max(0, outBase - acept * 2)
@@ -206,7 +207,7 @@ export function simularPesaje(pais, periodo, p, ajustes) {
     }
   })
   const mensual = calcularIpf(p, ajustes.juntas_vetadas, 1)
-  const ancho = p.F_BOUNDS / 0.3
+  const ancho = (p.F_BOUNDS - 1) / 0.5
   const actual = PREV.map((v, i) => {
     const borde = i === 0 || i === PREV.length - 1
     return Math.round(v * (borde ? 1.6 - ancho : 1 + 0.05 * Math.sin(i)))

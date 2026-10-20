@@ -1,15 +1,22 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { err, num, TONO, textoTono } from "../format"
 import type { AjustesPesaje, ResultadoPesaje } from "../types"
 import { Seccion } from "./piezas"
+import { CeldasUniverso, RevisionHistoria } from "./RevisionPesaje"
 
-export function ResultadoPesajeView({ resultado, ajustes, onAjustes }: {
+export function ResultadoPesajeView({ resultado, ajustes, onAjustes, puedeVetar = true }: {
   resultado: ResultadoPesaje
   ajustes: AjustesPesaje
   onAjustes: (a: AjustesPesaje) => void
+  /** Con el proceso real todavía no se pueden vetar juntas. */
+  puedeVetar?: boolean
 }) {
+  const [idpesoRev, setIdpesoRev] = useState<string | null>(null)
+  const revision = resultado.revision?.find((r) => r.idpeso === idpesoRev) ?? resultado.revision?.[0]
+  const segmentos = resultado.segmentos?.find((r) => r.idpeso === revision?.idpeso) ?? resultado.segmentos?.[0]
   const unidades = resultado.unidad === "hogar" ? "Hogares" : "Individuos"
   const vetar = (id: string) => {
     const vetadas = ajustes.juntas_vetadas.includes(id)
@@ -30,7 +37,7 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes }: {
               <TableHead className="text-right">Error final</TableHead>
               <TableHead className="text-right">Outliers</TableHead>
               <TableHead className="text-right">Juntas</TableHead>
-              <TableHead className="text-right" title="Diferencia vs proceso actual">Dif. vs actual</TableHead>
+              <TableHead className="text-right" title="Hogares cuyo peso difiere del publicado para este período">Dif. vs publicado</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -61,19 +68,53 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes }: {
         </Table>
       </Seccion>
 
+      {revision && (
+        <>
+          {(resultado.revision?.length ?? 0) > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="IdPeso a revisar">
+              <span className="text-sm font-medium">Revisar:</span>
+              {resultado.revision!.map((r) => {
+                const on = r.idpeso === revision.idpeso
+                const nombre = resultado.idpesos.find((i) => i.id === r.idpeso)?.nombre ?? r.idpeso
+                return (
+                  <button
+                    key={r.idpeso}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setIdpesoRev(r.idpeso)}
+                    className={cn(
+                      "h-8 rounded-full border px-3 text-xs font-medium",
+                      on ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-accent",
+                    )}
+                  >
+                    {nombre}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          <RevisionHistoria indicadores={revision.indicadores} />
+          {segmentos && <CeldasUniverso key={segmentos.idpeso} grupos={segmentos.grupos} />}
+        </>
+      )}
+
       <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
         <Seccion titulo="Distribución de pesos" detalle="Primer IdPeso elegido · esta vuelta contra el período anterior publicado">
           <Histograma h={resultado.histograma} />
         </Seccion>
 
         <Seccion
-          titulo="Juntas de marginales propuestas"
-          detalle="Las propone el IPF para resolver outliers. Vetar una la saca de la próxima vuelta."
+          titulo={puedeVetar ? "Juntas de marginales propuestas" : `Juntas de celdas (${resultado.juntas.length})`}
+          detalle={
+            puedeVetar
+              ? "Las propone el IPF para resolver outliers. Vetar una la saca de la próxima vuelta."
+              : "Las que hizo el proceso: celdas sin hogares o con pesos extremos. Vetarlas desde aquí viene en la próxima versión."
+          }
         >
           {resultado.juntas.length === 0 ? (
             <p className="text-sm">No hacen falta juntas con estos parámetros.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className={cn("space-y-2", !puedeVetar && "max-h-96 overflow-auto")}>
               {resultado.juntas.map((j) => (
                 <li
                   key={j.id}
@@ -82,15 +123,18 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes }: {
                 >
                   <span className={cn("text-sm", j.vetada && "text-muted-foreground line-through")}>
                     <span className="font-medium">{j.region}</span> · {j.detalle}
+                    {j.motivo && (
+                      <span className="text-muted-foreground"> · {j.motivo === "N_Elg=0" ? "sin hogares" : "peso extremo"}</span>
+                    )}
                   </span>
-                  <Button
+                  {puedeVetar && <Button
                     variant="outline"
                     size="sm"
                     onClick={() => vetar(j.id)}
                     aria-label={`${j.vetada ? "Restaurar" : "Vetar"} junta ${j.region}, ${j.detalle}`}
                   >
                     {j.vetada ? "Restaurar" : "Vetar"}
-                  </Button>
+                  </Button>}
                 </li>
               ))}
             </ul>

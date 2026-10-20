@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import { useCrearEscenario, type Cierre } from "../hooks"
-import type { Ajustes, Parametros, Simulacion, ValoresParametros } from "../types"
+import type { Ajustes, Engine, Parametros, Simulacion, ValoresParametros } from "../types"
 import type { ConfigProceso } from "../config"
 import { ParametrosPanel } from "./ParametrosPanel"
 import { Kpis } from "./piezas"
 
-export function IterarPaso({ config, cierre, parametros, valores, ajustes, simulacion, onValores, onAjustes, onVerComparacion }: {
+export function IterarPaso({
+  config, cierre, parametros, valores, ajustes, simulacion, onValores, onAjustes, onVerComparacion,
+  manual = false, pendiente = false, onCalcular, engine,
+}: {
   config: ConfigProceso
   cierre: Cierre
   parametros: Parametros | undefined
@@ -22,6 +25,12 @@ export function IterarPaso({ config, cierre, parametros, valores, ajustes, simul
   onValores: (v: ValoresParametros) => void
   onAjustes: (a: Ajustes) => void
   onVerComparacion: () => void
+  /** El proceso real no recalcula solo: se pide con «Calcular». */
+  manual?: boolean
+  /** Hay cambios sin calcular. */
+  pendiente?: boolean
+  onCalcular?: () => void
+  engine?: Engine
 }) {
   const [nombre, setNombre] = useState("")
   const crear = useCrearEscenario(cierre)
@@ -56,9 +65,13 @@ export function IterarPaso({ config, cierre, parametros, valores, ajustes, simul
       <Card className="w-full max-w-sm flex-[1_1_300px] gap-5 p-5 lg:sticky lg:top-4">
         <div>
           <h2 className="text-base font-semibold">Parámetros</h2>
-          <p className="text-sm text-muted-foreground">Cada cambio recalcula sobre los datos preparados.</p>
+          <p className="text-sm text-muted-foreground">
+            {manual
+              ? "Corre el proceso real sobre los datos preparados (unos 20 segundos por IdPeso)."
+              : "Cada cambio recalcula sobre los datos preparados."}
+          </p>
         </div>
-        {Lateral && <Lateral ajustes={ajustes} onAjustes={onAjustes} />}
+        {Lateral && <Lateral ajustes={ajustes} onAjustes={onAjustes} idpesos={parametros.idpesos} engine={engine} />}
         <ParametrosPanel
           definiciones={parametros.definiciones}
           valores={valores}
@@ -70,11 +83,17 @@ export function IterarPaso({ config, cierre, parametros, valores, ajustes, simul
           className="self-start"
           onClick={() => {
             onValores({ ...parametros.referencia.valores })
-            onAjustes(config.ajustesIniciales)
+            onAjustes(parametros.ajustes ?? config.ajustesIniciales)
           }}
         >
           <RotateCcw aria-hidden /> Volver a {parametros.referencia.etiqueta.toLowerCase()}
         </Button>
+        {manual && (
+          <Button onClick={onCalcular} disabled={!pendiente || simulacion.isFetching} data-testid="it-calcular">
+            {simulacion.isFetching && <Loader2 className="animate-spin" aria-hidden />}
+            {simulacion.isFetching ? "Calculando…" : pendiente ? "Calcular con estos parámetros" : "Calculado"}
+          </Button>
+        )}
         <div className="space-y-2 border-t pt-4">
           <label htmlFor="it-nombre-escenario" className="text-sm font-medium">
             Guardar esta vuelta como escenario
@@ -97,10 +116,14 @@ export function IterarPaso({ config, cierre, parametros, valores, ajustes, simul
         <div className="flex min-h-5 items-center justify-end text-xs text-muted-foreground" role="status">
           {simulacion.isFetching ? (
             <span className="inline-flex items-center gap-1.5">
-              <Loader2 className="size-3.5 animate-spin" aria-hidden /> Recalculando…
+              <Loader2 className="size-3.5 animate-spin" aria-hidden /> {manual ? "Corriendo el Pesaje…" : "Recalculando…"}
             </span>
           ) : sim ? (
-            <span>Calculado en {(sim.duracion_ms / 1000).toLocaleString("es-CL", { maximumFractionDigits: 1 })} s</span>
+            <span>
+              {manual && sim.duracion_ms < 1000
+                ? "Resultado ya calculado con estos parámetros"
+                : `Calculado en ${(sim.duracion_ms / 1000).toLocaleString("es-CL", { maximumFractionDigits: 1 })} s`}
+            </span>
           ) : null}
         </div>
         {simulacion.error != null && (
@@ -113,7 +136,12 @@ export function IterarPaso({ config, cierre, parametros, valores, ajustes, simul
           <div className={simulacion.isFetching ? "opacity-70 transition-opacity" : "transition-opacity"}>
             <div className="space-y-5">
               <Kpis kpis={sim.kpis} />
-              <config.Resultado resultado={sim.resultado} ajustes={ajustes} onAjustes={onAjustes} />
+              {pendiente && (
+                <p className="rounded-md bg-muted px-3 py-2 text-sm" role="status">
+                  Estos resultados son de los parámetros anteriores. Pulsa «Calcular» para ver los nuevos.
+                </p>
+              )}
+              <config.Resultado resultado={sim.resultado} ajustes={ajustes} onAjustes={onAjustes} engine={engine} />
             </div>
           </div>
         )}

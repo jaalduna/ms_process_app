@@ -186,7 +186,7 @@ describe("iteración Elegibilidad y Pesaje (mock-server)", () => {
     await preparar("/pesaje/brasil_ooh/202610")
     const ruta = "/pesaje/brasil_ooh/202610"
     const { body } = await post(`${ruta}/simulacion`, {
-      parametros: { CORRECAO_BOUNDS: false, P_BOUNDS: 0.05, F_BOUNDS: 0 },
+      parametros: { CORRECAO_BOUNDS: false, P_BOUNDS: 5, F_BOUNDS: 1 },
       ajustes: { idpesos: ["1", "7"] },
     })
     const r = body.resultado
@@ -197,7 +197,7 @@ describe("iteración Elegibilidad y Pesaje (mock-server)", () => {
     expect(r.histograma.periodo_anterior).toBe("202609")
 
     const vetada = await post(`${ruta}/simulacion`, {
-      parametros: { CORRECAO_BOUNDS: false, P_BOUNDS: 0.05, F_BOUNDS: 0 },
+      parametros: { CORRECAO_BOUNDS: false, P_BOUNDS: 5, F_BOUNDS: 1 },
       ajustes: { idpesos: ["1"], juntas_vetadas: ["j1"] },
     })
     expect(vetada.body.resultado.juntas[0].vetada).toBe(true)

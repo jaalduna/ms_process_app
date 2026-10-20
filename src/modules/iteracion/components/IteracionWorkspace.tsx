@@ -50,11 +50,19 @@ export function IteracionWorkspace({ config }: { config: ConfigProceso }) {
   const [edicion, setEdicion] = useState<Record<string, { valores?: ValoresParametros; ajustes?: Ajustes }>>({})
   const clave = `${pais}|${periodo}`
   const valores = edicion[clave]?.valores ?? parametros.data?.valores
-  const ajustes = edicion[clave]?.ajustes ?? config.ajustesIniciales
+  const ajustesBase = parametros.data?.ajustes ?? config.ajustesIniciales
+  const ajustes = edicion[clave]?.ajustes ?? ajustesBase
   const editar = (cambio: { valores?: ValoresParametros; ajustes?: Ajustes }) =>
     setEdicion((prev) => ({ ...prev, [clave]: { ...prev[clave], ...cambio } }))
 
-  const simulacion = useSimulacion(cierre, paso === "iterar" && lista && valores ? { parametros: valores, ajustes } : null)
+  // Con el proceso real cada vuelta toma ~20 s: se calcula al pedirlo, no en cada movimiento.
+  const manual = preparacion.data?.engine === "real"
+  const [calculado, setCalculado] = useState<Record<string, { parametros: ValoresParametros; ajustes: Ajustes }>>({})
+  const actual = valores ? { parametros: valores, ajustes } : null
+  const base = parametros.data ? { parametros: parametros.data.valores, ajustes: ajustesBase } : null
+  const pedida = manual ? (calculado[clave] ?? base) : actual
+  const pendiente = manual && !!actual && JSON.stringify(actual) !== JSON.stringify(pedida)
+  const simulacion = useSimulacion(cierre, paso === "iterar" && lista ? pedida : null)
 
   const ir = (cambios: Record<string, string>) =>
     setSp((prev) => {
@@ -143,6 +151,10 @@ export function IteracionWorkspace({ config }: { config: ConfigProceso }) {
           onValores={(v) => editar({ valores: v })}
           onAjustes={(a) => editar({ ajustes: a })}
           onVerComparacion={() => irPaso("comparar")}
+          manual={manual}
+          pendiente={pendiente}
+          onCalcular={() => actual && setCalculado((prev) => ({ ...prev, [clave]: actual }))}
+          engine={engine}
         />
       ) : paso === "comparar" ? (
         <CompararPaso

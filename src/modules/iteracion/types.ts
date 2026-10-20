@@ -4,8 +4,11 @@
 
 export type Proceso = "elegibilidad" | "pesaje"
 
-/** `simulated`: resultados ilustrativos, no lee ni escribe SQL. `databricks`: motor real. */
-export type Engine = "simulated" | "databricks"
+/**
+ * `simulated`: resultados ilustrativos, no lee ni escribe SQL. `real`: el proceso de producción
+ * sobre datos de SQL (hoy solo Pesaje; todavía no escribe en SQL).
+ */
+export type Engine = "simulated" | "real"
 
 export type Nivel = "ok" | "aviso" | "error"
 
@@ -21,6 +24,8 @@ export interface Preparacion {
   periodo: string
   engine: Engine
   estado: "sin_preparar" | "preparando" | "lista" | "error"
+  /** Motivo cuando `estado` es `error`. */
+  error?: string | null
   preparado_en: string | null
   version_silver: string | null
   fuente: string
@@ -42,10 +47,19 @@ export interface ParamDef {
 
 export type ValoresParametros = Record<string, number | boolean>
 
+export interface IdPesoDisponible {
+  id: string
+  nombre: string
+}
+
 export interface Parametros {
   definiciones: ParamDef[]
   valores: ValoresParametros
   referencia: { etiqueta: string; valores: ValoresParametros }
+  /** Ajustes del escenario de referencia (dependen del motor). */
+  ajustes?: Ajustes
+  /** Pesaje: IdPesos que se pueden calcular para el país. */
+  idpesos?: IdPesoDisponible[] | null
 }
 
 export interface AjustesElegibilidad {
@@ -64,7 +78,7 @@ export interface Kpi {
   etiqueta: string
   valor: number
   formato: "num" | "pct" | "err" | "seg"
-  nota?: string
+  nota?: string | null
   estado?: Nivel | "neutro"
 }
 
@@ -103,8 +117,54 @@ export interface ResultadoPesaje {
     juntas: number
     diferencia_actual: number
   }[]
-  histograma: { periodo_anterior: string; anterior: number[]; actual: number[]; fuera: boolean[] }
-  juntas: { id: string; region: string; detalle: string; vetada: boolean }[]
+  histograma: { periodo_anterior: string; anterior: number[]; actual: number[]; fuera: boolean[]; bordes?: number[] }
+  juntas: { id: string; region: string; detalle: string; vetada: boolean; motivo?: string }[]
+  /** Motor real: indicadores del mes contra los 12 meses anteriores publicados, por IdPeso. */
+  revision?: { idpeso: string; indicadores: IndicadorRevision[] }[]
+  /** Motor real: celdas del Universo agrupadas como en el Excel, por IdPeso. */
+  segmentos?: { idpeso: string; grupos: GrupoCeldas[] }[]
+}
+
+export interface IndicadorRevision {
+  id: string
+  etiqueta: string
+  formato: "num" | "pct1" | "x" | "err"
+  valor: number
+  mes_anterior: number | null
+  min12?: number
+  max12?: number
+  media12?: number
+  serie: { periodo: string; valor: number | null }[]
+  estado: Nivel | "neutro"
+  regla: string
+}
+
+export interface CeldaUniverso {
+  uig: number
+  nivel: number
+  categoria: string
+  padre: string | null
+  hogares: number
+  hogares_12m: number
+  universo: number
+  peso_total: number
+  dif_universo: number
+  peso_medio: number
+  peso_medio_12m: number
+  limite_inf: number
+  limite_sup: number
+  peso_min: number
+  peso_max: number
+  peso_medio_publicado: number | null
+  junta: { con: string; lado: "sale" | "recibe"; motivo: string; excepcion: boolean } | null
+  estado: "ok" | "aviso" | "error"
+  motivos: string[]
+}
+
+export interface GrupoCeldas {
+  id: string
+  nombre: string
+  celdas: CeldaUniverso[]
 }
 
 export interface Simulacion {

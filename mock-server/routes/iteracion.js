@@ -307,10 +307,12 @@ router.post(`${BASE}/preparacion`, handler((ctx, _req, res) => {
   return vistaPreparacion(ctx)
 }))
 
-router.get(`${BASE}/parametros`, handler(({ def, periodo }) => ({
+router.get(`${BASE}/parametros`, handler(({ proceso, def, periodo }) => ({
   definiciones: def.defs,
   valores: { ...def.referencia },
   referencia: { etiqueta: def.etiquetaReferencia(periodo), valores: { ...def.referencia } },
+  ajustes: def.ajustesDefault(),
+  idpesos: proceso === "pesaje" ? IDPESOS.map(([id, nombre]) => ({ id, nombre })) : null,
 }), { roles: "leer" }))
 
 router.post(`${BASE}/simulacion`, handler((ctx, req) => {

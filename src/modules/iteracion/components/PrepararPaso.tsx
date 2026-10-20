@@ -92,6 +92,12 @@ export function PrepararPaso({ cierre, preparacion, cargando, onContinuar }: {
         </Seccion>
       </div>
 
+      {preparacion.estado === "error" && preparacion.error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
+          La preparación falló: {preparacion.error}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         {preparacion.estado === "lista" ? (
           <>

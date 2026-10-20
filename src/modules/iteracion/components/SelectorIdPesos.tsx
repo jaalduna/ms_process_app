@@ -3,18 +3,19 @@ import type { PropsAjustes } from "../config"
 import { IDPESOS } from "../idpesos"
 import type { AjustesPesaje } from "../types"
 
-export function SelectorIdPesos({ ajustes, onAjustes }: PropsAjustes) {
+export function SelectorIdPesos({ ajustes, onAjustes, idpesos }: PropsAjustes) {
   const a = ajustes as AjustesPesaje
+  const opciones = idpesos ?? IDPESOS
   const alternar = (id: string) => {
     const sel = a.idpesos.includes(id) ? a.idpesos.filter((x) => x !== id) : [...a.idpesos, id]
     if (sel.length === 0) return // siempre al menos uno
-    onAjustes({ ...a, idpesos: IDPESOS.map((i) => i.id).filter((x) => sel.includes(x)) })
+    onAjustes({ ...a, idpesos: opciones.map((i) => i.id).filter((x) => sel.includes(x)) })
   }
   return (
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">IdPesos a calcular</legend>
       <div className="flex flex-wrap gap-1.5">
-        {IDPESOS.map((i) => {
+        {opciones.map((i) => {
           const on = a.idpesos.includes(i.id)
           return (
             <button

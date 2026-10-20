@@ -82,7 +82,7 @@ export function CompararPaso({ config, cierre, parametros, onIterar, onPublicar 
                   <TableCell className="max-w-64 text-sm whitespace-normal">
                     {c.length ? c.join(" · ") : <span className="text-muted-foreground">Sin cambios</span>}
                   </TableCell>
-                  <TableCell className="max-w-56 text-sm whitespace-normal">{config.describirAjustes(e.ajustes)}</TableCell>
+                  <TableCell className="max-w-56 text-sm whitespace-normal">{config.describirAjustes(e.ajustes, parametros?.idpesos)}</TableCell>
                   {columnasKpi.map((col) => {
                     const k = e.resumen.find((x) => x.id === col.id)
                     return (

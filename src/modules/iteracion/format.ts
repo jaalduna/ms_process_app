@@ -27,11 +27,8 @@ export function valorKpi(k: Kpi): string {
 export function valorParametro(d: ParamDef, v: number | boolean): string {
   if (typeof v === "boolean") return v ? "Sí" : "No"
   if (d.formato === "pct") return pct(v, 0)
-  if (d.formato === "percentil") {
-    const p = Math.round(v * 100)
-    return `p${p} / p${100 - p}`
-  }
-  return num(v)
+  if (d.formato === "percentil") return `p${v} / p${100 - v}`
+  return v.toLocaleString(es, { maximumFractionDigits: 2 })
 }
 
 /** Tono semántico de un nivel. Los estados no usan el verde ni el amarillo de marca. */

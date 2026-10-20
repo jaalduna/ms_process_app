@@ -5,6 +5,8 @@ import { SelectorIdPesos } from "./components/SelectorIdPesos"
 import { IDPESOS } from "./idpesos"
 import type {
   Ajustes,
+  Engine,
+  IdPesoDisponible,
   AjustesElegibilidad,
   AjustesPesaje,
   Proceso,
@@ -16,6 +18,9 @@ import type {
 export interface PropsAjustes {
   ajustes: Ajustes
   onAjustes: (a: Ajustes) => void
+  /** Pesaje: IdPesos del país que entrega la API (si no viene, la lista de referencia). */
+  idpesos?: IdPesoDisponible[] | null
+  engine?: Engine
 }
 
 /** Lo que cambia entre Elegibilidad y Pesaje; el resto del flujo es común. */
@@ -27,7 +32,7 @@ export interface ConfigProceso {
   Resultado: ComponentType<PropsAjustes & { resultado: Simulacion["resultado"] }>
   /** Ajustes que van en la columna de parámetros (p. ej. qué IdPesos calcular). */
   AjustesLaterales?: ComponentType<PropsAjustes>
-  describirAjustes: (a: Ajustes) => string
+  describirAjustes: (a: Ajustes, idpesos?: IdPesoDisponible[] | null) => string
   /** Pesaje elige si publica directo en SQL o genera el Excel para Kronos. */
   eligeDestino: boolean
 }
@@ -56,13 +61,18 @@ export const PESAJE: ConfigProceso = {
   titulo: "Pesaje",
   descripcion: "Prepara el cierre, itera el IPF por IdPeso y publica los pesos con aprobación.",
   ajustesIniciales: { idpesos: ["1", "3", "7"], juntas_vetadas: [] } satisfies AjustesPesaje,
-  Resultado: ({ resultado, ajustes, onAjustes }) => (
-    <ResultadoPesajeView resultado={resultado as ResultadoPesaje} ajustes={ajustes as AjustesPesaje} onAjustes={onAjustes} />
+  Resultado: ({ resultado, ajustes, onAjustes, engine }) => (
+    <ResultadoPesajeView
+      resultado={resultado as ResultadoPesaje}
+      ajustes={ajustes as AjustesPesaje}
+      onAjustes={onAjustes}
+      puedeVetar={engine !== "real"}
+    />
   ),
   AjustesLaterales: SelectorIdPesos,
-  describirAjustes: (a) => {
+  describirAjustes: (a, idpesos) => {
     const p = a as AjustesPesaje
-    const nombres = IDPESOS.filter((i) => p.idpesos.includes(i.id)).map((i) => i.nombre)
+    const nombres = (idpesos ?? IDPESOS).filter((i) => p.idpesos.includes(i.id)).map((i) => i.nombre)
     const vetadas = p.juntas_vetadas.length ? ` · ${p.juntas_vetadas.length} juntas vetadas` : ""
     return `${nombres.join(", ")}${vetadas}`
   },

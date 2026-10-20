@@ -1,12 +1,29 @@
 import type { ReactNode } from "react"
-import { AlertTriangle, Check, Circle, FlaskConical, X } from "lucide-react"
+import { AlertTriangle, Check, Circle, Database, FlaskConical, X } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { TONO, textoTono, valorKpi } from "../format"
 import type { Engine, Kpi, Nivel } from "../types"
 
-/** Aviso permanente cuando los resultados vienen del motor simulado. */
+/** Aviso permanente de dónde salen los resultados: motor simulado o proceso real. */
 export function AvisoMotor({ engine }: { engine: Engine | undefined }) {
+  if (engine === "real") {
+    return (
+      <div
+        role="note"
+        data-testid="it-aviso-real"
+        className="flex items-start gap-3 rounded-lg border px-4 py-3 text-sm"
+        style={{ borderColor: "color-mix(in oklch, var(--info) 40%, transparent)", background: "color-mix(in oklch, var(--info) 8%, transparent)" }}
+      >
+        <Database className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <p>
+          <span className="font-semibold">Proceso real.</span> Corre el Pesaje de producción sobre los datos de SQL del
+          período. Esta versión <span className="font-semibold">no escribe en SQL</span>: los pesos se siguen publicando
+          por el proceso actual. Los rangos y reglas de revisión son una propuesta inicial para acordar con el equipo.
+        </p>
+      </div>
+    )
+  }
   if (engine !== "simulated") return null
   return (
     <div
