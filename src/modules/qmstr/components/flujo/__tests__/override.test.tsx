@@ -39,7 +39,7 @@ describe("OverrideDialog: filtro de bases elegidas y excluidas", () => {
     expect(screen.getByTestId("qf-override-resumen-fuera")).toHaveTextContent("Base 448")
   })
 
-  it("con PythonCac no exige hito 4 ni forzar: muestra la calibración (hito 3)", async () => {
+  it("con PythonCac no exige hito 4 ni forzar: muestra la distribución de actos (hito 3)", async () => {
     const { OverrideDialog } = await import("../OverrideDialog")
     const user = userEvent.setup()
     const onLanzar = vi.fn()
@@ -47,7 +47,7 @@ describe("OverrideDialog: filtro de bases elegidas y excluidas", () => {
       paisInicial="CL" periodoInicial="202609" lanzando={false} onLanzar={onLanzar} entrega="pythoncac" />)
 
     expect(screen.getByTestId("qf-override-bases")).not.toHaveTextContent("hito 4")
-    expect(screen.getByTestId("qf-override-bases")).toHaveTextContent("Calibración")
+    expect(screen.getByTestId("qf-override-bases")).toHaveTextContent("Distribución")
     await user.click(screen.getByTestId("qf-override-base-450"))
     expect(screen.queryByTestId("qf-override-forzar")).not.toBeInTheDocument()
     expect(screen.queryByTestId("qf-override-advertencia")).not.toBeInTheDocument()

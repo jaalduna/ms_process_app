@@ -68,7 +68,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
   const [runTag, setRunTag] = useState("")
   const [revisar, setRevisar] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
-  // con PythonCac DC lanza QMS-TR tras el sign-off de calibración (hito 3), antes de la liberación (hito 4): no se
+  // con PythonCac DC lanza QMS-TR al recibir el sign-off de calibración (correo), antes de la liberación (hito 4): no se
   // exige hito 4 ni hay que forzar
   const directo = entrega === "pythoncac"
   const faltaHito = (b: FlujoBase) => !directo && sinH4(b)
@@ -136,7 +136,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
         <DialogDescription>
           {revisar
             ? "Así va a quedar la tanda manual. Entra al mismo flujo que una liberación."
-            : `Elige el país, el período productivo y las bases. Las listas para QMS-TR (${directo ? "con sign-off de calibración" : "con liberación metodológica"} y sin tanda) son las candidatas naturales.`}
+            : `Elige el país, el período productivo y las bases. Las listas para QMS-TR (${directo ? "con distribución de actos" : "con liberación metodológica"} y sin tanda) son las candidatas naturales.`}
         </DialogDescription>
       </DialogHeader>
 
@@ -172,7 +172,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                   {(periodos.data ?? []).map((p) => (
                     <SelectItem key={p.periodo} value={p.periodo}>
                       <span className="first-letter:uppercase">{periodoLabel(p.periodo)}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{directo ? `${p.h3} con calibración (hito 3)` : `${p.h4} con hito 4`}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{directo ? `${p.h3} con distribución de actos (hito 3)` : `${p.h4} con hito 4`}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -235,7 +235,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                           <span className="font-medium">{b.nombre}</span>
                           <span id={`${id}-m`} className="block text-xs text-muted-foreground">
                             {motivo ?? (directo
-                              ? (b.h3 ? `Calibración ${formatChile(b.h3)}` : "Sin sign-off de calibración")
+                              ? (b.h3 ? `Distribución ${formatChile(b.h3)}` : "Sin distribución de actos")
                               : sinH4(b) ? (b.h4_anulado ? "Hito 4 anulado" : "Sin hito 4") : `Hito 4 ${formatChile(b.h4!)}`)}
                           </span>
                         </label>
@@ -323,7 +323,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
           </ul>
           {fuera.length > 0 && (
             <div data-testid="qf-override-resumen-fuera">
-              <p className="mb-1.5 text-sm font-medium">{directo ? "Calibradas" : "Liberadas"} que excluiste <span className="font-normal text-muted-foreground tabular-nums">({fuera.length})</span></p>
+              <p className="mb-1.5 text-sm font-medium">{directo ? "Distribuidas" : "Liberadas"} que excluiste <span className="font-normal text-muted-foreground tabular-nums">({fuera.length})</span></p>
               <ul className="flex flex-wrap gap-1.5">
                 {fuera.map((b) => (
                   <li key={b.producto} className="rounded-md border border-dashed px-2 py-0.5 text-xs text-muted-foreground">

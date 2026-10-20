@@ -57,17 +57,17 @@ export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSelecci
     return c
   }, [bases])
   const conH4 = bases.filter((b) => b.h4 && !b.h4_anulado).length
-  // con PythonCac QMS-TR va tras el sign-off de calibración (hito 3) y antes de la liberación: no hay retenidas por
-  // hito 4, y lo que falta son bases sin sign-off
+  // con PythonCac la referencia es la distribución de actos (hito 3; el sign-off de calibración es un correo que no
+  // queda en J) y QMS-TR va antes de la liberación: no hay retenidas por hito 4; lo que falta son bases sin distribución
   const kpis = [
     directo
-      ? { label: "calibradas (hito 3)", valor: bases.filter((b) => b.h3).length, de: bases.length, testid: "qf-kpi-h3" }
+      ? { label: "con distribución de actos (hito 3)", valor: bases.filter((b) => b.h3).length, de: bases.length, testid: "qf-kpi-h3" }
       : { label: "liberadas por DC (hito 4)", valor: conH4, de: bases.length, testid: "qf-kpi-h4" },
     { label: "en QMS-TR", valor: cuenta.en_proceso, testid: "qf-kpi-en-proceso", estado: "en_proceso" as const },
     { label: "QMS-TR aplicado", valor: cuenta.aplicada, testid: "qf-kpi-aplicadas", estado: "aplicada" as const },
     { label: "QMS-TR revertido", valor: cuenta.revertida, testid: "qf-kpi-revertidas", estado: "revertida" as const },
     directo
-      ? { label: "sin sign-off de calibración", valor: cuenta.sin_hito4, testid: "qf-kpi-sin-calibracion", estado: "sin_hito4" as const }
+      ? { label: "sin distribución de actos", valor: cuenta.sin_hito4, testid: "qf-kpi-sin-distribucion", estado: "sin_hito4" as const }
       : cuenta.retenida > 0 || cuenta.esperando_liberacion === 0
       ? { label: "retenidas por DC", valor: cuenta.retenida, testid: "qf-kpi-retenidas", estado: "retenida" as const }
       : { label: "esperando liberación de DC", valor: cuenta.esperando_liberacion, testid: "qf-kpi-esperando-liberacion", estado: "esperando_liberacion" as const },
@@ -110,7 +110,7 @@ export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSelecci
           const apagada = filtro !== null && filtro !== b.estado
           const etapa = b.estado === "en_proceso" && b.tanda_estado ? ETAPA_BASE_LABEL[b.tanda_estado] : undefined
           const label = `${b.producto} ${b.nombre}: ${etapa ?? labelEstadoBase(b.estado, entrega)}`
-          const hito = directo ? (b.h3 ? ` (calibración ${formatChile(b.h3)})` : "") : b.h4 ? ` (hito 4 ${formatChile(b.h4)})` : ""
+          const hito = directo ? (b.h3 ? ` (distribución ${formatChile(b.h3)})` : "") : b.h4 ? ` (hito 4 ${formatChile(b.h4)})` : ""
           return (
             <li key={b.producto} className="flex">
               <button
