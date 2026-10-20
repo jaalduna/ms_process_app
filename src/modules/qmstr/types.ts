@@ -486,8 +486,27 @@ export const ESTADOS_BASE: { estado: EstadoBase; label: string; chip: string; ay
 
 export const ESTADO_BASE_LABEL = Object.fromEntries(ESTADOS_BASE.map((e) => [e.estado, e.chip])) as Record<EstadoBase, string>
 export const ESTADO_BASE_AYUDA = Object.fromEntries(ESTADOS_BASE.map((e) => [e.estado, e.ayuda])) as Record<EstadoBase, string>
+/**
+ * Con entrega PythonCac DC lanza QMS-TR tras el sign-off de calibración (hito 3) y antes de la liberación metodológica
+ * (hito 4): "lista" se mide contra el hito 3 y "sin_hito4" es una base sin sign-off de calibración.
+ */
+const ESTADOS_BASE_PYTHONCAC: Partial<Record<EstadoBase, { label: string; chip: string }>> = {
+  sin_hito4: { label: "Sin sign-off de calibración", chip: "Sin sign-off de calibración" },
+}
+
+export function estadosBase(entrega: Entrega): typeof ESTADOS_BASE {
+  if (entrega !== "pythoncac") return ESTADOS_BASE
+  return ESTADOS_BASE.map((e) => ({ ...e, ...ESTADOS_BASE_PYTHONCAC[e.estado], ayuda: ayudaEstadoBase(e.estado, entrega) }))
+}
+
+export function labelEstadoBase(estado: EstadoBase, entrega: Entrega): string {
+  return (entrega === "pythoncac" && ESTADOS_BASE_PYTHONCAC[estado]?.chip) || ESTADO_BASE_LABEL[estado]
+}
+
 /** Con entrega PythonCac (sin ticket ni hito 10) la ayuda de algunos estados cambia. */
 export const ESTADO_BASE_AYUDA_PYTHONCAC: Partial<Record<EstadoBase, string>> = {
+  pendiente: "Calibración dio el sign-off (hito 3) y todavía no entra a una corrida, o se recalibró después de su última corrida",
+  sin_hito4: "Calibración todavía no registra el sign-off de la base (hito 3)",
   aplicada: "El aplicativo aplicó los ajustes en J con PythonCac",
   en_proceso: "Está en una tanda que sigue avanzando: corrida, revisión antes de aplicar o aplicación en J",
   revertida: "Se devolvió en J a como estaba antes de QMS-TR; se puede volver a correr",

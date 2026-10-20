@@ -309,7 +309,7 @@ export function QmsTrFlujoPage() {
               </TabsContent>
 
               <TabsContent value="bases">
-                {bases.data && <TablaBases bases={bases.data} filtro={filtro} onFiltro={setFiltro} />}
+                {bases.data && <TablaBases bases={bases.data} filtro={filtro} onFiltro={setFiltro} entrega={entrega} />}
               </TabsContent>
 
               <TabsContent value="avisos">

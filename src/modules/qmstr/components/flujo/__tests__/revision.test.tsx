@@ -25,7 +25,7 @@ const tanda = (extra: Partial<Tanda>): Tanda => ({
   h4_hasta: "2026-10-01T12:00:00Z", estado: "en_revision", estado_previo: null, pausada: false, qms_run_id: null, jira_key: null,
   envio: {}, bypass: [], bypass_motivos: {},
   revisar: [{ producto: 201, motivo: REVISAR, d_vol_pct: -19.9, veces_fuera_de_caja: 2.6 }, { producto: 252, motivo: "Excel, hoja Factores: 3 filas con factor nuevo negativo" }],
-  revision: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
+  revision: {}, error: null, eventos: [], created_at: "2026-10-01T12:00:00Z", updated_at: "2026-10-01T12:00:00Z", tipo: "liberacion",
   modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", snapshot_desde: null, progreso: null, ...extra,
 })
 

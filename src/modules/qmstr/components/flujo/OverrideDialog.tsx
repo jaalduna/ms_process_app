@@ -68,6 +68,10 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
   const [runTag, setRunTag] = useState("")
   const [revisar, setRevisar] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
+  // con PythonCac DC lanza QMS-TR tras el sign-off de calibración (hito 3), antes de la liberación (hito 4): no se
+  // exige hito 4 ni hay que forzar
+  const directo = entrega === "pythoncac"
+  const faltaHito = (b: FlujoBase) => !directo && sinH4(b)
 
   const periodos = useFlujoPeriodos(pais)
   // sin período elegido (recién se cambió el país): el más reciente
@@ -75,7 +79,10 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
   const bases = useFlujoBases(pais, periodo, false)
   const lista = useMemo(() => bases.data ?? [], [bases.data])
   // excluida = liberada y elegible en este modo, pero no elegida: lo que conviene revisar antes de lanzar
-  const excluida = useCallback((b: FlujoBase) => !sel.has(b.producto) && !sinH4(b) && !bloqueo(b, modo), [sel, modo])
+  const excluida = useCallback(
+    (b: FlujoBase) => !sel.has(b.producto) && (directo ? !!b.h3 : !sinH4(b)) && !bloqueo(b, modo),
+    [sel, modo, directo],
+  )
   const filtradas = useMemo(() => {
     const t = q.trim().toLowerCase()
     return lista
@@ -87,7 +94,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
   const elegidas = lista.filter((b) => sel.has(b.producto))
   const fuera = lista.filter(excluida)
   const cuenta: Record<Vista, number> = { todas: lista.length, elegidas: elegidas.length, fuera: fuera.length }
-  const elegidasSinH4 = elegidas.filter(sinH4)
+  const elegidasSinH4 = elegidas.filter(faltaHito)
   const etiquetaPais = paises.find((p) => p.codigo === pais)?.etiqueta ?? pais
   const listo = elegidas.length > 0 && (elegidasSinH4.length === 0 || forzar)
 
@@ -165,7 +172,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                   {(periodos.data ?? []).map((p) => (
                     <SelectItem key={p.periodo} value={p.periodo}>
                       <span className="first-letter:uppercase">{periodoLabel(p.periodo)}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{p.h4} con hito 4</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{directo ? `${p.h3} con calibración (hito 3)` : `${p.h4} con hito 4`}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -227,10 +234,12 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                           <span className="mr-2 text-xs text-muted-foreground tabular-nums">{b.producto}</span>
                           <span className="font-medium">{b.nombre}</span>
                           <span id={`${id}-m`} className="block text-xs text-muted-foreground">
-                            {motivo ?? (sinH4(b) ? (b.h4_anulado ? "Hito 4 anulado" : "Sin hito 4") : `Hito 4 ${formatChile(b.h4!)}`)}
+                            {motivo ?? (directo
+                              ? (b.h3 ? `Calibración ${formatChile(b.h3)}` : "Sin sign-off de calibración")
+                              : sinH4(b) ? (b.h4_anulado ? "Hito 4 anulado" : "Sin hito 4") : `Hito 4 ${formatChile(b.h4!)}`)}
                           </span>
                         </label>
-                        <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} />
+                        <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} entrega={entrega} />
                       </li>
                     )
                   })}
@@ -307,14 +316,14 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
           </div>
           <ul className="flex flex-wrap gap-1.5">
             {elegidas.map((b) => (
-              <li key={b.producto} className={cn("rounded-md border px-2 py-0.5 text-xs", sinH4(b) && "border-[var(--qf-retenida)]")}>
+              <li key={b.producto} className={cn("rounded-md border px-2 py-0.5 text-xs", faltaHito(b) && "border-[var(--qf-retenida)]")}>
                 <span className="text-muted-foreground tabular-nums">{b.producto}</span> {b.nombre}
               </li>
             ))}
           </ul>
           {fuera.length > 0 && (
             <div data-testid="qf-override-resumen-fuera">
-              <p className="mb-1.5 text-sm font-medium">Liberadas que excluiste <span className="font-normal text-muted-foreground tabular-nums">({fuera.length})</span></p>
+              <p className="mb-1.5 text-sm font-medium">{directo ? "Calibradas" : "Liberadas"} que excluiste <span className="font-normal text-muted-foreground tabular-nums">({fuera.length})</span></p>
               <ul className="flex flex-wrap gap-1.5">
                 {fuera.map((b) => (
                   <li key={b.producto} className="rounded-md border border-dashed px-2 py-0.5 text-xs text-muted-foreground">
