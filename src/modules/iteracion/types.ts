@@ -96,13 +96,18 @@ export interface RegionElegibilidad {
   final: number
   cumplimiento: number
   estado: "ok" | "justo" | "deficit" | "cerrada"
+  /** Motor real: hogares reemplazados y elegibles publicados de la región. */
+  reemplazos?: number
+  publicado?: number | null
 }
 
 export interface ResultadoElegibilidad {
   tipo: "elegibilidad"
   f_ok: number
   regiones: RegionElegibilidad[]
-  revision: { hogares_imputar: number; regiones_con_imputacion: number }
+  revision: { hogares_imputar: number; regiones_con_imputacion: number; actos_imputar?: number }
+  /** Motor real: el país publica solo la marca de elegibilidad (Argentina). */
+  parcial?: boolean
   tendencia: { periodo: string; pct_imputado: number; actual: boolean }[]
   comparaciones: { etiqueta: string; delta_pp: number }[]
   donantes: { usos: number; hogares: number }[]
