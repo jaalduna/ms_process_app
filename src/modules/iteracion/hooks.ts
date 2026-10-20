@@ -75,14 +75,23 @@ export function useSimulacion(
   entrada: { parametros: ValoresParametros; ajustes: Ajustes } | null,
 ) {
   const estable = useDebounced(entrada, 350)
-  return useQuery({
+  // segundos que lleva una corrida larga del proceso real (la API responde 202 mientras calcula)
+  const [espera, setEspera] = useState<number | null>(null)
+  const q = useQuery({
     queryKey: [...key(c, "simulacion"), estable],
-    queryFn: () => simular(c.proceso, c.pais, c.periodo, estable!),
+    queryFn: async () => {
+      try {
+        return await simular(c.proceso, c.pais, c.periodo, estable!, setEspera)
+      } finally {
+        setEspera(null)
+      }
+    },
     enabled: !!estable,
     placeholderData: keepPreviousData,
     staleTime: Infinity,
     retry: false,
   })
+  return { ...q, espera }
 }
 
 export function useEscenarios(c: Cierre, enabled: boolean) {
@@ -90,6 +99,8 @@ export function useEscenarios(c: Cierre, enabled: boolean) {
     queryKey: key(c, "escenarios"),
     queryFn: () => getEscenarios(c.proceso, c.pais, c.periodo),
     enabled: enabled && !!c.pais,
+    // el escenario de referencia del proceso real se calcula en segundo plano
+    refetchInterval: (q) => (q.state.data?.calculando ? 5_000 : false),
   })
 }
 

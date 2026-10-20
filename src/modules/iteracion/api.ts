@@ -26,12 +26,28 @@ export const prepararDatos = (proceso: Proceso, pais: string, periodo: string) =
 export const getParametros = (proceso: Proceso, pais: string, periodo: string) =>
   api.get<Parametros>(`${base(proceso, pais, periodo)}/parametros`).then((r) => r.data)
 
-export const simular = (
+/**
+ * Con el proceso real la API puede responder 202 («calculando»): la corrida sigue en segundo plano
+ * (puede pasar los 230 s que el App Service da por pedido). Se repite el mismo pedido hasta tener
+ * el resultado; `onEspera` informa los segundos que lleva.
+ */
+export async function simular(
   proceso: Proceso,
   pais: string,
   periodo: string,
   body: { parametros: ValoresParametros; ajustes: Ajustes },
-) => api.post<Simulacion>(`${base(proceso, pais, periodo)}/simulacion`, body).then((r) => r.data)
+  onEspera?: (segundos: number) => void,
+): Promise<Simulacion> {
+  for (;;) {
+    const r = await api.post<Simulacion | { estado: "calculando"; segundos: number }>(
+      `${base(proceso, pais, periodo)}/simulacion`,
+      body,
+    )
+    if (r.status !== 202) return r.data as Simulacion
+    onEspera?.((r.data as { segundos: number }).segundos)
+    await new Promise((ok) => setTimeout(ok, 3_000))
+  }
+}
 
 export const getEscenarios = (proceso: Proceso, pais: string, periodo: string) =>
   api.get<Escenarios>(`${base(proceso, pais, periodo)}/escenarios`).then((r) => r.data)
