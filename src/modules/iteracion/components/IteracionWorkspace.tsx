@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils"
 import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import type { ConfigProceso } from "../config"
 import { useParametros, usePaises, usePreparacion, useSimulacion, type Cierre } from "../hooks"
-import type { Ajustes, PaisIteracion, ValoresParametros } from "../types"
+import type { Ajustes, Ancla, PaisIteracion, ValoresParametros } from "../types"
 import { CompararPaso } from "./CompararPaso"
+import { BotonConversaciones, ConversacionesProvider } from "./Conversaciones"
 import { IterarPaso } from "./IterarPaso"
 import { Bandera } from "./Bandera"
 import { AvisoMotor } from "./piezas"
@@ -75,14 +76,32 @@ export function IteracionWorkspace({ config }: { config: ConfigProceso }) {
 
   const engine = simulacion.data?.engine ?? preparacion.data?.engine
 
+  // Desde el panel de conversaciones: al paso del hilo y a su sección (si el paso está habilitado).
+  const irAncla = (ancla: Ancla) => {
+    const destino = ancla.split(".")[0] as Paso
+    if (destino !== "preparar" && !lista) {
+      irPaso("preparar")
+      return
+    }
+    irPaso(destino)
+    window.setTimeout(
+      () => document.getElementById(`ancla-${ancla}`)?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      400,
+    )
+  }
+
   return (
+    <ConversacionesProvider proceso={config.proceso} pais={pais} onIr={irAncla}>
     <div className="qf space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{config.titulo}</h1>
           <p className="text-sm text-muted-foreground">{config.descripcion}</p>
         </div>
-        <PeriodSelector value={periodo} onChange={(p) => ir({ periodo: p, paso: "preparar" })} />
+        <div className="flex flex-wrap items-center gap-2">
+          <BotonConversaciones />
+          <PeriodSelector value={periodo} onChange={(p) => ir({ periodo: p, paso: "preparar" })} />
+        </div>
       </div>
 
       {paises.error ? (
@@ -169,6 +188,7 @@ export function IteracionWorkspace({ config }: { config: ConfigProceso }) {
         <PublicarPaso config={config} cierre={cierre} />
       )}
     </div>
+    </ConversacionesProvider>
   )
 }
 

@@ -161,6 +161,7 @@ function Regiones({ regiones, cerradas, onAlternar }: {
 
   return (
     <Seccion
+      ancla="iterar.regiones"
       titulo="Muestra por región contra la muestra ideal"
       detalle="La marca vertical es la muestra ideal (100 %): OK desde 100 %, justo desde 90 %. Primero las regiones que requieren atención."
     >

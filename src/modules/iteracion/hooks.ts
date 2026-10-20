@@ -6,6 +6,7 @@ import {
   devolverPublicacion,
   elegirEscenario,
   enviarPublicacion,
+  getConversaciones,
   getEscenarios,
   getPaises,
   getParametros,
@@ -14,7 +15,7 @@ import {
   prepararDatos,
   simular,
 } from "./api"
-import type { Ajustes, Proceso, Publicacion, ValoresParametros } from "./types"
+import type { Ajustes, Hilo, Proceso, Publicacion, ValoresParametros } from "./types"
 
 /** Identifica el cierre sobre el que se trabaja: proceso + país + período. */
 export interface Cierre {
@@ -153,5 +154,29 @@ export function useAccionPublicacion(c: Cierre) {
       // Pesaje depende de que Elegibilidad del mismo cierre esté publicada.
       qc.invalidateQueries({ queryKey: ["iteracion", "pesaje", c.pais, c.periodo, "preparacion"] })
     },
+  })
+}
+
+// ── Conversaciones ──────────────────────────────────────────────────────────────────────────────
+const claveConv = (proceso: Proceso) => ["iteracion", proceso, "conversaciones"] as const
+
+/** Se relee cada minuto para ver lo que responden otros sin recargar. */
+export function useConversaciones(proceso: Proceso) {
+  return useQuery({
+    queryKey: claveConv(proceso),
+    queryFn: () => getConversaciones(proceso),
+    refetchInterval: 60_000,
+  })
+}
+
+/** Las tres acciones devuelven el hilo actualizado: se reemplaza en la lista sin volver a pedirla. */
+export function useAccionConversacion<A>(proceso: Proceso, fn: (args: A) => Promise<Hilo>) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (hilo) =>
+      qc.setQueryData<Hilo[]>(claveConv(proceso), (prev) =>
+        prev?.some((h) => h.id === hilo.id) ? prev.map((h) => (h.id === hilo.id ? hilo : h)) : [...(prev ?? []), hilo],
+      ),
   })
 }

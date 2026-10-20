@@ -220,3 +220,47 @@ export interface Publicacion {
   puede_aprobar: boolean
   bitacora: { en: string; usuario: string; texto: string }[]
 }
+
+// ── Conversaciones (preguntas, comentarios y problemas anclados a una sección) ──────────────────
+export type TipoHilo = "pregunta" | "comentario" | "problema"
+export type EstadoHilo = "abierta" | "resuelta"
+/** paso.sección: dónde vive el hilo en la pantalla. */
+export type Ancla =
+  | "preparar.tablas"
+  | "preparar.validaciones"
+  | "iterar.parametros"
+  | "iterar.regiones"
+  | "iterar.idpeso"
+  | "iterar.revision"
+  | "iterar.celdas"
+  | "iterar.juntas"
+  | "comparar.escenarios"
+  | "publicar.plan"
+
+export interface Autor {
+  email: string
+  nombre: string
+}
+
+export interface MensajeHilo {
+  id: string
+  texto: string
+  creado: string
+  autor: Autor
+}
+
+export interface Hilo {
+  id: string
+  proceso: Proceso
+  ancla: Ancla
+  pais: string | null
+  tipo: TipoHilo
+  titulo: string
+  texto: string
+  propuesta: string | null
+  estado: EstadoHilo
+  autor: Autor
+  creado: string
+  actualizado: string
+  mensajes: MensajeHilo[]
+}

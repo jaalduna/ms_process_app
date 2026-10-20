@@ -3,7 +3,8 @@ import { AlertTriangle, Check, Circle, Database, FlaskConical, X } from "lucide-
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { TONO, textoTono, valorKpi } from "../format"
-import type { Engine, Kpi, Nivel } from "../types"
+import type { Ancla, Engine, Kpi, Nivel } from "../types"
+import { Burbuja } from "./Conversaciones"
 
 /** Aviso permanente de dónde salen los resultados: motor simulado o proceso real. */
 export function AvisoMotor({ engine, proceso }: { engine: Engine | undefined; proceso?: "pesaje" | "elegibilidad" }) {
@@ -95,18 +96,23 @@ export function Kpis({ kpis }: { kpis: Kpi[] }) {
   )
 }
 
-export function Seccion({ titulo, detalle, children, className, accion }: {
+export function Seccion({ titulo, detalle, children, className, accion, ancla }: {
   titulo: ReactNode
   detalle?: ReactNode
   children: ReactNode
   className?: string
   accion?: ReactNode
+  /** Con ancla, la sección lleva su burbuja de preguntas y comentarios. */
+  ancla?: Ancla
 }) {
   return (
-    <Card className={cn("gap-3 p-5", className)}>
+    <Card className={cn("scroll-mt-4 gap-3 p-5", className)} id={ancla ? `ancla-${ancla}` : undefined}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h2 className="text-base font-semibold">{titulo}</h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            {titulo}
+            {ancla && <Burbuja ancla={ancla} />}
+          </h2>
           {detalle && <p className="text-sm text-muted-foreground">{detalle}</p>}
         </div>
         {accion}

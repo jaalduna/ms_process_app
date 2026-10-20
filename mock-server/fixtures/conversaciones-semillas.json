@@ -1,0 +1,74 @@
+[
+ {
+  "id": "q-eleg-publicado",
+  "proceso": "elegibilidad",
+  "ancla": "iterar.regiones",
+  "titulo": "Menos elegibles que lo publicado",
+  "texto": "En todos los países la corrida da menos elegibles que lo publicado en MorDom (de −49 en Bolivia a −904 en México). ¿Qué paso posterior al proceso completa la muestra publicada?",
+  "propuesta": "Incorporar ese paso al flujo, como una etapa más antes de publicar, en cuanto sepamos cuál es.",
+  "pais": null
+ },
+ {
+  "id": "q-eleg-reglas-producto",
+  "proceso": "elegibilidad",
+  "ancla": "preparar.tablas",
+  "titulo": "Reglas de producto que cambian mes a mes",
+  "texto": "Hay ajustes que dependen de parámetros como id_producto. ¿Cuáles cambian de un mes a otro y quién los define?",
+  "propuesta": "Dejarlos como configuración versionada por país, editable en el aplicativo con aprobación, en vez de en el código o en planillas.",
+  "pais": null
+ },
+ {
+  "id": "q-pes-tolerancia",
+  "proceso": "pesaje",
+  "ancla": "iterar.idpeso",
+  "titulo": "Meta de error del ajuste por país",
+  "texto": "El proceso trae una tolerancia de 0,001 %, que con pesos enteros no se alcanza en ningún país (terminan entre 0,007 % y 0,09 %). En Brasil, 0,01 % da los mismos resultados y termina antes.",
+  "propuesta": "Usar 0,01 % por defecto y fijar una tolerancia por país donde 0,01 % no se alcance.",
+  "pais": null
+ },
+ {
+  "id": "q-pes-argentina",
+  "proceso": "pesaje",
+  "ancla": "iterar.idpeso",
+  "titulo": "Qué proceso vale para Argentina",
+  "texto": "Los pesos de Argentina difieren de lo publicado porque el código nuevo todavía no es el oficial.",
+  "propuesta": "Mantener el proceso oficial hasta que el nuevo esté validado, y comparar los dos en el aplicativo mientras tanto.",
+  "pais": "argentina"
+ },
+ {
+  "id": "q-pes-reglas-celdas",
+  "proceso": "pesaje",
+  "ancla": "iterar.celdas",
+  "titulo": "Reglas de alerta por celda",
+  "texto": "Hoy una celda se marca con menos de 5 hogares o, si tiene 30 o más, cuando sus hogares se mueven más de 25 % o su peso medio más de 20 % contra el promedio de 12 meses.",
+  "propuesta": "Partir con estas reglas y ajustarlas por país según lo que ustedes revisan hoy.",
+  "pais": null
+ },
+ {
+  "id": "q-pes-segmentos",
+  "proceso": "pesaje",
+  "ancla": "iterar.celdas",
+  "titulo": "Segmentos o agrupaciones para revisar",
+  "texto": "¿Qué segmentos o agrupaciones necesitan ver para validar un cierre?",
+  "propuesta": "Los mismos grupos del Excel del Pesaje (NSE, edad, tamaño del hogar, regiones, cadenas); agregar los que falten.",
+  "pais": null
+ },
+ {
+  "id": "q-pes-rango",
+  "proceso": "pesaje",
+  "ancla": "iterar.revision",
+  "titulo": "Rango normal de cada indicador",
+  "texto": "Cada indicador se compara contra el mínimo y el máximo de los últimos 12 meses publicados.",
+  "propuesta": "Usar ese rango para empezar; si algún indicador necesita otro criterio (por ejemplo, mismo mes del año anterior), lo ajustamos.",
+  "pais": null
+ },
+ {
+  "id": "q-pes-universo",
+  "proceso": "pesaje",
+  "ancla": "preparar.tablas",
+  "titulo": "De dónde salen los números del universo",
+  "texto": "¿De dónde vienen las metas de hogares por estrato (el universo) y cada cuánto cambian?",
+  "propuesta": "Una carga inicial desde su Excel por país y, desde ahí, editar el universo en el aplicativo, con versiones y aprobación.",
+  "pais": null
+ }
+]

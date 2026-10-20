@@ -60,6 +60,7 @@ function Serie({ i }: { i: IndicadorRevision }) {
 export function RevisionHistoria({ indicadores }: { indicadores: IndicadorRevision[] }) {
   return (
     <Seccion
+      ancla="iterar.revision"
       titulo="Revisión contra la historia"
       detalle="Cada indicador de esta corrida contra los 12 meses anteriores publicados. Rango normal supuesto: el mínimo y el máximo de esos meses."
     >
@@ -141,6 +142,7 @@ export function CeldasUniverso({ grupos }: { grupos: GrupoCeldas[] }) {
 
   return (
     <Seccion
+      ancla="iterar.celdas"
       titulo="Celdas del Universo"
       detalle="Los mismos grupos del Excel del Pesaje. Cada celda contra su promedio de 12 meses; las reglas de alerta son una propuesta inicial."
     >

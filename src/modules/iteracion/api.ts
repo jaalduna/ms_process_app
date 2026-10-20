@@ -1,6 +1,10 @@
 import { api } from "@/lib/api"
 import type {
   Ajustes,
+  Ancla,
+  EstadoHilo,
+  Hilo,
+  TipoHilo,
   Escenario,
   Escenarios,
   PaisIteracion,
@@ -81,3 +85,20 @@ export const devolverPublicacion = (proceso: Proceso, pais: string, periodo: str
   api
     .post<Publicacion>(`${base(proceso, pais, periodo)}/publicacion/devolver`, { comentario })
     .then((r) => r.data)
+
+// ── Conversaciones ──────────────────────────────────────────────────────────────────────────────
+const conv = (proceso: Proceso) => `/iteracion/${proceso}/conversaciones`
+
+export const getConversaciones = (proceso: Proceso) =>
+  api.get<{ hilos: Hilo[] }>(conv(proceso)).then((r) => r.data.hilos)
+
+export const crearConversacion = (
+  proceso: Proceso,
+  body: { ancla: Ancla; tipo: TipoHilo; texto: string; pais: string | null },
+) => api.post<Hilo>(conv(proceso), body).then((r) => r.data)
+
+export const responderConversacion = (proceso: Proceso, id: string, texto: string) =>
+  api.post<Hilo>(`${conv(proceso)}/${id}/mensajes`, { texto }).then((r) => r.data)
+
+export const cambiarEstadoConversacion = (proceso: Proceso, id: string, estado: EstadoHilo) =>
+  api.patch<Hilo>(`${conv(proceso)}/${id}`, { estado }).then((r) => r.data)

@@ -86,7 +86,7 @@ export function PrepararPaso({ cierre, preparacion, cargando, onContinuar }: {
       )}
 
       <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
-        <Seccion titulo="Tablas de entrada" detalle={preparacion.fuente}>
+        <Seccion ancla="preparar.tablas" titulo="Tablas de entrada" detalle={preparacion.fuente}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -109,7 +109,7 @@ export function PrepararPaso({ cierre, preparacion, cargando, onContinuar }: {
           </Table>
         </Seccion>
 
-        <Seccion titulo="Validaciones antes de iterar">
+        <Seccion ancla="preparar.validaciones" titulo="Validaciones antes de iterar">
           {preparacion.validaciones.length === 0 ? (
             <p className="text-sm text-muted-foreground">Se calculan al preparar los datos.</p>
           ) : (

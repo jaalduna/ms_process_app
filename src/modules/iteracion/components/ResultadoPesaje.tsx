@@ -27,7 +27,7 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes, puedeVetar 
 
   return (
     <div className="space-y-5">
-      <Seccion titulo="Resultado por IdPeso" detalle={`Meta: error final bajo ${err(resultado.meta_error)} y cero outliers`}>
+      <Seccion ancla="iterar.idpeso" titulo="Resultado por IdPeso" detalle={`Meta: error final bajo ${err(resultado.meta_error)} y cero outliers`}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -112,6 +112,7 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes, puedeVetar 
         </Seccion>
 
         <Seccion
+          ancla="iterar.juntas"
           titulo={puedeVetar ? "Juntas de marginales propuestas" : `Juntas de celdas (${resultado.juntas.length})`}
           detalle={
             puedeVetar

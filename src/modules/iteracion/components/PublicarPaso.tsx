@@ -97,7 +97,7 @@ export function PublicarPaso({ config, cierre }: { config: ConfigProceso; cierre
       </div>
 
       <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
-        <Seccion titulo="Qué se va a escribir" detalle="En el orden en que se ejecuta">
+        <Seccion ancla="publicar.plan" titulo="Qué se va a escribir" detalle="En el orden en que se ejecuta">
           {config.eligeDestino && (
             <fieldset className="grid gap-2" disabled={p.estado !== "borrador"}>
               <legend className="sr-only">Destino</legend>

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { Router } from "express"
 import { verifyAppToken } from "./auth.js"
 import {
@@ -290,6 +291,60 @@ function anotar(st, user, texto) {
 const BASE = "/iteracion/:proceso/:pais/:periodo"
 
 router.get("/iteracion/:proceso/paises", handler(({ proceso }) => ({ paises: paisesDe(proceso) }), { roles: "leer", conPais: false }))
+
+// ── Conversaciones (mismo contrato que ms-process-api: preguntas sembradas + comentarios) ───────
+const ANCLAS = ["preparar.tablas", "preparar.validaciones", "iterar.parametros", "iterar.regiones", "iterar.idpeso",
+  "iterar.revision", "iterar.celdas", "iterar.juntas", "comparar.escenarios", "publicar.plan"]
+const SEMILLAS = JSON.parse(readFileSync(new URL("../fixtures/conversaciones-semillas.json", import.meta.url), "utf8"))
+const conversaciones = SEMILLAS.map((s) => ({
+  id: s.id, proceso: s.proceso, ancla: s.ancla, pais: s.pais, tipo: "pregunta", titulo: s.titulo, texto: s.texto,
+  propuesta: s.propuesta, estado: "abierta", autor: { email: "tecnologia-latam", nombre: "Equipo de desarrollo" },
+  creado: "2026-10-20T20:00:00+00:00", actualizado: "2026-10-20T20:00:00+00:00", mensajes: [],
+}))
+let seqConv = 0
+const ahoraIso = () => new Date().toISOString().slice(0, 19) + "+00:00"
+const hiloDe = (proceso, id) => {
+  const h = conversaciones.find((x) => x.proceso === proceso && x.id === id)
+  if (!h) fallo(404, "not_found", `conversación desconocida: ${id}`)
+  return h
+}
+router.get("/iteracion/:proceso/conversaciones", handler(({ proceso }) => ({
+  hilos: conversaciones.filter((h) => h.proceso === proceso),
+}), { roles: "leer", conPais: false }))
+router.post("/iteracion/:proceso/conversaciones", handler(({ proceso, user }, req, res) => {
+  const { ancla, tipo = "comentario", texto, pais = null } = req.body ?? {}
+  if (!ANCLAS.includes(ancla)) fallo(422, "ancla_invalida", `ancla desconocida: ${ancla}`)
+  if (!["pregunta", "comentario", "problema"].includes(tipo)) fallo(422, "tipo_invalido", "tipo inválido")
+  if (!String(texto ?? "").trim()) fallo(422, "texto_vacio", "el texto no puede estar vacío")
+  const t = ahoraIso()
+  const h = { id: `h-${++seqConv}`, proceso, ancla, pais, tipo, titulo: texto.trim().split("\n")[0].slice(0, 80),
+    texto: texto.trim(), propuesta: null, estado: "abierta", autor: { email: user.email, nombre: user.name },
+    creado: t, actualizado: t, mensajes: [] }
+  conversaciones.push(h)
+  res.status(201)
+  return h
+}, { roles: "leer", conPais: false }))
+router.post("/iteracion/:proceso/conversaciones/:id/mensajes", handler(({ proceso, user }, req, res) => {
+  const h = hiloDe(proceso, req.params.id)
+  const texto = String(req.body?.texto ?? "").trim()
+  if (!texto) fallo(422, "texto_vacio", "el texto no puede estar vacío")
+  h.actualizado = ahoraIso()
+  h.mensajes.push({ id: `m-${++seqConv}`, texto, creado: h.actualizado, autor: { email: user.email, nombre: user.name } })
+  res.status(201)
+  return h
+}, { roles: "leer", conPais: false }))
+router.patch("/iteracion/:proceso/conversaciones/:id", handler(({ proceso, user }, req) => {
+  const h = hiloDe(proceso, req.params.id)
+  const estado = req.body?.estado
+  if (!["abierta", "resuelta"].includes(estado)) fallo(422, "estado_invalido", "estado inválido")
+  if (h.estado !== estado) {
+    h.estado = estado
+    h.actualizado = ahoraIso()
+    const accion = estado === "resuelta" ? "Marcó la conversación como resuelta" : "La volvió a abrir"
+    h.mensajes.push({ id: `m-${++seqConv}`, texto: `· ${accion}`, creado: h.actualizado, autor: { email: user.email, nombre: user.name } })
+  }
+  return h
+}, { roles: "leer", conPais: false }))
 
 router.get(`${BASE}/preparacion`, handler((ctx) => vistaPreparacion(ctx), { roles: "leer" }))
 
