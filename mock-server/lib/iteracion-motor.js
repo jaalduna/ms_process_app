@@ -176,8 +176,9 @@ export const PESAJE_DEFS = [
   { clave: "MAX_ROUNDS_COLAPSO", etiqueta: "Máx. rondas de juntas", ayuda: "Rondas de juntas automáticas permitidas por período", tipo: "entero", min: 0, max: 100, paso: 1, formato: "num" },
   { clave: "JERARQUIA_MIN_COLAPSO", etiqueta: "Jerarquía mínima de junta", ayuda: "Nivel de celda desde el que se permite juntar", tipo: "entero", min: 1, max: 3, paso: 1, formato: "num" },
   { clave: "CORRECAO_BOUNDS", etiqueta: "Corregir límites si quedan outliers", ayuda: "Repite el ajuste con corrección de límites", tipo: "booleano" },
+  { clave: "IPF_TOL_ERR", etiqueta: "Tolerancia de error", ayuda: "El ajuste se detiene cuando ninguna celda se aleja de su meta del universo más que esto (0,01 % = 1e-4)", tipo: "rango", min: 0.00001, max: 0.001, paso: 0.00001, formato: "err" },
 ]
-export const PESAJE_REFERENCIA = { P_BOUNDS: 2, F_BOUNDS: 1.1, MAX_ROUNDS_COLAPSO: 50, JERARQUIA_MIN_COLAPSO: 1, CORRECAO_BOUNDS: true }
+export const PESAJE_REFERENCIA = { P_BOUNDS: 2, F_BOUNDS: 1.1, MAX_ROUNDS_COLAPSO: 50, JERARQUIA_MIN_COLAPSO: 1, CORRECAO_BOUNDS: true, IPF_TOL_ERR: 0.0001 }
 export const PESAJE_AJUSTES_DEFAULT = { idpesos: ["1", "3", "7"], juntas_vetadas: [] }
 
 /** Meta del IPF: error final bajo 0,001% (fracción). */

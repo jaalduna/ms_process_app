@@ -47,7 +47,7 @@ export interface ParamDef {
   min?: number
   max?: number
   paso?: number
-  formato?: "pct" | "num" | "percentil"
+  formato?: "pct" | "num" | "percentil" | "err"
 }
 
 export type ValoresParametros = Record<string, number | boolean>

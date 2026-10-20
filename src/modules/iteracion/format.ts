@@ -28,6 +28,7 @@ export function valorParametro(d: ParamDef, v: number | boolean): string {
   if (typeof v === "boolean") return v ? "Sí" : "No"
   if (d.formato === "pct") return pct(v, 0)
   if (d.formato === "percentil") return `p${v} / p${100 - v}`
+  if (d.formato === "err") return `${(v * 100).toLocaleString(es, { maximumFractionDigits: 4 })}%`
   return v.toLocaleString(es, { maximumFractionDigits: 2 })
 }
 
