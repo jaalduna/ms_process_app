@@ -70,6 +70,15 @@ describe("Stepper", () => {
     rerender(<Stepper tanda={tanda({ modo: "solo_correr" })} />)
     expect([...container.querySelectorAll("[data-paso]")].map((e) => e.getAttribute("data-paso"))).toEqual(["detectada", "corriendo", "cerrada"])
   })
+  it("el primer paso es Detectada solo en la liberación con ticket; si alguien la lanza es Lanzada", () => {
+    const primero = (c: HTMLElement) => c.querySelector('[data-paso="detectada"]')
+    const { container, rerender } = render(<Stepper tanda={tanda({})} />)
+    expect(primero(container)).toHaveTextContent("Detectada")
+    rerender(<Stepper tanda={tanda({ tipo: "manual" })} />)
+    expect(primero(container)).toHaveTextContent("Lanzada")
+    rerender(<Stepper tanda={tanda({})} entrega="pythoncac" />)
+    expect(primero(container)).toHaveTextContent("Lanzada")
+  })
 })
 
 describe("bloqueo de bases en el diálogo de lanzamiento", () => {

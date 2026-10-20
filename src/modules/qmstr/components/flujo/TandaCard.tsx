@@ -35,9 +35,11 @@ const PASO_LABEL: Partial<Record<EstadoTanda, string>> = {
 
 /**
  * Con ticket, una tanda completa cierra avisando a MTR en Jira; "solo correr" no tiene ticket. Con entrega PythonCac
- * no hay aviso: DC confirma el pase a MTR.
+ * no hay aviso: DC confirma el pase a MTR. Solo la tanda de liberación con ticket la detecta el flujo (hito 4); la
+ * manual, la reversión y toda tanda con PythonCac la lanza alguien.
  */
-const pasoLabel = (paso: EstadoTanda, t: Pick<Tanda, "modo" | "estado">, entrega: Entrega) => {
+const pasoLabel = (paso: EstadoTanda, t: Pick<Tanda, "modo" | "estado" | "tipo">, entrega: Entrega) => {
+  if (paso === "detectada" && (entrega === "pythoncac" || t.tipo !== "liberacion")) return "Lanzada"
   if (paso === "cerrada" && t.modo === "completo" && entrega === "ticket") return "Aviso a MTR en Jira"
   if (paso === "validando" && t.estado === "en_revision") return "Revisión"
   return PASO_LABEL[paso] ?? ESTADO_TANDA_LABEL[paso]
