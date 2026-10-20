@@ -32,6 +32,11 @@ export interface Preparacion {
   tablas: { nombre: string; filas: number | null; estado: "lista" | "pendiente" | "error" }[]
   validaciones: { id: string; titulo: string; detalle: string; nivel: Nivel }[]
   dependencias: { proceso: Proceso; estado: "publicada" | "pendiente"; detalle: string }[]
+  /** Motor real: avance de una preparación en curso. */
+  progreso?: {
+    segundos: number
+    pasos: { id: string; titulo: string; estado: "pendiente" | "en_curso" | "listo"; filas: number | null; segundos: number | null }[]
+  } | null
 }
 
 export interface ParamDef {
@@ -116,6 +121,10 @@ export interface ResultadoPesaje {
     outliers: number
     juntas: number
     diferencia_actual: number
+    /** Motor real: diferencia relativa por hogar contra el peso publicado. */
+    dif_mediana?: number | null
+    dif_p90?: number | null
+    dif_sobre_5?: number | null
   }[]
   histograma: { periodo_anterior: string; anterior: number[]; actual: number[]; fuera: boolean[]; bordes?: number[] }
   juntas: { id: string; region: string; detalle: string; vetada: boolean; motivo?: string }[]

@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import { err, num, TONO, textoTono } from "../format"
+import { err, num, pct, TONO, textoTono } from "../format"
 import type { AjustesPesaje, ResultadoPesaje } from "../types"
 import { Seccion } from "./piezas"
 import { CeldasUniverso, RevisionHistoria } from "./RevisionPesaje"
@@ -60,6 +60,14 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes, puedeVetar 
                   <TableCell className="text-right tabular-nums">{num(p.juntas)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {num(p.diferencia_actual)} {resultado.unidad === "hogar" ? "hogares" : "individuos"}
+                    {p.dif_mediana != null && p.diferencia_actual > 0 && (
+                      <span
+                        className="block text-xs text-muted-foreground"
+                        title={`Diferencia por hogar contra el peso publicado. p90: ${pct(p.dif_p90 ?? 0)}`}
+                      >
+                        mediana {pct(p.dif_mediana)} · {pct(p.dif_sobre_5 ?? 0, 0)} sobre 5 %
+                      </span>
+                    )}
                   </TableCell>
                 </TableRow>
               )
