@@ -1,4 +1,4 @@
-import { Database, Loader2, RefreshCw } from "lucide-react"
+import { Check, Circle, Database, Loader2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -13,6 +13,36 @@ const ESTADO_TABLA: Record<Preparacion["tablas"][number]["estado"], { texto: str
   lista: { texto: "Lista", tono: TONO.ok },
   pendiente: { texto: "Pendiente", tono: TONO.neutro },
   error: { texto: "Error", tono: TONO.error },
+}
+
+/** 95 → "1:35". */
+function reloj(seg: number): string {
+  return `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")}`
+}
+
+/** Pasos de la preparación real: qué tabla se está leyendo, cuántas filas lleva y cuánto tardó. */
+function Avance({ pasos }: { pasos: NonNullable<Preparacion["progreso"]>["pasos"] }) {
+  return (
+    <ol className="max-w-xl space-y-1.5" aria-label="Avance de la preparación">
+      {pasos.map((p) => (
+        <li key={p.id} className="flex items-center gap-2.5 text-sm" data-testid={`it-avance-${p.id}`}>
+          {p.estado === "listo" ? (
+            <Check className="size-4 shrink-0" style={textoTono(TONO.ok)} aria-label="Listo" />
+          ) : p.estado === "en_curso" ? (
+            <Loader2 className="size-4 shrink-0 animate-spin" style={textoTono(TONO.neutro)} aria-label="En curso" />
+          ) : (
+            <Circle className="size-3 shrink-0 text-muted-foreground" aria-label="Pendiente" />
+          )}
+          <span className={p.estado === "pendiente" ? "text-muted-foreground" : "font-medium"}>{p.titulo}</span>
+          <span className="ml-auto tabular-nums text-muted-foreground">
+            {p.filas != null && `${num(p.filas)} filas`}
+            {p.filas != null && p.segundos != null && " · "}
+            {p.segundos != null && p.estado !== "pendiente" && reloj(p.segundos)}
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
 }
 
 export function PrepararPaso({ cierre, preparacion, cargando, onContinuar }: {
@@ -115,10 +145,15 @@ export function PrepararPaso({ cierre, preparacion, cargando, onContinuar }: {
             </Button>
           </>
         ) : preparacion.estado === "preparando" ? (
-          <span className="inline-flex items-center gap-2 text-sm text-muted-foreground" role="status">
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-            Preparando… puedes cerrar esta pestaña, no se pierde.
-          </span>
+          <div className="w-full space-y-3">
+            <span className="inline-flex items-center gap-2 text-sm text-muted-foreground" role="status">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Preparando
+              {preparacion.progreso && ` · ${reloj(preparacion.progreso.segundos)}`}
+              … puedes cerrar esta pestaña, no se pierde.
+            </span>
+            {preparacion.progreso && <Avance pasos={preparacion.progreso.pasos} />}
+          </div>
         ) : (
           <>
             <Button

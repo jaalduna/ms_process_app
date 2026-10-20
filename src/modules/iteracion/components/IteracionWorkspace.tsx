@@ -9,6 +9,7 @@ import { useParametros, usePaises, usePreparacion, useSimulacion, type Cierre } 
 import type { Ajustes, PaisIteracion, ValoresParametros } from "../types"
 import { CompararPaso } from "./CompararPaso"
 import { IterarPaso } from "./IterarPaso"
+import { Bandera } from "./Bandera"
 import { AvisoMotor } from "./piezas"
 import { PrepararPaso } from "./PrepararPaso"
 import { PublicarPaso } from "./PublicarPaso"
@@ -195,10 +196,11 @@ function SelectorPais({ paises, valor, onChange }: { paises: PaisIteracion[]; va
                     onClick={() => onChange(p.id)}
                     data-testid={`it-pais-${p.id}`}
                     className={cn(
-                      "h-9 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
+                      "inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
                       on ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-accent",
                     )}
                   >
+                    <Bandera pais={p.id} />
                     {p.label}
                   </button>
                 )
