@@ -55,7 +55,8 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
   const [modo, setModo] = useState<ModoTanda>("completo")
   const [nota, setNota] = useState("")
   const [forzar, setForzar] = useState(false)
-  const sinH4 = !b.h4 || b.h4_anulado
+  // con PythonCac QMS-TR va antes de la liberación metodológica: no se exige hito 4
+  const sinH4 = !directo && (!b.h4 || b.h4_anulado)
   const motivo = bloqueo(b, modo)
   const listo = !motivo && (!sinH4 || forzar)
   const historial = [...b.historial].reverse()
@@ -68,7 +69,7 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
         </SheetTitle>
         <SheetDescription className="first-letter:uppercase">{paisEtiqueta}, {periodoLabel(periodo)}</SheetDescription>
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} />
+          <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} entrega={entrega} />
           {b.jira_key && <Chip tone="var(--qf-pendiente)" className="font-semibold"><Ticket className="size-3" />{b.jira_key}</Chip>}
         </div>
         <p className="text-sm text-muted-foreground">{ayudaEstadoBase(b.estado, entrega)}</p>
@@ -94,7 +95,7 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
         <section aria-label="Hitos">
           <h3 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Hitos</h3>
           <dl className="divide-y">
-            <Hito label="Distribución de DC (hito 3)" at={b.h3} />
+            <Hito label={directo ? "Sign-off de calibración (hito 3)" : "Distribución de DC (hito 3)"} at={b.h3} />
             <Hito label="Liberación de DC (hito 4)" at={b.h4} anulado={b.h4_anulado} />
             {!directo && <Hito label="QMS-TR (hito 10)" at={b.h10} />}
           </dl>

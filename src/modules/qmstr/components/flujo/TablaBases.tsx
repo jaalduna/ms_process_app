@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { formatChile } from "../../time"
-import { ESTADOS_BASE, ESTADO_TANDA_LABEL, type EstadoBase, type FlujoBase } from "../../types"
+import { ESTADO_TANDA_LABEL, estadosBase, type Entrega, type EstadoBase, type FlujoBase } from "../../types"
 import { Chip, ChipBase, Vacio } from "./piezas"
 
 function Hora({ iso, anulado }: { iso: string | null; anulado?: boolean }) {
@@ -20,10 +20,11 @@ interface TablaBasesProps {
   bases: FlujoBase[]
   filtro: EstadoBase | null
   onFiltro: (e: EstadoBase | null) => void
+  entrega?: Entrega
 }
 
 /** Grilla de bases con hitos 3/4/10, tanda y el historial de cada una (fila expandible). */
-export function TablaBases({ bases, filtro, onFiltro }: TablaBasesProps) {
+export function TablaBases({ bases, filtro, onFiltro, entrega = "ticket" }: TablaBasesProps) {
   const [q, setQ] = useState("")
   const [abierta, setAbierta] = useState<number | null>(null)
   const filas = useMemo(() => {
@@ -42,7 +43,7 @@ export function TablaBases({ bases, filtro, onFiltro }: TablaBasesProps) {
         {filtro && (
           <button type="button" onClick={() => onFiltro(null)}
             className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs hover:bg-muted">
-            Solo: {ESTADOS_BASE.find((e) => e.estado === filtro)?.label} <X className="size-3" />
+            Solo: {estadosBase(entrega).find((e) => e.estado === filtro)?.label} <X className="size-3" />
           </button>
         )}
         <span className="ml-auto text-xs text-muted-foreground tabular-nums">{filas.length} de {bases.length}</span>
@@ -58,7 +59,7 @@ export function TablaBases({ bases, filtro, onFiltro }: TablaBasesProps) {
                 <TableHead className="w-8" />
                 <TableHead>Base</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Hito 3</TableHead>
+                <TableHead>{entrega === "pythoncac" ? "Calibración (hito 3)" : "Hito 3"}</TableHead>
                 <TableHead>Hito 4</TableHead>
                 <TableHead>Hito 10</TableHead>
                 <TableHead>Tanda</TableHead>
@@ -86,7 +87,7 @@ export function TablaBases({ bases, filtro, onFiltro }: TablaBasesProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} />
+                          <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} entrega={entrega} />
                           {b.revisar && (
                             <Chip tone="var(--qf-retenida)" title={b.revisar} data-testid="qf-revisar">
                               <TriangleAlert className="size-3" /> Revisar

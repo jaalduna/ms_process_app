@@ -451,10 +451,19 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
         </div>
         <p className="w-full text-xs text-muted-foreground">
           {t.tipo === "reversion" && origen ? <>Revierte {nBases(t.productos.length)} de la tanda {origen.numero}. </> : null}
-          {t.h4_desde === t.h4_hasta
-            ? <>Hito 4 a las {formatChile(t.h4_hasta)}.</>
-            : <>Hito 4 entre las {formatChile(t.h4_desde)} y las {formatChile(t.h4_hasta)}.</>}
-          {t.creada_por && t.creada_por !== "qmstr_flujo" ? <> Lanzada por {t.creada_por}.</> : <> Detectada por el flujo.</>}
+          {entrega === "pythoncac" ? (
+            // con PythonCac DC la lanza antes de la liberación metodológica: no hay hito 4 que mostrar
+            <span data-testid="qf-tanda-lanzada">
+              Lanzada el {formatChile(t.created_at)}{t.creada_por && t.creada_por !== "qmstr_flujo" ? <> por {t.creada_por}</> : null}.
+            </span>
+          ) : (
+            <>
+              {t.h4_desde === t.h4_hasta
+                ? <>Hito 4 a las {formatChile(t.h4_hasta)}.</>
+                : <>Hito 4 entre las {formatChile(t.h4_desde)} y las {formatChile(t.h4_hasta)}.</>}
+              {t.creada_por && t.creada_por !== "qmstr_flujo" ? <> Lanzada por {t.creada_por}.</> : <> Detectada por el flujo.</>}
+            </>
+          )}
         </p>
         {t.nota && (
           <p className="flex w-full items-start gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm" data-testid="qf-tanda-nota">

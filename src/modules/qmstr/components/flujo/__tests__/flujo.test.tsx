@@ -17,7 +17,7 @@ const base = (producto: number, estado: FlujoBase["estado"], extra: Partial<Fluj
 const tanda = (extra: Partial<Tanda>): Tanda => ({
   id: "t", pais: "EC", periodo: "202609", numero: 1, categorias: [1], productos: [1], h4_desde: "2026-10-01T12:00:00Z",
   h4_hasta: "2026-10-01T12:00:00Z", estado: "detectada", estado_previo: null, pausada: false, qms_run_id: null, jira_key: null,
-  envio: {}, bypass: [], bypass_motivos: {}, revisar: [], revision: {}, error: null, eventos: [], created_at: "", updated_at: "", tipo: "liberacion",
+  envio: {}, bypass: [], bypass_motivos: {}, revisar: [], revision: {}, error: null, eventos: [], created_at: "2026-10-01T12:00:00Z", updated_at: "2026-10-01T12:00:00Z", tipo: "liberacion",
   modo: "completo", creada_por: null, tanda_origen: null, nota: null, ejecucion: "simulacion", snapshot_desde: null, progreso: null, ...extra,
 })
 
@@ -101,6 +101,14 @@ describe("TableroBases", () => {
     expect(screen.getByTestId("qf-kpi-aplicadas")).toHaveTextContent("2")
     await userEvent.click(screen.getByRole("button", { name: /Retenidas/ }))
     expect(onFiltro).toHaveBeenCalledWith("retenida")
+  })
+  it("con PythonCac el KPI es de bases calibradas (hito 3) y no hay retenidas por hito 4", () => {
+    const bases = [base(1, "pendiente", { h4: null }), base(2, "sin_hito4", { h3: null, h4: null })]
+    render(<TableroBases pais="Chile" periodo="202609" bases={bases} filtro={null} onFiltro={vi.fn()} onSeleccionar={vi.fn()} entrega="pythoncac" />)
+    expect(screen.getByTestId("qf-kpi-h3")).toHaveTextContent("1/ 2")
+    expect(screen.queryByTestId("qf-kpi-h4")).toBeNull()
+    expect(screen.getByTestId("qf-kpi-sin-calibracion")).toHaveTextContent("1")
+    expect(screen.getByTestId("qf-leyenda")).toHaveTextContent("Sin sign-off de calibración")
   })
 })
 
