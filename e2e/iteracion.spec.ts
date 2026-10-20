@@ -34,6 +34,7 @@ test("elegibilidad: preparar → iterar → escenario → enviar → aprobar; lu
   await page.getByTestId("it-continuar-iterar").click()
 
   // Iterar: cerrar una región recalcula y la deja sin imputar.
+  if (await page.getByTestId("it-regiones-ok").isVisible()) await page.getByTestId("it-regiones-ok").click()
   const norte = page.getByTestId("it-region-N")
   await expect(norte).toBeVisible()
   await norte.getByRole("button", { name: "No imputar en Norte" }).click()

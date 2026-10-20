@@ -134,6 +134,8 @@ describe("IteracionWorkspace (Elegibilidad)", () => {
   it("iterar: cerrar una región vuelve a simular con ese ajuste", async () => {
     h.getPreparacion.mockResolvedValue(preparacion("lista"))
     renderAt("?periodo=202609&paso=iterar")
+    // Las regiones OK parten plegadas: primero se ven las que requieren atención.
+    await userEvent.click(await screen.findByTestId("it-regiones-ok"))
     const fila = await screen.findByTestId("it-region-NE")
     expect(within(fila).getByText("OK")).toBeInTheDocument()
     await userEvent.click(within(fila).getByRole("button", { name: "No imputar en Nordeste" }))

@@ -1,14 +1,17 @@
+import { useMemo, useState } from "react"
+import { ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 import { num, pct, pp, periodoLabel, TONO, textoTono } from "../format"
 import type { AjustesElegibilidad, RegionElegibilidad, ResultadoElegibilidad } from "../types"
 import { Seccion } from "./piezas"
 
-const ESTADO: Record<RegionElegibilidad["estado"], { texto: string; tono: string; relleno: string }> = {
-  ok: { texto: "OK", tono: TONO.ok, relleno: "var(--qf-wp-blue)" },
-  justo: { texto: "Justo", tono: TONO.aviso, relleno: "var(--warning)" },
-  deficit: { texto: "Déficit", tono: TONO.error, relleno: "#f871a0" },
-  cerrada: { texto: "Sin imputar", tono: TONO.neutro, relleno: "var(--muted-foreground)" },
+const ESTADO: Record<RegionElegibilidad["estado"], { texto: string; plural: string; tono: string; relleno: string }> = {
+  ok: { texto: "OK", plural: "OK", tono: TONO.ok, relleno: "var(--qf-wp-blue)" },
+  justo: { texto: "Justo", plural: "justas", tono: TONO.aviso, relleno: "var(--warning)" },
+  deficit: { texto: "Déficit", plural: "en déficit", tono: TONO.error, relleno: "#f871a0" },
+  cerrada: { texto: "Sin imputar", plural: "sin imputar", tono: TONO.neutro, relleno: "var(--muted-foreground)" },
 }
 
 export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
@@ -28,16 +31,12 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
       <div className="rounded-lg border px-4 py-3 text-sm" data-testid="it-elg-parcial">
         <div className="font-semibold">Este país publica solo la marca de elegibilidad</div>
         <p>
-          Su proceso de imputación todavía no está habilitado (según la documentación de Luan): la corrida calcula qué
-          hogares son elegibles y publica esa marca, sin imputar ni reemplazar.
+          Su proceso de imputación todavía no está habilitado: la corrida calcula qué hogares son elegibles y publica
+          esa marca, sin imputar ni reemplazar.
         </p>
       </div>
     )
   }
-  const conPublicado = resultado.regiones.some((r) => r.publicado != null)
-  // escala de la barra hasta 120 %: la marca vertical es la muestra ideal (100 %)
-  const ESCALA = 1.2
-
   return (
     <div className="space-y-5">
       <div
@@ -53,83 +52,7 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
         </p>
       </div>
 
-      <Seccion
-        titulo="Muestra por región contra la muestra ideal"
-        detalle="R_Regiones · la marca vertical es la muestra ideal (100 %); OK desde 100 %, justo desde 90 %"
-      >
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Región</TableHead>
-              <TableHead className="text-right">Ideal</TableHead>
-              <TableHead className="text-right">Natural</TableHead>
-              <TableHead className="text-right">Imputados</TableHead>
-              {conPublicado && <TableHead className="text-right">Reemplazos</TableHead>}
-              <TableHead className="min-w-36">Cumplimiento</TableHead>
-              {conPublicado && (
-                <TableHead className="text-right" title="Elegibles publicados en MorDom para este período">
-                  Publicado
-                </TableHead>
-              )}
-              <TableHead>Estado</TableHead>
-              <TableHead>
-                <span className="sr-only">Acción</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {resultado.regiones.map((r) => {
-              const e = ESTADO[r.estado]
-              const cerrada = r.estado === "cerrada"
-              return (
-                <TableRow key={r.id} data-testid={`it-region-${r.id}`}>
-                  <TableCell className="font-medium">{r.nombre}</TableCell>
-                  <TableCell className="text-right tabular-nums">{num(r.ideal)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{num(r.natural)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{num(r.imputados)}</TableCell>
-                  {conPublicado && <TableCell className="text-right tabular-nums">{num(r.reemplazos ?? 0)}</TableCell>}
-                  <TableCell>
-                    <div className="relative h-2.5 rounded-full bg-muted" aria-hidden>
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-full"
-                        style={{ width: `${Math.min(100, (r.cumplimiento / ESCALA) * 100)}%`, background: e.relleno }}
-                      />
-                      <div className="absolute -inset-y-1 w-0.5 bg-foreground" style={{ left: `${100 / ESCALA}%` }} />
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground tabular-nums">
-                      {pct(r.cumplimiento)} · {num(r.final)} final
-                    </div>
-                  </TableCell>
-                  {conPublicado && (
-                    <TableCell className="text-right tabular-nums">
-                      {r.publicado == null ? "—" : num(r.publicado)}
-                      {r.publicado != null && r.publicado !== r.final && (
-                        <span className="block text-xs text-muted-foreground">
-                          {r.final - r.publicado > 0 ? "+" : ""}
-                          {num(r.final - r.publicado)} esta vuelta
-                        </span>
-                      )}
-                    </TableCell>
-                  )}
-                  <TableCell className="font-semibold" style={textoTono(e.tono)}>
-                    {e.texto}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => alternar(r.id)}
-                      aria-label={cerrada ? `Volver a imputar en ${r.nombre}` : `No imputar en ${r.nombre}`}
-                    >
-                      {cerrada ? "Reabrir" : "Cerrar"}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </Seccion>
+      <Regiones regiones={resultado.regiones} onAlternar={alternar} />
 
       <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
         <Seccion
@@ -163,6 +86,190 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
         </Seccion>
       </div>
     </div>
+  )
+}
+
+// Primero lo que hay que revisar: déficit, justo y sin imputar; las OK al final.
+const ORDEN: Record<RegionElegibilidad["estado"], number> = { deficit: 0, justo: 1, cerrada: 2, ok: 3 }
+const FILTROS = ["deficit", "justo", "cerrada", "ok"] as const
+type Filtro = "atencion" | "todas" | (typeof FILTROS)[number]
+// escala de la barra hasta 120 %: la marca vertical es la muestra ideal (100 %)
+const ESCALA = 1.2
+
+function Regiones({ regiones, onAlternar }: { regiones: RegionElegibilidad[]; onAlternar: (id: string) => void }) {
+  const [filtro, setFiltro] = useState<Filtro>("atencion")
+  const [buscar, setBuscar] = useState("")
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set())
+  const conteo = useMemo(() => {
+    const c = { deficit: 0, justo: 0, cerrada: 0, ok: 0 }
+    for (const r of regiones) c[r.estado] += 1
+    return c
+  }, [regiones])
+  const ordenadas = useMemo(
+    () => [...regiones].sort((a, b) => ORDEN[a.estado] - ORDEN[b.estado] || a.cumplimiento - b.cumplimiento),
+    [regiones],
+  )
+  const q = buscar.trim().toLowerCase()
+  // Al buscar se mira en todas las regiones, no solo en las del filtro.
+  const filas = ordenadas.filter((r) =>
+    q
+      ? r.nombre.toLowerCase().includes(q)
+      : filtro === "todas" || (filtro === "atencion" ? r.estado !== "ok" : r.estado === filtro),
+  )
+  const plegadas = !q && filtro === "atencion" ? conteo.ok : 0
+  const conPublicado = regiones.some((r) => r.publicado != null)
+  const alternarDetalle = (id: string) =>
+    setAbiertas((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+
+  return (
+    <Seccion
+      titulo="Muestra por región contra la muestra ideal"
+      detalle="La marca vertical es la muestra ideal (100 %): OK desde 100 %, justo desde 90 %. Primero las regiones que requieren atención."
+    >
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtrar regiones por estado">
+        {FILTROS.map((f) => {
+          const on = filtro === f
+          return (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={on}
+              disabled={conteo[f] === 0}
+              onClick={() => setFiltro(on ? "atencion" : f)}
+              data-testid={`it-filtro-${f}`}
+              className={cn(
+                "h-8 rounded-full border px-3 text-xs font-medium tabular-nums transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-50",
+                on ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-accent",
+              )}
+            >
+              <span className="mr-1.5 inline-block size-2 rounded-full" style={{ background: ESTADO[f].relleno }} aria-hidden />
+              {conteo[f]} {ESTADO[f].plural}
+            </button>
+          )
+        })}
+        <button
+          type="button"
+          aria-pressed={filtro === "todas"}
+          onClick={() => setFiltro(filtro === "todas" ? "atencion" : "todas")}
+          className="h-8 px-2 text-xs font-medium text-muted-foreground underline-offset-4 hover:underline"
+        >
+          {filtro === "todas" ? "Solo las que requieren atención" : `Ver las ${regiones.length}`}
+        </button>
+        <Input
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+          placeholder="Buscar región"
+          aria-label="Buscar región"
+          className="ml-auto h-8 max-w-56"
+        />
+      </div>
+
+      {filas.length === 0 ? (
+        <p className="text-sm" role="status">
+          {q ? "Ninguna región coincide." : "Todas las regiones están OK."}
+        </p>
+      ) : (
+        <ul className="divide-y rounded-md border" data-testid="it-regiones">
+          {filas.map((r) => (
+            <FilaRegion
+              key={r.id}
+              r={r}
+              abierta={abiertas.has(r.id)}
+              conPublicado={conPublicado}
+              onDetalle={() => alternarDetalle(r.id)}
+              onAlternar={() => onAlternar(r.id)}
+            />
+          ))}
+        </ul>
+      )}
+      {plegadas > 0 && (
+        <button
+          type="button"
+          onClick={() => setFiltro("todas")}
+          className="w-full rounded-md border border-dashed px-3 py-2 text-left text-sm text-muted-foreground hover:bg-accent"
+          data-testid="it-regiones-ok"
+        >
+          {plegadas === 1 ? "y 1 región OK" : `y ${plegadas} regiones OK`} · <span className="underline">ver</span>
+        </button>
+      )}
+    </Seccion>
+  )
+}
+
+function FilaRegion({ r, abierta, conPublicado, onDetalle, onAlternar }: {
+  r: RegionElegibilidad
+  abierta: boolean
+  conPublicado: boolean
+  onDetalle: () => void
+  onAlternar: () => void
+}) {
+  const e = ESTADO[r.estado]
+  const cerrada = r.estado === "cerrada"
+  const detalle: [string, string][] = [
+    ["Ideal", num(r.ideal)],
+    ["Natural", num(r.natural)],
+    ["Imputados", num(r.imputados)],
+    ...(conPublicado ? ([["Reemplazos", num(r.reemplazos ?? 0)]] as [string, string][]) : []),
+    ["Final", num(r.final)],
+    ...(conPublicado
+      ? ([[
+          "Publicado",
+          r.publicado == null
+            ? "—"
+            : `${num(r.publicado)}${r.publicado !== r.final ? ` (${r.final - r.publicado > 0 ? "+" : ""}${num(r.final - r.publicado)} esta vuelta)` : ""}`,
+        ]] as [string, string][])
+      : []),
+  ]
+  return (
+    <li data-testid={`it-region-${r.id}`}>
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,2fr)_auto_auto] items-center gap-3 px-3 py-2 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_5.5rem_auto]">
+        <button
+          type="button"
+          onClick={onDetalle}
+          aria-expanded={abierta}
+          className="flex min-w-0 items-center gap-1.5 text-left text-sm font-medium hover:underline"
+        >
+          <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform", abierta && "rotate-90")} aria-hidden />
+          <span className="truncate">{r.nombre}</span>
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="relative h-2.5 flex-1 rounded-full bg-muted" aria-hidden>
+            <div
+              className="absolute inset-y-0 left-0 rounded-full"
+              style={{ width: `${Math.min(100, (r.cumplimiento / ESCALA) * 100)}%`, background: e.relleno }}
+            />
+            <div className="absolute -inset-y-1 w-0.5 bg-foreground" style={{ left: `${100 / ESCALA}%` }} />
+          </div>
+          <span className="w-12 text-right text-xs tabular-nums">{pct(r.cumplimiento, 0)}</span>
+        </div>
+        <span className="text-sm font-semibold" style={textoTono(e.tono)}>
+          {e.texto}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onAlternar}
+          aria-label={cerrada ? `Volver a imputar en ${r.nombre}` : `No imputar en ${r.nombre}`}
+        >
+          {cerrada ? "Reabrir" : "Cerrar"}
+        </Button>
+      </div>
+      {abierta && (
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-1 px-9 pb-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
+          {detalle.map(([k, v]) => (
+            <div key={k}>
+              <dt className="text-xs text-muted-foreground">{k}</dt>
+              <dd className="tabular-nums">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </li>
   )
 }
 
