@@ -6,8 +6,9 @@ import { TONO, textoTono, valorKpi } from "../format"
 import type { Engine, Kpi, Nivel } from "../types"
 
 /** Aviso permanente de dónde salen los resultados: motor simulado o proceso real. */
-export function AvisoMotor({ engine }: { engine: Engine | undefined }) {
+export function AvisoMotor({ engine, proceso }: { engine: Engine | undefined; proceso?: "pesaje" | "elegibilidad" }) {
   if (engine === "real") {
+    const pesaje = proceso !== "elegibilidad"
     return (
       <div
         role="note"
@@ -17,9 +18,10 @@ export function AvisoMotor({ engine }: { engine: Engine | undefined }) {
       >
         <Database className="mt-0.5 size-4 shrink-0" aria-hidden />
         <p>
-          <span className="font-semibold">Proceso real.</span> Corre el Pesaje de producción sobre los datos de SQL del
-          período. Esta versión <span className="font-semibold">no escribe en SQL</span>: los pesos se siguen publicando
-          por el proceso actual. Los rangos y reglas de revisión son una propuesta inicial para acordar con el equipo.
+          <span className="font-semibold">Proceso real.</span> Corre {pesaje ? "el Pesaje" : "la Elegibilidad"} de producción
+          sobre los datos de SQL del período. Esta versión <span className="font-semibold">no escribe en SQL</span>:{" "}
+          {pesaje ? "los pesos se siguen publicando" : "la elegibilidad se sigue publicando"} por el proceso actual. Los
+          rangos y reglas de revisión son una propuesta inicial para acordar con el equipo.
         </p>
       </div>
     )

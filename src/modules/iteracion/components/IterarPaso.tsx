@@ -67,7 +67,9 @@ export function IterarPaso({
           <h2 className="text-base font-semibold">Parámetros</h2>
           <p className="text-sm text-muted-foreground">
             {manual
-              ? "Corre el proceso real sobre los datos preparados (unos 20 segundos por IdPeso)."
+              ? config.proceso === "pesaje"
+                ? "Corre el proceso real sobre los datos preparados (unos 20 segundos por IdPeso)."
+                : "Corre el proceso real sobre los datos preparados (de segundos a un par de minutos según el país)."
               : "Cada cambio recalcula sobre los datos preparados."}
           </p>
         </div>
