@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { ResultadoElegibilidadView } from "@/modules/iteracion/components/ResultadoElegibilidad"
 import type { RegionElegibilidad, ResultadoElegibilidad } from "@/modules/iteracion/types"
 
@@ -56,5 +56,25 @@ describe("regiones de Elegibilidad", () => {
     expect(within(fila).queryByText("Ideal")).not.toBeInTheDocument()
     await userEvent.click(within(fila).getByRole("button", { name: "Ceará" }))
     expect(within(fila).getByText("Ideal")).toBeInTheDocument()
+  })
+
+  it("excluir una región no la mueve ni la esconde, y avisa qué cambia al calcular", async () => {
+    const onAjustes = vi.fn()
+    const { rerender } = render(
+      <ResultadoElegibilidadView resultado={resultado} ajustes={{ regiones_cerradas: [] }} onAjustes={onAjustes} />,
+    )
+    await userEvent.click(screen.getByTestId("it-filtro-deficit"))
+    await userEvent.click(screen.getByRole("button", { name: "No imputar en Ceará" }))
+    expect(onAjustes).toHaveBeenLastCalledWith({ regiones_cerradas: ["C"] })
+
+    // Antes de calcular: el resultado sigue siendo el anterior.
+    rerender(<ResultadoElegibilidadView resultado={resultado} ajustes={{ regiones_cerradas: ["C"] }} onAjustes={onAjustes} />)
+    expect(within(screen.getByTestId("it-region-C")).getByText("se excluye al calcular")).toBeInTheDocument()
+
+    // Después de calcular: Ceará pasa a «sin imputar», pero queda en su lugar y visible en el filtro.
+    const nuevo = { ...resultado, regiones: resultado.regiones.map((r) => (r.id === "C" ? { ...r, estado: "cerrada" as const } : r)) }
+    rerender(<ResultadoElegibilidadView resultado={nuevo} ajustes={{ regiones_cerradas: ["C"] }} onAjustes={onAjustes} />)
+    expect(nombres()).toEqual(["it-region-C", "it-region-E"])
+    expect(within(screen.getByTestId("it-region-C")).getByRole("button", { name: "Volver a imputar en Ceará" })).toHaveAttribute("aria-pressed", "true")
   })
 })

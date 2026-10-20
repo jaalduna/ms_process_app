@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import { ChevronRight } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -19,11 +20,17 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
   ajustes: AjustesElegibilidad
   onAjustes: (a: AjustesElegibilidad) => void
 }) {
-  const alternar = (id: string) => {
-    const cerradas = ajustes.regiones_cerradas.includes(id)
-      ? ajustes.regiones_cerradas.filter((r) => r !== id)
-      : [...ajustes.regiones_cerradas, id]
-    onAjustes({ regiones_cerradas: cerradas })
+  const cambiar = (cerradas: string[]) => onAjustes({ regiones_cerradas: cerradas })
+  const alternar = (r: RegionElegibilidad) => {
+    const antes = ajustes.regiones_cerradas
+    const excluir = !antes.includes(r.id)
+    cambiar(excluir ? [...antes, r.id] : antes.filter((x) => x !== r.id))
+    toast(excluir ? `${r.nombre} no se imputará` : `${r.nombre} vuelve a imputarse`, {
+      description: excluir
+        ? "La región queda con sus elegibles naturales, sin donantes. Se aplica en la próxima vuelta."
+        : "Se aplica en la próxima vuelta.",
+      action: { label: "Deshacer", onClick: () => cambiar(antes) },
+    })
   }
 
   if (resultado.parcial) {
@@ -52,7 +59,7 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
         </p>
       </div>
 
-      <Regiones regiones={resultado.regiones} onAlternar={alternar} />
+      <Regiones regiones={resultado.regiones} cerradas={ajustes.regiones_cerradas} onAlternar={alternar} />
 
       <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
         <Seccion
@@ -96,26 +103,52 @@ type Filtro = "atencion" | "todas" | (typeof FILTROS)[number]
 // escala de la barra hasta 120 %: la marca vertical es la muestra ideal (100 %)
 const ESCALA = 1.2
 
-function Regiones({ regiones, onAlternar }: { regiones: RegionElegibilidad[]; onAlternar: (id: string) => void }) {
-  const [filtro, setFiltro] = useState<Filtro>("atencion")
+function ordenar(regiones: RegionElegibilidad[]): string[] {
+  return [...regiones]
+    .sort((a, b) => ORDEN[a.estado] - ORDEN[b.estado] || a.cumplimiento - b.cumplimiento)
+    .map((r) => r.id)
+}
+
+function Regiones({ regiones, cerradas, onAlternar }: {
+  regiones: RegionElegibilidad[]
+  cerradas: string[]
+  onAlternar: (r: RegionElegibilidad) => void
+}) {
+  const [filtro, setFiltroEstado] = useState<Filtro>("atencion")
   const [buscar, setBuscar] = useState("")
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set())
+  // Regiones que el usuario excluyó o reabrió: siguen a la vista aunque su estado ya no calce
+  // con el filtro, para que no "desaparezcan" al hacer clic.
+  const [tocadas, setTocadas] = useState<Set<string>>(() => new Set())
+  const setFiltro = (f: Filtro) => {
+    setFiltroEstado(f)
+    setTocadas(new Set())
+  }
   const conteo = useMemo(() => {
     const c = { deficit: 0, justo: 0, cerrada: 0, ok: 0 }
     for (const r of regiones) c[r.estado] += 1
     return c
   }, [regiones])
-  const ordenadas = useMemo(
-    () => [...regiones].sort((a, b) => ORDEN[a.estado] - ORDEN[b.estado] || a.cumplimiento - b.cumplimiento),
-    [regiones],
-  )
+  // El orden se fija al entrar al país o cambiar de filtro, no en cada vuelta: si excluir una
+  // región la reordenara, las filas saltarían bajo el cursor.
+  const clave = `${filtro}|${regiones.map((r) => r.id).sort().join(",")}`
+  const [orden, setOrden] = useState(() => ({ clave, ids: ordenar(regiones) }))
+  if (orden.clave !== clave) setOrden({ clave, ids: ordenar(regiones) })
+  const porId = new Map(regiones.map((r) => [r.id, r]))
+  const ordenadas = orden.ids.flatMap((id) => porId.get(id) ?? [])
   const q = buscar.trim().toLowerCase()
   // Al buscar se mira en todas las regiones, no solo en las del filtro.
   const filas = ordenadas.filter((r) =>
     q
       ? r.nombre.toLowerCase().includes(q)
-      : filtro === "todas" || (filtro === "atencion" ? r.estado !== "ok" : r.estado === filtro),
+      : filtro === "todas" ||
+        tocadas.has(r.id) ||
+        (filtro === "atencion" ? r.estado !== "ok" : r.estado === filtro),
   )
+  const alternar = (r: RegionElegibilidad) => {
+    setTocadas((s) => new Set(s).add(r.id))
+    onAlternar(r)
+  }
   const plegadas = !q && filtro === "atencion" ? conteo.ok : 0
   const conPublicado = regiones.some((r) => r.publicado != null)
   const alternarDetalle = (id: string) =>
@@ -184,7 +217,8 @@ function Regiones({ regiones, onAlternar }: { regiones: RegionElegibilidad[]; on
               abierta={abiertas.has(r.id)}
               conPublicado={conPublicado}
               onDetalle={() => alternarDetalle(r.id)}
-              onAlternar={() => onAlternar(r.id)}
+              excluida={cerradas.includes(r.id)}
+              onAlternar={() => alternar(r)}
             />
           ))}
         </ul>
@@ -206,15 +240,21 @@ function Regiones({ regiones, onAlternar }: { regiones: RegionElegibilidad[]; on
   )
 }
 
-function FilaRegion({ r, abierta, conPublicado, onDetalle, onAlternar }: {
+function FilaRegion({ r, abierta, excluida, conPublicado, onDetalle, onAlternar }: {
   r: RegionElegibilidad
   abierta: boolean
+  /** Excluida en los ajustes de esta vuelta (puede no estar calculado todavía). */
+  excluida: boolean
   conPublicado: boolean
   onDetalle: () => void
   onAlternar: () => void
 }) {
   const e = ESTADO[r.estado]
-  const cerrada = r.estado === "cerrada"
+  // El resultado en pantalla puede ser de la vuelta anterior: se avisa qué cambia al calcular.
+  const pendiente =
+    excluida && r.estado !== "cerrada" ? "se excluye al calcular"
+    : !excluida && r.estado === "cerrada" ? "se imputa al calcular"
+    : null
   const detalle: [string, string][] = [
     ["Ideal", num(r.ideal)],
     ["Natural", num(r.natural)],
@@ -231,8 +271,8 @@ function FilaRegion({ r, abierta, conPublicado, onDetalle, onAlternar }: {
       : []),
   ]
   return (
-    <li data-testid={`it-region-${r.id}`}>
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,2fr)_auto_auto] items-center gap-3 px-3 py-2 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_5.5rem_auto]">
+    <li data-testid={`it-region-${r.id}`} className={cn(excluida && "bg-muted/50")}>
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,2fr)_auto_auto] items-center gap-3 px-3 py-2 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_8rem_auto]">
         <button
           type="button"
           onClick={onDetalle}
@@ -252,16 +292,24 @@ function FilaRegion({ r, abierta, conPublicado, onDetalle, onAlternar }: {
           </div>
           <span className="w-12 text-right text-xs tabular-nums">{pct(r.cumplimiento, 0)}</span>
         </div>
-        <span className="text-sm font-semibold" style={textoTono(e.tono)}>
+        <span className="text-sm font-semibold leading-tight" style={textoTono(e.tono)}>
           {e.texto}
+          {pendiente && <span className="block text-xs font-normal text-muted-foreground">{pendiente}</span>}
         </span>
         <Button
-          variant="outline"
+          variant={excluida ? "secondary" : "outline"}
           size="sm"
+          className="w-36"
           onClick={onAlternar}
-          aria-label={cerrada ? `Volver a imputar en ${r.nombre}` : `No imputar en ${r.nombre}`}
+          aria-pressed={excluida}
+          aria-label={excluida ? `Volver a imputar en ${r.nombre}` : `No imputar en ${r.nombre}`}
+          title={
+            excluida
+              ? "Vuelve a completar esta región con donantes en la próxima vuelta"
+              : "Deja esta región solo con sus elegibles naturales, sin donantes, en la próxima vuelta"
+          }
         >
-          {cerrada ? "Reabrir" : "Cerrar"}
+          {excluida ? "Volver a imputar" : "No imputar"}
         </Button>
       </div>
       {abierta && (
