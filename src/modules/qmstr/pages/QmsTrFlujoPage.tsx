@@ -225,7 +225,7 @@ export function QmsTrFlujoPage() {
                   <SelectItem key={p.periodo} value={p.periodo}>
                     <span className="first-letter:uppercase">{periodoLabel(p.periodo)}</span>
                     <span className="ml-2 text-xs text-muted-foreground tabular-nums">
-                      {p.h4} con hito 4{p.h10 ? `, ${p.h10} con hito 10` : ""}
+                      {entrega === "pythoncac" ? `${p.h3} calibradas (hito 3)` : <>{p.h4} con hito 4{p.h10 ? `, ${p.h10} con hito 10` : ""}</>}
                     </span>
                   </SelectItem>
                 ))}

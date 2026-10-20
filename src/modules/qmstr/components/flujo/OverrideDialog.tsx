@@ -136,7 +136,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
         <DialogDescription>
           {revisar
             ? "Así va a quedar la tanda manual. Entra al mismo flujo que una liberación."
-            : "Elige el país, el período productivo y las bases. Las listas para QMS-TR (con liberación metodológica y sin tanda) son las candidatas naturales."}
+            : `Elige el país, el período productivo y las bases. Las listas para QMS-TR (${directo ? "con sign-off de calibración" : "con liberación metodológica"} y sin tanda) son las candidatas naturales.`}
         </DialogDescription>
       </DialogHeader>
 

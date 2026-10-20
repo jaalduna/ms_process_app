@@ -141,7 +141,8 @@ function Contenido({ tanda, yaRevertidas, nombres, revirtiendo, onRevertir, entr
             <label className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm" data-testid="qf-revertir-pisar">
               <Checkbox className="mt-0.5" checked={aceptaPisar} onCheckedChange={(v) => setAceptaPisar(v === true)} data-testid="qf-revertir-aceptar-pisar" />
               <span>
-                Entiendo que se van a deshacer <strong>{cambiosPisados.toLocaleString("es-CL")} cambios</strong> hechos en J después de QMS-TR
+                Entiendo que se van a deshacer <strong>{cambiosPisados.toLocaleString("es-CL")} {cambiosPisados === 1 ? "cambio" : "cambios"}</strong>{" "}
+                {cambiosPisados === 1 ? "hecho" : "hechos"} en J después de QMS-TR
                 en {pisadas.length === 1 ? "la base" : `${nBases(pisadas.length)}:`} {pisadas.join(", ")}. Quedan registrados en la tanda de
                 reversión para volver a aplicarlos si hace falta.
               </span>
