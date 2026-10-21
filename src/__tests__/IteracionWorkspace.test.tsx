@@ -167,7 +167,7 @@ describe("IteracionWorkspace (Elegibilidad)", () => {
     await waitFor(() =>
       expect(h.simular).toHaveBeenLastCalledWith("elegibilidad", "brasil", "202609", {
         parametros: { f_ok: 0.9 },
-        ajustes: { regiones_cerradas: ["NE"] },
+        ajustes: { regiones_cerradas: ["NE"], muestra_ideal: {} },
       }, expect.any(Function)),
     )
     expect(await within(screen.getByTestId("it-region-NE")).findByText("Sin imputar")).toBeInTheDocument()

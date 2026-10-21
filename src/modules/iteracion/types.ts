@@ -43,11 +43,15 @@ export interface ParamDef {
   clave: string
   etiqueta: string
   ayuda: string
-  tipo: "rango" | "entero" | "booleano"
+  tipo: "rango" | "entero" | "booleano" | "opcion"
   min?: number
   max?: number
   paso?: number
   formato?: "pct" | "num" | "percentil" | "err"
+  /** "avanzado": va plegado, debajo de los de uso diario. */
+  grupo?: "avanzado"
+  /** tipo "opcion": valores posibles en el orden en que se muestran. */
+  opciones?: { valor: number; etiqueta: string }[]
 }
 
 export type ValoresParametros = Record<string, number | boolean>
@@ -65,10 +69,40 @@ export interface Parametros {
   ajustes?: Ajustes
   /** Pesaje: IdPesos que se pueden calcular para el país. */
   idpesos?: IdPesoDisponible[] | null
+  /** Elegibilidad con el proceso real: targets por segmento del país (ajuste `muestra_ideal`). */
+  estructura?: Estructura | null
+}
+
+/**
+ * Estructura de Elegibilidad: bloques de marginales (NSE, EDAC…) → regiones → segmentos. El
+ * target de cada segmento es su muestra ideal; el total de una región es la suma de sus
+ * segmentos y tiene que ser el mismo en todos los bloques.
+ */
+export interface Estructura {
+  bloques: BloqueEstructura[]
+}
+
+export interface BloqueEstructura {
+  secuencia: number
+  nombre: string
+  variable: string | null
+  total: number
+  categorias: string[]
+  regiones: {
+    secuencia: number
+    /** Mismo id que las regiones del resultado (`R` del proceso). */
+    id: string
+    nombre: string
+    total: number
+    celdas: { secuencia: number; categoria: string; ideal: number }[]
+  }[]
 }
 
 export interface AjustesElegibilidad {
   regiones_cerradas: string[]
+  /** Targets cambiados respecto del país: Secuencia del segmento → muestra ideal. Los escenarios
+   * guardados antes de que existiera no lo traen. */
+  muestra_ideal?: Record<string, number>
 }
 
 export interface AjustesPesaje {
@@ -111,6 +145,8 @@ export interface ResultadoElegibilidad {
   tendencia: { periodo: string; pct_imputado: number; actual: boolean }[]
   comparaciones: { etiqueta: string; delta_pp: number }[]
   donantes: { usos: number; hogares: number }[]
+  /** Motor real: elegibles naturales e imputados por segmento de la Estructura. */
+  celdas?: { secuencia: string; natural: number; imputados: number }[]
 }
 
 export interface ResultadoPesaje {

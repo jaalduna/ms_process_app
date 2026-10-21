@@ -89,15 +89,31 @@ Elegibilidad).
   "referencia": { "etiqueta": "Mes pasado (202609)", "valores": { "f_ok": 0.9 } }
 }
 ```
-Elegibilidad: `f_ok`, `f_fill_strict`, `f_fill_flex` (rango, pct), `n_rep_strict`,
-`n_rep_flex` (entero 1–5), `actos_bajo` (entero 0–10). Pesaje: `P_BOUNDS` (rango 0.01–0.05,
+Elegibilidad: los 13 de `Code_Parametros` del país. De uso diario: `f_ok`, `f_fill_strict`,
+`f_fill_flex` (rango, pct), `n_rep_strict`, `n_rep_flex`, `actos_bajo` (entero). Con
+`"grupo": "avanzado"` (van plegados): `f_ok_flex` (rango, pct), `viajes_bajo`, `repeat_f`
+(entero), `ascend` (`"tipo": "opcion"`, con `"opciones": [{ "valor": 1, "etiqueta": "…" }]`),
+`ascend2`, `no_tocar_ok`, `no_tocar_ok_flex` (booleano).
+
+Elegibilidad con el proceso real agrega `estructura` (null en el simulado): los targets por
+segmento del país, de su `Estructura.parquet`.
+```json
+{ "bloques": [ { "secuencia": 0, "nombre": "NSE", "variable": "NSE_LOC", "total": 11298,
+    "categorias": ["AB1", "B2"],
+    "regiones": [ { "secuencia": 1, "id": "16", "nombre": "NORTE", "total": 300,
+      "celdas": [ { "secuencia": 2, "categoria": "AB1", "ideal": 61 } ] } ] } ] }
+```
+`id` de región = el `R` del proceso (el menor valor de su expresión), el mismo de
+`resultado.regiones`; el nombre puede venir escrito distinto en cada bloque. Pesaje: `P_BOUNDS` (rango 0.01–0.05,
 percentil), `F_BOUNDS` (rango 0–0.3, pct), `MAX_ROUNDS_COLAPSO` (entero 0–30),
 `JERARQUIA_MIN_COLAPSO` (entero 1–4), `CORRECAO_BOUNDS` (booleano).
 
 ### `POST /iteracion/{proceso}/{pais}/{periodo}/simulacion` → `Simulacion`
 
 Cuerpo: `{ "parametros": {…}, "ajustes": {…} }`.
-Ajustes de Elegibilidad: `{ "regiones_cerradas": ["NE"] }`.
+Ajustes de Elegibilidad: `{ "regiones_cerradas": ["NE"], "muestra_ideal": { "2": 81 } }`.
+`muestra_ideal` lleva solo los targets que cambian (Secuencia del segmento → entero ≥ 0); la API
+recalcula los totales y responde 422 si una región no suma lo mismo en todos los bloques.
 Ajustes de Pesaje: `{ "idpesos": ["1","3","7"], "juntas_vetadas": ["j2"] }`.
 409 `sin_preparar` si la preparación no está `lista`. 422 si un parámetro está fuera de rango.
 
@@ -121,9 +137,11 @@ Ajustes de Pesaje: `{ "idpesos": ["1","3","7"], "juntas_vetadas": ["j2"] }`.
   "revision": { "hogares_imputar": 1180, "regiones_con_imputacion": 7 },
   "tendencia": [ { "periodo": "202510", "pct_imputado": 0.061, "actual": false } ],
   "comparaciones": [ { "etiqueta": "vs mes pasado", "delta_pp": 0.3 } ],
-  "donantes": [ { "usos": 1, "hogares": 708 } ]
+  "donantes": [ { "usos": 1, "hogares": 708 } ],
+  "celdas": [ { "secuencia": "2", "natural": 11, "imputados": 15 } ]
 }
 ```
+`celdas` (solo proceso real): lo logrado por cada segmento de la Estructura.
 `resultado` de Pesaje:
 ```json
 {

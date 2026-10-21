@@ -20,7 +20,7 @@ export function ResultadoElegibilidadView({ resultado, ajustes, onAjustes }: {
   ajustes: AjustesElegibilidad
   onAjustes: (a: AjustesElegibilidad) => void
 }) {
-  const cambiar = (cerradas: string[]) => onAjustes({ regiones_cerradas: cerradas })
+  const cambiar = (cerradas: string[]) => onAjustes({ ...ajustes, regiones_cerradas: cerradas })
   const alternar = (r: RegionElegibilidad) => {
     const antes = ajustes.regiones_cerradas
     const excluir = !antes.includes(r.id)

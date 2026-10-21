@@ -2,7 +2,9 @@ import type { ComponentType } from "react"
 import { ResultadoElegibilidadView } from "./components/ResultadoElegibilidad"
 import { ResultadoPesajeView } from "./components/ResultadoPesaje"
 import { SelectorIdPesos } from "./components/SelectorIdPesos"
+import { TargetsSegmento } from "./components/TargetsSegmento"
 import { IDPESOS } from "./idpesos"
+import { descuadres } from "./targets"
 import type {
   Ajustes,
   Engine,
@@ -11,6 +13,7 @@ import type {
   AjustesPesaje,
   Proceso,
   ResultadoElegibilidad,
+  Parametros,
   ResultadoPesaje,
   Simulacion,
 } from "./types"
@@ -35,13 +38,17 @@ export interface ConfigProceso {
   describirAjustes: (a: Ajustes, idpesos?: IdPesoDisponible[] | null) => string
   /** Pesaje elige si publica directo en SQL o genera el Excel para Kronos. */
   eligeDestino: boolean
+  /** Ajustes que se editan sobre los datos del país (Elegibilidad: targets por segmento). */
+  EditorDatos?: ComponentType<PropsAjustes & { parametros: Parametros; resultado?: Simulacion["resultado"] }>
+  /** Por qué no se puede calcular con estos ajustes (null = se puede). */
+  bloqueoCalcular?: (a: Ajustes, parametros: Parametros) => string | null
 }
 
 export const ELEGIBILIDAD: ConfigProceso = {
   proceso: "elegibilidad",
   titulo: "Elegibilidad",
   descripcion: "Prepara el cierre, itera la imputación por región y publica con aprobación.",
-  ajustesIniciales: { regiones_cerradas: [] } satisfies AjustesElegibilidad,
+  ajustesIniciales: { regiones_cerradas: [], muestra_ideal: {} } satisfies AjustesElegibilidad,
   Resultado: ({ resultado, ajustes, onAjustes }) => (
     <ResultadoElegibilidadView
       resultado={resultado as ResultadoElegibilidad}
@@ -50,10 +57,27 @@ export const ELEGIBILIDAD: ConfigProceso = {
     />
   ),
   describirAjustes: (a) => {
-    const cerradas = (a as AjustesElegibilidad).regiones_cerradas
-    return cerradas.length ? `Sin imputar: ${cerradas.join(", ")}` : "Todas las regiones"
+    const e = a as AjustesElegibilidad
+    const cerradas = e.regiones_cerradas.length ? `Sin imputar: ${e.regiones_cerradas.join(", ")}` : "Todas las regiones"
+    const n = Object.keys(e.muestra_ideal ?? {}).length
+    return n ? `${cerradas} · ${n === 1 ? "1 target cambiado" : `${n} targets cambiados`}` : cerradas
   },
   eligeDestino: false,
+  EditorDatos: ({ parametros, ajustes, onAjustes, resultado }) =>
+    parametros.estructura ? (
+      <TargetsSegmento
+        estructura={parametros.estructura}
+        ajustes={ajustes as AjustesElegibilidad}
+        onAjustes={onAjustes}
+        celdas={(resultado as ResultadoElegibilidad | undefined)?.celdas}
+      />
+    ) : null,
+  bloqueoCalcular: (a, parametros) => {
+    if (!parametros.estructura) return null
+    const malos = descuadres(parametros.estructura, (a as AjustesElegibilidad).muestra_ideal ?? {})
+    if (!malos.length) return null
+    return `${malos.map((m) => m.nombre).join(", ")} no ${malos.length === 1 ? "suma" : "suman"} lo mismo en todos los bloques de targets`
+  },
 }
 
 export const PESAJE: ConfigProceso = {

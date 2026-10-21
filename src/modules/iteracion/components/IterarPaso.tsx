@@ -60,6 +60,8 @@ export function IterarPaso({
 
   const sim = simulacion.data
   const Lateral = config.AjustesLaterales
+  const Editor = config.EditorDatos
+  const bloqueo = config.bloqueoCalcular?.(ajustes, parametros) ?? null
 
   return (
     <div className="flex flex-wrap items-start gap-5">
@@ -92,10 +94,15 @@ export function IterarPaso({
           <RotateCcw aria-hidden /> Volver a {parametros.referencia.etiqueta.toLowerCase()}
         </Button>
         {manual && (
-          <Button onClick={onCalcular} disabled={!pendiente || simulacion.isFetching} data-testid="it-calcular">
+          <Button onClick={onCalcular} disabled={!pendiente || simulacion.isFetching || bloqueo !== null} data-testid="it-calcular">
             {simulacion.isFetching && <Loader2 className="animate-spin" aria-hidden />}
             {simulacion.isFetching ? "Calculando…" : pendiente ? "Calcular con estos parámetros" : "Calculado"}
           </Button>
+        )}
+        {bloqueo && (
+          <p className="text-xs text-destructive" role="status" data-testid="it-bloqueo-calcular">
+            No se puede calcular: {bloqueo}.
+          </p>
         )}
         <div className="space-y-2 border-t pt-4">
           <label htmlFor="it-nombre-escenario" className="text-sm font-medium">
@@ -136,6 +143,7 @@ export function IterarPaso({
             No se pudo simular: {mensajeError(simulacion.error)}
           </div>
         )}
+        {Editor && <Editor parametros={parametros} ajustes={ajustes} onAjustes={onAjustes} resultado={sim?.resultado} engine={engine} />}
         {!sim && !simulacion.error && <Skeleton className="h-96 rounded-xl" />}
         {sim && (
           <div className={simulacion.isFetching ? "opacity-70 transition-opacity" : "transition-opacity"}>
