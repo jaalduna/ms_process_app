@@ -247,7 +247,8 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                         <label htmlFor={id} className={cn("min-w-0 flex-1 text-sm", !motivo && "cursor-pointer")}>
                           <span className="mr-2 text-xs text-muted-foreground tabular-nums">{b.producto}</span>
                           <span className="font-medium">{b.nombre}</span>
-                          <span id={`${id}-m`} className={cn("block text-xs", aviso ? "text-[color-mix(in_oklch,var(--qf-retenida)_60%,var(--foreground))]" : "text-muted-foreground")}>
+                          <span id={`${id}-m`} className={cn("block text-xs", aviso && !motivo ? "text-foreground" : "text-muted-foreground")}>
+                            {!motivo && aviso && <AlertTriangle aria-hidden className="mr-1 inline size-3.5 -translate-y-px text-[var(--qf-retenida)]" />}
                             {motivo ?? aviso ?? (directo
                               ? (b.h3 ? `Distribución ${formatChile(b.h3)}` : "Sin distribución de actos")
                               : sinH4(b) ? (b.h4_anulado ? "Liberación metodológica anulada (hito 4)" : "Sin liberación metodológica (hito 4)") : `Liberación metodológica (hito 4) ${formatChile(b.h4!)}`)}
