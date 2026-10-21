@@ -1,8 +1,9 @@
 import { useMemo, useState, type ClipboardEvent, type KeyboardEvent } from "react"
-import { AlertTriangle, ChevronDown, ChevronRight, ClipboardPaste, RotateCcw, Search } from "lucide-react"
+import { AlertTriangle, ClipboardPaste, Maximize2, RotateCcw, Search } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { num, TONO, textoTono } from "../format"
 import {
@@ -54,74 +55,110 @@ export function TargetsSegmento({ estructura, cambios, onCambios, logro, titulo,
   }
   const bloque = estructura.bloques[Math.min(activo, estructura.bloques.length - 1)]
 
+  const cambiosYRestaurar = n > 0 && (
+    <div className="flex items-center gap-2">
+      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums" data-testid="it-targets-cambios">
+        {n === 1 ? "1 cambio" : `${n} cambios`}
+      </span>
+      <Button variant="ghost" size="sm" onClick={restaurar}>
+        <RotateCcw aria-hidden /> Valores del país
+      </Button>
+    </div>
+  )
+
+  // tarjeta compacta junto a los parámetros; la matriz, que es ancha, se edita en un panel lateral
   return (
-    <Seccion
-      titulo={titulo}
-      detalle={detalle}
-      accion={
-        <div className="flex items-center gap-2">
-          {n > 0 && (
-            <>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums" data-testid="it-targets-cambios">
-                {n === 1 ? "1 cambio" : `${n} cambios`}
-              </span>
-              <Button variant="ghost" size="sm" onClick={restaurar}>
-                <RotateCcw aria-hidden /> Valores del país
-              </Button>
-            </>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setAbierto((a) => !a)} aria-expanded={abierto} data-testid="it-targets-abrir">
-            {abierto ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
-            {abierto ? "Ocultar" : "Ver y editar"}
-          </Button>
-        </div>
-      }
-    >
-      {(malos.length > 0 || total) && <AvisoDescuadre malos={malos} total={total} />}
-      {!abierto ? (
-        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
-          {estructura.bloques.map((b) => (
-            <li key={b.secuencia}>
-              <span className="font-medium text-foreground">{b.nombre}</span> · {b.regiones.length} regiones ×{" "}
-              {b.categorias.length} segmentos
-            </li>
-          ))}
-        </ul>
+    <Seccion titulo={titulo} detalle={detalle}>
+      {!abierto && (malos.length > 0 || total) && <AvisoDescuadre malos={malos} total={total} />}
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        {estructura.bloques.map((b) => (
+          <li key={b.secuencia}>
+            <span className="font-medium text-foreground">{b.nombre}</span> · {b.regiones.length} × {b.categorias.length}
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button variant="outline" size="sm" onClick={() => setAbierto(true)} data-testid="it-targets-abrir">
+          <Maximize2 aria-hidden /> Ver y editar
+        </Button>
+        {!abierto && cambiosYRestaurar}
+      </div>
+      <Sheet open={abierto} onOpenChange={setAbierto}>
+        <SheetContent side="right" className="w-[min(1200px,96vw)] gap-0 overflow-y-auto sm:max-w-none">
+          <SheetHeader className="pr-12">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <SheetTitle>{titulo}</SheetTitle>
+              {cambiosYRestaurar}
+            </div>
+            <SheetDescription>{detalle}</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3 px-4 pb-6">
+            {(malos.length > 0 || total) && <AvisoDescuadre malos={malos} total={total} />}
+            <div role="tablist" aria-label="Bloques de la Estructura" className="flex flex-wrap gap-1 border-b">
+              {estructura.bloques.map((b, i) => {
+                const c = cambiosDelBloque(b, cambios)
+                return (
+                  <button
+                    key={b.secuencia}
+                    role="tab"
+                    aria-selected={b === bloque}
+                    onClick={() => setActivo(i)}
+                    className={cn(
+                      "-mb-px border-b-2 px-3 py-1.5 text-sm",
+                      b === bloque ? "border-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground",
+                    )}
+                    data-testid={`it-targets-bloque-${i}`}
+                  >
+                    {b.nombre}
+                    {c > 0 && <span className="ml-1.5 rounded-full bg-muted px-1.5 text-xs tabular-nums">{c}</span>}
+                  </button>
+                )
+              })}
+            </div>
+            <TablaBloque
+              key={bloque.secuencia}
+              estructura={estructura}
+              bloque={bloque}
+              cambios={cambios}
+              logro={logro ?? vacio}
+              tolerancia={tolerancia}
+              onCambios={onCambios}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </Seccion>
+  )
+}
+
+/** Qué es la cifra chica bajo cada celda y qué dice su color. */
+function Leyenda({ tolerancia }: { tolerancia?: number }) {
+  const punto = (tono: string, texto: string) => (
+    <span className="inline-flex items-center gap-1">
+      <span className="size-2 rounded-full" style={{ background: tono }} aria-hidden />
+      {texto}
+    </span>
+  )
+  const pct = (x: number) => `${(x * 100).toLocaleString("es-CL", { maximumFractionDigits: 2 })}%`
+  return (
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground" data-testid="it-targets-leyenda">
+      <span>
+        Bajo cada celda: <span className="font-medium text-foreground">{tolerancia !== undefined ? "logrado · desvío contra el universo" : "logrado · % del target"}</span>, del
+        último cálculo (detalle al posar el mouse).
+      </span>
+      {tolerancia !== undefined ? (
+        <>
+          {punto(TONO.ok, `hasta ±${pct(tolerancia)}`)}
+          {punto(TONO.error, "más que eso")}
+        </>
       ) : (
         <>
-          <div role="tablist" aria-label="Bloques de la Estructura" className="flex flex-wrap gap-1 border-b">
-            {estructura.bloques.map((b, i) => {
-              const c = cambiosDelBloque(b, cambios)
-              return (
-                <button
-                  key={b.secuencia}
-                  role="tab"
-                  aria-selected={b === bloque}
-                  onClick={() => setActivo(i)}
-                  className={cn(
-                    "-mb-px border-b-2 px-3 py-1.5 text-sm",
-                    b === bloque ? "border-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground",
-                  )}
-                  data-testid={`it-targets-bloque-${i}`}
-                >
-                  {b.nombre}
-                  {c > 0 && <span className="ml-1.5 rounded-full bg-muted px-1.5 text-xs tabular-nums">{c}</span>}
-                </button>
-              )
-            })}
-          </div>
-          <TablaBloque
-            key={bloque.secuencia}
-            estructura={estructura}
-            bloque={bloque}
-            cambios={cambios}
-            logro={logro ?? vacio}
-            tolerancia={tolerancia}
-            onCambios={onCambios}
-          />
+          {punto(TONO.ok, "100% o más")}
+          {punto(TONO.aviso, "90 a 99%")}
+          {punto(TONO.error, "menos de 90%")}
         </>
       )}
-    </Seccion>
+    </p>
   )
 }
 
@@ -243,6 +280,7 @@ function TablaBloque({ estructura, bloque, cambios, logro, tolerancia, onCambios
           Puedes pegar un bloque copiado de Excel desde cualquier celda. Enter baja a la fila siguiente.
         </span>
       </div>
+      <Leyenda tolerancia={tolerancia} />
 
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full border-collapse text-sm" data-testid="it-targets-tabla">

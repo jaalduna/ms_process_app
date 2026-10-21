@@ -65,62 +65,68 @@ export function IterarPaso({
 
   return (
     <div className="flex flex-wrap items-start gap-5">
-      <Card className="w-full max-w-sm flex-[1_1_300px] gap-5 p-5 lg:sticky lg:top-4">
-        <div>
-          <h2 className="text-base font-semibold">Parámetros</h2>
-          <p className="text-sm text-muted-foreground">
-            {manual
-              ? config.proceso === "pesaje"
-                ? "Corre el proceso real sobre los datos preparados (unos 20 segundos por IdPeso)."
-                : "Corre el proceso real sobre los datos preparados (de segundos a un par de minutos según el país)."
-              : "Cada cambio recalcula sobre los datos preparados."}
-          </p>
-        </div>
-        {Lateral && <Lateral ajustes={ajustes} onAjustes={onAjustes} idpesos={parametros.idpesos} engine={engine} />}
-        <ParametrosPanel
-          definiciones={parametros.definiciones}
-          valores={valores}
-          referencia={parametros.referencia.valores}
-          onChange={(clave, v) => onValores({ ...valores, [clave]: v })}
-        />
-        <Button
-          variant="ghost"
-          className="self-start"
-          onClick={() => {
-            onValores({ ...parametros.referencia.valores })
-            onAjustes(parametros.ajustes ?? config.ajustesIniciales)
-          }}
-        >
-          <RotateCcw aria-hidden /> Volver a {parametros.referencia.etiqueta.toLowerCase()}
-        </Button>
-        {manual && (
-          <Button onClick={onCalcular} disabled={!pendiente || simulacion.isFetching || bloqueo !== null} data-testid="it-calcular">
-            {simulacion.isFetching && <Loader2 className="animate-spin" aria-hidden />}
-            {simulacion.isFetching ? "Calculando…" : pendiente ? "Calcular con estos parámetros" : "Calculado"}
-          </Button>
-        )}
-        {bloqueo && (
-          <p className="text-xs text-destructive" role="status" data-testid="it-bloqueo-calcular">
-            No se puede calcular: {bloqueo}.
-          </p>
-        )}
-        <div className="space-y-2 border-t pt-4">
-          <label htmlFor="it-nombre-escenario" className="text-sm font-medium">
-            Guardar esta vuelta como escenario
-          </label>
-          <Input
-            id="it-nombre-escenario"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && guardar()}
-            placeholder="Ej.: f_ok 92% sin Norte"
+      {/* columna de entradas: parámetros y, debajo, los targets por segmento (la matriz se abre aparte) */}
+      <div className="w-full max-w-sm flex-[1_1_300px] space-y-5">
+        <Card className="gap-5 p-5">
+          <div>
+            <h2 className="text-base font-semibold">Parámetros</h2>
+            <p className="text-sm text-muted-foreground">
+              {manual
+                ? config.proceso === "pesaje"
+                  ? "Corre el proceso real sobre los datos preparados (unos 20 segundos por IdPeso)."
+                  : "Corre el proceso real sobre los datos preparados (de segundos a un par de minutos según el país)."
+                : "Cada cambio recalcula sobre los datos preparados."}
+            </p>
+          </div>
+          {Lateral && <Lateral ajustes={ajustes} onAjustes={onAjustes} idpesos={parametros.idpesos} engine={engine} />}
+          <ParametrosPanel
+            definiciones={parametros.definiciones}
+            valores={valores}
+            referencia={parametros.referencia.valores}
+            onChange={(clave, v) => onValores({ ...valores, [clave]: v })}
           />
-          <Button variant="outline" className="w-full" onClick={guardar} disabled={crear.isPending} data-testid="it-guardar-escenario">
-            {crear.isPending && <Loader2 className="animate-spin" aria-hidden />}
-            Guardar escenario
+          <Button
+            variant="ghost"
+            className="self-start"
+            onClick={() => {
+              onValores({ ...parametros.referencia.valores })
+              onAjustes(parametros.ajustes ?? config.ajustesIniciales)
+            }}
+          >
+            <RotateCcw aria-hidden /> Volver a {parametros.referencia.etiqueta.toLowerCase()}
           </Button>
-        </div>
-      </Card>
+          {manual && (
+            <Button onClick={onCalcular} disabled={!pendiente || simulacion.isFetching || bloqueo !== null} data-testid="it-calcular">
+              {simulacion.isFetching && <Loader2 className="animate-spin" aria-hidden />}
+              {simulacion.isFetching ? "Calculando…" : pendiente ? "Calcular con estos parámetros" : "Calculado"}
+            </Button>
+          )}
+          {bloqueo && (
+            <p className="text-xs text-destructive" role="status" data-testid="it-bloqueo-calcular">
+              No se puede calcular: {bloqueo}.
+            </p>
+          )}
+          <div className="space-y-2 border-t pt-4">
+            <label htmlFor="it-nombre-escenario" className="text-sm font-medium">
+              Guardar esta vuelta como escenario
+            </label>
+            <Input
+              id="it-nombre-escenario"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && guardar()}
+              placeholder="Ej.: f_ok 92% sin Norte"
+            />
+            <Button variant="outline" className="w-full" onClick={guardar} disabled={crear.isPending} data-testid="it-guardar-escenario">
+              {crear.isPending && <Loader2 className="animate-spin" aria-hidden />}
+              Guardar escenario
+            </Button>
+          </div>
+        </Card>
+        {Editor && (
+          <Editor parametros={parametros} ajustes={ajustes} onAjustes={onAjustes} resultado={sim?.resultado} engine={engine} />
+        )}
+      </div>
 
       <div className="min-w-0 flex-[999_1_560px] space-y-5" aria-busy={simulacion.isFetching}>
         <div className="flex min-h-5 items-center justify-end text-xs text-muted-foreground" role="status">
@@ -158,13 +164,6 @@ export function IterarPaso({
           </div>
         )}
       </div>
-
-      {/* matrices anchas (targets por segmento): a lo ancho, debajo de los dos paneles */}
-      {Editor && (
-        <div className="min-w-0 basis-full">
-          <Editor parametros={parametros} ajustes={ajustes} onAjustes={onAjustes} resultado={sim?.resultado} engine={engine} />
-        </div>
-      )}
     </div>
   )
 }

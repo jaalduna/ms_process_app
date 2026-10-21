@@ -65,6 +65,7 @@ describe("targets por segmento", () => {
     const ab = screen.getByLabelText("NORTE · AB")
     // lo logrado en el último cálculo: 6 + 3 = 9 de 10
     expect(within(ab.parentElement!).getByText("9 · 90%")).toBeInTheDocument()
+    expect(screen.getByTestId("it-targets-leyenda")).toHaveTextContent("logrado · % del target")
     await userEvent.clear(ab)
     await userEvent.type(ab, "20{Enter}")
     expect(ultimo(visto)).toEqual({ "2": 20 })
@@ -119,6 +120,7 @@ describe("targets por segmento", () => {
     expect(ab).toHaveValue("10.000")
     // 9 contra 10.000: −99,91 %
     expect(within(ab.parentElement!).getByText(/^9 · [−-]99,91%$/)).toBeInTheDocument()
+    expect(screen.getByTestId("it-targets-leyenda")).toHaveTextContent("hasta ±0,1%")
     // SUR baja 5.000 en NSE: su hoja de EDAC y el total del país quedan distintos
     const surC = screen.getByLabelText("SUR · C")
     await userEvent.clear(surC)
