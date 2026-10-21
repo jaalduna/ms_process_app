@@ -47,10 +47,8 @@ export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSelecci
   const directo = entrega === "pythoncac"
   const pasos = directo ? ETAPAS_PYTHONCAC : ETAPAS
   const leyenda = estadosBase(entrega)
-  const ordenadas = useMemo(
-    () => [...bases].sort((a, b) => ORDEN.indexOf(a.estado) - ORDEN.indexOf(b.estado) || a.producto - b.producto),
-    [bases],
-  )
+  // cada base tiene un lugar fijo (por código): al cambiar de estado cambia de color, no de lugar
+  const ordenadas = useMemo(() => [...bases].sort((a, b) => a.producto - b.producto), [bases])
   const cuenta = useMemo(() => {
     const c = Object.fromEntries(ORDEN.map((e) => [e, 0])) as Record<EstadoBase, number>
     for (const b of bases) c[b.estado] += 1

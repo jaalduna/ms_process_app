@@ -59,6 +59,8 @@ export function useFlujoPeriodos(pais: string | undefined) {
     queryKey: [...KEY, "periodos", pais],
     queryFn: () => getFlujoPeriodos(pais!),
     enabled: !!pais,
+    // volver a un país ya visto se muestra al tiro; la vuelta del flujo las invalida cuando cambian los hitos
+    staleTime: 60_000,
   })
 }
 
@@ -76,6 +78,7 @@ export function useFlujoBases(pais: string | undefined, periodo: string | undefi
     queryKey: [...KEY, "bases", pais, periodo],
     queryFn: () => getFlujoBases(pais!, periodo!),
     enabled: !!pais && !!periodo,
+    staleTime: 30_000,
     refetchInterval: vivo ? 10_000 : 60_000,
   })
 }

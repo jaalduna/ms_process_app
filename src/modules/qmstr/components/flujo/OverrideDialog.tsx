@@ -143,7 +143,19 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
       {!revisar ? (
         <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:overflow-hidden">
           <div className="flex min-h-0 flex-col gap-5 px-6 py-5">
-          <div className="grid gap-4 sm:grid-cols-[1fr_1fr]">
+          {/* con entrega directa el país y el período son los de la vista: no se vuelven a preguntar */}
+          {directo && (
+            <p className="text-sm" data-testid="qf-override-contexto">
+              <span className="font-semibold">{paises.find((p) => p.codigo === pais)?.etiqueta ?? pais}</span>
+              {" · "}<span className="first-letter:uppercase">{periodo ? periodoLabel(periodo) : "sin período"}</span>
+              {periodos.data && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {periodos.data.find((p) => p.periodo === periodo)?.h3 ?? 0} con distribución de actos (hito 3)
+                </span>
+              )}
+            </p>
+          )}
+          {!directo && <div className="grid gap-4 sm:grid-cols-[1fr_1fr]">
             <fieldset>
               <legend className="mb-1.5 text-sm font-medium">País</legend>
               <div className="flex flex-wrap gap-1.5" role="radiogroup" data-testid="qf-override-pais">
@@ -178,7 +190,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          </div>}
 
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">

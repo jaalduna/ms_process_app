@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react"
 import { AxiosError } from "axios"
-import type { BloqueoReversion, EstadoBase, EstadoTanda, TipoTanda } from "../../types"
+import type { BloqueoReversion, EstadoBase, EstadoTanda, Tanda, TandaProgreso, TipoTanda } from "../../types"
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
   "noviembre", "diciembre"]
@@ -91,4 +91,35 @@ export function avisoBloqueo(b: BloqueoReversion): string {
   return [`${b.actos} ${b.actos === 1 ? "acto cambiado" : "actos cambiados"} en J después de QMS-TR`, motivos, quienes && `por ${quienes}`, cuando]
     .filter(Boolean)
     .join(" · ")
+}
+
+/** Minutos que se suman a la corrida real para la validación y la aplicación en J (aproximado). */
+export const MIN_TRAS_CORRIDA = 5
+
+/**
+ * Hora aproximada en que la tanda termina, para organizarse (no es exacta). En demo, con la duración fija de cada
+ * paso; en una corrida real, extrapolando el avance de Databricks (productos listos sobre el total) más unos minutos
+ * de validación y aplicación. null si todavía no hay con qué estimar o la tanda no está avanzando.
+ */
+export function finEstimado(
+  t: Pick<Tanda, "estado" | "tipo" | "pausada" | "updated_at">,
+  camino: EstadoTanda[],
+  duraciones: Partial<Record<EstadoTanda, number>> | null | undefined,
+  progreso: TandaProgreso | null | undefined,
+  ahora: number = Date.now(),
+): Date | null {
+  if (t.pausada || t.estado === "cerrada" || t.estado === "cancelada" || !camino.includes(t.estado)) return null
+  if (duraciones) {
+    const resto = camino.slice(camino.indexOf(t.estado) + 1).filter((e) => e !== "cerrada")
+    const enEste = Math.max(0, (duraciones[t.estado] ?? 0) - (ahora - Date.parse(t.updated_at)) / 1000)
+    // cada paso espera además la vuelta siguiente del aplicativo (cada minuto): medio minuto en promedio
+    const seg = enEste + resto.reduce((n, e) => n + (duraciones[e] ?? 0) + 30, 30)
+    return new Date(ahora + seg * 1000)
+  }
+  if (t.estado !== "corriendo" || !progreso?.inicio) return null
+  const hechos = progreso.productos_listos + progreso.productos_fallidos
+  if (hechos === 0 || progreso.productos_total === 0) return null
+  const inicio = Date.parse(progreso.inicio)
+  const fin = inicio + ((ahora - inicio) * progreso.productos_total) / hechos
+  return new Date(fin + MIN_TRAS_CORRIDA * 60_000)
 }

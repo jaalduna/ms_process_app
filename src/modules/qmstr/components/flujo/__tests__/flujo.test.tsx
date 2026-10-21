@@ -188,3 +188,25 @@ describe("TablaBases: motivo del bypass y bases a revisar", () => {
     expect(screen.getAllByText("Sin ajustes de QMS-TR").length).toBeGreaterThan(0)
   })
 })
+
+describe("fin estimado de la tanda", () => {
+  const camino = ["detectada", "corriendo", "validando", "aplicando", "cerrada"] as const
+  const t0 = Date.parse("2026-10-21T15:00:00Z")
+  it("en demo suma lo que queda del paso actual y los siguientes, con la espera de cada vuelta", async () => {
+    const { finEstimado } = await import("../formato")
+    const fin = finEstimado({ estado: "corriendo", tipo: "manual", pausada: false, updated_at: "2026-10-21T15:00:00Z" }, [...camino],
+      { detectada: 5, corriendo: 150, validando: 40, aplicando: 60 }, null, t0 + 50_000)
+    // quedan 100 s de corrida + 40 + 60 + 3 esperas de 30 s
+    expect(fin!.getTime() - (t0 + 50_000)).toBe((100 + 40 + 60 + 90) * 1000)
+  })
+  it("en una corrida real extrapola el avance de Databricks; sin avance no estima", async () => {
+    const { finEstimado, MIN_TRAS_CORRIDA } = await import("../formato")
+    const t = { estado: "corriendo" as const, tipo: "manual" as const, pausada: false, updated_at: "2026-10-21T15:00:00Z" }
+    const p = { run_id: 1, estado: "RUNNING", run_page_url: null, inicio: "2026-10-21T15:00:00Z", fin: null, productos_total: 20,
+      productos_listos: 5, productos_fallidos: 0, porcentaje: 25, tareas: [] }
+    const fin = finEstimado(t, [...camino], null, p, t0 + 10 * 60_000)
+    expect(fin!.getTime()).toBe(t0 + 40 * 60_000 + MIN_TRAS_CORRIDA * 60_000)
+    expect(finEstimado(t, [...camino], null, { ...p, productos_listos: 0 }, t0)).toBeNull()
+    expect(finEstimado({ ...t, pausada: true }, [...camino], null, p, t0)).toBeNull()
+  })
+})
