@@ -143,7 +143,6 @@ export function IterarPaso({
             No se pudo simular: {mensajeError(simulacion.error)}
           </div>
         )}
-        {Editor && <Editor parametros={parametros} ajustes={ajustes} onAjustes={onAjustes} resultado={sim?.resultado} engine={engine} />}
         {!sim && !simulacion.error && <Skeleton className="h-96 rounded-xl" />}
         {sim && (
           <div className={simulacion.isFetching ? "opacity-70 transition-opacity" : "transition-opacity"}>
@@ -159,6 +158,13 @@ export function IterarPaso({
           </div>
         )}
       </div>
+
+      {/* matrices anchas (targets por segmento): a lo ancho, debajo de los dos paneles */}
+      {Editor && (
+        <div className="min-w-0 basis-full">
+          <Editor parametros={parametros} ajustes={ajustes} onAjustes={onAjustes} resultado={sim?.resultado} engine={engine} />
+        </div>
+      )}
     </div>
   )
 }
