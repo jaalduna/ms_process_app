@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "fecha": "2026-10-21",
+  "fecha": "2026-10-22",
   "fuente": "docs/flujo/manual_usuario_qmstr_v1.0.tex",
   "contacto_escalamiento": "Joaquín Aldunate (Métodos y Proyectos) con país, período, número de tanda, base y captura con la bitácora abierta",
   "casos": [
@@ -152,9 +152,9 @@
     {
       "id": "SIN-PERMISO",
       "titulo": "No ves los botones para operar",
-      "sintoma": "No aparecen «Lanzar QMS-TR», «Pausar» ni «Revertir», o un mensaje dice «En modo real sólo admin puede operar el flujo».",
+      "sintoma": "No aparecen «Lanzar QMS-TR», «Pausar» ni «Revertir», o un mensaje dice «En modo real solo admin o qmstr_operator pueden operar el flujo».",
       "que_hacer": [
-        "Pide el permiso de operador del flujo QMS-TR con tu correo.",
+        "Pide al administrador del aplicativo el rol qmstr_operator para tus países, indicando tu correo.",
         "Mientras tanto puedes ver el tablero, las tandas y descargar reportes."
       ],
       "escalar": "Siempre: el permiso lo da el administrador del aplicativo."
