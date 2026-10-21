@@ -43,4 +43,8 @@ export const KNOWN_ROLES = [
   // que gatea la LECTURA de su módulo: sin él, /macrocac/tablas y /motivos dan
   // 403 y el selector queda vacío.
   "macrocac_specialist",
+  // QMS-TR: el operador (DC) lanza y opera el flujo en real en sus países; el
+  // specialist solo opera con el flujo en simulación.
+  "qmstr_operator",
+  "qmstr_specialist",
 ] as const

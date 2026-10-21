@@ -38,7 +38,7 @@ describe("module role gating (JAA-773): admin-only modules", () => {
 
   // Módulos que además aceptan su rol de especialista (el resto sigue admin-only).
   const ROLES_ESPECIALISTA: Record<string, string[]> = {
-    qmstr: ["admin", "qmstr_specialist", "qms_tr_specialist"], // JAA-1401
+    qmstr: ["admin", "qmstr_operator", "qmstr_specialist", "qms_tr_specialist"], // JAA-1401
     macrocac: ["macrocac_specialist"], // a0f8569: el sidebar acepta macrocac_specialist
     elegibilidad: ["admin", "eligibility_specialist", "eligibility_approver"], // SPEC-iteracion: analista y responsable
   }

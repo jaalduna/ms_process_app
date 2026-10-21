@@ -6,7 +6,7 @@ export const qmstrModule: ModuleDefinition = {
   id: "qmstr",
   label: "QMS-TR",
   group: "pipeline",
-  requiredRoles: ["admin", "qmstr_specialist", "qms_tr_specialist"],
+  requiredRoles: ["admin", "qmstr_operator", "qmstr_specialist", "qms_tr_specialist"],
   navItems: [
     // JAA-1435: flujo automático (liberación -> corrida -> DQ -> J -> hito 10) con override y reversión.
     { path: "/qms-tr/flujo", label: "Flujo QMS-TR" },
