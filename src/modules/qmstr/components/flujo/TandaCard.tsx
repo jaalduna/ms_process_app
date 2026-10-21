@@ -164,7 +164,7 @@ function ProgresoCorrida({ tanda, verRun }: { tanda: Tanda; verRun: boolean }) {
         <div className="space-y-0.5 text-sm">
           <p className="font-medium">Esperando el snapshot de J</p>
           <p className="text-muted-foreground">
-            La corrida de {nBases(p.productos_total)} parte sola con el primer ciclo del CDC de J posterior a la liberación metodológica (hito 4)
+            La corrida de {nBases(p.productos_total)} parte sola con el primer ciclo del CDC de J posterior al lanzamiento de la tanda
             (cada hora, de 06:00 a 19:00 de Chile).
           </p>
         </div>
