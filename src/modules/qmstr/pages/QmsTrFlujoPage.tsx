@@ -160,7 +160,12 @@ export function QmsTrFlujoPage() {
           <div className="flex flex-wrap items-center gap-2.5">
             <Workflow className="size-6 text-primary" />
             <h1 className="font-display text-2xl font-bold tracking-tight">Flujo QMS-TR</h1>
-            {modo === "simulacion" && (
+            {estado.data?.demo && (
+              <Chip tone="var(--qf-retenida)" dot="solid" data-testid="qf-modo" title="Demo: las tandas avanzan solas; no corre el job de Databricks y no se lee ni se escribe en J">
+                <FlaskConical className="size-3" /> Demo
+              </Chip>
+            )}
+            {modo === "simulacion" && !estado.data?.demo && (
               <Chip tone="var(--qf-retenida)" dot="solid" data-testid="qf-modo" title="Databricks corre de verdad; Jira (tickets y avisos) y el hito 10 solo se simulan">
                 <FlaskConical className="size-3" /> Simulación
               </Chip>

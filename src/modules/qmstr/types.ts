@@ -157,6 +157,8 @@ export interface FlujoEstado {
   error_config: string | null
   /** El usuario actual puede operar las acciones: admin siempre; specialist sólo en simulación. */
   puede_operar: boolean
+  /** Demo (sólo dev): las tandas avanzan solas, sin Databricks, J ni PythonCac. */
+  demo?: boolean
   /** La tarea de fondo del flujo está corriendo (la API real; el mock no lo informa). */
   activo?: boolean
 }
@@ -204,6 +206,7 @@ export type EstadoTanda =
   | "cerrada"
   | "revision_manual"
   | "sin_bases"
+  | "cancelada"
 
 export interface FlujoBaseEvento {
   at: string
@@ -460,6 +463,7 @@ export const ESTADO_TANDA_LABEL: Record<EstadoTanda, string> = {
   cerrada: "Cerrada",
   revision_manual: "Requiere revisión",
   sin_bases: "Sin bases",
+  cancelada: "Cancelada",
 }
 
 export const TIPO_TANDA_LABEL: Record<TipoTanda, string> = {

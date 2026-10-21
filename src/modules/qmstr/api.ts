@@ -82,7 +82,7 @@ export const revertirTanda = (tid: string, data: TandaRevertir) =>
 export const decidirRevision = (tid: string, data: TandaDecisionCreate) =>
   api.post<Tanda>(`${FLUJO}/tandas/${tid}/revision`, data).then((r) => r.data)
 
-export type AccionTanda = "pausar" | "reanudar" | "reintentar" | "simular_cierre_ticket"
+export type AccionTanda = "pausar" | "reanudar" | "reintentar" | "cancelar" | "simular_cierre_ticket"
 export const accionTanda = (tid: string, accion: AccionTanda) =>
   api.post<Tanda>(`${FLUJO}/tandas/${tid}/${accion}`).then((r) => r.data)
 

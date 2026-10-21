@@ -38,6 +38,7 @@ export const TONO_TANDA: Record<EstadoTanda, string> = {
   cerrada: "var(--qf-aplicada)",
   revision_manual: "var(--qf-error)",
   sin_bases: "var(--qf-bypass)",
+  cancelada: "var(--qf-bypass)",
 }
 
 export const TONO_TIPO: Record<TipoTanda, string> = {

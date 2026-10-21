@@ -2,7 +2,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import {
   Ban, Check, CheckCheck, ChevronDown, ClipboardCheck, Download, ExternalLink, Eye, FlaskConical, Hourglass, Loader2, Pause, Play, Quote,
-  RotateCcw, RotateCw, Send, Ticket, Undo2, X,
+  RotateCcw, RotateCw, Send, Ticket, Undo2, X, XCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,9 @@ import {
 } from "../../types"
 import { TONO_TANDA, mensajeError, nBases, tono } from "./formato"
 import { Chip, ChipTanda, ChipTipo } from "./piezas"
+
+/** Estados en que la tanda todavía no escribió nada en J: se puede cancelar. */
+const CANCELABLES: EstadoTanda[] = ["detectada", "armando_reversion", "corriendo", "validando", "en_revision", "revision_manual"]
 
 /** Bloqueo por GRANT pendiente (JAA-1442), distinto de una falla. */
 const SIN_PERMISO = /^sin permiso (SELECT|INSERT|UPDATE) sobre /
@@ -387,6 +390,10 @@ interface TandaCardProps {
 export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin, verRun, origen, ocupado, onAccion, onRevertir }: TandaCardProps) {
   const [verBases, setVerBases] = useState(false)
   const [bajando, setBajando] = useState(false)
+  const [cancelando, setCancelando] = useState(false)
+  // todavía no escribió nada en J: se puede cancelar (lo aplicado se revierte)
+  const cancelable = CANCELABLES.includes(t.estado)
+    && !(t.estado === "revision_manual" && t.estado_previo && !CANCELABLES.includes(t.estado_previo))
   const activa = TANDA_ACTIVOS.includes(t.estado)
   const zipListo = !["detectada", "corriendo", "armando_reversion", "sin_bases"].includes(t.estado)
   // Una tanda sólo avanza (y se revierte) en el modo del flujo en que se creó.
@@ -567,6 +574,22 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
             {activa && !t.pausada && accion("pausar", "Pausar", Pause)}
             {t.pausada && accion("reanudar", "Reanudar", Play)}
             {t.estado === "revision_manual" && accion("reintentar", "Reintentar", RotateCw, "default")}
+            {cancelable && !cancelando && (
+              <Button variant="outline" size="sm" onClick={() => setCancelando(true)} disabled={ocupado !== null}
+                data-testid="qf-accion-cancelar-pedir">
+                <XCircle /> Cancelar tanda
+              </Button>
+            )}
+            {cancelable && cancelando && (
+              <span className="inline-flex items-center gap-2 text-xs" data-testid="qf-cancelar-confirmar">
+                ¿Cancelar la tanda? No se aplica nada y sus bases quedan libres.
+                <Button variant="destructive" size="sm" onClick={() => onAccion("cancelar")} disabled={ocupado !== null}
+                  data-testid="qf-accion-cancelar">
+                  {ocupado === "cancelar" ? <Loader2 className="animate-spin" /> : <XCircle />} Sí, cancelar
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setCancelando(false)}>No</Button>
+              </span>
+            )}
             {modo === "simulacion" && t.ejecucion === "simulacion" && t.estado === "en_dq" && !t.pausada && accion("simular_cierre_ticket", "Simular cierre del ticket", CheckCheck, "default")}
             {revertible && (
               <Button variant="outline" size="sm" onClick={onRevertir} disabled={ocupado !== null} data-testid="qf-accion-revertir">
