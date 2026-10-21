@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { formatChile } from "../../time"
 import { ESTADO_TANDA_LABEL, TIPO_TANDA_LABEL, ayudaEstadoBase, type Entrega, type FlujoBase, type ModoTanda, type TandaCreate } from "../../types"
-import { bloqueo } from "./bloqueo"
+import { advertencia, bloqueo } from "./bloqueo"
 import { periodoLabel } from "./formato"
 import { modosDe } from "./modos"
 import { Chip, ChipBase } from "./piezas"
@@ -59,7 +59,8 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
   const [forzar, setForzar] = useState(false)
   // con PythonCac QMS-TR va antes de la liberación metodológica: no se exige hito 4
   const sinH4 = !directo && (!b.h4 || b.h4_anulado)
-  const motivo = bloqueo(b, modo)
+  const motivo = bloqueo(b, modo, entrega)
+  const aviso = directo && !motivo ? advertencia(b) : null
   const listo = !motivo && (!sinH4 || forzar)
   const historial = [...b.historial].reverse()
 
@@ -97,10 +98,10 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
         <section aria-label="Hitos">
           <h3 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Hitos</h3>
           <dl className="divide-y">
-            <Hito label={directo ? "Distribución de actos (hito 3)" : "Distribución de DC (hito 3)"} at={b.h3} />
+            <Hito label="Distribución de actos (hito 3)" at={b.h3} />
             {/* con entrega directa la liberación metodológica viene después de QMS-TR: no se muestra */}
-            {!directo && <Hito label="Liberación de DC (hito 4)" at={b.h4} anulado={b.h4_anulado} />}
-            {!directo && <Hito label="QMS-TR (hito 10)" at={b.h10} />}
+            {!directo && <Hito label="Liberación metodológica (hito 4)" at={b.h4} anulado={b.h4_anulado} />}
+            {!directo && <Hito label="Liberación QMS-TR (hito 10)" at={b.h10} />}
           </dl>
         </section>
 
@@ -168,12 +169,17 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
             {sinH4 && !motivo && (
               <label className="flex items-start gap-2 text-sm">
                 <Checkbox checked={forzar} onCheckedChange={(v) => setForzar(v === true)} className="mt-0.5" data-testid="qf-detalle-forzar" />
-                <span>DC todavía no la libera (sin hito 4 vigente). <span className="font-medium">Correrla igual</span>; queda anotado en la bitácora.</span>
+                <span>DC todavía no la libera (sin liberación metodológica vigente, hito 4). <span className="font-medium">Correrla igual</span>; queda anotado en la bitácora.</span>
               </label>
             )}
             <Textarea value={nota} onChange={(e) => setNota(e.target.value)} rows={2} placeholder="Nota (opcional): por qué la corres a mano"
               aria-label="Nota del lanzamiento" data-testid="qf-detalle-nota" />
             {motivo && <p className="text-sm text-muted-foreground" data-testid="qf-detalle-bloqueo">{motivo}.</p>}
+            {aviso && (
+              <p className="flex gap-2 text-sm" data-testid="qf-detalle-aviso">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--qf-retenida)]" /> {aviso}.
+              </p>
+            )}
             <Button className="w-full" disabled={!listo || lanzando} data-testid="qf-detalle-lanzar-btn"
               onClick={() => onLanzar({ pais, periodo, productos: [b.producto], modo, forzar: sinH4 && forzar, nota: nota.trim() })}>
               {lanzando ? <Loader2 className="animate-spin" /> : <Rocket />}

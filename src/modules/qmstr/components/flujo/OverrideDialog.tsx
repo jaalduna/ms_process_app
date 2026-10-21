@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react"
-import { AlertTriangle, ArrowLeft, Loader2, Rocket, Search, Sparkles } from "lucide-react"
+import { AlertTriangle, ArrowLeft, Check, Loader2, Rocket, Search, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -12,7 +12,7 @@ import { useFlujoBases, useFlujoPeriodos } from "../../hooks/useQmsTrFlujo"
 import { formatChile } from "../../time"
 import type { Entrega, EstadoBase, FlujoBase, FlujoPais, ModoTanda, TandaCreate } from "../../types"
 import { mensajeError, periodoLabel } from "./formato"
-import { bloqueo } from "./bloqueo"
+import { advertencia, bloqueo } from "./bloqueo"
 import { modosDe } from "./modos"
 import { ChipBase } from "./piezas"
 
@@ -65,7 +65,6 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
   const [forzar, setForzar] = useState(false)
   const [modo, setModo] = useState<ModoTanda>("completo")
   const [nota, setNota] = useState("")
-  const [runTag, setRunTag] = useState("")
   const [revisar, setRevisar] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   // con PythonCac DC lanza QMS-TR al recibir el sign-off de calibración (correo), antes de la liberación (hito 4): no se
@@ -80,8 +79,8 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
   const lista = useMemo(() => bases.data ?? [], [bases.data])
   // excluida = liberada y elegible en este modo, pero no elegida: lo que conviene revisar antes de lanzar
   const excluida = useCallback(
-    (b: FlujoBase) => !sel.has(b.producto) && (directo ? !!b.h3 : !sinH4(b)) && !bloqueo(b, modo),
-    [sel, modo, directo],
+    (b: FlujoBase) => !sel.has(b.producto) && (directo ? !!b.h3 : !sinH4(b)) && !bloqueo(b, modo, entrega),
+    [sel, modo, directo, entrega],
   )
   const filtradas = useMemo(() => {
     const t = q.trim().toLowerCase()
@@ -95,6 +94,9 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
   const fuera = lista.filter(excluida)
   const cuenta: Record<Vista, number> = { todas: lista.length, elegidas: elegidas.length, fuera: fuera.length }
   const elegidasSinH4 = elegidas.filter(faltaHito)
+  const advertidas = directo
+    ? elegidas.flatMap((b) => { const a = advertencia(b); return a ? [[b, a] as const] : [] })
+    : []
   const etiquetaPais = paises.find((p) => p.codigo === pais)?.etiqueta ?? pais
   const listo = elegidas.length > 0 && (elegidasSinH4.length === 0 || forzar)
 
@@ -111,7 +113,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
     setModo(m)
     setAviso(null)
     if (m !== "completo") return
-    const aplicadas = lista.filter((b) => sel.has(b.producto) && bloqueo(b, m))
+    const aplicadas = lista.filter((b) => sel.has(b.producto) && bloqueo(b, m, entrega))
     if (aplicadas.length === 0) return
     setSel(new Set([...sel].filter((p) => !aplicadas.some((b) => b.producto === p))))
     setAviso(`Se quitaron ${aplicadas.length} ${aplicadas.length === 1 ? "base" : "bases"} con QMS-TR aplicado: en modo completo hay que revertirlas primero.`)
@@ -123,8 +125,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
     setSel(s)
   }
   function lanzar() {
-    onLanzar({ pais, periodo, productos: [...sel].sort((a, b) => a - b), modo, forzar: elegidasSinH4.length > 0 && forzar, nota: nota.trim(),
-      ...(runTag.trim() ? { run_tag: runTag.trim() } : {}) })
+    onLanzar({ pais, periodo, productos: [...sel].sort((a, b) => a - b), modo, forzar: elegidasSinH4.length > 0 && forzar, nota: nota.trim() })
   }
 
   return (
@@ -184,7 +185,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                   {(periodos.data ?? []).map((p) => (
                     <SelectItem key={p.periodo} value={p.periodo}>
                       <span className="first-letter:uppercase">{periodoLabel(p.periodo)}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{directo ? `${p.h3} con distribución de actos (hito 3)` : `${p.h4} con hito 4`}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{directo ? `${p.h3} con distribución de actos (hito 3)` : `${p.h4} con liberación metodológica (hito 4)`}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -235,7 +236,8 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
               ) : (
                 <ul className="divide-y">
                   {filtradas.map((b) => {
-                    const motivo = bloqueo(b, modo)
+                    const motivo = bloqueo(b, modo, entrega)
+                    const aviso = directo && sel.has(b.producto) ? advertencia(b) : null
                     const id = `qf-ov-${b.producto}`
                     return (
                       <li key={b.producto} className={cn("flex items-center gap-3 px-3 py-2", motivo ? "opacity-55" : "hover:bg-muted/50",
@@ -245,10 +247,10 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                         <label htmlFor={id} className={cn("min-w-0 flex-1 text-sm", !motivo && "cursor-pointer")}>
                           <span className="mr-2 text-xs text-muted-foreground tabular-nums">{b.producto}</span>
                           <span className="font-medium">{b.nombre}</span>
-                          <span id={`${id}-m`} className="block text-xs text-muted-foreground">
-                            {motivo ?? (directo
+                          <span id={`${id}-m`} className={cn("block text-xs", aviso ? "text-[color-mix(in_oklch,var(--qf-retenida)_60%,var(--foreground))]" : "text-muted-foreground")}>
+                            {motivo ?? aviso ?? (directo
                               ? (b.h3 ? `Distribución ${formatChile(b.h3)}` : "Sin distribución de actos")
-                              : sinH4(b) ? (b.h4_anulado ? "Hito 4 anulado" : "Sin hito 4") : `Hito 4 ${formatChile(b.h4!)}`)}
+                              : sinH4(b) ? (b.h4_anulado ? "Liberación metodológica anulada (hito 4)" : "Sin liberación metodológica (hito 4)") : `Liberación metodológica (hito 4) ${formatChile(b.h4!)}`)}
                           </span>
                         </label>
                         <ChipBase estado={b.estado} tandaEstado={b.tanda_estado} entrega={entrega} />
@@ -267,13 +269,13 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
               <p className="flex items-start gap-2 text-sm">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[color-mix(in_oklch,var(--qf-retenida)_60%,var(--foreground))]" />
                 <span>
-                  {elegidasSinH4.length === 1 ? "Una base elegida no tiene" : `${elegidasSinH4.length} bases elegidas no tienen`} hito 4
+                  {elegidasSinH4.length === 1 ? "Una base elegida no tiene" : `${elegidasSinH4.length} bases elegidas no tienen`} liberación metodológica (hito 4)
                   vigente ({elegidasSinH4.map((b) => b.nombre).join(", ")}). DC todavía no las libera: si las corres igual, quedará anotado en la bitácora.
                 </span>
               </p>
               <label className="mt-2.5 ml-6 flex items-center gap-2 text-sm font-medium">
                 <Checkbox checked={forzar} onCheckedChange={(v) => setForzar(v === true)} data-testid="qf-override-forzar" />
-                Forzar la corrida sin hito 4
+                Forzar la corrida sin liberación metodológica (hito 4)
               </label>
             </div>
           )}
@@ -307,13 +309,6 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
               placeholder="Ej.: DC re-liberó Café molido por correo" data-testid="qf-override-nota" />
           </div>
 
-          <div>
-            <label htmlFor="qf-override-runtag" className="mb-1.5 block text-sm font-medium">
-              Reusar una corrida <span className="font-normal text-muted-foreground">(opcional: no corre el motor)</span>
-            </label>
-            <Input id="qf-override-runtag" value={runTag} onChange={(e) => setRunTag(e.target.value)}
-              placeholder="run_tag, ej.: bolivia_202608_prueba_pythoncac" data-testid="qf-override-runtag" />
-          </div>
           </div>
         </div>
       ) : (
@@ -334,7 +329,26 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
               </li>
             ))}
           </ul>
-          {fuera.length > 0 && (
+          {directo && (
+            <div data-testid="qf-override-advertencias" className="space-y-2">
+              <p className="text-sm font-medium">Antes de lanzar</p>
+              {advertidas.length === 0 ? (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground"><Check className="size-4 text-[var(--qf-aplicada)]" />
+                  Sin advertencias para las bases elegidas.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {advertidas.map(([b, a]) => (
+                    <li key={b.producto} className="flex items-start gap-2 text-sm">
+                      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--qf-retenida)]" />
+                      <span><span className="font-medium">{b.producto} {b.nombre}:</span> {a}.</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-muted-foreground">Aquí aparecerán también los chequeos de entrada que se acuerden con DC.</p>
+            </div>
+          )}
+          {!directo && fuera.length > 0 && (
             <div data-testid="qf-override-resumen-fuera">
               <p className="mb-1.5 text-sm font-medium">{directo ? "Distribuidas" : "Liberadas"} que excluiste <span className="font-normal text-muted-foreground tabular-nums">({fuera.length})</span></p>
               <ul className="flex flex-wrap gap-1.5">
@@ -348,14 +362,9 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
           )}
           {elegidasSinH4.length > 0 && (
             <p className="flex items-center gap-2 text-sm"><AlertTriangle className="size-4 text-[var(--qf-retenida)]" />
-              Forzada: {elegidasSinH4.length} sin hito 4.</p>
+              Forzada: {elegidasSinH4.length} sin liberación metodológica (hito 4).</p>
           )}
           {nota.trim() && <p className="text-sm"><span className="text-muted-foreground">Nota:</span> {nota.trim()}</p>}
-          {runTag.trim() && (
-            <p className="text-sm" data-testid="qf-override-resumen-runtag">
-              <span className="text-muted-foreground">Reusa la corrida:</span> {runTag.trim()} (no se corre el motor)
-            </p>
-          )}
           <p className="text-sm text-muted-foreground">
             {modo === "completo" && entrega === "pythoncac"
               ? "Cuando termine la corrida, el aplicativo QMS-TR valida y aplica los cambios en J. Las bases que no pasen la validación previa quedan fuera, con su motivo."

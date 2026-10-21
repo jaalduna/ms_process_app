@@ -195,12 +195,12 @@ export function QmsTrFlujoPage() {
               </Chip>
             )}
             {modo === "simulacion" && !estado.data?.demo && (
-              <Chip tone="var(--qf-retenida)" dot="solid" data-testid="qf-modo" title="Databricks corre de verdad; Jira (tickets y avisos) y el hito 10 solo se simulan">
+              <Chip tone="var(--qf-retenida)" dot="solid" data-testid="qf-modo" title="Databricks corre de verdad; Jira (tickets y avisos) y la liberación QMS-TR (hito 10) solo se simulan">
                 <FlaskConical className="size-3" /> Simulación
               </Chip>
             )}
             {modo === "real" && (
-              <Chip tone="var(--qf-aplicada)" dot="pulse" data-testid="qf-modo" title="Crea tickets, avisa a MTR en Jira y escribe el hito 10">
+              <Chip tone="var(--qf-aplicada)" dot="pulse" data-testid="qf-modo" title="Crea tickets, avisa a MTR en Jira y escribe la liberación QMS-TR (hito 10)">
                 <ShieldCheck className="size-3" /> Real
               </Chip>
             )}
@@ -208,7 +208,7 @@ export function QmsTrFlujoPage() {
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             {entrega === "pythoncac"
               ? "DC lanza QMS-TR después del sign-off de calibración: el aplicativo corre QMS-TR, lo valida y aplica los ajustes directo en J."
-              : "Cada liberación metodológica pasa sola por QMS-TR: corrida, validaciones internas, ticket a DQ y hito 10."}
+              : "Cada liberación metodológica pasa sola por QMS-TR: corrida, validaciones internas, ticket a DQ y liberación QMS-TR (hito 10)."}
           </p>
           <div className="mt-1.5">{estado.data && <EstadoLoop estado={estado.data} />}</div>
         </div>
@@ -259,7 +259,7 @@ export function QmsTrFlujoPage() {
                   <SelectItem key={p.periodo} value={p.periodo}>
                     <span className="first-letter:uppercase">{periodoLabel(p.periodo)}</span>
                     <span className="ml-2 text-xs text-muted-foreground tabular-nums">
-                      {entrega === "pythoncac" ? `${p.h3} con distribución de actos (hito 3)` : <>{p.h4} con hito 4{p.h10 ? `, ${p.h10} con hito 10` : ""}</>}
+                      {entrega === "pythoncac" ? `${p.h3} con distribución de actos (hito 3)` : <>{p.h4} con liberación metodológica (hito 4){p.h10 ? `, ${p.h10} con liberación QMS-TR (hito 10)` : ""}</>}
                     </span>
                   </SelectItem>
                 ))}
@@ -321,7 +321,7 @@ export function QmsTrFlujoPage() {
                     accion={puedeOperar && <Button onClick={() => setOverride(true)}><Rocket /> Lanzar QMS-TR</Button>}>
                     {entrega === "pythoncac"
                       ? "Cuando DC libere las bases, lanza la tanda: el aplicativo corre QMS-TR y aplica los cambios en J."
-                      : "El flujo arma una tanda cuando DC registra el hito 4. Si necesitas correr antes, lánzala a mano."}
+                      : "El flujo arma una tanda cuando DC registra la liberación metodológica (hito 4). Si necesitas correr antes, lánzala a mano."}
                   </Vacio>
                 ) : (
                   ordenadas.map((t) => (

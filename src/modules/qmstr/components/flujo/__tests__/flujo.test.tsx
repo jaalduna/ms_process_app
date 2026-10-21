@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { nBases, periodoLabel, relativo } from "../formato"
 import { Stepper } from "../TandaCard"
 import { TableroBases } from "../TableroBases"
-import { bloqueo } from "../bloqueo"
+import { advertencia, bloqueo } from "../bloqueo"
 import { pollTandas } from "../../../hooks/useQmsTrFlujo"
 import type { FlujoBase, Tanda } from "../../../types"
 
@@ -88,6 +88,13 @@ describe("bloqueo de bases en el diálogo de lanzamiento", () => {
     expect(bloqueo(base(2, "revertida"), "completo")).toBeNull()
     expect(bloqueo(base(4, "bypass"), "completo")).toBeNull()
     expect(bloqueo(base(3, "pendiente"), "completo")).toBeNull()
+  })
+  it("con entrega directa una base aplicada se vuelve a correr con aviso, y una sin hito 3 también se puede lanzar", () => {
+    expect(bloqueo(base(1, "aplicada"), "completo", "pythoncac")).toBeNull()
+    expect(advertencia(base(1, "aplicada"))).toMatch(/pisa sus resultados anteriores/)
+    expect(bloqueo(base(5, "sin_hito4", { h3: null }), "completo", "pythoncac")).toBeNull()
+    expect(advertencia(base(5, "sin_hito4", { h3: null }))).toMatch(/Sin distribución de actos \(hito 3\)/)
+    expect(advertencia(base(3, "pendiente"))).toBeNull()
   })
 })
 
