@@ -96,7 +96,8 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
           <h3 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Hitos</h3>
           <dl className="divide-y">
             <Hito label={directo ? "Distribución de actos (hito 3)" : "Distribución de DC (hito 3)"} at={b.h3} />
-            <Hito label="Liberación de DC (hito 4)" at={b.h4} anulado={b.h4_anulado} />
+            {/* con entrega directa la liberación metodológica viene después de QMS-TR: no se muestra */}
+            {!directo && <Hito label="Liberación de DC (hito 4)" at={b.h4} anulado={b.h4_anulado} />}
             {!directo && <Hito label="QMS-TR (hito 10)" at={b.h10} />}
           </dl>
         </section>
@@ -138,7 +139,8 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
         {puedeOperar && (
           <section aria-label="Lanzar esta base" className="space-y-3 rounded-xl border bg-muted/25 p-4" data-testid="qf-detalle-lanzar">
             <h3 className="font-display text-base font-semibold">Correr solo esta base</h3>
-            <div className="grid gap-2" role="radiogroup" aria-label="Modo">
+            {/* con entrega directa DC no elige modo: siempre corre, valida y aplica */}
+            {!directo && <div className="grid gap-2" role="radiogroup" aria-label="Modo">
               {modosDe(entrega).map((m) => (
                 <button key={m.modo} type="button" role="radio" aria-checked={modo === m.modo} onClick={() => setModo(m.modo)}
                   data-testid={`qf-detalle-modo-${m.modo}`}
@@ -148,7 +150,7 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
                   <span className="mt-0.5 block text-xs text-muted-foreground">{m.texto}</span>
                 </button>
               ))}
-            </div>
+            </div>}
             {sinH4 && !motivo && (
               <label className="flex items-start gap-2 text-sm">
                 <Checkbox checked={forzar} onCheckedChange={(v) => setForzar(v === true)} className="mt-0.5" data-testid="qf-detalle-forzar" />

@@ -108,6 +108,16 @@ describe("detalle de una base", () => {
     expect(onVerTanda).toHaveBeenCalledWith(3)
   })
 
+  it("con entrega directa no muestra el hito 4 ni el modo: siempre corre completo", async () => {
+    const user = userEvent.setup()
+    const onLanzar = vi.fn()
+    render(<DetalleBase {...props} base={base()} puedeOperar onLanzar={onLanzar} entrega="pythoncac" />)
+    expect(screen.queryByText("Liberación de DC (hito 4)")).toBeNull()
+    expect(screen.queryByTestId("qf-detalle-modo-solo_correr")).toBeNull()
+    await user.click(screen.getByTestId("qf-detalle-lanzar-btn"))
+    expect(onLanzar).toHaveBeenCalledWith(expect.objectContaining({ productos: [201], modo: "completo" }))
+  })
+
   it("sin permisos de operación no ofrece lanzar", () => {
     render(<DetalleBase {...props} base={base()} puedeOperar={false} onLanzar={vi.fn()} />)
     expect(screen.queryByTestId("qf-detalle-lanzar")).toBeNull()
