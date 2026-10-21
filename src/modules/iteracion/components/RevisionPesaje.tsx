@@ -211,7 +211,7 @@ export function CeldasUniverso({ grupos }: { grupos: GrupoCeldas[] }) {
                 const compara = c.hogares_12m >= 30
                 return (
                   <TableRow key={c.uig} data-testid={`it-celda-${c.uig}`} className="align-top">
-                    <TableCell className={cn("min-w-36 whitespace-normal", c.nivel > 1 && "pl-6")}>
+                    <TableCell className={cn("min-w-32 whitespace-normal", c.nivel > 1 && "pl-6")}>
                       {nombreCelda(c)}
                       {c.junta && (
                         <span className="block text-xs text-muted-foreground">
@@ -238,7 +238,7 @@ export function CeldasUniverso({ grupos }: { grupos: GrupoCeldas[] }) {
                         {compara && ` (${pctSigno(dp)})`}
                       </span>
                     </TableCell>
-                    <TableCell className="min-w-36 whitespace-normal text-sm">
+                    <TableCell className="min-w-32 whitespace-normal text-sm">
                       {c.motivos.length === 0 ? (
                         <span className="text-muted-foreground">—</span>
                       ) : (

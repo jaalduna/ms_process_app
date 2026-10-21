@@ -58,7 +58,7 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes, puedeVetar 
                     {num(p.outliers)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{num(p.juntas)}</TableCell>
-                  <TableCell className="min-w-32 text-right tabular-nums whitespace-normal">
+                  <TableCell className="min-w-28 text-right tabular-nums whitespace-normal">
                     {num(p.diferencia_actual)} {resultado.unidad === "hogar" ? "hogares" : "individuos"}
                     {p.dif_mediana != null && p.diferencia_actual > 0 && (
                       <span
