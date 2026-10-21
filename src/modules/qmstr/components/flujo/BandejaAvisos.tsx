@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { BellRing, ExternalLink, Eye, Undo2, UserCheck } from "lucide-react"
 import { formatChile } from "../../time"
-import { TIPO_AVISO_LABEL, type FlujoAviso, type Tanda, type TipoAviso } from "../../types"
+import { TIPO_AVISO_LABEL, type Entrega, type FlujoAviso, type Tanda, type TipoAviso } from "../../types"
 import { Chip, Vacio } from "./piezas"
 
 const JIRA_URL = "https://requestmanager.atlassian.net/browse/"
@@ -70,13 +70,15 @@ function Aviso({ aviso: a }: { aviso: FlujoAviso }) {
 interface BandejaAvisosProps {
   avisos: FlujoAviso[]
   tandas: Tanda[]
+  /** Con entrega directa en J no hay ticket ni aviso a MTR: la bandeja queda para otros avisos del flujo. */
+  entrega?: Entrega
 }
 
 /**
  * Avisos del flujo en el ticket de Jira, agrupados por tanda y en orden cronológico dentro de cada una.
  * En simulación nada se publica: la lista es lo único que muestra qué se habría escrito.
  */
-export function BandejaAvisos({ avisos, tandas }: BandejaAvisosProps) {
+export function BandejaAvisos({ avisos, tandas, entrega = "ticket" }: BandejaAvisosProps) {
   const grupos = useMemo(() => {
     const numero = new Map(tandas.map((t) => [t.id, t.numero]))
     const porTanda = new Map<string, FlujoAviso[]>()
@@ -89,7 +91,9 @@ export function BandejaAvisos({ avisos, tandas }: BandejaAvisosProps) {
   if (avisos.length === 0) {
     return (
       <Vacio icon={<BellRing />} titulo="Todavía no hay avisos en este período">
-        Cuando se crea el ticket de DQ se agrega a MTR como observador, y al validar o revertir la tanda se le avisa con una mención en el ticket.
+        {entrega === "pythoncac"
+          ? "Aquí aparecerán los avisos del flujo que necesiten atención. Con la aplicación directa en J no se crean tickets ni se avisa a MTR por Jira."
+          : "Cuando se crea el ticket de DQ se agrega a MTR como observador, y al validar o revertir la tanda se le avisa con una mención en el ticket."}
       </Vacio>
     )
   }

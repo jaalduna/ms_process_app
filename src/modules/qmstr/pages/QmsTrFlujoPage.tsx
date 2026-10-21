@@ -324,7 +324,7 @@ export function QmsTrFlujoPage() {
                     accion={<Button variant="outline" onClick={() => avisos.refetch()}><RefreshCw /> Reintentar</Button>}>
                     {mensajeError(avisos.error)}
                   </Vacio>
-                ) : <BandejaAvisos avisos={avisos.data ?? []} tandas={tandas.data ?? []} />}
+                ) : <BandejaAvisos avisos={avisos.data ?? []} tandas={tandas.data ?? []} entrega={entrega} />}
               </TabsContent>
             </Tabs>
           )}
