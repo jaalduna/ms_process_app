@@ -148,7 +148,7 @@ function Control({ id, d, v, onChange }: { id: string; d: ParamDef; v: Valor; on
         value={String(v)}
         // el valor vuelve con su tipo (número o texto), como lo valida la API
         onChange={(e) => onChange(d.opciones!.find((o) => String(o.valor) === e.target.value)!.valor)}
-        className="h-8 max-w-44 rounded-md border bg-background px-1.5 text-sm"
+        className="h-8 w-32 rounded-md border bg-background px-1 text-sm"
       >
         {d.opciones!.map((o) => (
           <option key={String(o.valor)} value={String(o.valor)}>
