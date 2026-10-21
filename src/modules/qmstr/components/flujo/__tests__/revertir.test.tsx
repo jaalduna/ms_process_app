@@ -82,3 +82,23 @@ describe("caminoDe: entrega directa con PythonCac", () => {
     expect(caminoDe({ tipo: "manual", modo: "completo" })).toContain("en_dq")
   })
 })
+
+describe("RevertirDialog: revertir solo una base desde su detalle", () => {
+  beforeEach(() => {
+    estado = { data: {}, isPending: false, isSuccess: true, isError: false, error: null }
+  })
+
+  it("trae la base elegida y no muestra las demás de la tanda", async () => {
+    const user = userEvent.setup()
+    const onRevertir = vi.fn()
+    const { RevertirDialog } = await import("../RevertirDialog")
+    render(<RevertirDialog tanda={tanda} soloBase={201} yaRevertidas={new Set()} nombres={new Map([[200, "Base 200"], [201, "Base 201"]])}
+      revirtiendo={false} onOpenChange={() => {}} onRevertir={onRevertir} />)
+    expect(screen.queryByTestId("qf-revertir-base-200")).toBeNull()
+    expect(screen.getByTestId("qf-revertir-base-201")).toBeChecked()
+    await user.type(screen.getByTestId("qf-revertir-motivo"), "Pedido DC")
+    await user.click(screen.getByTestId("qf-revertir-revisar"))
+    await user.click(screen.getByTestId("qf-revertir-confirmar"))
+    expect(onRevertir).toHaveBeenCalledWith([201], "Pedido DC", false)
+  })
+})

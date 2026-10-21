@@ -118,6 +118,16 @@ describe("detalle de una base", () => {
     expect(onLanzar).toHaveBeenCalledWith(expect.objectContaining({ productos: [201], modo: "completo" }))
   })
 
+  it("una base aplicada se puede revertir sola desde su detalle", async () => {
+    const user = userEvent.setup()
+    const onRevertir = vi.fn()
+    const { rerender } = render(<DetalleBase {...props} base={base({ estado: "aplicada" })} puedeOperar onLanzar={vi.fn()} onRevertir={onRevertir} />)
+    await user.click(screen.getByTestId("qf-detalle-revertir-btn"))
+    expect(onRevertir).toHaveBeenCalledWith(201)
+    rerender(<DetalleBase {...props} base={base({ estado: "revertida" })} puedeOperar onLanzar={vi.fn()} onRevertir={onRevertir} />)
+    expect(screen.queryByTestId("qf-detalle-revertir")).toBeNull()
+  })
+
   it("sin permisos de operación no ofrece lanzar", () => {
     render(<DetalleBase {...props} base={base()} puedeOperar={false} onLanzar={vi.fn()} />)
     expect(screen.queryByTestId("qf-detalle-lanzar")).toBeNull()

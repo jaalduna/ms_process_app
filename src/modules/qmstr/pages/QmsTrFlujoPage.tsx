@@ -68,6 +68,7 @@ export function QmsTrFlujoPage() {
   const [filtro, setFiltro] = useState<EstadoBase | null>(null)
   const [override, setOverride] = useState(false)
   const [aRevertir, setARevertir] = useState<Tanda | null>(null)
+  const [soloBase, setSoloBase] = useState<number | null>(null)
   /** Producto con el detalle abierto (se lee de `bases` para que se actualice con el polling). */
   const [detalle, setDetalle] = useState<number | null>(null)
 
@@ -95,6 +96,17 @@ export function QmsTrFlujoPage() {
   }, [tandas.data])
   const porId = useMemo(() => new Map((tandas.data ?? []).map((t) => [t.id, t])), [tandas.data])
   const baseDetalle = bases.data?.find((b) => b.producto === detalle) ?? null
+  // tanda origen -> sus bases revertidas después (por tandas de reversión que no se cancelaron)
+  const revertidasPor = useMemo(() => {
+    const m = new Map<string, Map<number, { numero: number; cerrada: boolean }>>()
+    for (const r of tandas.data ?? []) {
+      if (r.tipo !== "reversion" || !r.tanda_origen || r.estado === "cancelada") continue
+      const de = m.get(r.tanda_origen) ?? new Map()
+      for (const p of r.productos) de.set(p, { numero: r.numero, cerrada: r.estado === "cerrada" })
+      m.set(r.tanda_origen, de)
+    }
+    return m
+  }, [tandas.data])
 
   function verTanda(numero: number) {
     setDetalle(null)
@@ -137,12 +149,28 @@ export function QmsTrFlujoPage() {
     })
   }
 
+  /** Revertir solo una base desde su detalle: la tanda cerrada más reciente que la aplicó. */
+  function revertirBase(producto: number) {
+    const origen = (tandas.data ?? [])
+      .filter((t) => (t.tipo === "liberacion" || t.tipo === "manual") && t.modo === "completo" && t.estado === "cerrada"
+        && t.productos.includes(producto) && !t.bypass.includes(producto))
+      .sort((a, b) => b.numero - a.numero)[0]
+    if (!origen) {
+      toast.error(`No encontré la tanda que aplicó QMS-TR en la base ${producto}`)
+      return
+    }
+    setDetalle(null)
+    setSoloBase(producto)
+    setARevertir(origen)
+  }
+
   function confirmarReversion(productos: number[], motivo: string, confirmarCambiosPosteriores: boolean) {
     if (!aRevertir) return
     const origen = aRevertir
     revertir.mutate({ tid: origen.id, productos, motivo, confirmar_cambios_posteriores: confirmarCambiosPosteriores }, {
       onSuccess: (t) => {
         setARevertir(null)
+        setSoloBase(null)
         toast.success(`Reversión en marcha (tanda ${t.numero}): ${nBases(productos.length)} de la tanda ${origen.numero}`)
       },
       onError: (e) => toast.error(`No se pudo revertir: ${mensajeError(e)}`),
@@ -308,7 +336,8 @@ export function QmsTrFlujoPage() {
                       origen={t.tanda_origen ? porId.get(t.tanda_origen) : undefined}
                       ocupado={accion.isPending && accion.variables?.tid === t.id ? accion.variables.accion : null}
                       onAccion={(a) => hacer(t, a)}
-                      onRevertir={() => setARevertir(t)}
+                      onRevertir={() => { setSoloBase(null); setARevertir(t) }}
+                      revertidas={revertidasPor.get(t.id)}
                     />
                   ))
                 )}
@@ -338,15 +367,17 @@ export function QmsTrFlujoPage() {
       {pais && periodo && (
         <DetalleBase base={baseDetalle} pais={pais} paisEtiqueta={etiqueta?.etiqueta ?? pais} periodo={periodo}
           puedeOperar={puedeOperar} lanzando={crear.isPending} onOpenChange={(o) => { if (!o) setDetalle(null) }}
-          onLanzar={lanzar} onVerTanda={verTanda} entrega={entrega} />
+          onLanzar={lanzar} onVerTanda={verTanda} entrega={entrega} onRevertir={revertirBase} />
       )}
       <RevertirDialog
+        key={`${aRevertir?.id ?? ""}-${soloBase ?? ""}`}
         tanda={aRevertir}
+        soloBase={soloBase}
         entrega={entrega}
         yaRevertidas={new Set((tandas.data ?? []).filter((t) => t.tipo === "reversion" && t.tanda_origen === aRevertir?.id).flatMap((t) => t.productos))}
         nombres={nombres}
         revirtiendo={revertir.isPending}
-        onOpenChange={(o) => { if (!o) setARevertir(null) }}
+        onOpenChange={(o) => { if (!o) { setARevertir(null); setSoloBase(null) } }}
         onRevertir={confirmarReversion}
       />
     </div>
