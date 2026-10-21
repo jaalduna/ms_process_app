@@ -1,0 +1,184 @@
+{
+  "version": "1.0",
+  "fecha": "2026-10-21",
+  "fuente": "docs/flujo/manual_usuario_qmstr_v1.0.tex",
+  "contacto_escalamiento": "Joaquín Aldunate (Métodos y Proyectos) con país, período, número de tanda, base y captura con la bitácora abierta",
+  "casos": [
+    {
+      "id": "SIN-H3",
+      "titulo": "Base sin distribución de actos (hito 3)",
+      "sintoma": "Al elegir la base aparece «Sin distribución de actos (hito 3) registrada: confirma que Calibración la firmó».",
+      "que_hacer": [
+        "Confirma con Calibración que la base tiene sign-off (a veces el hito 3 se olvida de marcar).",
+        "Si está firmada, lánzala igual: el aplicativo no la bloquea. Deja una nota en la tanda.",
+        "Pide que se registre el hito 3 para la trazabilidad.",
+        "Si no está firmada, no la elijas y lánzala cuando llegue el sign-off."
+      ],
+      "escalar": "Si Calibración registró el hito 3 y el aplicativo no lo ve."
+    },
+    {
+      "id": "RE-CORRER",
+      "titulo": "Volver a correr una base con QMS-TR aplicado",
+      "sintoma": "Al elegirla aparece «Ya tiene QMS-TR aplicado: esta corrida pisa sus resultados anteriores».",
+      "que_hacer": [
+        "Confirma que hay que correrla de nuevo (por ejemplo, tras una recalibración).",
+        "Lánzala normalmente: parte de J como está al lanzar y pisa los resultados anteriores.",
+        "No hace falta revertir antes."
+      ],
+      "escalar": "Si la base sigue en otra tanda en curso y esa tanda no avanza."
+    },
+    {
+      "id": "RETENIDA",
+      "titulo": "Retener una base",
+      "sintoma": "DC no quiere procesar todavía una base del período.",
+      "que_hacer": [
+        "No la elijas en la tanda.",
+        "Lánzala después en otra tanda o con «Correr solo esta base».",
+        "El país está completo cuando todas las bases firmadas están aplicadas o sin ajustes."
+      ],
+      "escalar": null
+    },
+    {
+      "id": "BASE-BLOQUEADA",
+      "titulo": "Una base no se puede marcar",
+      "sintoma": "La casilla está deshabilitada con «Ya está en la tanda N» o «Fuera de alcance de QMS-TR».",
+      "que_hacer": [
+        "«Ya está en la tanda N»: espera a que termine o cancélala si fue un error.",
+        "«Fuera de alcance de QMS-TR»: por acuerdo no se corrige; sigue el flujo de hoy."
+      ],
+      "escalar": "Si crees que una base fuera de alcance debería corregirse (decisión de Métodos)."
+    },
+    {
+      "id": "ESPERA-J",
+      "titulo": "La corrida espera el snapshot de J",
+      "sintoma": "En el paso Corrida aparece «Esperando el snapshot de J».",
+      "que_hacer": [
+        "No hagas nada: parte sola con el siguiente ciclo de copia de J (cada hora, 06:00 a 19:00 de Chile).",
+        "Si lanzaste después de las 19:00, parte con el primer ciclo del día siguiente."
+      ],
+      "escalar": "Si pasó más de 1 hora y media dentro del horario y sigue esperando."
+    },
+    {
+      "id": "REVISION",
+      "titulo": "La tanda quedó en «Revisión antes de aplicar»",
+      "sintoma": "El paso Validación dice «Revisión» y aparece la lista de bases observadas con su motivo.",
+      "que_hacer": [
+        "Lee el motivo de cada base observada.",
+        "Elige «Aplicar igual» o «Excluir» con un motivo (la excluida queda sin ajustes).",
+        "Con todas decididas, la tanda sigue sola a la aplicación en J."
+      ],
+      "escalar": "Si no sabes cómo decidir una base: exclúyela y escala con el código y el motivo."
+    },
+    {
+      "id": "SIN-AJUSTES",
+      "titulo": "Una base quedó «Sin ajustes de QMS-TR»",
+      "sintoma": "La base aparece con borde punteado en la tanda y su detalle dice «Sin ajustes:» con el motivo.",
+      "que_hacer": [
+        "Lee el motivo en el detalle de la base (falla de la corrida, no pasó la validación previa a escribir en J, o excluida en la revisión).",
+        "La base no recibió cambios y no frena al resto: sigue el flujo de hoy.",
+        "Puedes volver a correrla en otra tanda.",
+        "El reporte (hoja «Rechazos y advertencias») trae el detalle por acto."
+      ],
+      "escalar": "Si la misma base vuelve a quedar sin ajustes, o muchas bases del país quedan sin ajustes."
+    },
+    {
+      "id": "FALLA",
+      "titulo": "La tanda quedó en «Requiere revisión»",
+      "sintoma": "Un paso aparece en rojo con una X y la tarjeta muestra el error.",
+      "que_hacer": [
+        "Lee el mensaje de error.",
+        "Si la corrida falló, presiona «Reintentar».",
+        "Si falló antes de aplicar en J, también puedes «Cancelar tanda»: sus bases quedan libres.",
+        "Si dice «Se rechazaron filas al escribir en J»: el resto ya quedó aplicado; no reintentes y escala."
+      ],
+      "escalar": "Si el reintento vuelve a fallar o el error menciona escritura en J."
+    },
+    {
+      "id": "CANCELAR",
+      "titulo": "Cancelar o pausar una tanda",
+      "sintoma": "Lanzaste bases equivocadas o hay que detener la tanda.",
+      "que_hacer": [
+        "Cancelar: «Cancelar tanda» y «Sí, cancelar». Solo antes de aplicar en J (Lanzada, Corrida, Validación, Revisión o Requiere revisión). No se aplica nada y las bases quedan libres.",
+        "Si ya aplicó, no se cancela: usa «Revertir bases» cuando cierre.",
+        "Pausar congela la tanda en su paso; «Reanudar» la deja seguir."
+      ],
+      "escalar": "Si la cancelación da error."
+    },
+    {
+      "id": "DEMORA",
+      "titulo": "La tanda demora más de lo estimado",
+      "sintoma": "La hora de «Termina aprox.» ya pasó o el porcentaje no se mueve.",
+      "que_hacer": [
+        "Mira el porcentaje y cuántas bases van listas.",
+        "Revisa la bitácora por errores o permisos pendientes.",
+        "El flujo avanza cada 5 minutos entre pasos."
+      ],
+      "escalar": "Si el porcentaje no se mueve en 30 minutos o supera en más de 1 hora el tiempo de referencia del país."
+    },
+    {
+      "id": "PERMISO-DATOS",
+      "titulo": "«Esperando un permiso de datos»",
+      "sintoma": "La tarjeta muestra «Esperando un permiso de datos» y «sin permiso SELECT/INSERT/UPDATE sobre …».",
+      "que_hacer": [
+        "No es una falla: la tanda sigue sola cuando llega el permiso.",
+        "Avisa para que se pida el permiso si nadie lo sabe."
+      ],
+      "escalar": "Siempre en producción, con el texto completo del aviso."
+    },
+    {
+      "id": "REVERTIR",
+      "titulo": "Revertir una tanda o una sola base",
+      "sintoma": "Hay que deshacer QMS-TR en una base o tanda.",
+      "que_hacer": [
+        "Una base: en su detalle, «Revertir esta base». Varias: en la tanda cerrada, «Revertir bases».",
+        "Escribe el motivo (obligatorio).",
+        "«Revisar reversión» y «Revertir N bases».",
+        "Se crea una tanda de reversión que devuelve J a como estaba antes de QMS-TR; la base queda «QMS-TR revertido» y se puede volver a correr."
+      ],
+      "escalar": "Si dice que la base pasó por una tanda posterior (revierte desde esa) o que no pudo revisar la auditoría de J."
+    },
+    {
+      "id": "REVERTIR-PISA",
+      "titulo": "Aviso de cambios posteriores al revertir",
+      "sintoma": "El diálogo avisa que hubo cambios en J después de QMS-TR (DC, cuestionamientos o reglas de MKA) y pide confirmar «Entiendo que se van a deshacer N cambios».",
+      "que_hacer": [
+        "La reversión deja la base como antes de QMS-TR: esos cambios se pierden.",
+        "Averigua quién los hizo y si se pueden perder antes de confirmar.",
+        "Si se confirma, quedan en la hoja «Cambios pisados» del reporte de la reversión.",
+        "Si no se pueden perder, no reviertas y escala."
+      ],
+      "escalar": "Si hay dudas sobre los cambios de DC o MKA que se pisarían."
+    },
+    {
+      "id": "SIN-PERMISO",
+      "titulo": "No ves los botones para operar",
+      "sintoma": "No aparecen «Lanzar QMS-TR», «Pausar» ni «Revertir», o un mensaje dice «En modo real sólo admin puede operar el flujo».",
+      "que_hacer": [
+        "Pide el permiso de operador del flujo QMS-TR con tu correo.",
+        "Mientras tanto puedes ver el tablero, las tandas y descargar reportes."
+      ],
+      "escalar": "Siempre: el permiso lo da el administrador del aplicativo."
+    },
+    {
+      "id": "SESION",
+      "titulo": "La página no carga o muestra datos viejos",
+      "sintoma": "«No se pudo leer el estado del flujo», pantalla de inicio de sesión o datos que no cambian.",
+      "que_hacer": [
+        "Presiona «Reintentar» si aparece.",
+        "Recarga con Ctrl+Shift+R.",
+        "Si pide iniciar sesión, entra con tu cuenta corporativa."
+      ],
+      "escalar": "Si después de recargar sigue fallando, con una captura."
+    },
+    {
+      "id": "FLUJO-DETENIDO",
+      "titulo": "El flujo no responde",
+      "sintoma": "Bajo el título aparece «el loop no responde», «Flujo detenido» o «Flujo apagado».",
+      "que_hacer": [
+        "No lances tandas nuevas.",
+        "Escala de inmediato con una captura."
+      ],
+      "escalar": "Siempre."
+    }
+  ]
+}

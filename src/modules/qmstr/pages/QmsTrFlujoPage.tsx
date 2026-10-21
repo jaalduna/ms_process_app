@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BotonConversaciones, Burbuja, ConversacionesProvider } from "@/modules/iteracion/components/Conversaciones"
 import type { Ancla } from "@/modules/iteracion/types"
+import { GuiaCasos } from "../components/flujo/GuiaCasos"
 import { useAuth } from "@/hooks/useAuth"
 import { useNow } from "@/hooks/useNow"
 import { COUNTRY_FLAGS } from "@/lib/countries"
@@ -222,6 +223,7 @@ export function QmsTrFlujoPage() {
           <div className="mt-1.5">{estado.data && <EstadoLoop estado={estado.data} />}</div>
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
+          <GuiaCasos />
           <BotonConversaciones />
           {puedeOperar && (
           <>
