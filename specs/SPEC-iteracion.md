@@ -106,7 +106,19 @@ segmento del país, de su `Estructura.parquet`.
 `id` de región = el `R` del proceso (el menor valor de su expresión), el mismo de
 `resultado.regiones`; el nombre puede venir escrito distinto en cada bloque. Pesaje: `P_BOUNDS` (rango 0.01–0.05,
 percentil), `F_BOUNDS` (rango 0–0.3, pct), `MAX_ROUNDS_COLAPSO` (entero 0–30),
-`JERARQUIA_MIN_COLAPSO` (entero 1–4), `CORRECAO_BOUNDS` (booleano).
+`JERARQUIA_MIN_COLAPSO` (entero 1–4), `CORRECAO_BOUNDS` (booleano), `IPF_TOL_ERR` (rango, err).
+Avanzados de Pesaje (de `modules/param_configs.py`): `N_PERIODOS_OUTLIERS` (entero 3–12: la
+preparación trae 12 meses), `METODO_BOUNDS` y `AGREGACAO_BOUNDS` (opciones de texto),
+`MAX_ERR_RATIO_BOUNDS` (rango), `MAX_CELL_ERR_RATIO_BOUNDS`, `IPF_IT_MAX`, `IPF_STAGNATION_PAT`
+(entero) e `IPF_IMPROVEMENT_TOL` (opción numérica 1e-10…1e-6). Las opciones pueden ser números o
+texto; la API exige el mismo tipo.
+
+Pesaje con el proceso real también trae `estructura`: el Universo del período preparado, con la
+misma forma de bloques → regiones → celdas más `"columna": "P202610" | "Q4-26"`. La «región» es
+la ruta de ancestros (`"país › región"` en México y CAM); las hojas sin ancestro van en una fila
+`id: "#<bloque>"` que no se cruza. Cada celda trae `clave` (ruta + su expresión) para cruzarla con
+una región de otro bloque (NORTE es hoja en «Split Regiones» de Brasil). Una preparación anterior
+no la trae (`null`): hay que volver a preparar.
 
 ### `POST /iteracion/{proceso}/{pais}/{periodo}/simulacion` → `Simulacion`
 
@@ -114,7 +126,9 @@ Cuerpo: `{ "parametros": {…}, "ajustes": {…} }`.
 Ajustes de Elegibilidad: `{ "regiones_cerradas": ["NE"], "muestra_ideal": { "2": 81 } }`.
 `muestra_ideal` lleva solo los targets que cambian (Secuencia del segmento → entero ≥ 0); la API
 recalcula los totales y responde 422 si una región no suma lo mismo en todos los bloques.
-Ajustes de Pesaje: `{ "idpesos": ["1","3","7"], "juntas_vetadas": ["j2"] }`.
+Ajustes de Pesaje: `{ "idpesos": ["1","3","7"], "juntas_vetadas": ["j2"], "universo": { "2": 74483 } }`.
+`universo` lleva solo las hojas que cambian; 422 si los bloques no suman el mismo total o si una
+subpoblación que aparece en varios bloques (prefijos de ruta y celdas con `clave`) no suma igual.
 409 `sin_preparar` si la preparación no está `lista`. 422 si un parámetro está fuera de rango.
 
 ```json

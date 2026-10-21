@@ -10,7 +10,7 @@ export function ParametrosPanel({ definiciones, valores, referencia, onChange }:
   definiciones: ParamDef[]
   valores: ValoresParametros
   referencia: ValoresParametros
-  onChange: (clave: string, v: number | boolean) => void
+  onChange: (clave: string, v: number | boolean | string) => void
 }) {
   const diarios = definiciones.filter((d) => d.grupo !== "avanzado")
   const avanzados = definiciones.filter((d) => d.grupo === "avanzado")
@@ -49,9 +49,9 @@ export function ParametrosPanel({ definiciones, valores, referencia, onChange }:
 
 function Parametro({ d, v, ref_, onChange }: {
   d: ParamDef
-  v: number | boolean
-  ref_: number | boolean
-  onChange: (clave: string, v: number | boolean) => void
+  v: number | boolean | string
+  ref_: number | boolean | string
+  onChange: (clave: string, v: number | boolean | string) => void
 }) {
   const cambiado = v !== ref_
   const id = `it-param-${d.clave}`
@@ -83,12 +83,13 @@ function Parametro({ d, v, ref_, onChange }: {
         </label>
         <select
           id={id}
-          value={v as number}
-          onChange={(e) => onChange(d.clave, Number(e.target.value))}
+          value={String(v)}
+          // el valor vuelve con su tipo (entero o texto), como lo valida la API
+          onChange={(e) => onChange(d.clave, d.opciones!.find((o) => String(o.valor) === e.target.value)!.valor)}
           className="h-9 w-full rounded-md border bg-background px-2 text-sm"
         >
           {d.opciones!.map((o) => (
-            <option key={o.valor} value={o.valor}>
+            <option key={o.valor} value={String(o.valor)}>
               {o.etiqueta}
             </option>
           ))}
@@ -125,7 +126,6 @@ function Parametro({ d, v, ref_, onChange }: {
   )
 }
 
-function etiquetaValor(d: ParamDef, v: number | boolean): string {
-  if (d.tipo === "opcion") return d.opciones!.find((o) => o.valor === v)?.etiqueta ?? String(v)
+function etiquetaValor(d: ParamDef, v: number | boolean | string): string {
   return valorParametro(d, v)
 }

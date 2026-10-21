@@ -2,9 +2,10 @@ import type { ComponentType } from "react"
 import { ResultadoElegibilidadView } from "./components/ResultadoElegibilidad"
 import { ResultadoPesajeView } from "./components/ResultadoPesaje"
 import { SelectorIdPesos } from "./components/SelectorIdPesos"
-import { TargetsSegmento } from "./components/TargetsSegmento"
+import { TargetsSegmento, type Logro } from "./components/TargetsSegmento"
+import { num } from "./format"
 import { IDPESOS } from "./idpesos"
-import { descuadres } from "./targets"
+import { descuadres, descuadreTotal, type Cambios } from "./targets"
 import type {
   Ajustes,
   Engine,
@@ -63,28 +64,45 @@ export const ELEGIBILIDAD: ConfigProceso = {
     return n ? `${cerradas} · ${n === 1 ? "1 target cambiado" : `${n} targets cambiados`}` : cerradas
   },
   eligeDestino: false,
-  EditorDatos: ({ parametros, ajustes, onAjustes, resultado }) =>
-    parametros.estructura ? (
-      <TargetsSegmento
-        estructura={parametros.estructura}
-        ajustes={ajustes as AjustesElegibilidad}
-        onAjustes={onAjustes}
-        celdas={(resultado as ResultadoElegibilidad | undefined)?.celdas}
-      />
-    ) : null,
-  bloqueoCalcular: (a, parametros) => {
+  EditorDatos: ({ parametros, ajustes, onAjustes, resultado }) => {
     if (!parametros.estructura) return null
-    const malos = descuadres(parametros.estructura, (a as AjustesElegibilidad).muestra_ideal ?? {})
-    if (!malos.length) return null
-    return `${malos.map((m) => m.nombre).join(", ")} no ${malos.length === 1 ? "suma" : "suman"} lo mismo en todos los bloques de targets`
+    const a = ajustes as AjustesElegibilidad
+    const celdas = (resultado as ResultadoElegibilidad | undefined)?.celdas ?? []
+    const logro = new Map<string, Logro>(
+      celdas.map((c) => [c.secuencia, {
+        valor: c.natural + c.imputados,
+        detalle: `Último cálculo: ${num(c.natural)} naturales + ${num(c.imputados)} imputados = ${num(c.natural + c.imputados)}`,
+      }]),
+    )
+    return (
+      <TargetsSegmento
+        titulo="Targets por segmento"
+        detalle="Muestra ideal de cada celda, de la Estructura del país. Lo que cambies vale para esta vuelta y queda guardado en el escenario."
+        estructura={parametros.estructura}
+        cambios={a.muestra_ideal ?? {}}
+        onCambios={(c) => onAjustes({ ...a, muestra_ideal: c })}
+        logro={logro}
+      />
+    )
   },
+  bloqueoCalcular: (a, parametros) => bloqueo(parametros, (a as AjustesElegibilidad).muestra_ideal ?? {}),
+}
+
+/** Por qué los targets editados no se pueden calcular todavía (la API los rechazaría). */
+function bloqueo(parametros: Parametros, cambios: Cambios): string | null {
+  if (!parametros.estructura) return null
+  if (descuadreTotal(parametros.estructura, cambios)) return "los bloques no suman el mismo total del país"
+  const malos = descuadres(parametros.estructura, cambios)
+  if (!malos.length) return null
+  const nombres = malos.slice(0, 3).map((m) => m.nombre).join(", ") + (malos.length > 3 ? ` y ${malos.length - 3} más` : "")
+  return `${nombres} no ${malos.length === 1 ? "suma" : "suman"} lo mismo en todos los bloques`
 }
 
 export const PESAJE: ConfigProceso = {
   proceso: "pesaje",
   titulo: "Pesaje",
   descripcion: "Prepara el cierre, itera el IPF por IdPeso y publica los pesos con aprobación.",
-  ajustesIniciales: { idpesos: ["1", "3", "7"], juntas_vetadas: [] } satisfies AjustesPesaje,
+  ajustesIniciales: { idpesos: ["1", "3", "7"], juntas_vetadas: [], universo: {} } satisfies AjustesPesaje,
   Resultado: ({ resultado, ajustes, onAjustes, engine }) => (
     <ResultadoPesajeView
       resultado={resultado as ResultadoPesaje}
@@ -98,7 +116,33 @@ export const PESAJE: ConfigProceso = {
     const p = a as AjustesPesaje
     const nombres = (idpesos ?? IDPESOS).filter((i) => p.idpesos.includes(i.id)).map((i) => i.nombre)
     const vetadas = p.juntas_vetadas.length ? ` · ${p.juntas_vetadas.length} juntas vetadas` : ""
-    return `${nombres.join(", ")}${vetadas}`
+    const n = Object.keys(p.universo ?? {}).length
+    const universo = n ? ` · ${n === 1 ? "1 celda del universo cambiada" : `${n} celdas del universo cambiadas`}` : ""
+    return `${nombres.join(", ")}${vetadas}${universo}`
   },
   eligeDestino: true,
+  EditorDatos: ({ parametros, ajustes, onAjustes, resultado }) => {
+    if (!parametros.estructura) return null
+    const a = ajustes as AjustesPesaje
+    // el peso total que logró cada celda en el primer IdPeso calculado
+    const seg = (resultado as ResultadoPesaje | undefined)?.segmentos?.[0]
+    const logro = new Map<string, Logro>(
+      (seg?.grupos ?? []).flatMap((g) => g.celdas).map((c) => [String(c.uig), {
+        valor: Math.round(c.peso_total),
+        detalle: `Último cálculo (IdPeso ${seg!.idpeso}): peso total ${num(Math.round(c.peso_total))} contra universo ${num(c.universo)}`,
+      }]),
+    )
+    return (
+      <TargetsSegmento
+        titulo="Universo por segmento"
+        detalle={`Universo del período (columna ${parametros.estructura.columna}) de cada celda, del Universo del país. Lo que cambies vale para esta vuelta y queda guardado en el escenario.`}
+        estructura={parametros.estructura}
+        cambios={a.universo ?? {}}
+        onCambios={(c) => onAjustes({ ...a, universo: c })}
+        logro={logro}
+        tolerancia={0.001}
+      />
+    )
+  },
+  bloqueoCalcular: (a, parametros) => bloqueo(parametros, (a as AjustesPesaje).universo ?? {}),
 }

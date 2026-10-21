@@ -24,8 +24,9 @@ export function valorKpi(k: Kpi): string {
   return num(k.valor)
 }
 
-export function valorParametro(d: ParamDef, v: number | boolean): string {
+export function valorParametro(d: ParamDef, v: number | boolean | string): string {
   if (typeof v === "boolean") return v ? "Sí" : "No"
+  if (typeof v === "string" || d.tipo === "opcion") return d.opciones?.find((o) => o.valor === v)?.etiqueta ?? String(v)
   if (d.formato === "pct") return pct(v, 0)
   if (d.formato === "percentil") return `p${v} / p${100 - v}`
   if (d.formato === "err") return `${(v * 100).toLocaleString(es, { maximumFractionDigits: 4 })}%`

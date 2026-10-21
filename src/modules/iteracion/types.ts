@@ -50,11 +50,11 @@ export interface ParamDef {
   formato?: "pct" | "num" | "percentil" | "err"
   /** "avanzado": va plegado, debajo de los de uso diario. */
   grupo?: "avanzado"
-  /** tipo "opcion": valores posibles en el orden en que se muestran. */
-  opciones?: { valor: number; etiqueta: string }[]
+  /** tipo "opcion": valores posibles (enteros o texto) en el orden en que se muestran. */
+  opciones?: { valor: number | string; etiqueta: string }[]
 }
 
-export type ValoresParametros = Record<string, number | boolean>
+export type ValoresParametros = Record<string, number | boolean | string>
 
 export interface IdPesoDisponible {
   id: string
@@ -69,17 +69,21 @@ export interface Parametros {
   ajustes?: Ajustes
   /** Pesaje: IdPesos que se pueden calcular para el país. */
   idpesos?: IdPesoDisponible[] | null
-  /** Elegibilidad con el proceso real: targets por segmento del país (ajuste `muestra_ideal`). */
+  /** Proceso real: targets por segmento del país. Elegibilidad: su Estructura (ajuste
+   * `muestra_ideal`). Pesaje: el Universo del período (ajuste `universo`), con su `columna`. */
   estructura?: Estructura | null
 }
 
 /**
- * Estructura de Elegibilidad: bloques de marginales (NSE, EDAC…) → regiones → segmentos. El
- * target de cada segmento es su muestra ideal; el total de una región es la suma de sus
- * segmentos y tiene que ser el mismo en todos los bloques.
+ * Targets por segmento: bloques de marginales (NSE, EDAC…) → regiones → segmentos. El total de
+ * una región es la suma de sus segmentos y tiene que ser el mismo en todos los bloques; todos los
+ * bloques suman el total del país. En Pesaje la «región» es la ruta de ancestros (país › región
+ * en México y CAM) y cada celda trae `clave` para cruzarla con una región de otro bloque.
  */
 export interface Estructura {
   bloques: BloqueEstructura[]
+  /** Pesaje: columna del Universo del período (P202610, Q4-26). */
+  columna?: string
 }
 
 export interface BloqueEstructura {
@@ -90,11 +94,12 @@ export interface BloqueEstructura {
   categorias: string[]
   regiones: {
     secuencia: number
-    /** Mismo id que las regiones del resultado (`R` del proceso). */
+    /** Elegibilidad: el `R` del proceso. Pesaje: la ruta de expresiones; «#…» = hojas sin
+     * región, no se cruza con otros bloques. */
     id: string
     nombre: string
     total: number
-    celdas: { secuencia: number; categoria: string; ideal: number }[]
+    celdas: { secuencia: number; categoria: string; ideal: number; clave?: string }[]
   }[]
 }
 
@@ -108,6 +113,8 @@ export interface AjustesElegibilidad {
 export interface AjustesPesaje {
   idpesos: string[]
   juntas_vetadas: string[]
+  /** Hojas del Universo cambiadas respecto del país: Secuencia → target del período. */
+  universo?: Record<string, number>
 }
 
 export type Ajustes = AjustesElegibilidad | AjustesPesaje

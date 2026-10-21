@@ -9,48 +9,55 @@ import {
   cambiosDelBloque,
   conTarget,
   descuadres,
+  descuadreTotal,
   leerPegado,
   llevarRegion,
+  llevarTotal,
+  subpoblaciones,
   target,
-  totales,
   type Cambios,
 } from "../targets"
-import type { AjustesElegibilidad, BloqueEstructura, Estructura, ResultadoElegibilidad } from "../types"
+import type { BloqueEstructura, Estructura } from "../types"
 import { Seccion } from "./piezas"
 
-type Celdas = NonNullable<ResultadoElegibilidad["celdas"]>
-type Logro = { natural: number; imputados: number }
+/** Lo que logró el último cálculo en una celda: el valor comparable con el target y su detalle. */
+export type Logro = { valor: number; detalle: string }
 
 /**
- * Targets por segmento (muestra ideal de cada celda de la Estructura del país), editables en la
- * app: cada cambio queda en el ajuste `muestra_ideal` de la vuelta y se guarda con el escenario.
+ * Targets por segmento editables en la app (Elegibilidad: muestra ideal de la Estructura;
+ * Pesaje: universo del período). Cada cambio queda en los ajustes de la vuelta y se guarda con
+ * el escenario; la API rechaza lo que no cuadra, así que acá se avisa antes y se ofrece arreglarlo.
  */
-export function TargetsSegmento({ estructura, ajustes, onAjustes, celdas }: {
+export function TargetsSegmento({ estructura, cambios, onCambios, logro, titulo, detalle, tolerancia }: {
   estructura: Estructura
-  ajustes: AjustesElegibilidad
-  onAjustes: (a: AjustesElegibilidad) => void
-  /** Lo que logró el último cálculo por segmento (natural e imputados). */
-  celdas?: Celdas
+  cambios: Cambios
+  onCambios: (c: Cambios) => void
+  /** Por Secuencia de celda. */
+  logro?: Map<string, Logro>
+  titulo: string
+  detalle: string
+  /** Pesaje: desvío aceptado del logro contra el target (0,001 = 0,1 %); sin él, el % se lee como
+   * llenado de la muestra ideal (Elegibilidad). */
+  tolerancia?: number
 }) {
-  const cambios = useMemo(() => ajustes.muestra_ideal ?? {}, [ajustes.muestra_ideal])
   const n = Object.keys(cambios).length
   const [abierto, setAbierto] = useState(false)
   const [activo, setActivo] = useState(0)
   const malos = useMemo(() => descuadres(estructura, cambios), [estructura, cambios])
-  const logro = useMemo(() => new Map((celdas ?? []).map((c) => [c.secuencia, c])), [celdas])
+  const total = useMemo(() => descuadreTotal(estructura, cambios), [estructura, cambios])
+  const vacio = useMemo(() => new Map<string, Logro>(), [])
 
-  const fijar = (c: Cambios) => onAjustes({ ...ajustes, muestra_ideal: c })
   const restaurar = () => {
     const antes = cambios
-    fijar({})
-    toast("Targets del país restaurados", { action: { label: "Deshacer", onClick: () => fijar(antes) } })
+    onCambios({})
+    toast("Valores del país restaurados", { action: { label: "Deshacer", onClick: () => onCambios(antes) } })
   }
   const bloque = estructura.bloques[Math.min(activo, estructura.bloques.length - 1)]
 
   return (
     <Seccion
-      titulo="Targets por segmento"
-      detalle="Muestra ideal de cada celda, de la Estructura del país. Lo que cambies vale para esta vuelta y queda guardado en el escenario."
+      titulo={titulo}
+      detalle={detalle}
       accion={
         <div className="flex items-center gap-2">
           {n > 0 && (
@@ -59,7 +66,7 @@ export function TargetsSegmento({ estructura, ajustes, onAjustes, celdas }: {
                 {n === 1 ? "1 cambio" : `${n} cambios`}
               </span>
               <Button variant="ghost" size="sm" onClick={restaurar}>
-                <RotateCcw aria-hidden /> Targets del país
+                <RotateCcw aria-hidden /> Valores del país
               </Button>
             </>
           )}
@@ -70,7 +77,7 @@ export function TargetsSegmento({ estructura, ajustes, onAjustes, celdas }: {
         </div>
       }
     >
-      {malos.length > 0 && <AvisoDescuadre malos={malos} />}
+      {(malos.length > 0 || total) && <AvisoDescuadre malos={malos} total={total} />}
       {!abierto ? (
         <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
           {estructura.bloques.map((b) => (
@@ -108,8 +115,9 @@ export function TargetsSegmento({ estructura, ajustes, onAjustes, celdas }: {
             estructura={estructura}
             bloque={bloque}
             cambios={cambios}
-            logro={logro}
-            onCambios={fijar}
+            logro={logro ?? vacio}
+            tolerancia={tolerancia}
+            onCambios={onCambios}
           />
         </>
       )}
@@ -117,7 +125,10 @@ export function TargetsSegmento({ estructura, ajustes, onAjustes, celdas }: {
   )
 }
 
-function AvisoDescuadre({ malos }: { malos: ReturnType<typeof descuadres> }) {
+function AvisoDescuadre({ malos, total }: {
+  malos: ReturnType<typeof descuadres>
+  total: ReturnType<typeof descuadreTotal>
+}) {
   return (
     <div
       role="alert"
@@ -126,33 +137,55 @@ function AvisoDescuadre({ malos }: { malos: ReturnType<typeof descuadres> }) {
       data-testid="it-targets-descuadre"
     >
       <AlertTriangle className="mt-0.5 size-4 shrink-0" style={textoTono(TONO.aviso)} aria-hidden />
-      <div>
-        <span className="font-semibold">
-          {malos.length === 1 ? "Una región no suma lo mismo" : `${malos.length} regiones no suman lo mismo`} en todos los
-          bloques:
-        </span>{" "}
-        {malos.map((m) => `${m.nombre} (${m.porBloque.map((p) => `${p.bloque} ${num(p.total)}`).join(" · ")})`).join("; ")}.
-        Usa «Igualar» en la fila de la región, o cambia su total. Hasta entonces no se puede calcular.
+      <div className="space-y-1">
+        {total && (
+          <p>
+            <span className="font-semibold">Los bloques no suman lo mismo:</span>{" "}
+            {total.map((p) => `${p.bloque} ${num(p.total)}`).join(" · ")}. Usa «Llevar los demás bloques» al pie del
+            bloque que quedó bien.
+          </p>
+        )}
+        {malos.length > 0 && (
+          <p>
+            <span className="font-semibold">
+              {malos.length === 1 ? "Una región no suma lo mismo" : `${malos.length} regiones no suman lo mismo`} en todos
+              los bloques:
+            </span>{" "}
+            {malos.slice(0, 6).map((m) => `${m.nombre} (${m.porBloque.map((p) => `${p.bloque} ${num(p.total)}`).join(" · ")})`).join("; ")}
+            {malos.length > 6 && ` y ${malos.length - 6} más`}. Usa «Igualar» en la fila de la región, o cambia su total.
+          </p>
+        )}
+        <p>Hasta que cuadre no se puede calcular.</p>
       </div>
     </div>
   )
 }
 
-function TablaBloque({ estructura, bloque, cambios, logro, onCambios }: {
+function TablaBloque({ estructura, bloque, cambios, logro, tolerancia, onCambios }: {
   estructura: Estructura
   bloque: BloqueEstructura
   cambios: Cambios
   logro: Map<string, Logro>
+  tolerancia?: number
   onCambios: (c: Cambios) => void
 }) {
   const [buscar, setBuscar] = useState("")
   const [soloCambios, setSoloCambios] = useState(false)
-  const porRegion = useMemo(() => totales(estructura, cambios), [estructura, cambios])
+  const subp = useMemo(() => subpoblaciones(estructura, cambios), [estructura, cambios])
+  const totalRegion = (r: BloqueEstructura["regiones"][number]) =>
+    r.celdas.reduce((a, c) => a + target(cambios, c.secuencia, c.ideal), 0)
+  // la región en los bloques donde aparece (como región o como celda); las filas «#» no se cruzan
+  const enBloques = (r: BloqueEstructura["regiones"][number]) =>
+    subp.get(r.id)?.porBloque ?? new Map([[bloque.nombre, totalRegion(r)]])
   const q = buscar.trim().toLowerCase()
   const filas = bloque.regiones.filter(
     (r) =>
       (!q || r.nombre.toLowerCase().includes(q)) &&
-      (!soloCambios || r.celdas.some((c) => String(c.secuencia) in cambios) || new Set(porRegion.get(r.id)!.values()).size > 1),
+      (!soloCambios || r.celdas.some((c) => String(c.secuencia) in cambios) || new Set(enBloques(r).values()).size > 1),
+  )
+  const totalBloque = bloque.regiones.reduce((a, r) => a + totalRegion(r), 0)
+  const otrosBloques = estructura.bloques.some(
+    (b) => b !== bloque && b.regiones.reduce((a, r) => a + r.celdas.reduce((x, c) => x + target(cambios, c.secuencia, c.ideal), 0), 0) !== totalBloque,
   )
   const cats = bloque.categorias
   const celdaDe = (r: BloqueEstructura["regiones"][number], cat: string) => r.celdas.find((c) => c.categoria === cat)
@@ -226,10 +259,11 @@ function TablaBloque({ estructura, bloque, cambios, logro, onCambios }: {
           </thead>
           <tbody>
             {filas.map((r, i) => {
-              const otros = porRegion.get(r.id)!
-              const propio = otros.get(bloque.nombre)!
+              const otros = enBloques(r)
+              const propio = totalRegion(r)
               const cuadra = new Set(otros.values()).size === 1
               const totalPais = r.total
+              const cruza = !r.id.startsWith("#")
               return (
                 <tr key={r.secuencia} className="border-b last:border-0" data-testid={`it-targets-fila-${r.id}`}>
                   <th scope="row" className="sticky left-0 z-10 bg-card px-3 py-1.5 text-left font-medium whitespace-nowrap">
@@ -244,6 +278,7 @@ function TablaBloque({ estructura, bloque, cambios, logro, onCambios }: {
                           valor={target(cambios, celda.secuencia, celda.ideal)}
                           pais={celda.ideal}
                           logro={logro.get(String(celda.secuencia))}
+                          tolerancia={tolerancia}
                           etiqueta={`${r.nombre} · ${cat}`}
                           fila={i}
                           col={j}
@@ -262,6 +297,7 @@ function TablaBloque({ estructura, bloque, cambios, logro, onCambios }: {
                         fila={i}
                         col={cats.length}
                         total
+                        soloLectura={!cruza}
                         onValor={(v) => onCambios(llevarRegion(estructura, cambios, r.id, v))}
                       />
                       {!cuadra && (
@@ -302,8 +338,21 @@ function TablaBloque({ estructura, bloque, cambios, logro, onCambios }: {
                 </td>
               ))}
               <td className="px-3 py-2 text-right tabular-nums">
-                {num(bloque.regiones.reduce((a, r) => a + porRegion.get(r.id)!.get(bloque.nombre)!, 0))}
+                {num(totalBloque)}
                 <span className="block font-normal text-muted-foreground">país {num(bloque.total)}</span>
+                {otrosBloques && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-1 h-6 px-2 text-xs"
+                    title="Las regiones que también están en este bloque quedan con su total de acá; la diferencia se reparte en proporción entre las demás"
+                    onClick={() => onCambios(llevarTotal(estructura, cambios, bloque.nombre))}
+                    data-testid="it-targets-llevar-total"
+                  >
+                    <AlertTriangle className="size-3" style={textoTono(TONO.aviso)} aria-hidden />
+                    Llevar los demás bloques a {num(totalBloque)}
+                  </Button>
+                )}
               </td>
             </tr>
           </tfoot>
@@ -314,14 +363,17 @@ function TablaBloque({ estructura, bloque, cambios, logro, onCambios }: {
 }
 
 /** Un target editable. Guarda al salir o con Enter; Escape deshace lo escrito. */
-function CeldaTarget({ valor, pais, logro, etiqueta, fila, col, total = false, onValor, onPegar }: {
+function CeldaTarget({ valor, pais, logro, tolerancia, etiqueta, fila, col, total = false, soloLectura = false, onValor, onPegar }: {
   valor: number
   pais: number
   logro?: Logro
+  tolerancia?: number
   etiqueta: string
   fila: number
   col: number
   total?: boolean
+  /** Total de una fila sin región: se edita celda por celda. */
+  soloLectura?: boolean
   onValor: (v: number) => void
   onPegar?: (e: ClipboardEvent<HTMLInputElement>) => void
 }) {
@@ -329,7 +381,7 @@ function CeldaTarget({ valor, pais, logro, etiqueta, fila, col, total = false, o
   const cambiado = valor !== pais
   const confirmar = () => {
     if (texto === null) return
-    const t = texto.trim().replace(/\./g, "")
+    const t = texto.trim().replace(/[.\s]/g, "")
     setTexto(null)
     if (t === "") return
     if (!/^\d+$/.test(t)) {
@@ -352,15 +404,16 @@ function CeldaTarget({ valor, pais, logro, etiqueta, fila, col, total = false, o
     destino?.focus()
     destino?.select()
   }
-  const final = logro ? logro.natural + logro.imputados : null
+  const final = logro ? logro.valor : null
   const avance = final !== null && valor > 0 ? final / valor : null
-  const tono = avance === null ? TONO.neutro : avance >= 1 ? TONO.ok : avance >= 0.9 ? TONO.aviso : TONO.error
-  const ayuda = [
-    cambiado ? `País: ${num(pais)}` : null,
-    logro && final !== null
-      ? `Último cálculo: ${num(logro.natural)} naturales + ${num(logro.imputados)} imputados = ${num(final)}`
-      : null,
-  ].filter(Boolean).join("\n")
+  const tono =
+    avance === null
+      ? TONO.neutro
+      : tolerancia !== undefined
+        ? Math.abs(avance - 1) <= tolerancia ? TONO.ok : TONO.error
+        : avance >= 1 ? TONO.ok : avance >= 0.9 ? TONO.aviso : TONO.error
+  const ayuda = [cambiado ? `País: ${num(pais)}` : null, logro ? logro.detalle : null].filter(Boolean).join("\n")
+  const mostrado = texto ?? num(valor)
 
   return (
     <div className="flex flex-col items-end" title={ayuda || undefined}>
@@ -369,22 +422,33 @@ function CeldaTarget({ valor, pais, logro, etiqueta, fila, col, total = false, o
         aria-label={etiqueta}
         data-fila={fila}
         data-col={col}
-        value={texto ?? String(valor)}
-        onFocus={(e) => e.currentTarget.select()}
+        value={mostrado}
+        readOnly={soloLectura}
+        onFocus={(e) => {
+          if (soloLectura) return
+          setTexto(String(valor))
+          const el = e.currentTarget
+          requestAnimationFrame(() => el.select())
+        }}
         onChange={(e) => setTexto(e.target.value)}
         onBlur={confirmar}
         onKeyDown={mover}
         onPaste={onPegar}
         className={cn(
-          "h-7 w-16 rounded-md border bg-background px-1.5 text-right tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-          total && "w-20 font-semibold",
+          "h-7 rounded-md border bg-background px-1.5 text-right tabular-nums focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+          total && "font-semibold",
+          soloLectura && "border-transparent bg-transparent",
           cambiado && "font-semibold",
         )}
-        style={cambiado ? { background: "color-mix(in oklch, var(--warning) 14%, var(--background))", borderColor: "color-mix(in oklch, var(--warning) 55%, transparent)" } : undefined}
+        // ancho según la cifra: Elegibilidad usa decenas, el universo de Pesaje millones
+        style={{
+          width: `${Math.max(5, num(Math.max(valor, pais)).length + 2)}ch`,
+          ...(cambiado ? { background: "color-mix(in oklch, var(--warning) 14%, var(--background))", borderColor: "color-mix(in oklch, var(--warning) 55%, transparent)" } : {}),
+        }}
       />
       {final !== null && avance !== null && (
         <span className="mt-0.5 text-[11px] leading-none tabular-nums" style={textoTono(tono)}>
-          {num(final)} · {Math.round(avance * 100)}%
+          {num(final)} · {tolerancia !== undefined ? `${((avance - 1) * 100).toLocaleString("es-CL", { maximumFractionDigits: 2, signDisplay: "exceptZero" })}%` : `${Math.round(avance * 100)}%`}
         </span>
       )}
       {cambiado && final === null && (

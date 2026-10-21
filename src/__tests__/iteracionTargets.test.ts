@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest"
-import { conTarget, descuadres, leerPegado, llevarRegion, repartir, totales } from "@/modules/iteracion/targets"
+import {
+  conTarget,
+  descuadres,
+  descuadreTotal,
+  leerPegado,
+  llevarRegion,
+  llevarTotal,
+  repartir,
+  subpoblaciones,
+} from "@/modules/iteracion/targets"
 import type { Estructura } from "@/modules/iteracion/types"
 
 // dos bloques × dos regiones; NORTE suma 30 y SUR 50 en los dos
@@ -43,7 +52,8 @@ describe("targets por segmento", () => {
 
   it("un segmento cambiado descuadra su región contra los otros bloques", () => {
     const c = conTarget({}, 2, 10, 20)
-    expect(totales(EST, c).get("16")).toEqual(new Map([["NSE", 40], ["EDAC", 30]]))
+    expect(subpoblaciones(EST, c).get("16")!.porBloque).toEqual(new Map([["NSE", 40], ["EDAC", 30]]))
+    expect(descuadreTotal(EST, c)).toEqual([{ bloque: "NSE", total: 90 }, { bloque: "EDAC", total: 80 }])
     expect(descuadres(EST, c)).toEqual([
       { region: "16", nombre: "NORTE", porBloque: [{ bloque: "NSE", total: 40 }, { bloque: "EDAC", total: 30 }] },
     ])
@@ -65,5 +75,30 @@ describe("targets por segmento", () => {
     expect(leerPegado("10\t1.234\r\n\t7\n")).toEqual([[10, 1234], [null, 7]])
     expect(leerPegado("10\tabc")).toBeNull()
     expect(leerPegado("-3")).toBeNull()
+  })
+
+  it("Pesaje: país › región se cruza también por el prefijo y la hoja con clave cuenta como región", () => {
+    const uni: Estructura = {
+      bloques: [
+        { secuencia: 0, nombre: "NSE", variable: "N", total: 100, categorias: ["AB", "C"], regiones: [
+          { secuencia: 1, id: "[P]=1 › [R]=1", nombre: "Guate › Ciudad", total: 60, celdas: [
+            { secuencia: 2, categoria: "AB", ideal: 20, clave: "[P]=1 › [R]=1 › [N]=1" },
+            { secuencia: 3, categoria: "C", ideal: 40, clave: "[P]=1 › [R]=1 › [N]=2" }] },
+          { secuencia: 4, id: "[P]=2 › [R]=2", nombre: "Hond › Toda", total: 40, celdas: [
+            { secuencia: 5, categoria: "AB", ideal: 10, clave: "[P]=2 › [R]=2 › [N]=1" },
+            { secuencia: 6, categoria: "C", ideal: 30, clave: "[P]=2 › [R]=2 › [N]=2" }] }] },
+        { secuencia: 7, nombre: "País", variable: "P", total: 100, categorias: ["Guate", "Hond"], regiones: [
+          { secuencia: 7, id: "#7", nombre: "Total", total: 100, celdas: [
+            { secuencia: 8, categoria: "Guate", ideal: 60, clave: "[P]=1" },
+            { secuencia: 9, categoria: "Hond", ideal: 40, clave: "[P]=2" }] }] },
+      ],
+    }
+    const c = conTarget({}, 2, 20, 30)
+    expect(descuadres(uni, c).map((d) => d.nombre)).toEqual(["Guate"])
+    // llevar el resto al total de NSE: Guate toma 70 de NSE y Hond queda con lo suyo
+    const l = llevarTotal(uni, c, "NSE")
+    expect(l).toEqual({ "2": 30, "8": 70 })
+    expect(descuadres(uni, l)).toEqual([])
+    expect(descuadreTotal(uni, l)).toBeNull()
   })
 })
