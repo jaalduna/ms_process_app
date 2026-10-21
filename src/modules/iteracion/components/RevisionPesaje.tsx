@@ -70,14 +70,14 @@ export function RevisionHistoria({ indicadores }: { indicadores: IndicadorRevisi
             <TableHead>Indicador</TableHead>
             <TableHead className="text-right">Esta corrida</TableHead>
             <TableHead className="text-right">Mes anterior</TableHead>
-            <TableHead className="text-right">Rango 12 meses</TableHead>
-            <TableHead>Últimos 12 meses</TableHead>
+            {/* la serie y su rango en una columna: la tarjeta cabe sin scroll horizontal */}
+            <TableHead className="text-right">Últimos 12 meses</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {indicadores.map((i) => (
             <TableRow key={i.id} data-testid={`it-rev-${i.id}`}>
-              <TableCell className="min-w-44 font-medium whitespace-normal">
+              <TableCell className="min-w-32 font-medium whitespace-normal">
                 {i.etiqueta}
                 {i.regla !== REGLA_RANGO && (
                   <span className="block text-xs font-normal text-muted-foreground">{i.regla}</span>
@@ -95,10 +95,16 @@ export function RevisionHistoria({ indicadores }: { indicadores: IndicadorRevisi
               </TableCell>
               <TableCell className="text-right tabular-nums">{valorIndicador(i, i.mes_anterior)}</TableCell>
               <TableCell className="text-right tabular-nums">
-                {i.min12 != null && i.max12 != null ? `${valorIndicador(i, i.min12)} – ${valorIndicador(i, i.max12)}` : "—"}
-              </TableCell>
-              <TableCell>
-                <Serie i={i} />
+                {i.min12 != null && i.max12 != null ? (
+                  <span className="inline-flex flex-col items-end gap-0.5">
+                    <Serie i={i} />
+                    <span className="text-xs text-muted-foreground" title="Rango normal: mínimo y máximo de los 12 meses">
+                      {valorIndicador(i, i.min12)} – {valorIndicador(i, i.max12)}
+                    </span>
+                  </span>
+                ) : (
+                  "—"
+                )}
               </TableCell>
             </TableRow>
           ))}
