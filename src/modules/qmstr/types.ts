@@ -100,6 +100,8 @@ export const ACTIVE_STATUSES: QmsTrStatus[] = ["waiting_snapshot", "pending", "r
 
 /** Nombres de los pasos del job qms_tr_run (task_keys). Desconocidos se muestran tal cual. */
 export const STEP_LABELS: Record<string, string> = {
+  refrescar_j: "Refrescar J (CDC)",
+  snapshot: "Snapshot",
   silver_builder: "Silver",
   panelistas: "Panelistas",
   prep: "Preparación",
