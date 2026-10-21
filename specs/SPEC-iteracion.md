@@ -123,6 +123,27 @@ la ruta de ancestros (`"país › región"` en México y CAM); las hojas sin anc
 una región de otro bloque (NORTE es hoja en «Split Regiones» de Brasil). Una preparación anterior
 no la trae (`null`): hay que volver a preparar.
 
+Con el proceso real también trae `config_pais`: la configuración permanente del país y qué versión
+publicada usa el cálculo (`version: null` = lo que trae el código del proceso).
+```json
+{ "codigo": "BR",
+  "tablas": [ { "tabla": "Imputacion_ExCateg", "etiqueta": "Productos que no se imputan",
+    "version": "3", "publicado_en": "2026-10-20T15:00:00Z", "publicado_por": "ana@…" } ] }
+```
+`codigo` es el país de los endpoints de configuración (Elegibilidad `/params/{tabla}/{codigo}`,
+Pesaje `/weighting/params/{codigo}`). La app la muestra bajo los parámetros de la vuelta
+(«Configuración del país»), una fila por grupo de tablas con su editor en un panel lateral:
+Elegibilidad — Productos excluidos, Criterios, Parámetros por región, Valores del país
+(`Code_Parametros`) y Todas las tablas; Pesaje — Valores del país (`idpeso-config`), Variables,
+Universo e IdPesos. Lo publicado vale para todos los cierres del país; las versiones entran en la
+clave del cálculo, así que publicar deja el resultado pendiente de volver a calcular.
+
+«Productos excluidos» edita `Criterios_Elegibilidad_ExCateg` (no cuentan para la elegibilidad en las
+reglas con ExCateg «A») e `Imputacion_ExCateg` (no se imputan) como una sola lista por producto, con
+su nombre de `GET /iteracion/elegibilidad/{pais}/productos` → `[{ "id": 343, "nombre": "…" }]`. Al
+publicar escribe las dos tablas como antes. Si un país usa más de un grupo de excepción, se edita en
+«Todas las tablas».
+
 ### `POST /iteracion/{proceso}/{pais}/{periodo}/simulacion` → `Simulacion`
 
 Cuerpo: `{ "parametros": {…}, "ajustes": {…} }`.
