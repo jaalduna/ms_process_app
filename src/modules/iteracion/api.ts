@@ -12,6 +12,7 @@ import type {
   Parametros,
   Preparacion,
   Proceso,
+  ProcesoConv,
   Publicacion,
   Simulacion,
   ValoresParametros,
@@ -88,21 +89,21 @@ export const devolverPublicacion = (proceso: Proceso, pais: string, periodo: str
     .then((r) => r.data)
 
 // ── Conversaciones ──────────────────────────────────────────────────────────────────────────────
-const conv = (proceso: Proceso) => `/iteracion/${proceso}/conversaciones`
+const conv = (proceso: ProcesoConv) => `/iteracion/${proceso}/conversaciones`
 
-export const getConversaciones = (proceso: Proceso) =>
+export const getConversaciones = (proceso: ProcesoConv) =>
   api.get<{ hilos: Hilo[] }>(conv(proceso)).then((r) => r.data.hilos)
 
 export const crearConversacion = (
-  proceso: Proceso,
+  proceso: ProcesoConv,
   body: { ancla: Ancla; tipo: TipoHilo; texto: string; pais: string | null; adjuntos: string[] },
 ) => api.post<Hilo>(conv(proceso), body).then((r) => r.data)
 
-export const responderConversacion = (proceso: Proceso, id: string, texto: string, adjuntos: string[]) =>
+export const responderConversacion = (proceso: ProcesoConv, id: string, texto: string, adjuntos: string[]) =>
   api.post<Hilo>(`${conv(proceso)}/${id}/mensajes`, { texto, adjuntos }).then((r) => r.data)
 
 /** Sube un archivo; queda del autor hasta que lo envía con un mensaje (por su id). */
-export const subirAdjunto = (proceso: Proceso, archivo: File) => {
+export const subirAdjunto = (proceso: ProcesoConv, archivo: File) => {
   const form = new FormData()
   form.append("archivo", archivo)
   return api
@@ -111,8 +112,8 @@ export const subirAdjunto = (proceso: Proceso, archivo: File) => {
 }
 
 /** El archivo como blob: la descarga va autenticada, así que no sirve un <img src> directo. */
-export const descargarAdjunto = (proceso: Proceso, id: string) =>
+export const descargarAdjunto = (proceso: ProcesoConv, id: string) =>
   api.get<Blob>(`${conv(proceso)}/adjuntos/${id}`, { responseType: "blob" }).then((r) => r.data)
 
-export const cambiarEstadoConversacion = (proceso: Proceso, id: string, estado: EstadoHilo) =>
+export const cambiarEstadoConversacion = (proceso: ProcesoConv, id: string, estado: EstadoHilo) =>
   api.patch<Hilo>(`${conv(proceso)}/${id}`, { estado }).then((r) => r.data)

@@ -15,7 +15,7 @@ import {
   prepararDatos,
   simular,
 } from "./api"
-import type { Ajustes, Hilo, Proceso, Publicacion, ValoresParametros } from "./types"
+import type { Ajustes, Hilo, Proceso, ProcesoConv, Publicacion, ValoresParametros } from "./types"
 
 /** Identifica el cierre sobre el que se trabaja: proceso + país + período. */
 export interface Cierre {
@@ -163,10 +163,10 @@ export function useAccionPublicacion(c: Cierre) {
 }
 
 // ── Conversaciones ──────────────────────────────────────────────────────────────────────────────
-const claveConv = (proceso: Proceso) => ["iteracion", proceso, "conversaciones"] as const
+const claveConv = (proceso: ProcesoConv) => ["iteracion", proceso, "conversaciones"] as const
 
 /** Se relee cada minuto para ver lo que responden otros sin recargar. */
-export function useConversaciones(proceso: Proceso) {
+export function useConversaciones(proceso: ProcesoConv) {
   return useQuery({
     queryKey: claveConv(proceso),
     queryFn: () => getConversaciones(proceso),
@@ -175,7 +175,7 @@ export function useConversaciones(proceso: Proceso) {
 }
 
 /** Las tres acciones devuelven el hilo actualizado: se reemplaza en la lista sin volver a pedirla. */
-export function useAccionConversacion<A>(proceso: Proceso, fn: (args: A) => Promise<Hilo>) {
+export function useAccionConversacion<A>(proceso: ProcesoConv, fn: (args: A) => Promise<Hilo>) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: fn,

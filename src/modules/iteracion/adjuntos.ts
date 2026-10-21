@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import { subirAdjunto } from "./api"
-import type { Adjunto, Proceso } from "./types"
+import type { Adjunto, ProcesoConv } from "./types"
 
 // Los mismos límites que valida la API (iteracion/conversaciones.py).
 const MAX_MB = 10
@@ -25,7 +25,7 @@ interface Borrador {
 }
 
 /** Archivos que se van a enviar con un mensaje: se suben al agregarlos y se envían por id. */
-export function useAdjuntosBorrador(proceso: Proceso) {
+export function useAdjuntosBorrador(proceso: ProcesoConv) {
   const [items, setItems] = useState<Borrador[]>([])
   const vivos = useRef(items)
   useEffect(() => {

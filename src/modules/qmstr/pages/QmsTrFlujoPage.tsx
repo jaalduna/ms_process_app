@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BotonConversaciones, Burbuja, ConversacionesProvider } from "@/modules/iteracion/components/Conversaciones"
+import type { Ancla } from "@/modules/iteracion/types"
 import { useAuth } from "@/hooks/useAuth"
 import { useNow } from "@/hooks/useNow"
 import { COUNTRY_FLAGS } from "@/lib/countries"
@@ -181,7 +183,14 @@ export function QmsTrFlujoPage() {
   const modo = estado.data?.modo
   const entrega = estado.data?.entrega ?? "ticket"
 
+  // un comentario lleva a su sección: la pestaña que corresponde o el diálogo de lanzar
+  const irAncla = (a: Ancla) => {
+    if (a === "qmstr.lanzar") { if (puedeOperar) setOverride(true); return }
+    setTab(a === "qmstr.bases" || a === "qmstr.tablero" ? "bases" : "tandas")
+  }
+
   return (
+    <ConversacionesProvider proceso="qmstr" pais={pais ?? ""} onIr={irAncla}>
     <div className="qf mx-auto max-w-7xl space-y-6 p-4 sm:p-6" data-testid="qf-page">
       {/* cabecera */}
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -212,8 +221,10 @@ export function QmsTrFlujoPage() {
           </p>
           <div className="mt-1.5">{estado.data && <EstadoLoop estado={estado.data} />}</div>
         </div>
-        {puedeOperar && (
-          <div className="ml-auto flex flex-wrap gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
+          <BotonConversaciones />
+          {puedeOperar && (
+          <>
             <Button variant="outline" onClick={() => vuelta.mutate(undefined, {
               onSuccess: () => toast.success("Vuelta lista: el flujo revisó los hitos de todos los países"),
               onError: (e) => toast.error(`No se pudo forzar la vuelta: ${mensajeError(e)}`),
@@ -223,8 +234,9 @@ export function QmsTrFlujoPage() {
             <Button onClick={() => setOverride(true)} disabled={!paises.data?.length} data-testid="qf-lanzar">
               <Rocket /> Lanzar QMS-TR
             </Button>
-          </div>
-        )}
+          </>
+          )}
+        </div>
       </header>
 
       {errorCarga ? (
@@ -296,6 +308,7 @@ export function QmsTrFlujoPage() {
           {/* pestañas */}
           {pais && periodo && (
             <Tabs value={tab} onValueChange={setTab}>
+              <div className="flex items-center gap-2">
               <TabsList className="h-10 max-w-full justify-start overflow-x-auto rounded-xl">
                 <TabsTrigger value="tandas" className="rounded-lg" data-testid="qf-tab-tandas">
                   <Workflow className="size-4" /> Tandas <span className="tabular-nums opacity-60">{tandas.data?.length ?? ""}</span>
@@ -307,6 +320,8 @@ export function QmsTrFlujoPage() {
                   <BellRing className="size-4" /> Avisos <span className="tabular-nums opacity-60">{avisos.data?.length ?? ""}</span>
                 </TabsTrigger>
               </TabsList>
+                <Burbuja ancla={tab === "bases" ? "qmstr.bases" : "qmstr.tandas"} />
+              </div>
 
               <TabsContent value="tandas" className="space-y-4">
                 {tandas.isLoading ? (
@@ -382,5 +397,6 @@ export function QmsTrFlujoPage() {
         onRevertir={confirmarReversion}
       />
     </div>
+    </ConversacionesProvider>
   )
 }

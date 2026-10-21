@@ -11,7 +11,7 @@ import { fechaHora } from "../format"
 import { useAccionConversacion, useConversaciones } from "../hooks"
 import { useAdjuntosBorrador } from "../adjuntos"
 import { ConAdjuntos, ListaAdjuntos } from "./Adjuntos"
-import type { Ancla, EstadoHilo, Hilo, Proceso, TipoHilo } from "../types"
+import type { Ancla, EstadoHilo, Hilo, ProcesoConv, TipoHilo } from "../types"
 
 const ANCLAS: Record<Ancla, string> = {
   "preparar.tablas": "Preparar · Tablas de entrada",
@@ -24,12 +24,22 @@ const ANCLAS: Record<Ancla, string> = {
   "iterar.juntas": "Iterar · Juntas",
   "comparar.escenarios": "Comparar · Escenarios",
   "publicar.plan": "Publicar · Qué se va a escribir",
+  "qmstr.tablero": "Tablero de bases",
+  "qmstr.lanzar": "Lanzar QMS-TR",
+  "qmstr.tandas": "Tandas",
+  "qmstr.bases": "Bases",
+  "qmstr.reporte": "Reporte de la tanda",
+  "qmstr.revertir": "Revertir",
 }
+
+/** Secciones donde se puede comentar en cada proceso: QMS-TR tiene las suyas. */
+const anclasDe = (proceso: ProcesoConv) =>
+  (Object.keys(ANCLAS) as Ancla[]).filter((a) => a.startsWith("qmstr.") === (proceso === "qmstr"))
 
 const TIPOS: Record<TipoHilo, string> = { pregunta: "Pregunta", comentario: "Comentario", problema: "Problema" }
 
 interface Ctx {
-  proceso: Proceso
+  proceso: ProcesoConv
   pais: string
   hilos: Hilo[]
   abrir: (ancla: Ancla | null) => void
@@ -46,7 +56,7 @@ const delPais = (hilos: Hilo[], pais: string) => hilos.filter((h) => h.pais === 
  * y la sección de un hilo.
  */
 export function ConversacionesProvider({ proceso, pais, onIr, children }: {
-  proceso: Proceso
+  proceso: ProcesoConv
   pais: string
   onIr: (ancla: Ancla) => void
   children: ReactNode
@@ -142,7 +152,7 @@ export function Burbuja({ ancla }: { ancla: Ancla }) {
 }
 
 function Panel({ proceso, pais, hilos, ancla, onIr }: {
-  proceso: Proceso
+  proceso: ProcesoConv
   pais: string
   hilos: Hilo[]
   ancla: Ancla | null
@@ -192,7 +202,7 @@ function Panel({ proceso, pais, hilos, ancla, onIr }: {
   )
 }
 
-function TarjetaHilo({ proceso, hilo, conIr, onIr }: { proceso: Proceso; hilo: Hilo; conIr: boolean; onIr: () => void }) {
+function TarjetaHilo({ proceso, hilo, conIr, onIr }: { proceso: ProcesoConv; hilo: Hilo; conIr: boolean; onIr: () => void }) {
   const [texto, setTexto] = useState("")
   const adjuntos = useAdjuntosBorrador(proceso)
   const responder = useAccionConversacion(proceso, (t: string) => responderConversacion(proceso, hilo.id, t, adjuntos.ids))
@@ -274,10 +284,10 @@ function TarjetaHilo({ proceso, hilo, conIr, onIr }: { proceso: Proceso; hilo: H
   )
 }
 
-function Nuevo({ proceso, pais, ancla }: { proceso: Proceso; pais: string; ancla: Ancla | null }) {
+function Nuevo({ proceso, pais, ancla }: { proceso: ProcesoConv; pais: string; ancla: Ancla | null }) {
   const [texto, setTexto] = useState("")
   const [tipo, setTipo] = useState<TipoHilo>("comentario")
-  const [donde, setDonde] = useState<Ancla>(ancla ?? "iterar.parametros")
+  const [donde, setDonde] = useState<Ancla>(ancla ?? anclasDe(proceso)[0])
   const [soloPais, setSoloPais] = useState(false)
   const adjuntos = useAdjuntosBorrador(proceso)
   const crear = useAccionConversacion(proceso, (b: Parameters<typeof crearConversacion>[1]) => crearConversacion(proceso, b))
@@ -321,7 +331,7 @@ function Nuevo({ proceso, pais, ancla }: { proceso: Proceso; pais: string; ancla
             aria-label="Sección"
             className="h-7 max-w-56 rounded-md border bg-background px-1.5"
           >
-            {(Object.keys(ANCLAS) as Ancla[]).map((a) => (
+            {anclasDe(proceso).map((a) => (
               <option key={a} value={a}>
                 {ANCLAS[a]}
               </option>

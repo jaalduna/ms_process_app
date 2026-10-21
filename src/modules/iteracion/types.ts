@@ -3,6 +3,8 @@
 // lo que cambia por proceso son los parámetros, los ajustes y la forma de `resultado`.
 
 export type Proceso = "elegibilidad" | "pesaje"
+/** Procesos con conversaciones: los del flujo iterativo y el flujo QMS-TR. */
+export type ProcesoConv = Proceso | "qmstr"
 
 /**
  * `simulated`: resultados ilustrativos, no lee ni escribe SQL. `real`: el proceso de producción
@@ -296,6 +298,12 @@ export type Ancla =
   | "iterar.juntas"
   | "comparar.escenarios"
   | "publicar.plan"
+  | "qmstr.tablero"
+  | "qmstr.lanzar"
+  | "qmstr.tandas"
+  | "qmstr.bases"
+  | "qmstr.reporte"
+  | "qmstr.revertir"
 
 export interface Autor {
   email: string
@@ -323,7 +331,7 @@ export interface MensajeHilo {
 
 export interface Hilo {
   id: string
-  proceso: Proceso
+  proceso: ProcesoConv
   ancla: Ancla
   pais: string | null
   tipo: TipoHilo

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import { ACEPTA, MAX_POR_MENSAJE, tamano, type AdjuntosBorrador } from "../adjuntos"
 import { descargarAdjunto } from "../api"
-import type { Adjunto, Proceso } from "../types"
+import type { Adjunto, ProcesoConv } from "../types"
 
 /**
  * Envuelve el cuadro de texto: se puede pegar un pantallazo (Ctrl+V), arrastrar archivos o
@@ -102,7 +102,7 @@ export function ConAdjuntos({ borrador, children, etiqueta }: { borrador: Adjunt
 }
 
 /** El archivo de un adjunto como URL local (la descarga va con la sesión). */
-function useBlobUrl(proceso: Proceso, a: Adjunto, enabled: boolean) {
+function useBlobUrl(proceso: ProcesoConv, a: Adjunto, enabled: boolean) {
   const q = useQuery({
     queryKey: ["iteracion", proceso, "adjunto", a.id],
     queryFn: () => descargarAdjunto(proceso, a.id),
@@ -117,7 +117,7 @@ function useBlobUrl(proceso: Proceso, a: Adjunto, enabled: boolean) {
 }
 
 /** Adjuntos ya enviados: imágenes en miniatura (se abren en grande) y archivos para descargar. */
-export function ListaAdjuntos({ proceso, adjuntos }: { proceso: Proceso; adjuntos: Adjunto[] }) {
+export function ListaAdjuntos({ proceso, adjuntos }: { proceso: ProcesoConv; adjuntos: Adjunto[] }) {
   const [grande, setGrande] = useState<Adjunto | null>(null)
   if (!adjuntos.length) return null
   return (
@@ -144,7 +144,7 @@ export function ListaAdjuntos({ proceso, adjuntos }: { proceso: Proceso; adjunto
   )
 }
 
-function Miniatura({ proceso, a, onAbrir }: { proceso: Proceso; a: Adjunto; onAbrir: () => void }) {
+function Miniatura({ proceso, a, onAbrir }: { proceso: ProcesoConv; a: Adjunto; onAbrir: () => void }) {
   const { url, error } = useBlobUrl(proceso, a, true)
   return (
     <button
@@ -165,7 +165,7 @@ function Miniatura({ proceso, a, onAbrir }: { proceso: Proceso; a: Adjunto; onAb
   )
 }
 
-function ImagenGrande({ proceso, a }: { proceso: Proceso; a: Adjunto }) {
+function ImagenGrande({ proceso, a }: { proceso: ProcesoConv; a: Adjunto }) {
   const { url } = useBlobUrl(proceso, a, true)
   return (
     <div className="space-y-2">
@@ -185,7 +185,7 @@ function ImagenGrande({ proceso, a }: { proceso: Proceso; a: Adjunto }) {
   )
 }
 
-function Descarga({ proceso, a }: { proceso: Proceso; a: Adjunto }) {
+function Descarga({ proceso, a }: { proceso: ProcesoConv; a: Adjunto }) {
   const [bajando, setBajando] = useState(false)
   const bajar = async () => {
     setBajando(true)
