@@ -9,6 +9,7 @@ import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import { useCrearEscenario, type Cierre } from "../hooks"
 import type { Ajustes, Engine, Parametros, Simulacion, ValoresParametros } from "../types"
 import type { ConfigProceso } from "../config"
+import { duracion } from "../format"
 import { ParametrosPanel } from "./ParametrosPanel"
 import { Kpis } from "./piezas"
 
@@ -120,7 +121,7 @@ export function IterarPaso({
             <span className="inline-flex items-center gap-1.5">
               <Loader2 className="size-3.5 animate-spin" aria-hidden />{" "}
               {manual ? "Corriendo el proceso real…" : "Recalculando…"}
-              {simulacion.espera != null && simulacion.espera > 0 && ` ${simulacion.espera} s`}
+              {simulacion.espera != null && simulacion.espera > 0 && ` ${duracion(simulacion.espera)}`}
             </span>
           ) : sim ? (
             <span>

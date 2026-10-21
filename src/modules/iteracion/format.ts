@@ -56,3 +56,9 @@ export function periodoLabel(p: string): string {
 export function fechaHora(iso: string): string {
   return new Date(iso).toLocaleString(es, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
 }
+
+/** Tiempo transcurrido: «45 s» bajo el minuto y «2:05 min» desde ahí. */
+export function duracion(seg: number): string {
+  if (seg < 60) return `${seg} s`
+  return `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")} min`
+}
