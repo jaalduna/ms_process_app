@@ -12,7 +12,8 @@ import {
   uploadUniverso,
   validateWeightingParams,
 } from "./api"
-import type { PublishableTable, WeightingParamsPayload } from "./types"
+import { getTablaVigente, useFuenteConfig } from "@/modules/iteracion/fuenteConfig"
+import type { ExecutionParamsResponse, PublishableTable, WeightingParamsPayload, WeightingVariablesResponse } from "./types"
 
 export function useIdPesoConfig(pais: string) {
   return useQuery({
@@ -23,9 +24,13 @@ export function useIdPesoConfig(pais: string) {
 }
 
 export function useWeightingVariables(pais: string) {
+  const f = useFuenteConfig()
   return useQuery({
-    queryKey: ["weighting-params", "variables", pais],
-    queryFn: () => getWeightingVariables(pais),
+    queryKey: ["weighting-params", "variables", pais, f?.periodo ?? null],
+    queryFn: (): Promise<WeightingVariablesResponse> =>
+      f
+        ? getTablaVigente<{ q_vars: string[]; m_vars: string[] }>(f, "variables").then((r) => ({ country: r.codigo, ...r.contenido }))
+        : getWeightingVariables(pais),
     staleTime: 30_000,
   })
 }
@@ -41,9 +46,20 @@ export function useUniverso(pais: string) {
 /** Effective weighting hyperparameters (F-001) for the país — published draft
  *  merged over defaults. Seeds both the Parametros editor and the run modal. */
 export function useExecutionParams(pais: string | null) {
+  const f = useFuenteConfig()
   return useQuery({
-    queryKey: ["weighting-params", "execution-params", pais],
-    queryFn: () => getExecutionParams(pais!),
+    queryKey: ["weighting-params", "execution-params", pais, f?.periodo ?? null],
+    queryFn: (): Promise<ExecutionParamsResponse> =>
+      f
+        ? getTablaVigente<{ params: Record<string, unknown> }>(f, "idpeso-config").then((r) => ({
+            country: r.codigo,
+            params: r.contenido.params,
+            // lo del código no tiene versión; lo publicado se muestra por fecha y autor
+            version: r.origen === "publicado"
+              ? { version: 0, version_id: r.version!, hash: r.version!, published_by: r.publicado_por, published_at: r.publicado_en!, diff: {} }
+              : null,
+          }))
+        : getExecutionParams(pais!),
     enabled: pais != null,
     staleTime: 30_000,
   })

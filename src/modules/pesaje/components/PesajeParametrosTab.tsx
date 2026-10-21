@@ -260,7 +260,7 @@ function NivelEjecucion({ state }: { state: HyperparamsDraftState }) {
         />
         {state.query.data && (
           <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground" data-testid="exec-params-version">
-            {version ? `v${version.version} · ${version.published_by ?? "—"}` : "defaults F-001 (sin publicar)"}
+            {version ? (version.version ? `v${version.version} · ${version.published_by ?? "—"}` : `Publicado ${new Date(version.published_at).toLocaleDateString("es-CL")} · ${version.published_by ?? "—"}`) : "defaults F-001 (sin publicar)"}
           </Badge>
         )}
       </div>

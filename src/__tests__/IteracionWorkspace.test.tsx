@@ -56,6 +56,7 @@ const PARAMETROS: Parametros = {
     tablas: [
       { tabla: "Imputacion_ExCateg", etiqueta: "Imputacion_ExCateg", version: "3", publicado_en: "2026-10-20T15:00:00Z", publicado_por: "ana@wp.numerator.com" },
       { tabla: "Criterios_Elegibilidad", etiqueta: "Criterios_Elegibilidad", version: null, publicado_en: null, publicado_por: null },
+      { tabla: "Criterios_Elegibilidad_ExCateg", etiqueta: "Criterios_Elegibilidad_ExCateg", version: null, publicado_en: null, publicado_por: null },
     ],
   },
 }
@@ -174,7 +175,8 @@ describe("IteracionWorkspace (Elegibilidad)", () => {
     const config = screen.getByTestId("it-config-pais")
     expect(within(screen.getByTestId("it-config-productos")).getByText(/Publicado .* · ana/)).toBeInTheDocument()
     expect(within(screen.getByTestId("it-config-criterios")).getByText("Del código del proceso")).toBeInTheDocument()
-    expect(within(config).getAllByRole("button")).toHaveLength(5)
+    // «Valores del país» no aparece: Code_Parametros no está entre las tablas que usa el proceso
+    expect(within(config).getAllByRole("button")).toHaveLength(2)
     const fila = await screen.findByTestId("it-region-NE")
     expect(within(fila).getByText("OK")).toBeInTheDocument()
     await userEvent.click(within(fila).getByRole("button", { name: "No imputar en Nordeste" }))

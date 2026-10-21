@@ -9,7 +9,9 @@ export async function getParamsTable(table: string, country: string): Promise<Pa
   return data
 }
 
+/** La API publica lo guardado: primero se guardan las filas y después se publican. */
 export async function publishParams(table: string, country: string, rows: ParamRow[]): Promise<PublishResult> {
+  await api.put(`/params/${table}/${country}`, { rows })
   const { data } = await api.post<PublishResult>(`/params/${table}/${country}/publish`, { rows })
   return data
 }

@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { ChevronRight } from "lucide-react"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { usePaises, type Cierre } from "../hooks"
+import { FuenteConfigContext } from "../fuenteConfig"
 import type { ConfigPais, TablaConfigPais } from "../types"
 
 /** Una entrada de la configuración permanente del país: qué tablas cubre y su editor. */
@@ -49,7 +50,8 @@ export function ConfigPaisSeccion({ items, config, cierre }: {
         <p className="text-xs text-muted-foreground">Permanente: lo que publiques vale para todos los cierres de {paisNombre}.</p>
       </div>
       <ul className="divide-y rounded-lg border">
-        {items.map((it) => {
+        {/* solo lo que el proceso usa en este país (la API lista sus tablas) */}
+        {items.filter((it) => it.tablas.every((t) => config.tablas.some((x) => x.tabla === t))).map((it) => {
           const u = ultimaPublicacion(config.tablas, it.tablas)
           return (
             <li key={it.id}>
@@ -92,7 +94,9 @@ export function ConfigPaisSeccion({ items, config, cierre }: {
                 </SheetDescription>
               </SheetHeader>
               <div className="px-4 pb-6">
-                <item.Editor codigo={config.codigo} pais={cierre.pais} paisNombre={paisNombre} onPublicado={onPublicado} />
+                <FuenteConfigContext.Provider value={cierre}>
+                  <item.Editor codigo={config.codigo} pais={cierre.pais} paisNombre={paisNombre} onPublicado={onPublicado} />
+                </FuenteConfigContext.Provider>
               </div>
             </>
           )}
