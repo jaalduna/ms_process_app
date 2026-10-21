@@ -266,7 +266,8 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
             </div>
           )}
 
-          <fieldset>
+          {/* con entrega directa DC no elige modo: siempre corre, valida y aplica */}
+          {!directo && <fieldset>
             <legend className="mb-1.5 text-sm font-medium">Modo</legend>
             <div className="grid gap-2" role="radiogroup">
               {modosDe(entrega).map((m) => (
@@ -284,7 +285,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
                 </button>
               ))}
             </div>
-          </fieldset>
+          </fieldset>}
 
           <div>
             <label htmlFor="qf-override-nota" className="mb-1.5 block text-sm font-medium">
@@ -311,7 +312,7 @@ function Contenido({ paises, paisInicial, periodoInicial, lanzando, onLanzar, en
               {elegidas.length} {elegidas.length === 1 ? "base" : "bases"}
             </p>
             <p className="mt-1 text-white/85">
-              de {etiquetaPais}, <span className="first-letter:uppercase">{periodoLabel(periodo)}</span>, en modo {modo === "completo" ? "completo" : "solo correr"}.
+              de {etiquetaPais}, <span className="first-letter:uppercase">{periodoLabel(periodo)}</span>{directo ? "" : `, en modo ${modo === "completo" ? "completo" : "solo correr"}`}.
             </p>
           </div>
           <ul className="flex flex-wrap gap-1.5">

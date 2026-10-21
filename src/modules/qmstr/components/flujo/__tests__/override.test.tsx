@@ -52,5 +52,7 @@ describe("OverrideDialog: filtro de bases elegidas y excluidas", () => {
     expect(screen.queryByTestId("qf-override-forzar")).not.toBeInTheDocument()
     expect(screen.queryByTestId("qf-override-advertencia")).not.toBeInTheDocument()
     expect(screen.getByTestId("qf-override-revisar")).toBeEnabled()
+    // DC no elige modo: siempre corre, valida y aplica
+    expect(screen.queryByTestId("qf-override-modo-solo_correr")).not.toBeInTheDocument()
   })
 })
