@@ -161,6 +161,8 @@ describe("IteracionWorkspace (Elegibilidad)", () => {
     renderAt("?periodo=202609&paso=iterar")
     // Las regiones OK parten plegadas: primero se ven las que requieren atención.
     await userEvent.click(await screen.findByTestId("it-regiones-ok"))
+    // sin cambios, la vuelta se llama como el país; el nombre sigue a los ajustes hasta que se escribe uno
+    expect((screen.getByLabelText("Guardar esta vuelta como escenario") as HTMLInputElement).value).toMatch(/^Parámetros del país · \d\d:\d\d$/)
     const fila = await screen.findByTestId("it-region-NE")
     expect(within(fila).getByText("OK")).toBeInTheDocument()
     await userEvent.click(within(fila).getByRole("button", { name: "No imputar en Nordeste" }))
@@ -170,6 +172,7 @@ describe("IteracionWorkspace (Elegibilidad)", () => {
         ajustes: { regiones_cerradas: ["NE"], muestra_ideal: {} },
       }, expect.any(Function)),
     )
+    expect((screen.getByLabelText("Guardar esta vuelta como escenario") as HTMLInputElement).value).toMatch(/^Sin imputar: NE · /)
     expect(await within(screen.getByTestId("it-region-NE")).findByText("Sin imputar")).toBeInTheDocument()
   })
 

@@ -9,7 +9,7 @@ import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import { useCrearEscenario, type Cierre } from "../hooks"
 import type { Ajustes, Engine, Parametros, Simulacion, ValoresParametros } from "../types"
 import type { ConfigProceso } from "../config"
-import { duracion } from "../format"
+import { duracion, valorParametro } from "../format"
 import { ParametrosPanel } from "./ParametrosPanel"
 import { Kpis } from "./piezas"
 
@@ -33,13 +33,15 @@ export function IterarPaso({
   onCalcular?: () => void
   engine?: Engine
 }) {
-  const [nombre, setNombre] = useState("")
+  // null: se muestra el nombre sugerido; al escribir queda el del usuario
+  const [nombre, setNombre] = useState<string | null>(null)
   const crear = useCrearEscenario(cierre)
 
   if (!parametros || !valores) return <Skeleton className="h-96 rounded-xl" />
 
+  const sugerido = nombreSugerido(config, parametros, valores, ajustes)
   const guardar = () => {
-    const n = nombre.trim()
+    const n = (nombre ?? sugerido).trim()
     if (!n) {
       toast.error("Ponle un nombre al escenario")
       return
@@ -48,7 +50,7 @@ export function IterarPaso({
       { nombre: n, parametros: valores, ajustes },
       {
         onSuccess: (e) => {
-          setNombre("")
+          setNombre(null)
           toast.success(`Escenario «${e.nombre}» guardado`, {
             action: { label: "Comparar", onClick: onVerComparacion },
           })
@@ -112,10 +114,11 @@ export function IterarPaso({
             </label>
             <Input
               id="it-nombre-escenario"
-              value={nombre}
+              value={nombre ?? sugerido}
               onChange={(e) => setNombre(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
               onKeyDown={(e) => e.key === "Enter" && guardar()}
-              placeholder="Ej.: f_ok 92% sin Norte"
+              placeholder="Nombre del escenario"
             />
             <Button variant="outline" className="w-full" onClick={guardar} disabled={crear.isPending} data-testid="it-guardar-escenario">
               {crear.isPending && <Loader2 className="animate-spin" aria-hidden />}
@@ -166,4 +169,18 @@ export function IterarPaso({
       </div>
     </div>
   )
+}
+
+/** Nombre por defecto de la vuelta: lo que cambió respecto del país y la hora, para distinguirla. */
+function nombreSugerido(config: ConfigProceso, parametros: Parametros, valores: ValoresParametros, ajustes: Ajustes): string {
+  const ref = parametros.referencia.valores
+  const cambiados = parametros.definiciones
+    .filter((d) => valores[d.clave] !== ref[d.clave])
+    .map((d) => `${d.clave} ${valorParametro(d, valores[d.clave])}`)
+  const partes = cambiados.length > 3 ? [...cambiados.slice(0, 3), `+${cambiados.length - 3}`] : cambiados
+  if (JSON.stringify(ajustes) !== JSON.stringify(parametros.ajustes ?? config.ajustesIniciales)) {
+    partes.push(config.describirAjustes(ajustes, parametros.idpesos))
+  }
+  const hora = new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+  return `${partes.length ? partes.join(" · ") : "Parámetros del país"} · ${hora}`
 }
