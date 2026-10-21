@@ -425,7 +425,7 @@ function NivelAvanzados({ state }: { state: HyperparamsDraftState }) {
 /* Main export                                                          */
 /* ------------------------------------------------------------------ */
 
-function ParametrosContent({ code, country }: { code: CountryCode; country: string }) {
+function ParametrosContent({ code, country, conInsumos = true }: { code: CountryCode; country: string; conInsumos?: boolean }) {
   const hyper = useHyperparamsDraft(code, country)
 
   return (
@@ -434,9 +434,13 @@ function ParametrosContent({ code, country }: { code: CountryCode; country: stri
 
       <div className="border-t" />
 
-      <NivelInsumos code={code} country={country} />
+      {conInsumos && (
+        <>
+          <NivelInsumos code={code} country={country} />
 
-      <div className="border-t" />
+          <div className="border-t" />
+        </>
+      )}
 
       <NivelAvanzados state={hyper} />
 
@@ -453,6 +457,15 @@ function ParametrosContent({ code, country }: { code: CountryCode; country: stri
         }}
       />
     </>
+  )
+}
+
+/** Valores del país de los hiperparámetros (niveles 1 y 3), para la configuración del país del cierre. */
+export function ValoresPorDefectoPesaje({ code, country }: { code: CountryCode; country: string }) {
+  return (
+    <div className="space-y-8">
+      <ParametrosContent code={code} country={country} conInsumos={false} />
+    </div>
   )
 }
 

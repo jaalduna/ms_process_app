@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import type { ConfigProceso } from "../config"
-import { useParametros, usePaises, usePreparacion, useSimulacion, type Cierre } from "../hooks"
+import { useParametros, usePaises, usePreparacion, useSimulacion, type Cierre, type EntradaSimulacion } from "../hooks"
 import type { Ajustes, Ancla, PaisIteracion, ValoresParametros } from "../types"
 import { CompararPaso } from "./CompararPaso"
 import { BotonConversaciones, ConversacionesProvider } from "./Conversaciones"
@@ -59,9 +59,11 @@ export function IteracionWorkspace({ config }: { config: ConfigProceso }) {
 
   // Con el proceso real cada vuelta toma ~20 s: se calcula al pedirlo, no en cada movimiento.
   const manual = preparacion.data?.engine === "real"
-  const [calculado, setCalculado] = useState<Record<string, { parametros: ValoresParametros; ajustes: Ajustes }>>({})
-  const actual = valores ? { parametros: valores, ajustes } : null
-  const base = parametros.data ? { parametros: parametros.data.valores, ajustes: ajustesBase } : null
+  // versiones publicadas de la configuración del país: publicar una deja el resultado pendiente
+  const config_pais = (parametros.data?.config_pais?.tablas ?? []).map((t) => `${t.tabla}@${t.version ?? "código"}`).join(",")
+  const [calculado, setCalculado] = useState<Record<string, EntradaSimulacion>>({})
+  const actual = valores ? { parametros: valores, ajustes, config_pais } : null
+  const base = parametros.data ? { parametros: parametros.data.valores, ajustes: ajustesBase, config_pais } : null
   const pedida = manual ? (calculado[clave] ?? base) : actual
   const pendiente = manual && !!actual && JSON.stringify(actual) !== JSON.stringify(pedida)
   const simulacion = useSimulacion(cierre, paso === "iterar" && lista ? pedida : null)

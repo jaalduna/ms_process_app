@@ -72,6 +72,23 @@ export interface Parametros {
   /** Proceso real: targets por segmento del país. Elegibilidad: su Estructura (ajuste
    * `muestra_ideal`). Pesaje: el Universo del período (ajuste `universo`), con su `columna`. */
   estructura?: Estructura | null
+  /** Configuración permanente del país que usa el proceso real: lo último publicado de cada tabla
+   * (sin versión, el proceso usa lo que trae su código). */
+  config_pais?: ConfigPais | null
+}
+
+export interface ConfigPais {
+  /** Código de país de los endpoints de configuración (Eleg: /params/{tabla}/{codigo}). */
+  codigo: string
+  tablas: TablaConfigPais[]
+}
+
+export interface TablaConfigPais {
+  tabla: string
+  etiqueta: string
+  version: string | null
+  publicado_en: string | null
+  publicado_por: string | null
 }
 
 /**

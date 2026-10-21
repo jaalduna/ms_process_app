@@ -1,9 +1,11 @@
 import type { ComponentType } from "react"
 import { ResultadoElegibilidadView } from "./components/ResultadoElegibilidad"
 import { ResultadoPesajeView } from "./components/ResultadoPesaje"
+import type { ItemConfigPais } from "./components/ConfigPais"
 import { SelectorIdPesos } from "./components/SelectorIdPesos"
 import { TargetsSegmento, type Logro } from "./components/TargetsSegmento"
 import { num } from "./format"
+import { CONFIG_PAIS_ELEGIBILIDAD, CONFIG_PAIS_PESAJE } from "./configPaisItems"
 import { IDPESOS } from "./idpesos"
 import { descuadres, descuadreTotal, type Cambios } from "./targets"
 import type {
@@ -43,6 +45,8 @@ export interface ConfigProceso {
   EditorDatos?: ComponentType<PropsAjustes & { parametros: Parametros; resultado?: Simulacion["resultado"] }>
   /** Por qué no se puede calcular con estos ajustes (null = se puede). */
   bloqueoCalcular?: (a: Ajustes, parametros: Parametros) => string | null
+  /** Configuración permanente del país, bajo los parámetros (la API dice qué versión usa). */
+  configPais: ItemConfigPais[]
 }
 
 export const ELEGIBILIDAD: ConfigProceso = {
@@ -64,6 +68,7 @@ export const ELEGIBILIDAD: ConfigProceso = {
     return n ? `${cerradas} · ${n === 1 ? "1 target cambiado" : `${n} targets cambiados`}` : cerradas
   },
   eligeDestino: false,
+  configPais: CONFIG_PAIS_ELEGIBILIDAD,
   EditorDatos: ({ parametros, ajustes, onAjustes, resultado }) => {
     if (!parametros.estructura) return null
     const a = ajustes as AjustesElegibilidad
@@ -121,6 +126,7 @@ export const PESAJE: ConfigProceso = {
     return `${nombres.join(", ")}${vetadas}${universo}`
   },
   eligeDestino: true,
+  configPais: CONFIG_PAIS_PESAJE,
   EditorDatos: ({ parametros, ajustes, onAjustes, resultado }) => {
     if (!parametros.estructura) return null
     const a = ajustes as AjustesPesaje

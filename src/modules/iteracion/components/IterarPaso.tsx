@@ -10,6 +10,7 @@ import { useCrearEscenario, type Cierre } from "../hooks"
 import type { Ajustes, Engine, Parametros, Simulacion, ValoresParametros } from "../types"
 import type { ConfigProceso } from "../config"
 import { duracion, valorParametro } from "../format"
+import { ConfigPaisSeccion } from "./ConfigPais"
 import { ParametrosPanel } from "./ParametrosPanel"
 import { Kpis } from "./piezas"
 
@@ -87,6 +88,9 @@ export function IterarPaso({
             referencia={parametros.referencia.valores}
             onChange={(clave, v) => onValores({ ...valores, [clave]: v })}
           />
+          {parametros.config_pais && (
+            <ConfigPaisSeccion items={config.configPais} config={parametros.config_pais} cierre={cierre} />
+          )}
           <Button
             variant="ghost"
             className="self-start"

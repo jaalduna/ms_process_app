@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
@@ -24,10 +23,6 @@ vi.mock("@/modules/iteracion/api", () => ({
   enviarPublicacion: vi.fn(),
   aprobarPublicacion: vi.fn(),
   devolverPublicacion: vi.fn(),
-}))
-// La pestaña de configuración del país tiene sus propias pruebas (PesajeParametrosTab.test.tsx).
-vi.mock("@/modules/pesaje/components/PesajeParametrosTab", () => ({
-  PesajeParametrosTab: () => <div>configuración del país</div>,
 }))
 
 import { PesajePage } from "@/modules/pesaje/pages/PesajePage"
@@ -70,9 +65,9 @@ describe("PesajePage", () => {
     expect(screen.getByText(/Se habilita cuando Elegibilidad/)).toBeInTheDocument()
   })
 
-  it("la configuración del país sigue en su pestaña", async () => {
+  it("ya no tiene pestañas: la configuración del país va bajo los parámetros", async () => {
     renderPage()
-    await userEvent.click(screen.getByRole("tab", { name: "Configuración del país" }))
-    expect(await screen.findByText("configuración del país")).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Pesaje" })).toBeInTheDocument()
+    expect(screen.queryByRole("tab", { name: "Configuración del país" })).not.toBeInTheDocument()
   })
 })

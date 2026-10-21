@@ -59,52 +59,59 @@ export function ParametrosElegibilidadPage() {
       </div>
 
       {/* key forces fresh draft state per country */}
-      <Tabs defaultValue="code" key={country}>
-        <TabsList className="flex h-auto flex-wrap justify-start gap-1">
-          <TabsTrigger value="code">
-            <KeyRound className="h-3.5 w-3.5" />
-            Code_Parametros
-          </TabsTrigger>
-          <TabsTrigger value="criterios">
-            <ListChecks className="h-3.5 w-3.5" />
-            Criterios_Elegibilidad
-          </TabsTrigger>
-          <TabsTrigger value="variables">
-            <Tags className="h-3.5 w-3.5" />
-            Q/M_Variables
-          </TabsTrigger>
-          <TabsTrigger value="estructura">
-            <LayoutGrid className="h-3.5 w-3.5" />
-            Estructura
-          </TabsTrigger>
-          {EXTRA_TABS.map((t) => {
-            const Icon = t.icon
-            return (
-              <TabsTrigger key={t.value} value={t.value}>
-                <Icon className="h-3.5 w-3.5" />
-                {t.label}
-              </TabsTrigger>
-            )
-          })}
-        </TabsList>
-        <TabsContent value="code">
-          <CodeParametrosTab country={country} />
-        </TabsContent>
-        <TabsContent value="criterios">
-          <CriteriosTab country={country} />
-        </TabsContent>
-        <TabsContent value="variables">
-          <VariablesTab country={country} />
-        </TabsContent>
-        <TabsContent value="estructura">
-          <EstructuraTab country={country} />
-        </TabsContent>
-        {EXTRA_TABS.map((t) => (
-          <TabsContent key={t.value} value={t.value}>
-            {t.render(country)}
-          </TabsContent>
-        ))}
-      </Tabs>
+      <TablasElegibilidad key={country} country={country} />
     </div>
+  )
+}
+
+/** Todas las tablas de elegibilidad de un país, una pestaña por tabla. */
+export function TablasElegibilidad({ country }: { country: ElegCountry }) {
+  return (
+    <Tabs defaultValue="code">
+      <TabsList className="flex h-auto flex-wrap justify-start gap-1">
+        <TabsTrigger value="code">
+          <KeyRound className="h-3.5 w-3.5" />
+          Code_Parametros
+        </TabsTrigger>
+        <TabsTrigger value="criterios">
+          <ListChecks className="h-3.5 w-3.5" />
+          Criterios_Elegibilidad
+        </TabsTrigger>
+        <TabsTrigger value="variables">
+          <Tags className="h-3.5 w-3.5" />
+          Q/M_Variables
+        </TabsTrigger>
+        <TabsTrigger value="estructura">
+          <LayoutGrid className="h-3.5 w-3.5" />
+          Estructura
+        </TabsTrigger>
+        {EXTRA_TABS.map((t) => {
+          const Icon = t.icon
+          return (
+            <TabsTrigger key={t.value} value={t.value}>
+              <Icon className="h-3.5 w-3.5" />
+              {t.label}
+            </TabsTrigger>
+          )
+        })}
+      </TabsList>
+      <TabsContent value="code">
+        <CodeParametrosTab country={country} />
+      </TabsContent>
+      <TabsContent value="criterios">
+        <CriteriosTab country={country} />
+      </TabsContent>
+      <TabsContent value="variables">
+        <VariablesTab country={country} />
+      </TabsContent>
+      <TabsContent value="estructura">
+        <EstructuraTab country={country} />
+      </TabsContent>
+      {EXTRA_TABS.map((t) => (
+        <TabsContent key={t.value} value={t.value}>
+          {t.render(country)}
+        </TabsContent>
+      ))}
+    </Tabs>
   )
 }

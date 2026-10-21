@@ -71,9 +71,13 @@ export function useDebounced<T>(valor: T, ms: number): T {
  * como query: cada combinación queda en caché y volver a una ya vista es instantáneo. Mientras se
  * recalcula se sigue mostrando el resultado anterior.
  */
+/** Lo que define un cálculo. `config_pais` (versiones publicadas) no viaja: la API usa la vigente,
+ * pero separa la caché y deja pendiente lo calculado con una configuración anterior. */
+export type EntradaSimulacion = { parametros: ValoresParametros; ajustes: Ajustes; config_pais?: string }
+
 export function useSimulacion(
   c: Cierre,
-  entrada: { parametros: ValoresParametros; ajustes: Ajustes } | null,
+  entrada: EntradaSimulacion | null,
 ) {
   const estable = useDebounced(entrada, 350)
   // segundos que lleva una corrida larga del proceso real (la API responde 202 mientras calcula)
@@ -82,7 +86,8 @@ export function useSimulacion(
     queryKey: [...key(c, "simulacion"), estable],
     queryFn: async () => {
       try {
-        return await simular(c.proceso, c.pais, c.periodo, estable!, setEspera)
+        const { parametros, ajustes } = estable!
+        return await simular(c.proceso, c.pais, c.periodo, { parametros, ajustes }, setEspera)
       } finally {
         setEspera(null)
       }

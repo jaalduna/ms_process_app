@@ -1,15 +1,7 @@
-import { ProcessWorkspaceTabs } from "@/components/ProcessWorkspaceTabs"
 import { IteracionWorkspace } from "@/modules/iteracion/components/IteracionWorkspace"
 import { PESAJE } from "@/modules/iteracion/config"
-import { PesajeParametrosTab } from "../components/PesajeParametrosTab"
 
+// La configuración del país vive bajo los parámetros de la vuelta (paso Iterar).
 export function PesajePage() {
-  return (
-    <ProcessWorkspaceTabs
-      tabs={[
-        { value: "cierre", label: "Cierre", content: <IteracionWorkspace config={PESAJE} /> },
-        { value: "parametros", label: "Configuración del país", content: <PesajeParametrosTab /> },
-      ]}
-    />
-  )
+  return <IteracionWorkspace config={PESAJE} />
 }

@@ -1,5 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { GRUPO_EXCATEG } from "../exclusiones"
 import { Plus, Trash2 } from "lucide-react"
 import { ParamsEditor } from "./ParamsEditor"
 import { validateCriterios, diffByKey } from "../validation"
@@ -39,7 +41,7 @@ export function CriteriosTab({ country }: { country: ElegCountry }) {
                     {c.label}
                   </th>
                 ))}
-                <th className="px-4 py-3 w-28">ExCateg</th>
+                <th className="px-4 py-3 w-36" title="ExCateg «A»: la regla cuenta actos, categorías y semanas sin los productos excluidos">Sin productos excluidos</th>
                 <th className="px-4 py-3 w-12"></th>
               </tr>
             </thead>
@@ -68,12 +70,22 @@ export function CriteriosTab({ country }: { country: ElegCountry }) {
                     </td>
                   ))}
                   <td className="px-4 py-2">
-                    <Input
-                      value={r.ExCateg}
-                      onChange={(e) => setRows((d) => d.map((row, j) => (j === i ? { ...row, ExCateg: e.target.value } : row)))}
-                      placeholder="—"
-                      className="h-8 text-xs"
-                    />
+                    {/* ExCateg «A» = la regla se evalúa sin los productos excluidos; otro grupo se escribe a mano */}
+                    {r.ExCateg === null || r.ExCateg === "" || r.ExCateg === GRUPO_EXCATEG ? (
+                      <Switch
+                        aria-label={`Regla ${r.IdRegla} sin productos excluidos`}
+                        checked={r.ExCateg === GRUPO_EXCATEG}
+                        onCheckedChange={(v) =>
+                          setRows((d) => d.map((row, j) => (j === i ? { ...row, ExCateg: (v ? GRUPO_EXCATEG : null) as string } : row)))
+                        }
+                      />
+                    ) : (
+                      <Input
+                        value={r.ExCateg}
+                        onChange={(e) => setRows((d) => d.map((row, j) => (j === i ? { ...row, ExCateg: e.target.value } : row)))}
+                        className="h-8 text-xs"
+                      />
+                    )}
                   </td>
                   <td className="px-2 py-2">
                     <Button

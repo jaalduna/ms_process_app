@@ -51,6 +51,13 @@ const PARAMETROS: Parametros = {
   ],
   valores: { f_ok: 0.9 },
   referencia: { etiqueta: "Mes pasado (202608)", valores: { f_ok: 0.9 } },
+  config_pais: {
+    codigo: "BR",
+    tablas: [
+      { tabla: "Imputacion_ExCateg", etiqueta: "Imputacion_ExCateg", version: "3", publicado_en: "2026-10-20T15:00:00Z", publicado_por: "ana@wp.numerator.com" },
+      { tabla: "Criterios_Elegibilidad", etiqueta: "Criterios_Elegibilidad", version: null, publicado_en: null, publicado_por: null },
+    ],
+  },
 }
 
 function simulacion(cerradas: string[]): Simulacion {
@@ -163,6 +170,11 @@ describe("IteracionWorkspace (Elegibilidad)", () => {
     await userEvent.click(await screen.findByTestId("it-regiones-ok"))
     // sin cambios, la vuelta se llama como el país; el nombre sigue a los ajustes hasta que se escribe uno
     expect((screen.getByLabelText("Guardar esta vuelta como escenario") as HTMLInputElement).value).toMatch(/^Parámetros del país · \d\d:\d\d$/)
+    // configuración del país: una fila por grupo de tablas, con su última publicación
+    const config = screen.getByTestId("it-config-pais")
+    expect(within(screen.getByTestId("it-config-productos")).getByText(/Publicado .* · ana/)).toBeInTheDocument()
+    expect(within(screen.getByTestId("it-config-criterios")).getByText("Del código del proceso")).toBeInTheDocument()
+    expect(within(config).getAllByRole("button")).toHaveLength(5)
     const fila = await screen.findByTestId("it-region-NE")
     expect(within(fila).getByText("OK")).toBeInTheDocument()
     await userEvent.click(within(fila).getByRole("button", { name: "No imputar en Nordeste" }))
