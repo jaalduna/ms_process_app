@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import { useCrearEscenario, type Cierre } from "../hooks"
 import type { Ajustes, Engine, Parametros, Simulacion, ValoresParametros } from "../types"
 import type { ConfigProceso } from "../config"
+import { AnchoCompletoContext } from "../anchoCompleto"
 import { duracion, valorParametro } from "../format"
 import { ConfigPaisSeccion } from "./ConfigPais"
 import { ParametrosPanel } from "./ParametrosPanel"
@@ -36,6 +38,7 @@ export function IterarPaso({
 }) {
   // null: se muestra el nombre sugerido; al escribir queda el del usuario
   const [nombre, setNombre] = useState<string | null>(null)
+  const [ancho, setAncho] = useState<HTMLDivElement | null>(null)
   const crear = useCrearEscenario(cierre)
 
   if (!parametros || !valores) return <Skeleton className="h-96 rounded-xl" />
@@ -67,9 +70,12 @@ export function IterarPaso({
   const bloqueo = config.bloqueoCalcular?.(ajustes, parametros) ?? null
 
   return (
-    <div className="flex flex-wrap items-start gap-5">
+    <AnchoCompletoContext.Provider value={ancho}>
+    {/* dos columnas que terminan a la misma altura (la última tarjeta de cada una se estira) y, bajo
+        ellas, las secciones anchas del resultado a todo el ancho */}
+    <div className="flex flex-wrap items-stretch gap-5">
       {/* columna de entradas: parámetros y, debajo, los targets por segmento (la matriz se abre aparte) */}
-      <div className="w-full max-w-sm flex-[1_1_300px] space-y-5">
+      <div className="flex w-full max-w-sm flex-[1_1_300px] flex-col gap-5 [&>*:last-child]:flex-1">
         <Card className="gap-5 p-5">
           <div>
             <h2 className="text-base font-semibold">Parámetros</h2>
@@ -151,7 +157,7 @@ export function IterarPaso({
         )}
       </div>
 
-      <div className="min-w-0 flex-[999_1_560px] space-y-5" aria-busy={simulacion.isFetching}>
+      <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-5 [&>*:last-child]:flex-1" aria-busy={simulacion.isFetching}>
         {simulacion.error != null && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
             No se pudo simular: {mensajeError(simulacion.error)}
@@ -159,8 +165,8 @@ export function IterarPaso({
         )}
         {!sim && !simulacion.error && <Skeleton className="h-96 rounded-xl" />}
         {sim && (
-          <div className={simulacion.isFetching ? "opacity-70 transition-opacity" : "transition-opacity"}>
-            <div className="space-y-5">
+          <div className={cn("flex flex-col transition-opacity", simulacion.isFetching && "opacity-70")}>
+            <div className="flex flex-1 flex-col gap-5 [&>*:last-child]:flex-1">
               <Kpis kpis={sim.kpis} />
               {pendiente && (
                 <p className="rounded-md bg-muted px-3 py-2 text-sm" role="status">
@@ -172,7 +178,9 @@ export function IterarPaso({
           </div>
         )}
       </div>
+      <div ref={setAncho} className="min-w-0 basis-full empty:hidden" data-testid="it-ancho-completo" />
     </div>
+    </AnchoCompletoContext.Provider>
   )
 }
 

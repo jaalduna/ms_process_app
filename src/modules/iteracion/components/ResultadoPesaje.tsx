@@ -1,9 +1,11 @@
 import { useState } from "react"
+import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { err, num, pct, TONO, textoTono } from "../format"
 import type { AjustesPesaje, ResultadoPesaje } from "../types"
+import { useAnchoCompleto } from "../anchoCompleto"
 import { Seccion } from "./piezas"
 import { CeldasUniverso, RevisionHistoria } from "./RevisionPesaje"
 
@@ -15,6 +17,7 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes, puedeVetar 
   puedeVetar?: boolean
 }) {
   const [idpesoRev, setIdpesoRev] = useState<string | null>(null)
+  const ancho = useAnchoCompleto()
   const revision = resultado.revision?.find((r) => r.idpeso === idpesoRev) ?? resultado.revision?.[0]
   const segmentos = resultado.segmentos?.find((r) => r.idpeso === revision?.idpeso) ?? resultado.segmentos?.[0]
   const unidades = resultado.unidad === "hogar" ? "Hogares" : "Individuos"
@@ -26,7 +29,8 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes, puedeVetar 
   }
 
   return (
-    <div className="space-y-5">
+    // la última sección se estira hasta el pie de la columna de parámetros
+    <div className="flex flex-1 flex-col gap-5 [&>*:last-child]:flex-1">
       <Seccion ancla="iterar.idpeso" titulo="Resultado por IdPeso" detalle={`Meta: error final bajo ${err(resultado.meta_error)} y cero outliers`}>
         <Table className="[&_th]:whitespace-normal">
           <TableHeader>
@@ -102,7 +106,11 @@ export function ResultadoPesajeView({ resultado, ajustes, onAjustes, puedeVetar 
             </div>
           )}
           <RevisionHistoria indicadores={revision.indicadores} />
-          {segmentos && <CeldasUniverso key={segmentos.idpeso} grupos={segmentos.grupos} />}
+          {/* a todo el ancho, bajo parámetros y resultados */}
+          {segmentos &&
+            (ancho
+              ? createPortal(<CeldasUniverso key={segmentos.idpeso} grupos={segmentos.grupos} />, ancho)
+              : <CeldasUniverso key={segmentos.idpeso} grupos={segmentos.grupos} />)}
         </>
       )}
 
