@@ -59,9 +59,9 @@ export function TablaBases({ bases, filtro, onFiltro, entrega = "ticket" }: Tabl
                 <TableHead className="w-8" />
                 <TableHead>Base</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>{entrega === "pythoncac" ? "Distribución (hito 3)" : "Hito 3"}</TableHead>
-                <TableHead>Hito 4</TableHead>
-                <TableHead>Hito 10</TableHead>
+                <TableHead>Distribución de actos (hito 3)</TableHead>
+                <TableHead>Liberación metodológica (hito 4)</TableHead>
+                <TableHead>Liberación QMS-TR (hito 10)</TableHead>
                 <TableHead>Tanda</TableHead>
               </TableRow>
             </TableHeader>

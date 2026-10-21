@@ -461,7 +461,7 @@ export const ESTADO_TANDA_LABEL: Record<EstadoTanda, string> = {
   enviando: "Creando ticket",
   aplicando: "Aplicando en J",
   en_dq: "Ticket en DQ",
-  hito10: "Registrando hito 10",
+  hito10: "Registrando liberación QMS-TR (hito 10)",
   cerrada: "Cerrada",
   revision_manual: "Requiere revisión",
   sin_bases: "Sin bases",
@@ -479,12 +479,12 @@ export const TIPO_TANDA_LABEL: Record<TipoTanda, string> = {
  * ticket y queda el hito 10. `label` va en plural en la leyenda; `chip` en singular en cada base; `ayuda` es el tooltip.
  */
 export const ESTADOS_BASE: { estado: EstadoBase; label: string; chip: string; ayuda: string }[] = [
-  { estado: "aplicada", label: "QMS-TR aplicado", chip: "QMS-TR aplicado", ayuda: "DQ cerró el ticket con los ajustes y quedó registrado el hito 10" },
-  { estado: "en_proceso", label: "En QMS-TR", chip: "En QMS-TR", ayuda: "Está en una tanda que sigue avanzando: corrida, revisión antes del ticket, ticket en DQ o hito 10" },
+  { estado: "aplicada", label: "QMS-TR aplicado", chip: "QMS-TR aplicado", ayuda: "DQ cerró el ticket con los ajustes y quedó registrada la liberación QMS-TR (hito 10)" },
+  { estado: "en_proceso", label: "En QMS-TR", chip: "En QMS-TR", ayuda: "Está en una tanda que sigue avanzando: corrida, revisión antes del ticket, ticket en DQ o liberación QMS-TR (hito 10)" },
   { estado: "pendiente", label: "Listas para QMS-TR", chip: "Lista para QMS-TR", ayuda: "DC registró la liberación metodológica (hito 4) y todavía no entra a una corrida" },
   { estado: "retenida", label: "Retenidas por DC", chip: "Retenida por DC", ayuda: "DC distribuyó los actos (hito 3) pero no la liberó (hito 4), y otras bases del período ya están liberadas" },
   { estado: "esperando_liberacion", label: "Esperando liberación de DC", chip: "Esperando liberación de DC", ayuda: "DC distribuyó los actos (hito 3); ninguna base del período tiene todavía la liberación metodológica (hito 4)" },
-  { estado: "revertida", label: "QMS-TR revertido", chip: "QMS-TR revertido", ayuda: "Se devolvió a como estaba antes de QMS-TR y se anuló su hito 10; se puede volver a correr" },
+  { estado: "revertida", label: "QMS-TR revertido", chip: "QMS-TR revertido", ayuda: "Se devolvió a como estaba antes de QMS-TR y se anuló su liberación QMS-TR (hito 10); se puede volver a correr" },
   { estado: "bypass", label: "Sin ajustes de QMS-TR", chip: "Sin ajustes de QMS-TR", ayuda: "La corrida no la corrigió (falló o no pasó un control) o se excluyó en la revisión, y no va en el ticket; el motivo está en la base" },
   { estado: "sin_hito4", label: "Sin distribución de DC", chip: "Sin distribución de DC", ayuda: "DC todavía no registra la distribución de actos (hito 3) ni la liberación (hito 4)" },
   { estado: "fuera_de_alcance", label: "Excluidas de QMS-TR", chip: "Excluida de QMS-TR", ayuda: "Por acuerdo, QMS-TR no corrige esta base (fashion, tabaco)" },
@@ -534,7 +534,7 @@ export const ETAPA_BASE_LABEL: Partial<Record<EstadoTanda, string>> = {
   enviando: "Creando ticket",
   aplicando: "Aplicando en J",
   en_dq: "Ticket en DQ",
-  hito10: "Registrando hito 10",
+  hito10: "Registrando liberación QMS-TR (hito 10)",
   revision_manual: "Requiere revisión",
 }
 

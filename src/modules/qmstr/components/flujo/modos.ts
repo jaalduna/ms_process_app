@@ -2,8 +2,8 @@ import type { Entrega, ModoTanda } from "../../types"
 
 /** Modos de una tanda lanzada a mano (diálogo de lanzamiento y detalle de una base). */
 export const MODOS: { modo: ModoTanda; titulo: string; texto: string }[] = [
-  { modo: "completo", titulo: "Completo", texto: "Corre, valida el zip, lo envía a DQ con ticket (MTR como observador) y, cerrado el ticket, registra el hito 10 y avisa a MTR." },
-  { modo: "solo_correr", titulo: "Solo correr", texto: "Solo la corrida en Databricks, para probar. Sin ticket, avisos ni hito 10." },
+  { modo: "completo", titulo: "Completo", texto: "Corre, valida el zip, lo envía a DQ con ticket (MTR como observador) y, cerrado el ticket, registra la liberación QMS-TR (hito 10) y avisa a MTR." },
+  { modo: "solo_correr", titulo: "Solo correr", texto: "Solo la corrida en Databricks, para probar. Sin ticket, avisos ni liberación QMS-TR (hito 10)." },
 ]
 
 /** Los modos según cómo entrega el flujo: con PythonCac "completo" aplica en J, sin ticket ni hito 10. */

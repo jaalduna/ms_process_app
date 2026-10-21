@@ -12,7 +12,7 @@ const ETAPAS: { clave: string; label: string; tone: string; incluye: (b: FlujoBa
   { clave: "corriendo", label: "En corrida", tone: "var(--qf-en-proceso)", incluye: (b) => en(b, ["detectada", "corriendo", "armando_reversion", "validando"]) },
   { clave: "revision", label: "En revisión", tone: "var(--qf-retenida)", incluye: (b) => en(b, ["en_revision", "revision_manual"]) },
   { clave: "dq", label: "Ticket en DQ", tone: "color-mix(in oklch, var(--qf-en-proceso) 55%, var(--qf-pendiente))", incluye: (b) => en(b, ["enviando", "en_dq"]) },
-  { clave: "hito10", label: "Hito 10", tone: "color-mix(in oklch, var(--qf-en-proceso) 40%, var(--qf-aplicada))", incluye: (b) => en(b, ["hito10"]) },
+  { clave: "hito10", label: "Liberación QMS-TR (hito 10)", tone: "color-mix(in oklch, var(--qf-en-proceso) 40%, var(--qf-aplicada))", incluye: (b) => en(b, ["hito10"]) },
   { clave: "cerrada", label: "Terminadas", tone: "var(--qf-aplicada)", incluye: (b) => ["aplicada", "bypass", "revertida"].includes(b.estado) },
 ]
 
@@ -108,7 +108,7 @@ export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSelecci
           const apagada = filtro !== null && filtro !== b.estado
           const etapa = b.estado === "en_proceso" && b.tanda_estado ? ETAPA_BASE_LABEL[b.tanda_estado] : undefined
           const label = `${b.producto} ${b.nombre}: ${etapa ?? labelEstadoBase(b.estado, entrega)}`
-          const hito = directo ? (b.h3 ? ` (distribución ${formatChile(b.h3)})` : "") : b.h4 ? ` (hito 4 ${formatChile(b.h4)})` : ""
+          const hito = directo ? (b.h3 ? ` (distribución de actos, hito 3: ${formatChile(b.h3)})` : "") : b.h4 ? ` (liberación metodológica, hito 4: ${formatChile(b.h4)})` : ""
           return (
             <li key={b.producto} className="flex">
               <button

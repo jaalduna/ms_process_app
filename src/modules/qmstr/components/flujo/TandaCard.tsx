@@ -32,7 +32,7 @@ const PASO_LABEL: Partial<Record<EstadoTanda, string>> = {
   enviando: "Ticket a DQ",
   aplicando: "Aplicación en J",
   en_dq: "DQ",
-  hito10: "Hito 10",
+  hito10: "Liberación QMS-TR (hito 10)",
   cerrada: "Cerrada",
 }
 
@@ -164,7 +164,7 @@ function ProgresoCorrida({ tanda, verRun }: { tanda: Tanda; verRun: boolean }) {
         <div className="space-y-0.5 text-sm">
           <p className="font-medium">Esperando el snapshot de J</p>
           <p className="text-muted-foreground">
-            La corrida de {nBases(p.productos_total)} parte sola con el primer ciclo del CDC de J posterior al hito 4
+            La corrida de {nBases(p.productos_total)} parte sola con el primer ciclo del CDC de J posterior a la liberación metodológica (hito 4)
             (cada hora, de 06:00 a 19:00 de Chile).
           </p>
         </div>
@@ -490,8 +490,8 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
           ) : (
             <>
               {t.h4_desde === t.h4_hasta
-                ? <>Hito 4 a las {formatChile(t.h4_hasta)}.</>
-                : <>Hito 4 entre las {formatChile(t.h4_desde)} y las {formatChile(t.h4_hasta)}.</>}
+                ? <>Liberación metodológica (hito 4) a las {formatChile(t.h4_hasta)}.</>
+                : <>Liberación metodológica (hito 4) entre las {formatChile(t.h4_desde)} y las {formatChile(t.h4_hasta)}.</>}
               {t.creada_por && t.creada_por !== "qmstr_flujo" ? <> Lanzada por {t.creada_por}.</> : <> Detectada por el flujo.</>}
             </>
           )}
@@ -531,12 +531,6 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
         <AvisosJira tanda={t} />
 
         {t.tipo !== "reversion" && t.qms_run_id && !t.run_tag_existente && <ProgresoCorrida tanda={t} verRun={verRun} />}
-        {t.run_tag_existente && (
-          <p className="text-sm text-muted-foreground" data-testid="qf-reusa-corrida">
-            Reusa la corrida <span className="font-mono text-xs">{t.run_tag_existente}</span>: no se corrió el motor.
-          </p>
-        )}
-
         {t.revisar.length > 0 && (t.estado === "en_revision" || Object.keys(t.revision).length > 0) && (
           <RevisionAntesDelTicket tanda={t} nombres={nombres} esAdmin={esAdmin} entrega={entrega} />
         )}
