@@ -89,11 +89,13 @@ Elegibilidad).
   "referencia": { "etiqueta": "Mes pasado (202609)", "valores": { "f_ok": 0.9 } }
 }
 ```
-Elegibilidad: los 13 de `Code_Parametros` del país. De uso diario: `f_ok`, `f_fill_strict`,
-`f_fill_flex` (rango, pct), `n_rep_strict`, `n_rep_flex`, `actos_bajo` (entero). Con
-`"grupo": "avanzado"` (van plegados): `f_ok_flex` (rango, pct), `viajes_bajo`, `repeat_f`
-(entero), `ascend` (`"tipo": "opcion"`, con `"opciones": [{ "valor": 1, "etiqueta": "…" }]`),
-`ascend2`, `no_tocar_ok`, `no_tocar_ok_flex` (booleano).
+Cada definición trae `grupo` (nombre); los grupos van en el orden de las definiciones y tienen
+5 parámetros como máximo. La app los muestra en acordeón, una fila por parámetro, con la ayuda
+(`ayuda`, clave, rango y valor del país) a demanda.
+Elegibilidad (los 13 de `Code_Parametros` del país): «Llenado de celdas» `f_ok`, `f_fill_strict`,
+`f_fill_flex`, `f_ok_flex` · «Donantes» `n_rep_strict`, `n_rep_flex`, `repeat_f`, `ascend2` ·
+«Hogares bajos» `actos_bajo`, `viajes_bajo` · «Orden y celdas OK» `ascend` (`"tipo": "opcion"`,
+con `"opciones": [{ "valor": 1, "etiqueta": "…" }]`), `no_tocar_ok`, `no_tocar_ok_flex`.
 
 Elegibilidad con el proceso real agrega `estructura` (null en el simulado): los targets por
 segmento del país, de su `Estructura.parquet`.
@@ -107,7 +109,8 @@ segmento del país, de su `Estructura.parquet`.
 `resultado.regiones`; el nombre puede venir escrito distinto en cada bloque. Pesaje: `P_BOUNDS` (rango 0.01–0.05,
 percentil), `F_BOUNDS` (rango 0–0.3, pct), `MAX_ROUNDS_COLAPSO` (entero 0–30),
 `JERARQUIA_MIN_COLAPSO` (entero 1–4), `CORRECAO_BOUNDS` (booleano), `IPF_TOL_ERR` (rango, err).
-Avanzados de Pesaje (de `modules/param_configs.py`): `N_PERIODOS_OUTLIERS` (entero 3–12: la
+Pesaje en grupos: «Límites de peso», «Corrección de límites», «Juntas», «Convergencia del IPF».
+Los que se agregaron de `modules/param_configs.py`: `N_PERIODOS_OUTLIERS` (entero 3–12: la
 preparación trae 12 meses), `METODO_BOUNDS` y `AGREGACAO_BOUNDS` (opciones de texto),
 `MAX_ERR_RATIO_BOUNDS` (rango), `MAX_CELL_ERR_RATIO_BOUNDS`, `IPF_IT_MAX`, `IPF_STAGNATION_PAT`
 (entero) e `IPF_IMPROVEMENT_TOL` (opción numérica 1e-10…1e-6). Las opciones pueden ser números o

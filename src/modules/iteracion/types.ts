@@ -48,8 +48,8 @@ export interface ParamDef {
   max?: number
   paso?: number
   formato?: "pct" | "num" | "percentil" | "err"
-  /** "avanzado": va plegado, debajo de los de uso diario. */
-  grupo?: "avanzado"
+  /** Grupo en que se muestra (≤5 por grupo, en el orden de las definiciones). */
+  grupo?: string
   /** tipo "opcion": valores posibles (enteros o texto) en el orden en que se muestran. */
   opciones?: { valor: number | string; etiqueta: string }[]
 }
