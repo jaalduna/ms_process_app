@@ -100,7 +100,8 @@ function Grafico({ i, valor }: { i: IndicadorRevision; valor: DetalleProps["valo
   const x = (k: number) => L + (k / (n - 1)) * (W - L - R)
   const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B)
   const alerta = i.estado === "aviso" || i.estado === "error"
-  const color = alerta ? "#f871a0" : "var(--qf-wp-blue)"
+  // el diálogo va en un portal fuera de `.qf`: el color va directo, no por su variable
+  const color = alerta ? "#f871a0" : "#00A8B8"
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`${i.etiqueta}: últimos ${pts.length} meses y esta corrida`}>
       {i.min12 != null && i.max12 != null && (
@@ -132,9 +133,9 @@ function Grafico({ i, valor }: { i: IndicadorRevision; valor: DetalleProps["valo
       <circle cx={x(n - 1)} cy={y(i.valor)} r={5} fill={color}>
         <title>{`Esta corrida: ${valor(i, i.valor)}`}</title>
       </circle>
-      {[...pts.map((p) => mes(p.periodo)), "esta"].map((t, k) =>
+      {[...pts.map((p) => mes(p.periodo)), "esta corrida"].map((t, k) =>
         k % 2 === (n - 1) % 2 ? (
-          <text key={t} x={x(k)} y={H - 8} textAnchor="middle" className="fill-muted-foreground text-[11px]">
+          <text key={t} x={x(k)} y={H - 8} textAnchor={k === n - 1 ? "end" : "middle"} className="fill-muted-foreground text-[11px]">
             {t}
           </text>
         ) : null,
