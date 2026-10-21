@@ -119,7 +119,7 @@ describe("TableroBases: celdas", () => {
     const { rerender } = render(<TableroBases pais="Chile" periodo="202609" bases={bases} filtro={null} onFiltro={vi.fn()} onSeleccionar={onSeleccionar} />)
     const celda = screen.getByTestId("qf-celda-4")
     expect(celda).toHaveClass("qf-latido")
-    expect(celda).toHaveAccessibleName(/En revisión antes del ticket/)
+    expect(celda).toHaveAccessibleName(/En revisión/)
     expect(screen.getByTestId("qf-celda-1")).not.toHaveClass("qf-latido")
     await userEvent.click(celda)
     expect(onSeleccionar).toHaveBeenCalledWith(bases[1])
