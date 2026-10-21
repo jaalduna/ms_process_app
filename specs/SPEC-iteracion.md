@@ -133,14 +133,17 @@ publicada usa el cálculo (`version: null` = lo que trae el código del proceso)
 `codigo` es el país de los endpoints de configuración (Elegibilidad `/params/{tabla}/{codigo}`,
 Pesaje `/weighting/params/{codigo}`). La app la muestra bajo los parámetros de la vuelta
 («Configuración del país»), una fila por grupo de tablas con su editor en un panel lateral:
-Elegibilidad — Productos excluidos, Criterios, Parámetros por región, Valores del país
-(`Code_Parametros`) y Todas las tablas; Pesaje — Valores del país (`idpeso-config`), Variables,
-Universo e IdPesos. Lo publicado vale para todos los cierres del país; las versiones entran en la
+Elegibilidad — Productos excluidos, Criterios y Valores del país (`Code_Parametros`); Pesaje —
+Valores del país (`idpeso-config`) y Variables. Solo aparecen las que están en `tablas`. Fuera por
+ahora: `Parametros_Region` (el contrato no trae `actos_bajo`/`viajes_bajo`), el Universo (se
+publica por Excel) e IdPesos (del código). Los editores leen lo vigente con
+`GET /iteracion/{proceso}/{pais}/{periodo}/config/{tabla}` → `{ origen: "codigo" | "publicado",
+version, publicado_en, publicado_por, contenido }`. Lo publicado vale para todos los cierres del país; las versiones entran en la
 clave del cálculo, así que publicar deja el resultado pendiente de volver a calcular.
 
 «Productos excluidos» edita `Criterios_Elegibilidad_ExCateg` (no cuentan para la elegibilidad en las
 reglas con ExCateg «A») e `Imputacion_ExCateg` (no se imputan) como una sola lista por producto, con
-su nombre de `GET /iteracion/elegibilidad/{pais}/productos` → `[{ "id": 343, "nombre": "…" }]`. Al
+su nombre de `GET /iteracion/elegibilidad/{pais}/{periodo}/productos` (de `dbo.A_Produto`) → `[{ "id": 343, "nombre": "…" }]`. Al
 publicar escribe las dos tablas como antes. Si un país usa más de un grupo de excepción, se edita en
 «Todas las tablas».
 
