@@ -131,6 +131,31 @@ describe("IteracionWorkspace (Elegibilidad)", () => {
     expect(await screen.findByText(/Preparando/)).toBeInTheDocument()
   })
 
+  it("preparar: el avance se ve en la tarjeta de tablas, fila por fila", async () => {
+    h.getPreparacion.mockResolvedValue({
+      ...preparacion("preparando"),
+      tablas: [
+        { nombre: "J_AtosCompra_New", filas: null, estado: "pendiente" },
+        { nombre: "RG_Panelis", filas: null, estado: "pendiente" },
+      ],
+      progreso: {
+        segundos: 95,
+        pasos: [
+          { id: "J_AtosCompra_New", titulo: "Leer J_AtosCompra_New", estado: "listo", filas: 224988, segundos: 12 },
+          { id: "RG_Panelis", titulo: "Leer RG_Panelis", estado: "en_curso", filas: 40000, segundos: 7 },
+          { id: "guardar", titulo: "Guardar los datos preparados", estado: "pendiente", filas: null, segundos: null },
+        ],
+      },
+    })
+    renderAt("?periodo=202609")
+    expect(within(await screen.findByTestId("it-tabla-J_AtosCompra_New")).getByText("Lista · 0:12")).toBeInTheDocument()
+    const enCurso = screen.getByTestId("it-tabla-RG_Panelis")
+    expect(within(enCurso).getByText("40.000")).toBeInTheDocument()
+    expect(within(enCurso).getByText("Leyendo · 0:07")).toBeInTheDocument()
+    expect(within(screen.getByTestId("it-tabla-guardar")).getByText("En cola")).toBeInTheDocument()
+    expect(screen.getByText("Preparando · 1:35")).toBeInTheDocument()
+  })
+
   it("iterar: cerrar una región vuelve a simular con ese ajuste", async () => {
     h.getPreparacion.mockResolvedValue(preparacion("lista"))
     renderAt("?periodo=202609&paso=iterar")
