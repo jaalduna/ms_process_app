@@ -71,7 +71,7 @@ if (quiero("02")) {
   for (const p of [41, 45]) await page.getByTestId(`qf-override-base-${p}`).click()
   await page.waitForTimeout(300)
   await foto(page, "02_lanzar.png", dlg, {
-    1: page.getByTestId("qf-override-pais"),
+    1: page.getByTestId("qf-override-contexto"),
     2: page.getByTestId("qf-override-bases"),
     3: page.getByTestId("qf-override-revisar"),
   })

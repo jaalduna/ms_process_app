@@ -159,6 +159,8 @@ export interface FlujoEstado {
   puede_operar: boolean
   /** Demo (sólo dev): las tandas avanzan solas, sin Databricks, J ni PythonCac. */
   demo?: boolean
+  /** En demo, segundos que dura cada estado de la tanda (para el fin estimado). */
+  duraciones_demo?: Partial<Record<EstadoTanda, number>> | null
   /** La tarea de fondo del flujo está corriendo (la API real; el mock no lo informa). */
   activo?: boolean
 }

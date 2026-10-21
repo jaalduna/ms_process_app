@@ -338,6 +338,7 @@ export function QmsTrFlujoPage() {
                       onAccion={(a) => hacer(t, a)}
                       onRevertir={() => { setSoloBase(null); setARevertir(t) }}
                       revertidas={revertidasPor.get(t.id)}
+                      duracionesDemo={estado.data?.duraciones_demo}
                     />
                   ))
                 )}

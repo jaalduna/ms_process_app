@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import {
   Ban, Check, CheckCheck, ChevronDown, ClipboardCheck, Download, ExternalLink, Eye, FlaskConical, Hourglass, Loader2, Pause, Play, Quote,
@@ -15,7 +15,7 @@ import {
   ESTADO_TANDA_LABEL, TANDA_ACTIVOS, TAREA_LABELS, caminoDe, type Entrega, type EstadoTanda, type FlujoModo, type ProgresoTarea, type Tanda,
   type TandaRevisar,
 } from "../../types"
-import { TONO_TANDA, mensajeError, nBases, tono } from "./formato"
+import { TONO_TANDA, finEstimado, mensajeError, nBases, tono } from "./formato"
 import { Chip, ChipTanda, ChipTipo } from "./piezas"
 
 /** Estados en que la tanda todavía no escribió nada en J: se puede cancelar. */
@@ -124,6 +124,25 @@ function TareaForEach({ t }: { t: ProgresoTarea }) {
         <div className={cn("h-full rounded-full bg-[var(--qf-en-proceso)] transition-[width] duration-700", t.estado === "RUNNING" && "qf-bar-live")} style={{ width: `${pct}%` }} />
       </div>
     </div>
+  )
+}
+
+/** «Termina aprox. a las HH:MM»: para organizarse, no es exacto. Se recalcula cada 30 s. */
+function FinEstimado({ tanda: t, entrega, duraciones }: { tanda: Tanda; entrega: Entrega; duraciones: Partial<Record<EstadoTanda, number>> | null }) {
+  const { data } = useTandaProgreso(t)
+  const [ahora, setAhora] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setAhora(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+  const fin = finEstimado(t, caminoDe(t, entrega), duraciones, t.progreso ?? data, ahora)
+  if (!fin) return null
+  const min = Math.max(1, Math.round((fin.getTime() - ahora) / 60_000))
+  return (
+    <span className="ml-1 font-medium text-foreground" data-testid="qf-tanda-fin-estimado"
+      title={duraciones ? "Demo: cada paso dura un tiempo fijo" : "Según el avance de la corrida en Databricks, más unos minutos de validación y aplicación"}>
+      Termina aprox. a las {formatChile(fin.toISOString()).split(" ")[0]} (en ~{min} min).
+    </span>
   )
 }
 
@@ -387,9 +406,11 @@ interface TandaCardProps {
   onRevertir: () => void
   /** Bases de esta tanda revertidas después (producto -> número de la tanda de reversión y si ya cerró). */
   revertidas?: Map<number, { numero: number; cerrada: boolean }>
+  /** En demo, la duración de cada paso (para el fin estimado). */
+  duracionesDemo?: Partial<Record<EstadoTanda, number>> | null
 }
 
-export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin, verRun, origen, ocupado, onAccion, onRevertir, revertidas = new Map() }: TandaCardProps) {
+export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin, verRun, origen, ocupado, onAccion, onRevertir, revertidas = new Map(), duracionesDemo = null }: TandaCardProps) {
   const [verBases, setVerBases] = useState(false)
   const [bajando, setBajando] = useState(false)
   const [cancelando, setCancelando] = useState(false)
@@ -464,6 +485,7 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
             // con PythonCac DC la lanza antes de la liberación metodológica: no hay hito 4 que mostrar
             <span data-testid="qf-tanda-lanzada">
               Lanzada el {formatChile(t.created_at)}{t.creada_por && t.creada_por !== "qmstr_flujo" ? <> por {t.creada_por}</> : null}.
+              <FinEstimado tanda={t} entrega={entrega} duraciones={duracionesDemo} />
             </span>
           ) : (
             <>
