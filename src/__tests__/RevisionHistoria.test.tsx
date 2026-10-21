@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest"
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { RevisionHistoria } from "@/modules/iteracion/components/RevisionPesaje"
-import type { IndicadorRevision } from "@/modules/iteracion/types"
+import { CeldasUniverso, RevisionHistoria } from "@/modules/iteracion/components/RevisionPesaje"
+import type { CeldaUniverso, GrupoCeldas, IndicadorRevision } from "@/modules/iteracion/types"
 
 const serie = ["202509", "202510", "202511", "202512"].map((periodo, k) => ({ periodo, valor: 46 + k }))
 const IND: IndicadorRevision[] = [
@@ -31,5 +31,34 @@ describe("revisión contra la historia", () => {
     const d = await screen.findByTestId("it-rev-detalle")
     expect(within(d).getByText(/se juntaron con otras/)).toBeInTheDocument()
     expect(within(d).getByText(/Sin historia todavía/)).toBeInTheDocument()
+  })
+})
+
+const celda = (uig: number, categoria: string, alerta: boolean): CeldaUniverso => ({
+  uig, nivel: 1, categoria, padre: null, hogares: 4, hogares_12m: 4, universo: 1000, peso_total: 1000,
+  dif_universo: 0, peso_medio: 250, peso_medio_12m: 240, limite_inf: 10, limite_sup: 900, peso_min: 100,
+  peso_max: 400, peso_medio_publicado: null, junta: null, estado: alerta ? "aviso" : "ok",
+  motivos: alerta ? ["Menos de 5 hogares"] : [],
+})
+const GRUPOS: GrupoCeldas[] = [
+  { id: "nse", nombre: "Nivel Socioeconómico N1", celdas: [celda(1, "AB", true), celda(2, "C", false)] },
+  { id: "tam", nombre: "Tamaño Familia N2", celdas: [celda(3, "5 o más", true)] },
+]
+
+describe("celdas del Universo", () => {
+  it("sin grupo elegido muestra las alertas de todos; elegir y volver a presionar quita el filtro", async () => {
+    render(<CeldasUniverso grupos={GRUPOS} />)
+    expect(screen.getByTestId("it-celda-1")).toHaveTextContent("Nivel Socioeconómico N1")
+    expect(screen.getByTestId("it-celda-3")).toBeInTheDocument()
+    expect(screen.queryByTestId("it-celda-2")).not.toBeInTheDocument()
+    expect(screen.getByRole("status")).toHaveTextContent("2 de 3 celdas · todos los grupos")
+
+    await userEvent.click(screen.getByTestId("it-grupo-tam"))
+    expect(screen.queryByTestId("it-celda-1")).not.toBeInTheDocument()
+    expect(screen.getByTestId("it-grupo-tam")).toHaveAttribute("aria-pressed", "true")
+
+    await userEvent.click(screen.getByTestId("it-grupo-tam"))
+    expect(screen.getByTestId("it-grupo-tam")).toHaveAttribute("aria-pressed", "false")
+    expect(screen.getByTestId("it-celda-1")).toBeInTheDocument()
   })
 })

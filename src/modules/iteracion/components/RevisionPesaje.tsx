@@ -147,17 +147,20 @@ function nombreCelda(c: CeldaUniverso) {
 }
 
 export function CeldasUniverso({ grupos }: { grupos: GrupoCeldas[] }) {
-  const [grupoId, setGrupoId] = useState(grupos[0]?.id ?? "")
+  // null = ningún grupo elegido: se ven las celdas de todos (con las alertas, todas las del Universo)
+  const [grupoId, setGrupoId] = useState<string | null>(null)
   const [soloAlertas, setSoloAlertas] = useState(true)
   const [buscar, setBuscar] = useState("")
   const conteo = useMemo(
     () => Object.fromEntries(grupos.map((g) => [g.id, g.celdas.filter((c) => c.estado !== "ok").length])),
     [grupos],
   )
-  const grupo = grupos.find((g) => g.id === grupoId) ?? grupos[0]
-  if (!grupo) return null
+  if (!grupos.length) return null
+  const grupo = grupos.find((g) => g.id === grupoId) ?? null
+  const elegidos = grupo ? [grupo] : grupos
+  const todas = elegidos.flatMap((g) => g.celdas.map((c) => ({ ...c, grupo: g.nombre })))
   const q = buscar.trim().toLowerCase()
-  const filas = grupo.celdas.filter(
+  const filas = todas.filter(
     (c) =>
       (!soloAlertas || c.estado !== "ok") &&
       (!q || `${c.padre ?? ""} ${c.categoria}`.toLowerCase().includes(q)),
@@ -169,15 +172,15 @@ export function CeldasUniverso({ grupos }: { grupos: GrupoCeldas[] }) {
       titulo="Celdas del Universo"
       detalle="Los mismos grupos del Excel del Pesaje. Cada celda contra su promedio de 12 meses; las reglas de alerta son una propuesta inicial."
     >
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Grupo de celdas">
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Grupo de celdas (sin elegir, todos)">
         {grupos.map((g) => {
-          const on = g.id === grupo.id
+          const on = g.id === grupo?.id
           return (
             <button
               key={g.id}
               type="button"
               aria-pressed={on}
-              onClick={() => setGrupoId(g.id)}
+              onClick={() => setGrupoId(on ? null : g.id)}
               data-testid={`it-grupo-${g.id}`}
               className={cn(
                 "h-8 rounded-full border px-3 text-xs font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
@@ -204,12 +207,14 @@ export function CeldasUniverso({ grupos }: { grupos: GrupoCeldas[] }) {
           className="h-8 max-w-64"
         />
         <span className="text-xs text-muted-foreground" role="status">
-          {filas.length} de {grupo.celdas.length} celdas
+          {filas.length} de {todas.length} celdas{grupo ? "" : " · todos los grupos"}
         </span>
       </div>
 
       {filas.length === 0 ? (
-        <p className="text-sm">{soloAlertas ? "Ninguna celda de este grupo tiene alertas." : "Sin celdas que coincidan."}</p>
+        <p className="text-sm">
+          {soloAlertas && !q ? (grupo ? "Ninguna celda de este grupo tiene alertas." : "Ninguna celda tiene alertas.") : "Sin celdas que coincidan."}
+        </p>
       ) : (
         <div className="max-h-[560px] overflow-auto">
           <Table className="[&_th]:whitespace-normal">
@@ -227,8 +232,9 @@ export function CeldasUniverso({ grupos }: { grupos: GrupoCeldas[] }) {
                 const dp = variacion(c.peso_medio, c.peso_medio_12m)
                 const compara = c.hogares_12m >= 30
                 return (
-                  <TableRow key={c.uig} data-testid={`it-celda-${c.uig}`} className="align-top">
+                  <TableRow key={`${c.grupo}-${c.uig}`} data-testid={`it-celda-${c.uig}`} className="align-top">
                     <TableCell className={cn("min-w-32 whitespace-normal", c.nivel > 1 && "pl-6")}>
+                      {!grupo && <span className="block text-xs text-muted-foreground">{c.grupo}</span>}
                       {nombreCelda(c)}
                       {c.junta && (
                         <span className="block text-xs text-muted-foreground">
