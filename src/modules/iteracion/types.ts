@@ -302,11 +302,23 @@ export interface Autor {
   nombre: string
 }
 
+/** Archivo adjunto a una pregunta o comentario (pantallazo, planilla, PDF…). */
+export interface Adjunto {
+  id: string
+  nombre: string
+  /** Tipo con que lo sirve la API (decidido por su contenido). */
+  tipo: string
+  /** Bytes. */
+  tamano: number
+  imagen: boolean
+}
+
 export interface MensajeHilo {
   id: string
   texto: string
   creado: string
   autor: Autor
+  adjuntos: Adjunto[]
 }
 
 export interface Hilo {
@@ -323,4 +335,6 @@ export interface Hilo {
   creado: string
   actualizado: string
   mensajes: MensajeHilo[]
+  /** Los del texto que abre el hilo. */
+  adjuntos: Adjunto[]
 }

@@ -9,6 +9,8 @@ import { mensajeError } from "@/modules/qmstr/components/flujo/formato"
 import { cambiarEstadoConversacion, crearConversacion, responderConversacion } from "../api"
 import { fechaHora } from "../format"
 import { useAccionConversacion, useConversaciones } from "../hooks"
+import { useAdjuntosBorrador } from "../adjuntos"
+import { ConAdjuntos, ListaAdjuntos } from "./Adjuntos"
 import type { Ancla, EstadoHilo, Hilo, Proceso, TipoHilo } from "../types"
 
 const ANCLAS: Record<Ancla, string> = {
@@ -192,12 +194,16 @@ function Panel({ proceso, pais, hilos, ancla, onIr }: {
 
 function TarjetaHilo({ proceso, hilo, conIr, onIr }: { proceso: Proceso; hilo: Hilo; conIr: boolean; onIr: () => void }) {
   const [texto, setTexto] = useState("")
-  const responder = useAccionConversacion(proceso, (t: string) => responderConversacion(proceso, hilo.id, t))
+  const adjuntos = useAdjuntosBorrador(proceso)
+  const responder = useAccionConversacion(proceso, (t: string) => responderConversacion(proceso, hilo.id, t, adjuntos.ids))
   const estado = useAccionConversacion(proceso, (e: EstadoHilo) => cambiarEstadoConversacion(proceso, hilo.id, e))
   const resuelta = hilo.estado === "resuelta"
   const enviar = () =>
     responder.mutate(texto, {
-      onSuccess: () => setTexto(""),
+      onSuccess: () => {
+        setTexto("")
+        adjuntos.limpiar()
+      },
       onError: (e) => toast.error(`No se pudo responder: ${mensajeError(e)}`),
     })
   return (
@@ -216,6 +222,7 @@ function TarjetaHilo({ proceso, hilo, conIr, onIr }: { proceso: Proceso; hilo: H
       </div>
       <h3 className="text-sm font-semibold">{hilo.titulo}</h3>
       <p className="text-sm whitespace-pre-line">{hilo.texto}</p>
+      <ListaAdjuntos proceso={proceso} adjuntos={hilo.adjuntos} />
       {hilo.propuesta && (
         <div className="rounded-md border-l-[3px] border-[var(--qf-wp-blue)] bg-muted/60 px-3 py-2 text-sm">
           <div className="text-xs font-semibold">Nuestra propuesta</div>
@@ -232,19 +239,22 @@ function TarjetaHilo({ proceso, hilo, conIr, onIr }: { proceso: Proceso; hilo: H
               <span className="font-medium">{m.autor.nombre}</span>{" "}
               <span className="text-xs text-muted-foreground">{fechaHora(m.creado)}</span>
               <p className={cn("whitespace-pre-line", m.texto.startsWith("· ") && "text-xs text-muted-foreground")}>{m.texto}</p>
+              <ListaAdjuntos proceso={proceso} adjuntos={m.adjuntos} />
             </li>
           ))}
         </ol>
       )}
-      <Textarea
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        placeholder={hilo.propuesta ? "Responde o confirma la propuesta" : "Responder"}
-        aria-label={`Responder a «${hilo.titulo}»`}
-        rows={2}
-      />
+      <ConAdjuntos borrador={adjuntos} etiqueta={`la respuesta a «${hilo.titulo}»`}>
+        <Textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder={hilo.propuesta ? "Responde o confirma la propuesta" : "Responder"}
+          aria-label={`Responder a «${hilo.titulo}»`}
+          rows={2}
+        />
+      </ConAdjuntos>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={enviar} disabled={!texto.trim() || responder.isPending}>
+        <Button size="sm" onClick={enviar} disabled={!texto.trim() || responder.isPending || adjuntos.subiendo}>
           Responder
         </Button>
         <Button
@@ -269,6 +279,7 @@ function Nuevo({ proceso, pais, ancla }: { proceso: Proceso; pais: string; ancla
   const [tipo, setTipo] = useState<TipoHilo>("comentario")
   const [donde, setDonde] = useState<Ancla>(ancla ?? "iterar.parametros")
   const [soloPais, setSoloPais] = useState(false)
+  const adjuntos = useAdjuntosBorrador(proceso)
   const crear = useAccionConversacion(proceso, (b: Parameters<typeof crearConversacion>[1]) => crearConversacion(proceso, b))
   const destino = ancla ?? donde
   return (
@@ -277,10 +288,11 @@ function Nuevo({ proceso, pais, ancla }: { proceso: Proceso; pais: string; ancla
       onSubmit={(e) => {
         e.preventDefault()
         crear.mutate(
-          { ancla: destino, tipo, texto, pais: soloPais ? pais : null },
+          { ancla: destino, tipo, texto, pais: soloPais ? pais : null, adjuntos: adjuntos.ids },
           {
             onSuccess: () => {
               setTexto("")
+              adjuntos.limpiar()
               toast.success(`${TIPOS[tipo]} publicado en ${ANCLAS[destino]}`)
             },
             onError: (err) => toast.error(`No se pudo publicar: ${mensajeError(err)}`),
@@ -321,14 +333,16 @@ function Nuevo({ proceso, pais, ancla }: { proceso: Proceso; pais: string; ancla
           solo {pais}
         </label>
       </div>
-      <Textarea
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        placeholder="Escribe una pregunta, un comentario o un problema. La primera línea es el título."
-        aria-label="Nuevo comentario"
-        rows={3}
-      />
-      <Button type="submit" size="sm" disabled={!texto.trim() || crear.isPending}>
+      <ConAdjuntos borrador={adjuntos} etiqueta="el nuevo comentario">
+        <Textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Escribe una pregunta, un comentario o un problema. La primera línea es el título."
+          aria-label="Nuevo comentario"
+          rows={3}
+        />
+      </ConAdjuntos>
+      <Button type="submit" size="sm" disabled={!texto.trim() || crear.isPending || adjuntos.subiendo}>
         Publicar
       </Button>
     </form>

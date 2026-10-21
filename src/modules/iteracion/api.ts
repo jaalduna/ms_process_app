@@ -1,5 +1,6 @@
 import { api } from "@/lib/api"
 import type {
+  Adjunto,
   Ajustes,
   Ancla,
   EstadoHilo,
@@ -94,11 +95,24 @@ export const getConversaciones = (proceso: Proceso) =>
 
 export const crearConversacion = (
   proceso: Proceso,
-  body: { ancla: Ancla; tipo: TipoHilo; texto: string; pais: string | null },
+  body: { ancla: Ancla; tipo: TipoHilo; texto: string; pais: string | null; adjuntos: string[] },
 ) => api.post<Hilo>(conv(proceso), body).then((r) => r.data)
 
-export const responderConversacion = (proceso: Proceso, id: string, texto: string) =>
-  api.post<Hilo>(`${conv(proceso)}/${id}/mensajes`, { texto }).then((r) => r.data)
+export const responderConversacion = (proceso: Proceso, id: string, texto: string, adjuntos: string[]) =>
+  api.post<Hilo>(`${conv(proceso)}/${id}/mensajes`, { texto, adjuntos }).then((r) => r.data)
+
+/** Sube un archivo; queda del autor hasta que lo envía con un mensaje (por su id). */
+export const subirAdjunto = (proceso: Proceso, archivo: File) => {
+  const form = new FormData()
+  form.append("archivo", archivo)
+  return api
+    .post<Adjunto>(`${conv(proceso)}/adjuntos`, form, { headers: { "Content-Type": "multipart/form-data" } })
+    .then((r) => r.data)
+}
+
+/** El archivo como blob: la descarga va autenticada, así que no sirve un <img src> directo. */
+export const descargarAdjunto = (proceso: Proceso, id: string) =>
+  api.get<Blob>(`${conv(proceso)}/adjuntos/${id}`, { responseType: "blob" }).then((r) => r.data)
 
 export const cambiarEstadoConversacion = (proceso: Proceso, id: string, estado: EstadoHilo) =>
   api.patch<Hilo>(`${conv(proceso)}/${id}`, { estado }).then((r) => r.data)

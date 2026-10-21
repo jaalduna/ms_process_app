@@ -299,7 +299,7 @@ const SEMILLAS = JSON.parse(readFileSync(new URL("../fixtures/conversaciones-sem
 const conversaciones = SEMILLAS.map((s) => ({
   id: s.id, proceso: s.proceso, ancla: s.ancla, pais: s.pais, tipo: "pregunta", titulo: s.titulo, texto: s.texto,
   propuesta: s.propuesta, estado: "abierta", autor: { email: "tecnologia-latam", nombre: "Equipo de desarrollo" },
-  creado: "2026-10-20T20:00:00+00:00", actualizado: "2026-10-20T20:00:00+00:00", mensajes: [],
+  creado: "2026-10-20T20:00:00+00:00", actualizado: "2026-10-20T20:00:00+00:00", mensajes: [], adjuntos: [],
 }))
 let seqConv = 0
 const ahoraIso = () => new Date().toISOString().slice(0, 19) + "+00:00"
@@ -319,7 +319,7 @@ router.post("/iteracion/:proceso/conversaciones", handler(({ proceso, user }, re
   const t = ahoraIso()
   const h = { id: `h-${++seqConv}`, proceso, ancla, pais, tipo, titulo: texto.trim().split("\n")[0].slice(0, 80),
     texto: texto.trim(), propuesta: null, estado: "abierta", autor: { email: user.email, nombre: user.name },
-    creado: t, actualizado: t, mensajes: [] }
+    creado: t, actualizado: t, mensajes: [], adjuntos: [] }
   conversaciones.push(h)
   res.status(201)
   return h
@@ -329,7 +329,7 @@ router.post("/iteracion/:proceso/conversaciones/:id/mensajes", handler(({ proces
   const texto = String(req.body?.texto ?? "").trim()
   if (!texto) fallo(422, "texto_vacio", "el texto no puede estar vacío")
   h.actualizado = ahoraIso()
-  h.mensajes.push({ id: `m-${++seqConv}`, texto, creado: h.actualizado, autor: { email: user.email, nombre: user.name } })
+  h.mensajes.push({ id: `m-${++seqConv}`, texto, creado: h.actualizado, autor: { email: user.email, nombre: user.name }, adjuntos: [] })
   res.status(201)
   return h
 }, { roles: "leer", conPais: false }))
@@ -341,7 +341,7 @@ router.patch("/iteracion/:proceso/conversaciones/:id", handler(({ proceso, user 
     h.estado = estado
     h.actualizado = ahoraIso()
     const accion = estado === "resuelta" ? "Marcó la conversación como resuelta" : "La volvió a abrir"
-    h.mensajes.push({ id: `m-${++seqConv}`, texto: `· ${accion}`, creado: h.actualizado, autor: { email: user.email, nombre: user.name } })
+    h.mensajes.push({ id: `m-${++seqConv}`, texto: `· ${accion}`, creado: h.actualizado, autor: { email: user.email, nombre: user.name }, adjuntos: [] })
   }
   return h
 }, { roles: "leer", conPais: false }))
