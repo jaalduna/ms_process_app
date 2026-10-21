@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils"
 import { err, num, TONO, textoTono } from "../format"
 import type { CeldaUniverso, GrupoCeldas, IndicadorRevision, Nivel } from "../types"
+import { DetalleIndicador } from "./DetalleIndicador"
 import { Seccion } from "./piezas"
 
 const es = "es-CL"
@@ -58,6 +59,7 @@ function Serie({ i }: { i: IndicadorRevision }) {
 }
 
 export function RevisionHistoria({ indicadores }: { indicadores: IndicadorRevision[] }) {
+  const [abierto, setAbierto] = useState<IndicadorRevision | null>(null)
   return (
     <Seccion
       ancla="iterar.revision"
@@ -76,7 +78,15 @@ export function RevisionHistoria({ indicadores }: { indicadores: IndicadorRevisi
         </TableHeader>
         <TableBody>
           {indicadores.map((i) => (
-            <TableRow key={i.id} data-testid={`it-rev-${i.id}`}>
+            <TableRow
+              key={i.id}
+              data-testid={`it-rev-${i.id}`}
+              className="cursor-pointer"
+              tabIndex={0}
+              aria-label={`Ver el detalle de ${i.etiqueta}`}
+              onClick={() => setAbierto(i)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setAbierto(i))}
+            >
               <TableCell className="min-w-32 font-medium whitespace-normal">
                 {i.etiqueta}
                 {i.regla !== REGLA_RANGO && (
@@ -110,6 +120,13 @@ export function RevisionHistoria({ indicadores }: { indicadores: IndicadorRevisi
           ))}
         </TableBody>
       </Table>
+      <p className="text-xs text-muted-foreground">Haz clic en un indicador para ver su detalle.</p>
+      <DetalleIndicador
+        indicador={abierto}
+        valor={valorIndicador}
+        estadoTexto={abierto ? ESTADO_TEXTO[abierto.estado] : ""}
+        onClose={() => setAbierto(null)}
+      />
     </Seccion>
   )
 }
