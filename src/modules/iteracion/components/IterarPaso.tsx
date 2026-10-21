@@ -112,6 +112,22 @@ export function IterarPaso({
               No se puede calcular: {bloqueo}.
             </p>
           )}
+          {/* bajo «Calcular»: cuánto lleva la corrida y con qué se calculó */}
+          <div className="-mt-3 flex min-h-4 items-center justify-center text-xs text-muted-foreground" role="status" data-testid="it-estado-calculo">
+            {simulacion.isFetching ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />{" "}
+                {manual ? "Corriendo el proceso real…" : "Recalculando…"}
+                {simulacion.espera != null && simulacion.espera > 0 && ` ${duracion(simulacion.espera)}`}
+              </span>
+            ) : sim ? (
+              <span>
+                {manual
+                  ? "Calculado con el proceso real"
+                  : `Calculado en ${(sim.duracion_ms / 1000).toLocaleString("es-CL", { maximumFractionDigits: 1 })} s`}
+              </span>
+            ) : null}
+          </div>
           <div className="space-y-2 border-t pt-4">
             <label htmlFor="it-nombre-escenario" className="text-sm font-medium">
               Guardar esta vuelta como escenario
@@ -120,7 +136,7 @@ export function IterarPaso({
               id="it-nombre-escenario"
               value={nombre ?? sugerido}
               onChange={(e) => setNombre(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
+              onFocus={(e) => e.currentTarget.select()}
               onKeyDown={(e) => e.key === "Enter" && guardar()}
               placeholder="Nombre del escenario"
             />
@@ -136,21 +152,6 @@ export function IterarPaso({
       </div>
 
       <div className="min-w-0 flex-[999_1_560px] space-y-5" aria-busy={simulacion.isFetching}>
-        <div className="flex min-h-5 items-center justify-end text-xs text-muted-foreground" role="status">
-          {simulacion.isFetching ? (
-            <span className="inline-flex items-center gap-1.5">
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />{" "}
-              {manual ? "Corriendo el proceso real…" : "Recalculando…"}
-              {simulacion.espera != null && simulacion.espera > 0 && ` ${duracion(simulacion.espera)}`}
-            </span>
-          ) : sim ? (
-            <span>
-              {manual
-                ? "Calculado con el proceso real"
-                : `Calculado en ${(sim.duracion_ms / 1000).toLocaleString("es-CL", { maximumFractionDigits: 1 })} s`}
-            </span>
-          ) : null}
-        </div>
         {simulacion.error != null && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
             No se pudo simular: {mensajeError(simulacion.error)}
