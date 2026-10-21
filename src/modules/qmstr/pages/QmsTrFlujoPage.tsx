@@ -31,6 +31,7 @@ const ACCION_OK: Record<AccionTanda, string> = {
   pausar: "pausada",
   reanudar: "reanudada",
   reintentar: "vuelve a intentarse",
+  cancelar: "cancelada; sus bases quedan libres",
   simular_cierre_ticket: "con el ticket cerrado (simulado)",
 }
 
