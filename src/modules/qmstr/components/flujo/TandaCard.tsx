@@ -385,9 +385,11 @@ interface TandaCardProps {
   ocupado: AccionTanda | null
   onAccion: (accion: AccionTanda) => void
   onRevertir: () => void
+  /** Bases de esta tanda revertidas después (producto -> número de la tanda de reversión y si ya cerró). */
+  revertidas?: Map<number, { numero: number; cerrada: boolean }>
 }
 
-export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin, verRun, origen, ocupado, onAccion, onRevertir }: TandaCardProps) {
+export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin, verRun, origen, ocupado, onAccion, onRevertir, revertidas = new Map() }: TandaCardProps) {
   const [verBases, setVerBases] = useState(false)
   const [bajando, setBajando] = useState(false)
   const [cancelando, setCancelando] = useState(false)
@@ -524,6 +526,12 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
             {nBases(t.productos.length)}
           </button>
           {t.bypass.length > 0 && <span className="text-muted-foreground">{t.bypass.length} sin ajustes</span>}
+          {revertidas.size > 0 && (
+            <Chip tone="var(--qf-revertida)" data-testid="qf-tanda-revertidas"
+              title={[...revertidas].map(([p, r]) => `${p} ${nombres.get(p) ?? ""}: ${r.cerrada ? "revertida" : "revirtiéndose"} en la tanda ${r.numero}`).join("\n")}>
+              <Undo2 className="size-3" /> {revertidas.size} {revertidas.size === 1 ? "revertida" : "revertidas"}
+            </Chip>
+          )}
           {t.revisar.length > 0 && t.estado !== "en_revision" && (
             <Chip tone="var(--qf-retenida)" data-testid="qf-tanda-revisar"
               title={t.revisar.map((r) => `${r.producto}: ${r.motivo}`).join("\n")}>
@@ -534,12 +542,17 @@ export function TandaCard({ tanda: t, nombres, modo, entrega = "ticket", esAdmin
         {verBases && (
           <ul className="flex flex-wrap gap-1.5" data-testid="qf-tanda-bases">
             {t.productos.map((p) => (
-              <li key={p}
-                title={t.bypass_motivos[String(p)] ?? t.revisar.find((r) => r.producto === p)?.motivo}
+              <li key={p} data-testid={`qf-tanda-base-${p}`}
+                title={revertidas.has(p)
+                  ? `${revertidas.get(p)!.cerrada ? "Revertida" : "Revirtiéndose"} en la tanda ${revertidas.get(p)!.numero}`
+                  : t.bypass_motivos[String(p)] ?? t.revisar.find((r) => r.producto === p)?.motivo}
                 className={cn("rounded-md border px-2 py-0.5 text-xs",
                   t.bypass.includes(p) && "border-dashed text-muted-foreground",
-                  t.revisar.some((r) => r.producto === p) && "border-[var(--qf-retenida)]")}>
-                <span className="text-muted-foreground tabular-nums">{p}</span> {nombres.get(p) ?? ""}
+                  t.revisar.some((r) => r.producto === p) && "border-[var(--qf-retenida)]",
+                  revertidas.has(p) && "border-[var(--qf-revertida)] text-muted-foreground")}>
+                <span className="text-muted-foreground tabular-nums">{p}</span>{" "}
+                <span className={cn(revertidas.get(p)?.cerrada && "line-through")}>{nombres.get(p) ?? ""}</span>
+                {revertidas.has(p) && <span className="ml-1 text-[var(--qf-revertida)]">· {revertidas.get(p)!.cerrada ? "revertida" : "revirtiéndose"}</span>}
               </li>
             ))}
           </ul>

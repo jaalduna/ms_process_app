@@ -19,6 +19,8 @@ interface RevertirDialogProps {
   entrega?: Entrega
   onOpenChange: (open: boolean) => void
   onRevertir: (productos: number[], motivo: string, confirmarCambiosPosteriores: boolean) => void
+  /** Revertir solo esta base (desde su detalle): el diálogo la trae elegida y no muestra las demás de la tanda. */
+  soloBase?: number | null
 }
 
 /**
@@ -33,15 +35,15 @@ export function RevertirDialog(props: RevertirDialogProps) {
   )
 }
 
-function Contenido({ tanda, yaRevertidas, nombres, revirtiendo, onRevertir, entrega = "ticket" }: RevertirDialogProps & { tanda: Tanda }) {
-  const [sel, setSel] = useState<Set<number>>(new Set())
+function Contenido({ tanda, yaRevertidas, nombres, revirtiendo, onRevertir, entrega = "ticket", soloBase = null }: RevertirDialogProps & { tanda: Tanda }) {
+  const [sel, setSel] = useState<Set<number>>(new Set(soloBase !== null ? [soloBase] : []))
   const [motivo, setMotivo] = useState("")
   const [confirmar, setConfirmar] = useState(false)
   const [aceptaPisar, setAceptaPisar] = useState(false)
   const bloqueos = useBloqueosReversion(tanda.id)
   const bloqueadas = bloqueos.data ?? {}
   const revisado = bloqueos.isSuccess
-  const candidatas = tanda.productos.filter((p) => !tanda.bypass.includes(p))
+  const candidatas = tanda.productos.filter((p) => !tanda.bypass.includes(p) && (soloBase === null || p === soloBase))
   const nConCambios = candidatas.filter((p) => String(p) in bloqueadas).length
   const elegidas = candidatas.filter((p) => sel.has(p))
   const pisadas = elegidas.filter((p) => String(p) in bloqueadas)
@@ -59,7 +61,10 @@ function Contenido({ tanda, yaRevertidas, nombres, revirtiendo, onRevertir, entr
     <DialogContent className="qf flex max-h-[min(90vh,760px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl" data-testid="qf-revertir">
       <DialogHeader className="border-b px-6 pt-6 pb-4">
         <DialogTitle className="flex items-center gap-2 font-display text-xl">
-          <Undo2 className="size-5 text-[var(--qf-revertida)]" /> Revertir bases de la tanda {tanda.numero}
+          <Undo2 className="size-5 text-[var(--qf-revertida)]" />
+          {soloBase !== null
+            ? <>Revertir {soloBase} {nombres.get(soloBase) ?? ""}</>
+            : <>Revertir bases de la tanda {tanda.numero}</>}
         </DialogTitle>
         <DialogDescription>
           {entrega === "pythoncac"
@@ -71,7 +76,7 @@ function Contenido({ tanda, yaRevertidas, nombres, revirtiendo, onRevertir, entr
       {!confirmar ? (
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
           <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium">Bases del zip</span>
+            <span className="font-medium">{soloBase !== null ? `Base aplicada en la tanda ${tanda.numero}` : entrega === "pythoncac" ? "Bases aplicadas" : "Bases del zip"}</span>
             <span className="text-xs text-muted-foreground tabular-nums">{elegidas.length} {elegidas.length === 1 ? "elegida" : "elegidas"}</span>
           </div>
           {bloqueos.isPending && (

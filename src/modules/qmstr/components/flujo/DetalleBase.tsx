@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { AlertTriangle, ArrowRight, History, Loader2, Rocket, Ticket } from "lucide-react"
+import { AlertTriangle, ArrowRight, History, Loader2, Rocket, Ticket, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -22,6 +22,8 @@ interface DetalleBaseProps {
   onOpenChange: (open: boolean) => void
   onLanzar: (data: TandaCreate) => void
   onVerTanda: (numero: number) => void
+  /** Revertir solo esta base (si tiene QMS-TR aplicado); la página abre el diálogo con su tanda. */
+  onRevertir?: (producto: number) => void
   /** Cómo entrega el flujo: con PythonCac no hay ticket ni hito 10. */
   entrega?: Entrega
 }
@@ -50,7 +52,7 @@ function Hito({ label, at, anulado }: { label: string; at: string | null; anulad
   )
 }
 
-function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando, onLanzar, onVerTanda, entrega = "ticket" }: DetalleBaseProps & { base: FlujoBase }) {
+function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando, onLanzar, onVerTanda, onRevertir, entrega = "ticket" }: DetalleBaseProps & { base: FlujoBase }) {
   const directo = entrega === "pythoncac"
   const [modo, setModo] = useState<ModoTanda>("completo")
   const [nota, setNota] = useState("")
@@ -135,6 +137,18 @@ function Contenido({ base: b, pais, paisEtiqueta, periodo, puedeOperar, lanzando
             </ol>
           )}
         </section>
+
+        {puedeOperar && onRevertir && b.estado === "aplicada" && (
+          <section aria-label="Revertir esta base" className="space-y-2 rounded-xl border bg-muted/25 p-4" data-testid="qf-detalle-revertir">
+            <h3 className="font-display text-base font-semibold">Revertir esta base</h3>
+            <p className="text-sm text-muted-foreground">
+              Deja sus actos en J como estaban antes de QMS-TR. Solo esta base: las demás de su tanda no cambian.
+            </p>
+            <Button variant="outline" className="w-full" onClick={() => onRevertir(b.producto)} data-testid="qf-detalle-revertir-btn">
+              <Undo2 /> Revertir esta base
+            </Button>
+          </section>
+        )}
 
         {puedeOperar && (
           <section aria-label="Lanzar esta base" className="space-y-3 rounded-xl border bg-muted/25 p-4" data-testid="qf-detalle-lanzar">

@@ -27,6 +27,22 @@ const card = (t: Tanda, onAccion = vi.fn()) => (
   </QueryClientProvider>
 )
 
+describe("bases revertidas después", () => {
+  it("la tanda marca la base revertida y cuenta cuántas", async () => {
+    const t = tanda({ estado: "cerrada", productos: [1, 2] })
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TandaCard tanda={t} nombres={new Map([[1, "Leche"], [2, "Café"]])} modo="simulacion" entrega="pythoncac" esAdmin verRun={false}
+          ocupado={null} onAccion={() => {}} onRevertir={() => {}} revertidas={new Map([[2, { numero: 3, cerrada: true }]])} />
+      </QueryClientProvider>,
+    )
+    expect(screen.getByTestId("qf-tanda-revertidas")).toHaveTextContent("1 revertida")
+    await userEvent.click(screen.getByText("2 bases"))
+    expect(screen.getByTestId("qf-tanda-base-2")).toHaveTextContent("revertida")
+    expect(screen.getByTestId("qf-tanda-base-1")).not.toHaveTextContent("revertida")
+  })
+})
+
 describe("cancelar una tanda", () => {
   it("antes de aplicar se puede cancelar, con confirmación", async () => {
     const onAccion = vi.fn()
