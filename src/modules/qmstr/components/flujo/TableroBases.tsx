@@ -56,7 +56,8 @@ export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSelecci
   }, [bases])
   const conH4 = bases.filter((b) => b.h4 && !b.h4_anulado).length
   // con PythonCac la referencia es la distribución de actos (hito 3; el sign-off de calibración es un correo que no
-  // queda en J) y QMS-TR va antes de la liberación: no hay retenidas por hito 4; lo que falta son bases sin distribución
+  // queda en J) y QMS-TR va antes de la liberación: no hay retenidas por hito 4; el último KPI son las bases que QMS-TR
+  // dejó sin ajustes
   const kpis = [
     directo
       ? { label: "con distribución de actos (hito 3)", valor: bases.filter((b) => b.h3).length, de: bases.length, testid: "qf-kpi-h3" }
@@ -65,7 +66,7 @@ export function TableroBases({ pais, periodo, bases, filtro, onFiltro, onSelecci
     { label: "QMS-TR aplicado", valor: cuenta.aplicada, testid: "qf-kpi-aplicadas", estado: "aplicada" as const },
     { label: "QMS-TR revertido", valor: cuenta.revertida, testid: "qf-kpi-revertidas", estado: "revertida" as const },
     directo
-      ? { label: "sin distribución de actos", valor: cuenta.sin_hito4, testid: "qf-kpi-sin-distribucion", estado: "sin_hito4" as const }
+      ? { label: "sin ajustes de QMS-TR", valor: cuenta.bypass, testid: "qf-kpi-sin-ajustes", estado: "bypass" as const }
       : cuenta.retenida > 0 || cuenta.esperando_liberacion === 0
       ? { label: "retenidas por DC", valor: cuenta.retenida, testid: "qf-kpi-retenidas", estado: "retenida" as const }
       : { label: "esperando liberación de DC", valor: cuenta.esperando_liberacion, testid: "qf-kpi-esperando-liberacion", estado: "esperando_liberacion" as const },
