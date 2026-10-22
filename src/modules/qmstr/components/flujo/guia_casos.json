@@ -7,14 +7,12 @@
     {
       "id": "SIN-H3",
       "titulo": "Base sin distribución de actos (hito 3)",
-      "sintoma": "Al elegir la base aparece «Sin distribución de actos (hito 3) registrada: confirma que Calibración la firmó».",
+      "sintoma": "En el tablero o en la lista de bases, la base aparece como «Sin distribución de actos».",
       "que_hacer": [
-        "Confirma con Calibración que la base tiene sign-off (a veces el hito 3 se olvida de marcar).",
-        "Si está firmada, lánzala igual: el aplicativo no la bloquea. Deja una nota en la tanda.",
-        "Pide que se registre el hito 3 para la trazabilidad.",
-        "Si no está firmada, no la elijas y lánzala cuando llegue el sign-off."
+        "Si te pidieron correrla, lánzala igual: Calibración ya terminó y el aplicativo no la bloquea.",
+        "La marca del hito 3 a veces queda sin registrar; no hace falta esperarla."
       ],
-      "escalar": "Si Calibración registró el hito 3 y el aplicativo no lo ve."
+      "escalar": null
     },
     {
       "id": "RE-CORRER",
