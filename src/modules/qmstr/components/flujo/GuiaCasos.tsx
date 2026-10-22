@@ -53,7 +53,7 @@ export function GuiaCasos() {
           <div className="flex-1 space-y-2 overflow-y-auto p-4">
             {casos.length === 0 && (
               <p className="text-sm text-muted-foreground" data-testid="qf-guia-vacio">
-                Ningún caso calza con «{q}». Pregúntalo en Preguntas y comentarios.
+                Ningún caso calza con «{q}». Si es un problema con una tanda, avísale a {guia.contacto_escalamiento}.
               </p>
             )}
             {casos.map((c) => {
